@@ -1,0 +1,37 @@
+version=1
+id=3554864233
+title=The Great Spiffo's Rat Race - Official Challenge Mode
+description=[h1]Welcome to The Great Spiffo's Rat Race Challenge![/h1]
+description=
+description=This mod allow participants a quick route for starting a [b]NEW Rat Race session[/b] by adding a new [b]Challenge mode[/b] to the game, much like 'A Really CD DA'.
+description=
+description=[hr][/hr]
+description=[h2]Official Rat Race Settings:[/h2]
+description=The Challenge modes within use the Official Rat Race Settings, which can alternatively be found in the [url=https://discord.gg/fajxj54RxB]Rat Race Discord[/url].
+description=
+description=[hr][/hr]
+description=[h2]Challenge Selection:[/h2]
+description=[b]The mod must be enabled for the Official Challenge mode to appear in the list.[/b]
+description=[list]
+description=[*]Start a SOLO game
+description=[*]Select 'The Great Spiffo's Rat Race - Official Challenge' (you must select this to be eligible for the Official Leaderboard)
+description=[*]Hit 'NEXT' and continue as normal
+description=[/list]
+description=
+description=[hr][/hr]
+description=[h2]Unofficial Challenges:[/h2]
+description=[b]Note:[/b] These additional challenges are just for fun, you will not be able to submit them to the Official Leaderboard, please make sure to select the 'Official Challenge' mode to allow for submission.
+description=[list]
+description=[*] An excrutiatingly hard [b]CDDA[/b] version of TGSRR, because you don't have enough pain in your life <3
+description=[*] TGSRR but with [b]100% Sprinters[/b], because we all know how much of a masochist Bonz is! >)
+description=[/list]
+description=
+description=[hr][/hr]
+description=[h2]Mod Support and Twitch[/h2]
+description=Any questions you can find me in any of the places below;
+description=[list]
+description=[*][url=https://twitch.tv/eurymachus]Twitch[/url]
+description=[*][url=https://discord.gg/eurymachus]Discord[/url]
+description=[/list]
+tags=Build 42;Hardmode
+visibility=public

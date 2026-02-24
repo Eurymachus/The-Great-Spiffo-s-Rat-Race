@@ -1,0 +1,8 @@
+Challenge_EN = {
+    Challenge_TGSRR_name =  "The Great Spiffo's Rat Race - Official Challenge",
+	Challenge_TGSRR_desc =  "Using this challenge mode will allow you submit your run via the google form (found on RR Discord) to the official leaderboard. <LINE> <IMAGECENTRE:rules.png>",
+    Challenge_TGSRR_CDDA_name =  "The Great Spiffo's Rat Race - Unofficial CDDA",
+	Challenge_TGSRR_CDDA_desc =  "The Great Spiffo's Rat Race settings with a slice of CDDA thrown in... <LINE> <LINE> Because you don't have enough pain in your life... <LINE> <LINE>Note: This mode is just for fun and you will not be able to make a submission to the leaderboard. Select the 'Official Challenge' to allow submissions.",
+    Challenge_TGSRR_Sprinters_name =  "The Great Spiffo's Rat Race - Unofficial Sprinters",
+	Challenge_TGSRR_Sprinters_desc =  "The Great Spiffo's Rat Race settings with Sprinters... <LINE> <LINE> Because you're a masochist... <LINE> <LINE>Note: This mode is just for fun and you will not be able to make a submission to the leaderboard. Select the 'Official Challenge' to allow submissions.",
+}
