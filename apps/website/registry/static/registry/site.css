@@ -14,7 +14,7 @@ body {
 }
 
 .page-shell {
-    width: min(92%, 42rem);
+    width: min(92%, 60rem);
     margin: 0 auto;
     padding: 4rem 0;
 }
@@ -24,6 +24,7 @@ body {
 .eyebrow { margin: 0 0 .65rem; color: #f2a33a; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
 
 .card {
+    width: min(100%, 48rem);
     padding: clamp(1.4rem, 5vw, 2.5rem);
     background: rgba(25, 31, 21, .94);
     border: 1px solid #586746;
