@@ -17,6 +17,62 @@ local TAB_TEXT_PADDING = 24
 local LAUNCHER_SIZE = 58
 local LAUNCHER_MARGIN = 4
 local LAUNCHER_TEXTURE = "media/ui/TGSRR/tgsrr.png"
+local DRAG_THRESHOLD = 4
+
+local TGSRRTrackerLauncher = ISButton:derive("TGSRRTrackerLauncher")
+
+function TGSRRTrackerLauncher:onMouseDown(x, y)
+    ISButton.onMouseDown(self, x, y)
+    self.dragging = true
+    self.wasDragged = false
+    self.dragStartMouseX = getMouseX()
+    self.dragStartMouseY = getMouseY()
+    self.dragStartX = self:getX()
+    self.dragStartY = self:getY()
+end
+
+function TGSRRTrackerLauncher:onMouseMove(dx, dy)
+    ISButton.onMouseMove(self, dx, dy)
+    if not self.dragging then return end
+
+    local deltaX = getMouseX() - self.dragStartMouseX
+    local deltaY = getMouseY() - self.dragStartMouseY
+    if not self.wasDragged and
+            (math.abs(deltaX) >= DRAG_THRESHOLD or math.abs(deltaY) >= DRAG_THRESHOLD) then
+        self.wasDragged = true
+    end
+    if not self.wasDragged then return end
+
+    local maxX = math.max(0, getCore():getScreenWidth() - self:getWidth())
+    local maxY = math.max(0, getCore():getScreenHeight() - self:getHeight())
+    self:setX(math.max(0, math.min(maxX, self.dragStartX + deltaX)))
+    self:setY(math.max(0, math.min(maxY, self.dragStartY + deltaY)))
+end
+
+function TGSRRTrackerLauncher:onMouseMoveOutside(dx, dy)
+    self:onMouseMove(dx, dy)
+end
+
+function TGSRRTrackerLauncher:finishDrag()
+    local wasDragged = self.wasDragged
+    self.dragging = false
+    self.wasDragged = false
+    if wasDragged then State.save(nil, self) end
+    return wasDragged
+end
+
+function TGSRRTrackerLauncher:onMouseUp(x, y)
+    if self:finishDrag() then
+        self.pressed = false
+        return
+    end
+    ISButton.onMouseUp(self, x, y)
+end
+
+function TGSRRTrackerLauncher:onMouseUpOutside(x, y)
+    self:finishDrag()
+    ISButton.onMouseUpOutside(self, x, y)
+end
 
 local function isRatRace()
     if not getCore():isChallenge() then return false end
@@ -84,10 +140,13 @@ function TGSRRChallengeTrackerWindow:onResize()
     end
 end
 
-function TGSRRChallengeTrackerWindow:saveState() State.save(self) end
+function TGSRRChallengeTrackerWindow:saveState() State.save(self, nil, self:getIsVisible()) end
 function TGSRRChallengeTrackerWindow:onMouseUp(x, y) ISCollapsableWindow.onMouseUp(self, x, y); self:saveState() end
 function TGSRRChallengeTrackerWindow:onMouseUpOutside(x, y) ISCollapsableWindow.onMouseUpOutside(self, x, y); self:saveState() end
-function TGSRRChallengeTrackerWindow:close() self:saveState(); self:setVisible(false) end
+function TGSRRChallengeTrackerWindow:close()
+    State.save(self, nil, false)
+    self:setVisible(false)
+end
 
 function TGSRRChallengeTrackerWindow:new(x, y, width, height)
     local o = ISCollapsableWindow.new(self, x, y, width, height)
@@ -100,7 +159,12 @@ end
 
 function TGSRRChallengeTrackerWindow.open()
     local window = TGSRRChallengeTrackerWindow.instance
-    if window then window:setVisible(true); window:addToUIManager(); return window end
+    if window then
+        window:setVisible(true)
+        window:addToUIManager()
+        State.save(window, nil, true)
+        return window
+    end
     local saved = State.load()
     local width = math.max(430, tonumber(saved.width) or 560)
     local height = math.max(300, tonumber(saved.height) or 590)
@@ -110,15 +174,20 @@ function TGSRRChallengeTrackerWindow.open()
     window.activeModuleId = saved.tab ~= "" and saved.tab or nil
     window:initialise(); window:addToUIManager()
     TGSRRChallengeTrackerWindow.instance = window
+    State.save(window, nil, true)
     return window
 end
 
 local function createTracker()
     if not isRatRace() then return end
     if not TGSRRChallengeTrackerWindow.launcher then
-        local x = LAUNCHER_MARGIN
-        local y = math.floor((getCore():getScreenHeight() - LAUNCHER_SIZE) / 2)
-        local launcher = ISButton:new(x, y, LAUNCHER_SIZE, LAUNCHER_SIZE, "", nil, function()
+        local saved = State.load()
+        local maxX = math.max(0, getCore():getScreenWidth() - LAUNCHER_SIZE)
+        local maxY = math.max(0, getCore():getScreenHeight() - LAUNCHER_SIZE)
+        local x = math.max(0, math.min(maxX, tonumber(saved.launcherX) or LAUNCHER_MARGIN))
+        local y = math.max(0, math.min(maxY, tonumber(saved.launcherY) or
+            math.floor((getCore():getScreenHeight() - LAUNCHER_SIZE) / 2)))
+        local launcher = TGSRRTrackerLauncher:new(x, y, LAUNCHER_SIZE, LAUNCHER_SIZE, "", nil, function()
                 local window = TGSRRChallengeTrackerWindow.instance
                 if window and window:getIsVisible() then window:close() else TGSRRChallengeTrackerWindow.open() end
             end)
@@ -126,14 +195,15 @@ local function createTracker()
         launcher:instantiate()
         launcher:setImage(getTexture(LAUNCHER_TEXTURE))
         launcher:forceImageSize(LAUNCHER_SIZE - 8, LAUNCHER_SIZE - 8)
-        launcher:setTooltip("Open the Rat Race Challenge Tracker")
+        launcher:setTooltip("Open the Rat Race Challenge Tracker (drag to move)")
         launcher.backgroundColor = { r = 0, g = 0, b = 0, a = 0.65 }
         launcher.backgroundColorMouseOver = { r = 0.16, g = 0.16, b = 0.16, a = 0.9 }
         launcher.borderColor = { r = 0.72, g = 0.72, b = 0.72, a = 0.9 }
         launcher:addToUIManager()
         TGSRRChallengeTrackerWindow.launcher = launcher
     end
-    TGSRRChallengeTrackerWindow.open()
+    local saved = State.load()
+    if saved.open == "true" then TGSRRChallengeTrackerWindow.open() end
 end
 
 Events.OnGameStart.Add(createTracker)
