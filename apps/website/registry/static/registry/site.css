@@ -85,5 +85,16 @@ button:hover { background: #f4ad53; }
 }
 .recovery-prompt p { margin-top: 0; }
 .secondary-button { color: #f4ad53; font-weight: 800; }
+.existing-account {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1.25rem 0;
+    padding: .85rem 1rem;
+    border: 1px solid #414a37;
+    border-radius: .5rem;
+    background: #0f130d;
+}
 .card-link { margin: 1.25rem 0 0; text-align: center; }
 .card a { color: #f4ad53; }

@@ -42,6 +42,8 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Reserve your nickname")
         self.assertContains(response, "cf-turnstile")
+        self.assertContains(response, "Already signed up?")
+        self.assertContains(response, reverse("registry:login"))
 
     def test_registration_rejects_failed_human_verification(self):
         self.turnstile.return_value = False

@@ -7,6 +7,10 @@
 <section class="card">
     <h2>Reserve your nickname</h2>
     <p class="lede">Register your interest before the live Rat Race challenge platform opens.</p>
+    <div class="existing-account">
+        <span>Already signed up?</span>
+        <a class="secondary-button" href="{% url 'registry:login' %}">Log in</a>
+    </div>
 
     <form method="post" novalidate>
         {% csrf_token %}
