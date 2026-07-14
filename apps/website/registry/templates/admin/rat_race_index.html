@@ -1,0 +1,12 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block nav-breadcrumbs %}
+<nav aria-label="{% translate 'Breadcrumbs' %}">
+    <div class="breadcrumbs">{% translate 'Home' %}</div>
+</nav>
+{% endblock %}
+
+{% block nav-sidebar %}
+    {% include "admin/nav_sidebar.html" %}
+{% endblock %}

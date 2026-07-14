@@ -1,0 +1,10 @@
+{% extends "registry/base.html" %}
+{% block title %}Your account | The Great Spiffo's Rat Race{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>Welcome to the Rat Race!</h2>
+  <p>Signed in as <strong>{{ request.user.nickname }}</strong>.</p>
+  {% if request.user.is_staff %}<p><a href="{% url 'admin:index' %}">Open challenge administration</a></p>{% endif %}
+  <form method="post" action="{% url 'registry:logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
+</section>
+{% endblock %}

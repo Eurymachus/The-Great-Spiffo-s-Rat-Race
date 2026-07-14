@@ -1,0 +1,5 @@
+/* Keep navigation geometry stable when an app becomes the current selection. */
+#nav-sidebar .current-app .section:link,
+#nav-sidebar .current-app .section:visited {
+    font-weight: 400;
+}

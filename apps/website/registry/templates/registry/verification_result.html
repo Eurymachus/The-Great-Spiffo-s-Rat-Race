@@ -1,0 +1,23 @@
+{% extends "registry/base.html" %}
+
+{% block title %}Email verification | The Great Spiffo's Rat Race{% endblock %}
+
+{% block content %}
+<section class="card confirmation">
+    {% if result == "verified" %}
+        <p class="success-mark" aria-hidden="true">✓</p>
+        <h2>Email verified</h2>
+        <p><strong>{{ participant.nickname }}</strong> is reserved. Welcome to the Rat Race!</p>
+    {% elif result == "expired" %}
+        <h2>This verification link has expired</h2>
+        <p>The link is no longer valid.</p>
+        <p><a href="{% url 'registry:resend' %}">Request a new verification link</a></p>
+    {% elif result == "unavailable" %}
+        <h2>This registration is unavailable</h2>
+        <p>The registration cannot currently be verified. If it merely expired, you can <a href="{% url 'registry:resend' %}">request a new link</a>.</p>
+    {% else %}
+        <h2>This verification link is invalid</h2>
+        <p>The link may be incomplete or may have been changed.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,54 @@
+# Decisions
+
+This file records settled project decisions so they do not need to be repeatedly
+reconstructed. Add new entries briefly, with the date and reason.
+
+## 2026-07-13 — The repository covers the whole challenge
+
+The existing Workshop repository will encompass the Project Zomboid mod and the
+wider Rat Race platform. Project-level website and documentation files will live
+outside `Contents/`.
+
+## 2026-07-13 — Preserve the Workshop boundary
+
+Only Project Zomboid Workshop deliverables belong under `Contents/`. The PZ
+publisher uploads `Contents/` as item content and handles the root `preview.png`
+and `workshop.txt` separately.
+
+## 2026-07-13 — Updates are cumulative snapshots
+
+Participants will paste an encoded update code into the website. Each update is a
+self-contained snapshot containing the run's data from its beginning through the
+current point, including per-in-game-day aggregate deltas and relevant current or
+lifetime tables. Updates are not declarations that a run has finished.
+
+## 2026-07-13 — Start with a Participant Registry
+
+The first website milestone is verified participant registration and nickname
+reservation. Report ingestion, moderation, leaderboards, and analytics are later
+milestones.
+
+## 2026-07-13 — Use a documented, self-hosted web stack
+
+The website will be a single Django application backed by PostgreSQL and packaged
+with Docker Compose. Production will run in an isolated Ubuntu Hyper-V virtual
+machine on the existing OVH dedicated server. Microsoft 365 will provide ordinary
+transactional email. Cloudflare's free DNS, Tunnel, HTTPS, and Turnstile services
+are planned once the final domain is chosen.
+
+Documentation, reproducible setup, backup and recovery instructions, and a
+plain-language operator guide are completion requirements rather than later work.
+
+## 2026-07-13 — Qualify the word “official”
+
+The website and mod are official to The Great Spiffo's Rat Race community
+challenge. They are not official Project Zomboid or The Indie Stone products.
+Public wording must make that distinction clear and avoid implying endorsement.
+
+## 2026-07-14 — Participants are permanent login accounts
+
+Signup creates a participant with a public nickname, private email login, and
+securely hashed password. Verification activates the account. Administrators may
+promote that same account to Approver, Moderator, or Challenge Administrator and
+thereby grant scoped `/admin/` access. Signup never grants staff or superuser
+privileges automatically.

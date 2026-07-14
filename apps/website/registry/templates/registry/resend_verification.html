@@ -1,0 +1,39 @@
+{% extends "registry/base.html" %}
+
+{% block title %}Resend verification | The Great Spiffo's Rat Race{% endblock %}
+{% block extra_head %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endblock %}
+
+{% block content %}
+<section class="card">
+    {% if submitted %}
+        <h2>Check your email</h2>
+        <p>If a pending registration exists for that address, a new verification link has been sent.</p>
+        {% if development_verification_url %}
+            <div class="development-link">
+                <strong>Local development shortcut</strong>
+                <p>No real email was sent. Use this link to test the verification flow:</p>
+                <a href="{{ development_verification_url }}">Verify this registration</a>
+            </div>
+        {% endif %}
+    {% else %}
+        <h2>Resend verification</h2>
+        <p class="lede">Request a new verification link for a pending registration.</p>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% for error in form.non_field_errors %}<p class="error form-error">{{ error }}</p>{% endfor %}
+            {% for field in form %}
+                <div class="field{% if field.errors %} field-error{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                    {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
+                </div>
+            {% endfor %}
+            <div class="human-check">
+                <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="dark"></div>
+            </div>
+            <button type="submit">Send a new link</button>
+        </form>
+    {% endif %}
+</section>
+{% endblock %}

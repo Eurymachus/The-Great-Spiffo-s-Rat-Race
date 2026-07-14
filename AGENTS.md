@@ -2,6 +2,23 @@
 
 This workspace is the source for The Great Spiffo's Rat Race for Project Zomboid.
 
+## Project Memory
+
+Before substantial work, read:
+
+1. `docs/NOW.md` for the single current project focus.
+2. Relevant entries in `docs/DECISIONS.md` for settled decisions.
+3. `docs/BRAND.md` when writing public-facing names, copy, or visual material.
+
+Use `docs/IDEAS.md` as a parking place, not as approved scope. When a useful idea
+arises, capture it there without expanding the current deliverable unless the user
+explicitly changes scope.
+
+The project owner has ADHD. Prefer one recommended next action, concise choices,
+and progressive disclosure. Avoid presenting large undifferentiated plans unless
+requested. When the user says "capture that", record it in the appropriate project
+memory document.
+
 ## Workspace
 
 - Mod workspace: `E:\LocalProfiles\Eurymachus\GameData\Zomboid\Workshop\The Great Spiffo's Rat Race`

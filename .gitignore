@@ -1,0 +1,15 @@
+# Local development
+.env
+.venv/
+__pycache__/
+*.py[cod]
+
+# Django
+db.sqlite3
+staticfiles/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

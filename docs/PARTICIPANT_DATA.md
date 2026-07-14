@@ -1,0 +1,87 @@
+# Participant Registry Data
+
+The first local implementation stores one pending registration per normalised
+email address and one reservation per case-insensitive nickname.
+
+Each registration is the permanent participant login account. Email is used to
+sign in, nickname is public, and Django securely hashes the password. Login is
+disabled until verification succeeds.
+
+## Stored Fields
+
+- Random stable participant ID
+- Public display nickname and private normalised nickname
+- Private email address and normalised email address
+- Pending, verified, expired, disabled, or removed status
+- Registration, consent, latest verification-send, and optional verification times
+- Privacy-notice version
+- Private administrator notes
+
+Normalised values exist only for reliable matching. They are not shown publicly.
+
+## Current Development Limitations
+
+- Verification emails use Django's local console backend rather than Microsoft
+  365. With debug mode enabled, the confirmation page displays a test shortcut.
+- The privacy notice is a labelled draft rather than final legal copy.
+- Local development uses Cloudflare's official always-pass Turnstile test keys.
+  Production must supply its own site and secret keys through environment
+  variables.
+- The local SQLite database contains development-only data and is excluded from
+  Git. PostgreSQL will replace it for production.
+
+## Email Verification
+
+- New registrations begin in the pending state.
+- The website emails a signed verification link containing no readable personal
+  data.
+- Links expire after 24 hours and cannot be altered without invalidating them.
+- A valid link marks the matching participant as verified and records the time.
+- Reopening a valid link is harmless; disabled or removed registrations cannot be
+  verified.
+- Participants can request another link without the page revealing whether an
+  email address is registered.
+- A repeat signup using an existing email offers the resend page without revealing
+  whether the existing registration is pending, expired, or verified.
+- Pending registrations expire after seven days without a newer verification
+  email. A scheduled production task will run the expiry command.
+- Resending an expired registration returns it to pending with a fresh link.
+
+## Abuse Protection
+
+- Signup and verification-resend forms require a Turnstile token that is
+  validated by the server before any account or email action occurs.
+- Signup attempts are limited per IP address. Resend attempts are limited both
+  per IP address and per normalised email address.
+- Rate-limit cache keys contain hashes rather than raw email addresses or IPs.
+- Local limits use Django's in-process cache. Deployment must configure a shared
+  cache so limits apply consistently across all website processes.
+- Cloudflare's connecting-IP header is ignored unless the production proxy
+  configuration explicitly enables trust for it.
+
+## Password Recovery
+
+- The login page links to an email-based password-reset request.
+- The request response is identical whether or not an active account exists.
+- Reset requests require Turnstile and are limited per IP and per normalised
+  email address.
+- Reset links expire after one hour. Changing the password immediately
+  invalidates the link so it cannot be reused.
+- Only active, verified participant accounts receive reset mail. Disabled,
+  removed, pending, and unknown accounts receive no message.
+- Debug mode displays a local testing shortcut; production will only send the
+  reset link by email.
+
+## Administration
+
+- Django's authenticated administrator site provides search and status/date
+  filtering.
+- Administrators can edit status and private notes, resend verification, and
+  export selected registrations as CSV.
+- Permanent database deletion is disabled in the administrator interface; use
+  the removed status to retain an audit trail until the formal deletion workflow
+  is implemented.
+- See `docs/ADMINISTRATION.md` for the operator procedure.
+- Administrators can promote the same participant account to Approver, Moderator,
+  or Challenge Administrator without changing its email or password.
+- Signup never grants staff or superuser access automatically.

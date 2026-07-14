@@ -1,0 +1,40 @@
+{% extends "registry/base.html" %}
+
+{% block title %}Reserve your nickname | The Great Spiffo's Rat Race{% endblock %}
+{% block extra_head %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Reserve your nickname</h2>
+    <p class="lede">Register your interest before the live Rat Race challenge platform opens.</p>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}<p class="error form-error">{{ error }}</p>{% endfor %}
+        {% for field in form %}
+            <div class="field{% if field.errors %} field-error{% endif %}">
+                {% if field.field.widget.input_type == "checkbox" %}
+                    <label class="checkbox">{{ field }} <span>{{ field.label }}</span></label>
+                {% else %}
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                {% endif %}
+                {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
+            </div>
+        {% endfor %}
+        {% if form.email_already_registered %}
+            <div class="recovery-prompt">
+                <p>If your registration is still pending, request a new verification link.</p>
+                <a class="secondary-button" href="{% url 'registry:resend' %}">Resend verification</a>
+            </div>
+        {% endif %}
+        <div class="human-check">
+            <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="dark"></div>
+        </div>
+        <button type="submit">Reserve nickname</button>
+    </form>
+
+    <p class="development-note">Local development preview: verification email is shown as a testing shortcut after signup.</p>
+</section>
+{% endblock %}

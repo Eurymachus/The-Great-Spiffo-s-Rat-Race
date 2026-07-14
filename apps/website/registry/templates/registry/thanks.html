@@ -1,0 +1,19 @@
+{% extends "registry/base.html" %}
+
+{% block title %}Registration received | The Great Spiffo's Rat Race{% endblock %}
+
+{% block content %}
+<section class="card confirmation">
+    <p class="success-mark" aria-hidden="true">✉</p>
+    <h2>Check your email</h2>
+    <p><strong>{{ nickname }}</strong> is pending verification.</p>
+    <p>Open the verification link we sent to finish reserving your nickname.</p>
+    {% if development_verification_url %}
+        <div class="development-link">
+            <strong>Local development shortcut</strong>
+            <p>No real email was sent. Use this link to test the verification flow:</p>
+            <a href="{{ development_verification_url }}">Verify this registration</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
