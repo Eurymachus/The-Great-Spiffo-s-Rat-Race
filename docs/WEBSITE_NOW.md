@@ -25,6 +25,8 @@ a nickname using a verified email address.
 - Permanent participant accounts using nickname, email, and password.
 - Email verification with pending, verified, expired, disabled, and removed states.
 - Participant login and secure password recovery.
+- Participant account summary, password change, staff administration link, and
+  secure logout controls.
 - Cloudflare Turnstile integration using official test credentials locally.
 - Cache-backed request limits for signup, resend, and password recovery.
 - Administrator roles, participant promotion, status management, and CSV export.
@@ -44,6 +46,6 @@ a nickname using a verified email address.
 
 ## Recommended next action
 
-Add the basic participant account area and logout controls, then review the
-registry milestone against its completion checklist. The final domain is not
-required for local development.
+Review and implement the registry milestone's remaining privacy, account
+deletion, and unsubscribe requirements. The final domain is not required for
+local development.

@@ -115,6 +115,77 @@ class RegistrationTests(TestCase):
         response = self.client.get(reverse("registry:account"))
         self.assertContains(response, "Spiffo Fan")
 
+    def test_account_page_shows_profile_and_controls(self):
+        self.client.post(reverse("registry:register"), self.registration_data())
+        participant = Participant.objects.get()
+        self.client.get(
+            reverse(
+                "registry:verify",
+                kwargs={"token": create_verification_token(participant)},
+            )
+        )
+        self.client.login(
+            email="player@example.com", password="Local-test-password-482!"
+        )
+
+        response = self.client.get(reverse("registry:account"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Welcome to the Rat Race!")
+        self.assertContains(response, "Spiffo Fan")
+        self.assertContains(response, "player@example.com")
+        self.assertContains(response, "Verified")
+        self.assertContains(response, reverse("registry:password_change"))
+        self.assertContains(response, "Run-update submissions will appear here")
+        self.assertContains(response, reverse("registry:logout"))
+
+    def test_participant_can_change_password_and_remains_logged_in(self):
+        self.client.post(reverse("registry:register"), self.registration_data())
+        participant = Participant.objects.get()
+        self.client.get(
+            reverse(
+                "registry:verify",
+                kwargs={"token": create_verification_token(participant)},
+            )
+        )
+        self.client.login(
+            email="player@example.com", password="Local-test-password-482!"
+        )
+
+        response = self.client.post(
+            reverse("registry:password_change"),
+            {
+                "old_password": "Local-test-password-482!",
+                "new_password1": "Changed-local-password-951!",
+                "new_password2": "Changed-local-password-951!",
+            },
+        )
+
+        participant.refresh_from_db()
+        self.assertRedirects(response, reverse("registry:password_change_done"))
+        self.assertTrue(participant.check_password("Changed-local-password-951!"))
+        self.assertFalse(participant.check_password("Local-test-password-482!"))
+        self.assertEqual(self.client.get(reverse("registry:account")).status_code, 200)
+
+    def test_logout_ends_participant_session(self):
+        participant = Participant.objects.create_user(
+            email="logout@example.com",
+            nickname="Logout Test",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+
+        response = self.client.post(reverse("registry:logout"))
+
+        self.assertRedirects(response, reverse("registry:register"))
+        account_response = self.client.get(reverse("registry:account"))
+        self.assertRedirects(
+            account_response,
+            f"{reverse('registry:login')}?next={reverse('registry:account')}",
+        )
+
     def test_login_page_links_to_password_reset(self):
         response = self.client.get(reverse("registry:login"))
 

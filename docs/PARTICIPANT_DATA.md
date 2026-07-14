@@ -72,6 +72,19 @@ Normalised values exist only for reliable matching. They are not shown publicly.
 - Debug mode displays a local testing shortcut; production will only send the
   reset link by email.
 
+## Participant Account
+
+- Verified participants can view their nickname, email, status, and registration
+  date after login.
+- Participants can change their password by supplying the current password and
+  remain logged in after a successful change.
+- Logout is a CSRF-protected POST action rather than a state-changing ordinary
+  link.
+- Staff participants see a link to challenge administration; ordinary
+  participants do not.
+- Run-update submission is labelled as a future feature and does not accept data
+  during the registry milestone.
+
 ## Administration
 
 - Django's authenticated administrator site provides search and status/date

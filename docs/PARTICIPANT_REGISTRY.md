@@ -12,10 +12,16 @@ verified private email address before the full challenge platform launches.
 3. Pass a human-verification check and accept the privacy notice.
 4. Receive and follow an email verification link.
 5. See confirmation that the nickname is reserved.
+6. Log in to view the participant account, change the password, or log out.
 
 The registration creates the participant's permanent account. Email is the login
 identity and nickname is the public identity. Login remains disabled until the
 email address has been verified.
+
+The account page displays the participant's nickname, private email address,
+account status, and registration date. It does not currently allow profile or
+nickname editing. A placeholder identifies where cumulative run updates will be
+submitted during a later milestone.
 
 ## Registration Rules
 
