@@ -1,4 +1,10 @@
-# Current Focus
+# Website: Current Focus
+
+## Branch and worktree
+
+- Development branch: `codex/website-dev`
+- Website worktree: `The Great Spiffo's Rat Race - Website`
+- Project Zomboid mod development is isolated in its own worktree and branch.
 
 ## Goal
 
@@ -14,6 +20,16 @@ a nickname using a verified email address.
 - Registrations can be viewed and administered securely.
 - Basic privacy, deletion, and unsubscribe needs are covered.
 
+## Implemented
+
+- Permanent participant accounts using nickname, email, and password.
+- Email verification with pending, verified, expired, disabled, and removed states.
+- Participant login and secure password recovery.
+- Cloudflare Turnstile integration using official test credentials locally.
+- Cache-backed request limits for signup, resend, and password recovery.
+- Administrator roles, participant promotion, status management, and CSV export.
+- Local development documentation and automated test coverage.
+
 ## Not Now
 
 - Run update-code submission
@@ -26,7 +42,7 @@ a nickname using a verified email address.
 - Final public domain name. `spiffosratrace.com` is available and has been
   suggested, but registration is on hold until the team agrees.
 
-## Next Action
+## Recommended next action
 
 Add the basic participant account area and logout controls, then review the
 registry milestone against its completion checklist. The final domain is not

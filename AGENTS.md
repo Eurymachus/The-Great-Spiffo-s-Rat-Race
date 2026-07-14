@@ -4,11 +4,17 @@ This workspace is the source for The Great Spiffo's Rat Race for Project Zomboid
 
 ## Project Memory
 
-Before substantial work, read:
+Before substantial work, identify the workstream and read its current-focus
+document when that document exists on the current branch:
 
-1. `docs/NOW.md` for the single current project focus.
-2. Relevant entries in `docs/DECISIONS.md` for settled decisions.
-3. `docs/BRAND.md` when writing public-facing names, copy, or visual material.
+- Website/platform work: `docs/WEBSITE_NOW.md`
+- Project Zomboid mod work: `docs/MOD_NOW.md`
+
+Also read relevant entries in `docs/DECISIONS.md` for settled project-wide
+decisions, and `docs/BRAND.md` when writing public-facing names, copy, or visual
+material. A workstream document may legitimately be absent from a development
+branch that predates it. Do not search or edit a sibling worktree merely to find
+the missing document; use the current branch's instructions and code instead.
 
 Use `docs/IDEAS.md` as a parking place, not as approved scope. When a useful idea
 arises, capture it there without expanding the current deliverable unless the user

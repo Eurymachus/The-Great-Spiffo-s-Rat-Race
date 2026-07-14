@@ -1,7 +1,8 @@
 # Ideas Parking Lot
 
 These are possibilities, not approved current scope. Promote an idea into
-`NOW.md` only when the user explicitly makes it part of the active deliverable.
+the relevant `WEBSITE_NOW.md` or `MOD_NOW.md` only when the user explicitly makes
+it part of the active deliverable.
 
 ## Participant Platform
 
