@@ -35,7 +35,9 @@ body {
 .lede, .help, .development-note { color: #c8cdbd; }
 .field { margin: 1.4rem 0; }
 .field > label:not(.checkbox) { display: block; margin-bottom: .45rem; font-weight: 750; }
-.field input[type="text"], .field input[type="email"] {
+.field input[type="text"],
+.field input[type="email"],
+.field input[type="password"] {
     width: 100%;
     padding: .8rem .9rem;
     border: 1px solid #71805e;
