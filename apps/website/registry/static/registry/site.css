@@ -20,7 +20,12 @@ body {
 }
 
 .site-header { margin-bottom: 2rem; }
-.site-header h1 { margin: 0; font-size: clamp(2rem, 7vw, 3.4rem); line-height: 1; }
+.site-header h1 {
+    margin: 0;
+    font-size: clamp(1.15rem, 5.5vw, 3.4rem);
+    line-height: 1;
+    white-space: nowrap;
+}
 .eyebrow { margin: 0 0 .65rem; color: #f2a33a; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
 
 .card {
