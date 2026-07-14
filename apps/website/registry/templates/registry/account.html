@@ -17,6 +17,10 @@
       <strong>Change password</strong>
       <span>Update your participant login password.</span>
     </a>
+    <a class="panel-link" href="{% url 'registry:download_my_data' %}">
+      <strong>Download my participant data</strong>
+      <span>Receive a JSON copy of the participant information currently held for you.</span>
+    </a>
     {% if request.user.is_staff %}
       <a class="panel-link" href="{% url 'admin:index' %}">
         <strong>Challenge administration</strong>
@@ -24,6 +28,15 @@
       </a>
     {% endif %}
   </div>
+
+  {% if request.user.deletion_requested_at %}
+    <div class="request-pending">
+      <strong>Account-closure request pending</strong>
+      <p>Requested {{ request.user.deletion_requested_at|date:"j F Y, H:i" }}. An administrator must review the request before data is removed.</p>
+    </div>
+  {% else %}
+    <p class="account-closure-link"><a href="{% url 'registry:account_closure' %}">Request account closure and deletion</a></p>
+  {% endif %}
 
   <div class="future-feature">
     <strong>Run updates</strong>

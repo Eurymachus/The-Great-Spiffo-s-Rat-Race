@@ -27,6 +27,8 @@ a nickname using a verified email address.
 - Participant login and secure password recovery.
 - Participant account summary, password change, staff administration link, and
   secure logout controls.
+- Draft privacy notice, participant JSON data download, and authenticated
+  account-closure requests visible to administrators.
 - Cloudflare Turnstile integration using official test credentials locally.
 - Cache-backed request limits for signup, resend, and password recovery.
 - Administrator roles, participant promotion, status management, and CSV export.
@@ -46,6 +48,7 @@ a nickname using a verified email address.
 
 ## Recommended next action
 
-Review and implement the registry milestone's remaining privacy, account
-deletion, and unsubscribe requirements. The final domain is not required for
-local development.
+Settle the final privacy owner/contact, retention periods, and account-deletion
+procedure, then replace the draft privacy notice. These are decisions requiring
+the project owner before public launch; the final domain is not required for
+continued local development.

@@ -1,0 +1,10 @@
+{% extends "registry/base.html" %}
+{% block title_suffix %} | Closure request received{% endblock %}
+{% block content %}
+<section class="card confirmation">
+    <p class="success-mark">✓</p>
+    <h2>Request received</h2>
+    <p>Your account-closure request has been recorded for administrator review. Your account remains active while the request is pending.</p>
+    <p><a class="secondary-button" href="{% url 'registry:account' %}">Return to your account</a></p>
+</section>
+{% endblock %}

@@ -24,6 +24,7 @@
                     {{ field }}
                 {% endif %}
                 {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                {% if field.name == "accept_privacy" %}<p class="help"><a href="{% url 'registry:privacy' %}">Read the draft privacy notice</a></p>{% endif %}
                 {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
             </div>
         {% endfor %}

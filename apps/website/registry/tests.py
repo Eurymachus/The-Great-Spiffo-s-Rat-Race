@@ -49,6 +49,86 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "cf-turnstile")
         self.assertContains(response, "Already signed up?")
         self.assertContains(response, reverse("registry:login"))
+        self.assertContains(response, reverse("registry:privacy"))
+
+    def test_draft_privacy_notice_is_public(self):
+        response = self.client.get(reverse("registry:privacy"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Participant privacy notice")
+        self.assertContains(response, "Draft for development review")
+
+    def test_participant_can_download_only_their_account_data(self):
+        participant = Participant.objects.create_user(
+            email="export@example.com",
+            nickname="Export Test",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+            consented_at=timezone.now(),
+            privacy_notice_version="draft-1",
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:download_my_data"))
+        payload = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment", response["Content-Disposition"])
+        self.assertEqual(payload["participant"]["nickname"], "Export Test")
+        self.assertEqual(payload["participant"]["email"], "export@example.com")
+        self.assertNotContains(response, participant.password)
+        self.assertNotIn("admin_notes", payload["participant"])
+        self.assertNotIn("normalized_email", payload["participant"])
+
+    def test_account_closure_requires_current_password(self):
+        participant = Participant.objects.create_user(
+            email="closure@example.com",
+            nickname="Closure Test",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+
+        response = self.client.post(
+            reverse("registry:account_closure"),
+            {
+                "current_password": "wrong-password",
+                "note": "Please close this.",
+                "confirm": True,
+            },
+        )
+
+        participant.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "current password is incorrect")
+        self.assertIsNone(participant.deletion_requested_at)
+
+    def test_account_closure_request_enters_admin_review_queue(self):
+        participant = Participant.objects.create_user(
+            email="closure@example.com",
+            nickname="Closure Test",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+
+        response = self.client.post(
+            reverse("registry:account_closure"),
+            {
+                "current_password": "Local-test-password-482!",
+                "note": "Please close this.",
+                "confirm": True,
+            },
+        )
+
+        participant.refresh_from_db()
+        self.assertRedirects(response, reverse("registry:account_closure_received"))
+        self.assertIsNotNone(participant.deletion_requested_at)
+        self.assertEqual(participant.deletion_request_note, "Please close this.")
+        self.assertTrue(participant.is_active)
 
     def test_registration_rejects_failed_human_verification(self):
         self.turnstile.return_value = False

@@ -32,9 +32,17 @@ The Participant Registry list supports:
 - Select pending or expired registrations and resend verification
 - Select registrations and export them as CSV
 - Promote participants to Approver, Moderator, or Challenge Administrator
+- Filter and review participant account-closure requests
 
 Direct deletion is disabled. Mark a record removed until the formal privacy
 deletion procedure is implemented.
+
+Account-closure requests record the request time and an optional participant
+note. They do not automatically deactivate or erase the account. Before public
+launch, document the operator procedure for identity data, public challenge
+history, moderation records, database backups, and confirmation to the
+participant. Until that policy is approved, administrators must not promise an
+immediate or complete purge.
 
 Promoted participants use their existing participant email and password at
 `/admin/`. Adding an Approver, Moderator, or Challenge Administrator group

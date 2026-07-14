@@ -4,6 +4,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.encoding import force_bytes
@@ -11,7 +12,12 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from .forms import PasswordResetRequestForm, RegistrationForm, ResendVerificationForm
+from .forms import (
+    AccountClosureRequestForm,
+    PasswordResetRequestForm,
+    RegistrationForm,
+    ResendVerificationForm,
+)
 from .models import Participant
 from .rate_limit import exceeded, request_ip
 from .tokens import create_verification_token, read_verification_token
@@ -196,6 +202,74 @@ def verify(request, token):
 @login_required
 def account(request):
     return render(request, "registry/account.html")
+
+
+def privacy_notice(request):
+    return render(request, "registry/privacy_notice.html")
+
+
+@login_required
+@require_http_methods(["GET"])
+def download_my_data(request):
+    participant = request.user
+    payload = {
+        "exported_at": timezone.now().isoformat(),
+        "participant": {
+            "id": str(participant.id),
+            "nickname": participant.nickname,
+            "email": participant.email,
+            "status": participant.status,
+            "registered_at": participant.registered_at.isoformat(),
+            "verified_at": (
+                participant.verified_at.isoformat()
+                if participant.verified_at
+                else None
+            ),
+            "consented_at": (
+                participant.consented_at.isoformat()
+                if participant.consented_at
+                else None
+            ),
+            "privacy_notice_version": participant.privacy_notice_version,
+            "roles": list(
+                participant.groups.order_by("name").values_list("name", flat=True)
+            ),
+            "deletion_requested_at": (
+                participant.deletion_requested_at.isoformat()
+                if participant.deletion_requested_at
+                else None
+            ),
+        },
+    }
+    response = JsonResponse(payload, json_dumps_params={"indent": 2})
+    response["Content-Disposition"] = (
+        'attachment; filename="rat-race-participant-data.json"'
+    )
+    return response
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def request_account_closure(request):
+    if request.user.deletion_requested_at:
+        return redirect("registry:account_closure_received")
+
+    form = AccountClosureRequestForm(request.user, request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        request.user.deletion_requested_at = timezone.now()
+        request.user.deletion_request_note = form.cleaned_data["note"].strip()
+        request.user.save(
+            update_fields=("deletion_requested_at", "deletion_request_note")
+        )
+        return redirect("registry:account_closure_received")
+    return render(request, "registry/account_closure.html", {"form": form})
+
+
+@login_required
+def account_closure_received(request):
+    if not request.user.deletion_requested_at:
+        return redirect("registry:account_closure")
+    return render(request, "registry/account_closure_received.html")
 
 
 @require_http_methods(["GET", "POST"])

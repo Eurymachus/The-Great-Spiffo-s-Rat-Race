@@ -40,4 +40,16 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("account/", views.account, name="account"),
+    path("privacy/", views.privacy_notice, name="privacy"),
+    path("account/data/", views.download_my_data, name="download_my_data"),
+    path(
+        "account/closure/",
+        views.request_account_closure,
+        name="account_closure",
+    ),
+    path(
+        "account/closure/received/",
+        views.account_closure_received,
+        name="account_closure_received",
+    ),
 ]

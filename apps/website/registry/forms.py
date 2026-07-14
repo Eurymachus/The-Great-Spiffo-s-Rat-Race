@@ -79,3 +79,33 @@ class PasswordResetRequestForm(forms.Form):
 
     def clean_email(self):
         return self.cleaned_data["email"].strip()
+
+
+class AccountClosureRequestForm(forms.Form):
+    current_password = forms.CharField(
+        label="Current password",
+        strip=False,
+        widget=forms.PasswordInput,
+        help_text="This confirms that the request comes from you.",
+    )
+    note = forms.CharField(
+        label="Anything we should know?",
+        required=False,
+        max_length=500,
+        widget=forms.Textarea(attrs={"rows": 4}),
+        help_text="Optional. Do not include passwords or other sensitive information.",
+    )
+    confirm = forms.BooleanField(
+        label="I want to request closure and deletion of my participant account.",
+        error_messages={"required": "You must confirm the account-closure request."},
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_current_password(self):
+        password = self.cleaned_data["current_password"]
+        if not self.user.check_password(password):
+            raise forms.ValidationError("The current password is incorrect.")
+        return password

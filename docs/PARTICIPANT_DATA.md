@@ -84,6 +84,22 @@ Normalised values exist only for reliable matching. They are not shown publicly.
   participants do not.
 - Run-update submission is labelled as a future feature and does not accept data
   during the registry milestone.
+- Participants can download a JSON copy of their account data. Password hashes,
+  normalised lookup fields, and administrator notes are excluded.
+- Participants can submit an account-closure request after confirming their
+  current password. The request is timestamped and queued for administrator
+  review; it does not automatically erase or disable the account.
+
+## Privacy Notice Status
+
+- A clearly labelled development draft describes collected data, purposes,
+  public/private boundaries, transactional email, planned service providers, and
+  participant controls.
+- Final retention periods, data-controller identity, privacy contact address,
+  lawful bases, and jurisdiction-specific wording remain launch blockers.
+- The system currently sends no marketing messages, so there is no marketing
+  subscription from which to unsubscribe. Any future optional communications
+  must use explicit preferences.
 
 ## Administration
 

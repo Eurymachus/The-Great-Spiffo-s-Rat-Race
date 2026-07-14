@@ -52,6 +52,16 @@ body {
     color: #fff;
     font: inherit;
 }
+.field textarea {
+    width: 100%;
+    padding: .8rem .9rem;
+    resize: vertical;
+    border: 1px solid #71805e;
+    border-radius: .45rem;
+    background: #0f130d;
+    color: #fff;
+    font: inherit;
+}
 .field input:focus { outline: 3px solid #f2a33a55; border-color: #f2a33a; }
 .checkbox { display: flex; align-items: start; gap: .65rem; }
 .checkbox input { width: 1.2rem; height: 1.2rem; }
@@ -146,6 +156,28 @@ button:hover { background: #f4ad53; }
 .logout-form { margin-top: 1.5rem; }
 .quiet-button { border: 1px solid #71805e; background: transparent; color: #f6f2df; }
 .quiet-button:hover { background: #2a3323; }
+.request-pending, .warning-panel, .policy-placeholder {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border-left: .25rem solid #e58f2c;
+    background: #0f130d;
+}
+.request-pending p, .warning-panel p { margin-bottom: 0; color: #c8cdbd; }
+.account-closure-link { margin: 1.5rem 0; font-size: .9rem; }
+.draft-label { color: #f2a33a; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.policy-copy h3 { margin-top: 1.8rem; }
+.policy-copy li { margin: .45rem 0; }
+.site-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem 1.25rem;
+    width: min(100%, 48rem);
+    margin-top: 1.5rem;
+    padding: 1rem 0;
+    color: #9fa694;
+    font-size: .82rem;
+}
+.site-footer a { color: #c8cdbd; }
 @media (max-width: 34rem) {
     .account-summary div { grid-template-columns: 1fr; gap: .3rem; }
 }

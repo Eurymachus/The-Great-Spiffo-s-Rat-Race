@@ -87,8 +87,15 @@ def promote_to_challenge_admin(modeladmin, request, queryset):
 
 @admin.register(Participant)
 class ParticipantAdmin(UserAdmin):
-    list_display = ("nickname", "email", "status", "registered_at", "verified_at")
-    list_filter = ("status", "registered_at")
+    list_display = (
+        "nickname",
+        "email",
+        "status",
+        "registered_at",
+        "verified_at",
+        "deletion_requested_at",
+    )
+    list_filter = ("status", "registered_at", "deletion_requested_at")
     search_fields = ("nickname", "email")
     readonly_fields = (
         "id",
@@ -97,11 +104,13 @@ class ParticipantAdmin(UserAdmin):
         "registered_at",
         "consented_at",
         "verification_sent_at",
+        "deletion_requested_at",
     )
     ordering = ("email",)
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         ("Participant", {"fields": ("nickname", "status", "verified_at", "admin_notes")}),
+        ("Account closure request", {"fields": ("deletion_requested_at", "deletion_request_note")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
         ("Registration record", {"fields": ("id", "normalized_nickname", "normalized_email", "registered_at", "consented_at", "verification_sent_at", "privacy_notice_version")}),
     )
