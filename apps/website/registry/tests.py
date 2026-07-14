@@ -41,6 +41,11 @@ class RegistrationTests(TestCase):
         response = self.client.get(reverse("registry:register"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Reserve your nickname")
+        self.assertContains(
+            response,
+            "<title>The Great Spiffo&#x27;s Rat Race | Reserve your nickname</title>",
+            html=True,
+        )
         self.assertContains(response, "cf-turnstile")
         self.assertContains(response, "Already signed up?")
         self.assertContains(response, reverse("registry:login"))
