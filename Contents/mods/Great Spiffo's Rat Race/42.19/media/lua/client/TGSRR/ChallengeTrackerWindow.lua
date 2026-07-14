@@ -14,6 +14,9 @@ local CONTENT_MARGIN = 6
 local HEADER_GAP = 6
 local TAB_GAP = 4
 local TAB_TEXT_PADDING = 24
+local LAUNCHER_SIZE = 58
+local LAUNCHER_MARGIN = 4
+local LAUNCHER_TEXTURE = "media/ui/TGSRR/tgsrr.png"
 
 local function isRatRace()
     if not getCore():isChallenge() then return false end
@@ -113,13 +116,21 @@ end
 local function createTracker()
     if not isRatRace() then return end
     if not TGSRRChallengeTrackerWindow.launcher then
-        local width, height = 116, 24
-        local launcher = ISButton:new(getCore():getScreenWidth() - width - 12, 12, width, height,
-            "Rat Race Tracker", nil, function()
+        local x = LAUNCHER_MARGIN
+        local y = math.floor((getCore():getScreenHeight() - LAUNCHER_SIZE) / 2)
+        local launcher = ISButton:new(x, y, LAUNCHER_SIZE, LAUNCHER_SIZE, "", nil, function()
                 local window = TGSRRChallengeTrackerWindow.instance
                 if window and window:getIsVisible() then window:close() else TGSRRChallengeTrackerWindow.open() end
             end)
-        launcher:initialise(); launcher:instantiate(); launcher:addToUIManager()
+        launcher:initialise()
+        launcher:instantiate()
+        launcher:setImage(getTexture(LAUNCHER_TEXTURE))
+        launcher:forceImageSize(LAUNCHER_SIZE - 8, LAUNCHER_SIZE - 8)
+        launcher:setTooltip("Open the Rat Race Challenge Tracker")
+        launcher.backgroundColor = { r = 0, g = 0, b = 0, a = 0.65 }
+        launcher.backgroundColorMouseOver = { r = 0.16, g = 0.16, b = 0.16, a = 0.9 }
+        launcher.borderColor = { r = 0.72, g = 0.72, b = 0.72, a = 0.9 }
+        launcher:addToUIManager()
         TGSRRChallengeTrackerWindow.launcher = launcher
     end
     TGSRRChallengeTrackerWindow.open()
