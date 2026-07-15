@@ -63,6 +63,8 @@ The site self-hosts the supplied **Oswald** family (ExtraLight through Bold) and
 the **Derelict** Regular and Rough display faces. Oswald can be selected for
 headings or body copy; Derelict is intentionally limited to headings. The theme
 editor displays a live Rat Race specimen beside each typography selector.
+Heading and body weights are independently selectable from ExtraLight (200)
+through Bold (700); Oswald includes a matching supplied file for every option.
 
 ## Website Configuration
 

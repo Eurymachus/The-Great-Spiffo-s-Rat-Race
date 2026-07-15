@@ -149,7 +149,9 @@ class SiteBrandingAdminTests(TestCase):
     def test_supplied_fonts_are_selectable_and_rendered_as_theme_tokens(self):
         theme = WebsiteTheme.objects.get(preset_key="clean-competition")
         theme.heading_font = WebsiteTheme.HeadingFont.DERELICT_ROUGH
+        theme.heading_font_weight = WebsiteTheme.FontWeight.SEMI_BOLD
         theme.body_font = WebsiteTheme.BodyFont.OSWALD
+        theme.body_font_weight = WebsiteTheme.FontWeight.LIGHT
         theme.save()
         self.branding.active_theme = theme
         self.branding.save()
@@ -164,6 +166,8 @@ class SiteBrandingAdminTests(TestCase):
             public_page,
             "--theme-body-font: RatRaceOswald, Arial, sans-serif",
         )
+        self.assertContains(public_page, "--theme-heading-weight: 600")
+        self.assertContains(public_page, "--theme-body-weight: 300")
 
         superuser = Participant.objects.create_superuser(
             email="font-superuser@example.com",
@@ -175,4 +179,5 @@ class SiteBrandingAdminTests(TestCase):
             reverse("admin:branding_websitetheme_change", args=(theme.pk,))
         )
         self.assertContains(change_page, "Derelict Rough")
+        self.assertContains(change_page, "SemiBold (600)")
         self.assertContains(change_page, "The Great Spiffo's Rat Race — Rat Racers")

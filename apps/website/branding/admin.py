@@ -139,7 +139,9 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "heading_font",
+                    "heading_font_weight",
                     "body_font",
+                    "body_font_weight",
                     "corner_style",
                     "shadow_style",
                     "background_style",

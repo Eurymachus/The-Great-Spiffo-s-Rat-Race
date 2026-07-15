@@ -12,6 +12,14 @@ hex_colour = RegexValidator(
 
 
 class WebsiteTheme(models.Model):
+    class FontWeight(models.TextChoices):
+        EXTRA_LIGHT = "200", "ExtraLight (200)"
+        LIGHT = "300", "Light (300)"
+        REGULAR = "400", "Regular (400)"
+        MEDIUM = "500", "Medium (500)"
+        SEMI_BOLD = "600", "SemiBold (600)"
+        BOLD = "700", "Bold (700)"
+
     class ColourScheme(models.TextChoices):
         DARK = "dark", "Dark"
         LIGHT = "light", "Light"
@@ -83,6 +91,12 @@ class WebsiteTheme(models.Model):
     )
     body_font = models.CharField(
         max_length=20, choices=BodyFont.choices, default=BodyFont.SYSTEM
+    )
+    heading_font_weight = models.CharField(
+        max_length=3, choices=FontWeight.choices, default=FontWeight.BOLD
+    )
+    body_font_weight = models.CharField(
+        max_length=3, choices=FontWeight.choices, default=FontWeight.REGULAR
     )
     corner_style = models.CharField(
         max_length=12, choices=CornerStyle.choices, default=CornerStyle.ROUNDED

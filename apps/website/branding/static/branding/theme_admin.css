@@ -35,3 +35,16 @@
 [data-font="derelict_rough"] { font-family: RatRaceDerelictRough, RatRaceDerelict, Impact, sans-serif; }
 [data-font="humanist"] { font-family: Verdana, Tahoma, sans-serif; }
 [data-font="mono"] { font-family: Consolas, Monaco, monospace; }
+
+.module:has(.field-heading_font_weight option[value="200"]:checked) .field-heading_font .font-specimens { font-weight: 200; }
+.module:has(.field-heading_font_weight option[value="300"]:checked) .field-heading_font .font-specimens { font-weight: 300; }
+.module:has(.field-heading_font_weight option[value="400"]:checked) .field-heading_font .font-specimens { font-weight: 400; }
+.module:has(.field-heading_font_weight option[value="500"]:checked) .field-heading_font .font-specimens { font-weight: 500; }
+.module:has(.field-heading_font_weight option[value="600"]:checked) .field-heading_font .font-specimens { font-weight: 600; }
+.module:has(.field-heading_font_weight option[value="700"]:checked) .field-heading_font .font-specimens { font-weight: 700; }
+.module:has(.field-body_font_weight option[value="200"]:checked) .field-body_font .font-specimens { font-weight: 200; }
+.module:has(.field-body_font_weight option[value="300"]:checked) .field-body_font .font-specimens { font-weight: 300; }
+.module:has(.field-body_font_weight option[value="400"]:checked) .field-body_font .font-specimens { font-weight: 400; }
+.module:has(.field-body_font_weight option[value="500"]:checked) .field-body_font .font-specimens { font-weight: 500; }
+.module:has(.field-body_font_weight option[value="600"]:checked) .field-body_font .font-specimens { font-weight: 600; }
+.module:has(.field-body_font_weight option[value="700"]:checked) .field-body_font .font-specimens { font-weight: 700; }

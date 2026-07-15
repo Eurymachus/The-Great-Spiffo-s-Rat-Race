@@ -22,10 +22,13 @@
     --theme-success: #a6d66d;
     --theme-error: #ff9b91;
     --theme-heading-font: Inter, ui-sans-serif, system-ui, sans-serif;
+    --theme-heading-weight: 700;
     --theme-body-font: Inter, ui-sans-serif, system-ui, sans-serif;
+    --theme-body-weight: 400;
     --theme-radius: 1rem;
     --theme-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .35);
     font-family: var(--theme-body-font);
+    font-weight: var(--theme-body-weight);
     background: var(--theme-background);
     color: var(--theme-text);
 }
@@ -72,6 +75,7 @@ body {
     line-height: 1;
     white-space: nowrap;
     font-family: var(--theme-heading-font);
+    font-weight: var(--theme-heading-weight);
     letter-spacing: .01em;
 }
 .eyebrow { margin: 0 0 .65rem; color: var(--theme-accent); font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
@@ -109,7 +113,7 @@ body {
     box-shadow: var(--theme-shadow);
 }
 
-.card h2 { margin-top: 0; font-family: var(--theme-heading-font); font-size: 1.65rem; }
+.card h2 { margin-top: 0; font-family: var(--theme-heading-font); font-size: 1.65rem; font-weight: var(--theme-heading-weight); }
 .lede, .help, .development-note { color: var(--theme-muted); }
 .field { margin: 1.4rem 0; }
 .field > label:not(.checkbox) { display: block; margin-bottom: .45rem; font-weight: 750; }
