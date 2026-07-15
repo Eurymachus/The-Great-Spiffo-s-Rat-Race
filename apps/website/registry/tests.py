@@ -88,6 +88,12 @@ class RegistrationTests(TestCase):
         SITE_REGISTERED_OFFICE="1 Test Street, Testville",
         SITE_PRIVACY_EMAIL="privacy@example.com",
         SITE_PUBLIC_URL="https://example.com",
+        SITE_FULL_TITLE="Configured Challenge",
+        SITE_SHORT_TITLE="Configured Race",
+        SITE_TAGLINE="Configured tagline",
+        SITE_WELCOME_MESSAGE="Configured welcome!",
+        SITE_FORMER_PARTICIPANT_LABEL="Configured Former Player",
+        SITE_DISCLAIMER="Configured disclaimer.",
     )
     def test_public_operator_identity_comes_from_configuration(self):
         response = self.client.get(reverse("registry:privacy"))
@@ -96,7 +102,12 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "12345678")
         self.assertContains(response, "1 Test Street, Testville")
         self.assertContains(response, "privacy@example.com")
+        self.assertContains(response, "Configured Challenge")
+        self.assertContains(response, "Configured tagline")
+        self.assertContains(response, "Configured Former Player")
+        self.assertContains(response, "Configured disclaimer.")
         self.assertNotContains(response, "Sentinel Tech Ltd")
+        self.assertNotContains(response, "The Great Spiffo&#x27;s Rat Race")
 
     def test_participant_can_download_only_their_account_data(self):
         participant = Participant.objects.create_user(

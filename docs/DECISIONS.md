@@ -94,3 +94,8 @@ data or routinely editable site content. Django exposes central `SITE_*`
 settings to templates, with version-controlled development defaults and
 environment-variable overrides for production. Sentinel Tech Ltd's verified
 Companies House number is `10998950`.
+
+Reusable approved brand vocabulary follows the same configuration path: full
+and short titles, tagline, welcome message, former-participant label, and Indie
+Stone disclaimer. Longer editorial and policy content remains version-controlled
+or becomes deliberately administrator-managed content in a future data model.

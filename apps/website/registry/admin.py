@@ -10,13 +10,14 @@ from django.http import HttpResponse
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils import timezone
+from django.conf import settings
 
 from .models import AccountClosureRecord, Participant
 from .tokens import create_verification_token
 from .verification_email import send_verification_email
 
-admin.site.site_header = "The Rat Race administration"
-admin.site.site_title = "The Rat Race admin"
+admin.site.site_header = f"{settings.SITE_SHORT_TITLE} administration"
+admin.site.site_title = f"{settings.SITE_SHORT_TITLE} admin"
 admin.site.index_title = "Challenge administration"
 admin.site.index_template = "admin/rat_race_index.html"
 admin.site.app_index_template = "admin/rat_race_app_index.html"

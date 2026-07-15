@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 
 from .models import Participant
@@ -11,7 +12,7 @@ class RegistrationForm(forms.Form):
         min_length=3,
         max_length=40,
         label="Participant nickname",
-        help_text="This will be your public Rat Race name.",
+        help_text=f"This will be your public {settings.SITE_SHORT_TITLE} name.",
         widget=forms.TextInput(attrs={"autocomplete": "nickname"}),
     )
     email = forms.EmailField(
@@ -37,7 +38,7 @@ class RegistrationForm(forms.Form):
 
     def clean_nickname(self):
         nickname = self.cleaned_data["nickname"].strip()
-        if nickname.casefold() == "former rat racer":
+        if nickname.casefold() == settings.SITE_FORMER_PARTICIPANT_LABEL.casefold():
             raise forms.ValidationError("This nickname is reserved by the system.")
         if Participant.objects.filter(
             normalized_nickname=nickname.casefold()

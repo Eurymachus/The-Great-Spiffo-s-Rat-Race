@@ -40,6 +40,22 @@ SITE_PRIVACY_EMAIL = os.environ.get(
     "SITE_PRIVACY_EMAIL", "thegreatspiffo@machus.co.uk"
 )
 SITE_PUBLIC_URL = os.environ.get("SITE_PUBLIC_URL", "http://127.0.0.1:8000")
+SITE_FULL_TITLE = os.environ.get(
+    "SITE_FULL_TITLE", "The Great Spiffo's Rat Race"
+)
+SITE_SHORT_TITLE = os.environ.get("SITE_SHORT_TITLE", "The Rat Race")
+SITE_TAGLINE = os.environ.get(
+    "SITE_TAGLINE", "The official Rat Race challenge"
+)
+SITE_WELCOME_MESSAGE = os.environ.get(
+    "SITE_WELCOME_MESSAGE", "Welcome to the Rat Race!"
+)
+SITE_FORMER_PARTICIPANT_LABEL = os.environ.get(
+    "SITE_FORMER_PARTICIPANT_LABEL", "Former Rat Racer"
+)
+SITE_DISCLAIMER = os.environ.get(
+    "SITE_DISCLAIMER", "Not affiliated with or endorsed by The Indie Stone."
+)
 
 
 # Application definition
@@ -140,7 +156,7 @@ STATIC_URL = 'static/'
 # Local development prints verification emails to the server console. Production
 # will override this with the Microsoft 365 email backend/configuration.
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = "The Great Spiffo's Rat Race <no-reply@localhost>"
+DEFAULT_FROM_EMAIL = f"{SITE_FULL_TITLE} <no-reply@localhost>"
 VERIFICATION_LINK_MAX_AGE = 60 * 60 * 24
 PENDING_REGISTRATION_MAX_AGE = 60 * 60 * 24 * 7
 

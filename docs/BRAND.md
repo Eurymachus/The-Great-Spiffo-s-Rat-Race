@@ -52,3 +52,18 @@ Avoid an unqualified “official Project Zomboid challenge.”
 
 Not decided yet. Current website colours and typography are placeholders for the
 functional mock-up.
+
+## Website Configuration
+
+Reusable website vocabulary is exposed through environment-backed Django
+settings rather than repeated in templates:
+
+- `SITE_FULL_TITLE`
+- `SITE_SHORT_TITLE`
+- `SITE_TAGLINE`
+- `SITE_WELCOME_MESSAGE`
+- `SITE_FORMER_PARTICIPANT_LABEL`
+- `SITE_DISCLAIMER`
+
+The approved defaults remain version-controlled in settings and `.env.example`.
+Changing these values does not alter participant records.

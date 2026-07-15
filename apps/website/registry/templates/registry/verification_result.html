@@ -7,7 +7,7 @@
     {% if result == "verified" %}
         <p class="success-mark" aria-hidden="true">✓</p>
         <h2>Email verified</h2>
-        <p><strong>{{ participant.nickname }}</strong> is reserved. Welcome to the Rat Race!</p>
+        <p><strong>{{ participant.nickname }}</strong> is reserved. {{ site_welcome_message }}</p>
     {% elif result == "expired" %}
         <h2>This verification link has expired</h2>
         <p>The link is no longer valid.</p>
