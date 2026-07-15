@@ -43,12 +43,16 @@ class RegistrationTests(TestCase):
     def test_registration_page_loads(self):
         response = self.client.get(reverse("registry:register"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Reserve your nickname")
+        self.assertContains(response, "Join The Rat Race")
         self.assertContains(
             response,
-            "<title>The Great Spiffo&#x27;s Rat Race | Reserve your nickname</title>",
+            "<title>The Great Spiffo&#x27;s Rat Race | Join The Rat Race</title>",
             html=True,
         )
+        self.assertContains(response, "Step <span data-current-step>1</span> of 3")
+        self.assertContains(response, 'data-registration-step="1"')
+        self.assertContains(response, 'data-registration-step="2"')
+        self.assertContains(response, 'data-registration-step="3"')
         self.assertContains(response, "cf-turnstile")
         self.assertContains(response, "Already signed up?")
         self.assertContains(response, reverse("registry:login"))
@@ -58,6 +62,15 @@ class RegistrationTests(TestCase):
         self.assertContains(response, 'autocomplete="email"')
         self.assertContains(response, 'autocomplete="new-password"', count=2)
         self.assertContains(response, "I confirm that I am aged 18 or over")
+
+    def test_home_introduces_challenge_and_links_to_signup(self):
+        response = self.client.get(reverse("registry:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A survival challenge measured in stories")
+        self.assertContains(response, "Join The Rat Race")
+        self.assertContains(response, reverse("registry:register"))
+        self.assertNotContains(response, 'data-registration-form')
 
     def test_login_error_is_clear_without_revealing_account_state(self):
         response = self.client.post(
@@ -345,7 +358,7 @@ class RegistrationTests(TestCase):
 
         response = self.client.post(reverse("registry:logout"))
 
-        self.assertRedirects(response, reverse("registry:register"))
+        self.assertRedirects(response, reverse("registry:home"))
         account_response = self.client.get(reverse("registry:account"))
         self.assertRedirects(
             account_response,
@@ -540,6 +553,16 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "email address is already registered")
         self.assertContains(response, "Resend verification")
         self.assertContains(response, reverse("registry:resend"))
+        self.assertContains(response, 'data-start-step="1"')
+
+    def test_password_error_reopens_security_step(self):
+        response = self.client.post(
+            reverse("registry:register"),
+            self.registration_data(password_confirmation="A-different-password-482!"),
+        )
+
+        self.assertContains(response, "The passwords do not match.")
+        self.assertContains(response, 'data-start-step="2"')
 
     def test_privacy_notice_acknowledgement_is_required(self):
         response = self.client.post(
@@ -548,6 +571,7 @@ class RegistrationTests(TestCase):
         )
         self.assertEqual(Participant.objects.count(), 0)
         self.assertContains(response, "confirm that you have read the privacy notice")
+        self.assertContains(response, 'data-start-step="3"')
 
     def test_age_eligibility_confirmation_is_required(self):
         response = self.client.post(

@@ -1,45 +1,79 @@
 {% extends "registry/base.html" %}
+{% load static %}
 
-{% block title_suffix %} | Reserve your nickname{% endblock %}
-{% block extra_head %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endblock %}
+{% block title_suffix %} | Join The Rat Race{% endblock %}
+{% block extra_head %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="{% static 'registry/registration_steps.js' %}?v=20260715-2" defer></script>
+{% endblock %}
 
 {% block content %}
-<section class="card">
-    <h2>Reserve your nickname</h2>
-    <p class="lede">Register your interest before the live {{ site_short_title }} challenge platform opens.</p>
-    <div class="existing-account">
-        <span>Already signed up?</span>
-        <a class="secondary-button" href="{% url 'registry:login' %}">Log in</a>
+<section class="card signup-card" data-registration-form data-start-step="{{ registration_start_step|default:1 }}">
+    <div class="signup-heading">
+        <div>
+            <h2>Join The Rat Race</h2>
+            <p class="lede">Create your participant account in three short steps.</p>
+        </div>
+        <p class="signup-step-status" aria-live="polite">Step <span data-current-step>1</span> of 3</p>
     </div>
+    <ol class="signup-progress" aria-label="Registration progress">
+        <li data-step-marker="1"><span>1</span> Your identity</li>
+        <li data-step-marker="2"><span>2</span> Secure account</li>
+        <li data-step-marker="3"><span>3</span> Confirm and join</li>
+    </ol>
 
-    <form method="post" novalidate>
+    <form method="post">
         {% csrf_token %}
         {% for error in form.non_field_errors %}<p class="error form-error" role="alert">{{ error }}</p>{% endfor %}
-        {% for field in form %}
-            <div class="field{% if field.errors %} field-error{% endif %}">
-                {% if field.field.widget.input_type == "checkbox" %}
+
+        <fieldset class="signup-panel" data-registration-step="1">
+            <legend>Your identity</legend>
+            <p class="help">This is how you will be recognised throughout the challenge.</p>
+            {% for field in form %}{% if field.name == "nickname" or field.name == "email" %}
+                <div class="field{% if field.errors %} field-error{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+                    {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                    {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}{% endfor %}
+            {% if form.email_already_registered %}
+                <div class="recovery-prompt"><p>If your registration is still pending, request a new verification link.</p><a class="secondary-button" href="{% url 'registry:resend' %}">Resend verification</a></div>
+            {% endif %}
+        </fieldset>
+
+        <fieldset class="signup-panel" data-registration-step="2">
+            <legend>Secure your account</legend>
+            <p class="help">Use a unique password that you do not use anywhere else.</p>
+            {% for field in form %}{% if field.name == "password" or field.name == "password_confirmation" %}
+                <div class="field{% if field.errors %} field-error{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+                    {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                    {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}{% endfor %}
+        </fieldset>
+
+        <fieldset class="signup-panel" data-registration-step="3">
+            <legend>Confirm and join</legend>
+            <p class="help">One final check, then your verification email can be sent.</p>
+            {% for field in form %}{% if field.name == "acknowledge_privacy" or field.name == "confirm_age_eligibility" %}
+                <div class="field{% if field.errors %} field-error{% endif %}">
                     <label class="checkbox">{{ field }} <span>{{ field.label }}</span></label>
-                {% else %}
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                {% endif %}
-                {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
-                {% if field.name == "acknowledge_privacy" %}<p class="help"><a href="{% url 'registry:privacy' %}">Read the draft privacy notice</a></p>{% endif %}
-                {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
-            </div>
-        {% endfor %}
-        {% if form.email_already_registered %}
-            <div class="recovery-prompt">
-                <p>If your registration is still pending, request a new verification link.</p>
-                <a class="secondary-button" href="{% url 'registry:resend' %}">Resend verification</a>
-            </div>
-        {% endif %}
-        <div class="human-check">
-            <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="dark"></div>
+                    {% if field.name == "acknowledge_privacy" %}<p class="help"><a href="{% url 'registry:privacy' %}">Read the draft privacy notice</a></p>{% endif %}
+                    {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}{% endfor %}
+            <div class="human-check"><div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="dark"></div></div>
+        </fieldset>
+
+        <div class="signup-controls">
+            <button class="signup-back secondary-action" type="button" data-step-back>Back</button>
+            <button type="button" data-step-next>Continue</button>
+            <button type="submit" data-step-submit>Reserve nickname</button>
         </div>
-        <button type="submit">Reserve nickname</button>
     </form>
 
+    <div class="existing-account"><span>Already signed up?</span><a class="secondary-button" href="{% url 'registry:login' %}">Log in</a></div>
     <p class="development-note">Local development preview: verification email is shown as a testing shortcut after signup.</p>
 </section>
 {% endblock %}

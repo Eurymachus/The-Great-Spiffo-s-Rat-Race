@@ -74,7 +74,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = 'registry.Participant'
 LOGIN_URL = 'registry:login'
 LOGIN_REDIRECT_URL = 'registry:account'
-LOGOUT_REDIRECT_URL = 'registry:register'
+LOGOUT_REDIRECT_URL = 'registry:home'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

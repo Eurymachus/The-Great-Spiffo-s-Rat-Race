@@ -7,7 +7,8 @@ from . import views
 app_name = "registry"
 
 urlpatterns = [
-    path("", views.register, name="register"),
+    path("", views.home, name="home"),
+    path("signup/", views.register, name="register"),
     path("thanks/", views.thanks, name="thanks"),
     path("resend/", views.resend_verification, name="resend"),
     path("verify/<str:token>/", views.verify, name="verify"),

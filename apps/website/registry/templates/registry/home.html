@@ -1,0 +1,22 @@
+{% extends "registry/base.html" %}
+
+{% block content %}
+<section class="card home-hero">
+    <p class="eyebrow">Welcome to The Rat Race</p>
+    <h2>A survival challenge measured in stories, statistics and stubbornness.</h2>
+    <p class="lede">{{ site_full_title }} is a long-form Project Zomboid challenge. Create your participant account now and you will be ready when the live challenge platform opens.</p>
+    <div class="home-actions">
+        {% if request.user.is_authenticated %}
+            <a class="primary-link-button" href="{% url 'registry:account' %}">Go to your account</a>
+        {% else %}
+            <a class="primary-link-button" href="{% url 'registry:register' %}">Join The Rat Race</a>
+            <a class="secondary-button" href="{% url 'registry:login' %}">I already have an account</a>
+        {% endif %}
+    </div>
+    <div class="home-steps" aria-label="How participation begins">
+        <article><strong>1. Reserve your name</strong><span>Choose the nickname other Rat Racers will know you by.</span></article>
+        <article><strong>2. Verify your email</strong><span>Confirm the address used to secure your participant account.</span></article>
+        <article><strong>3. Get race-ready</strong><span>Your account will be waiting for run updates when mod integration opens.</span></article>
+    </div>
+</section>
+{% endblock %}

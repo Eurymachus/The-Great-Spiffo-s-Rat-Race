@@ -283,6 +283,39 @@ button:hover { background: var(--theme-accent-hover); }
     color: var(--theme-text);
 }
 .theme-preview-banner a { margin-left: .5rem; color: var(--theme-accent-hover); font-weight: 800; }
+
+.home-hero h2 { max-width: 21ch; font-size: clamp(1.8rem, 4vw, 3.1rem); }
+.home-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin: 2rem 0; }
+.card .primary-link-button { display: inline-block; padding: .9rem 1.25rem; border-radius: var(--theme-radius); background: var(--theme-accent); color: var(--theme-accent-text); font-weight: 800; text-decoration: none; }
+.card .primary-link-button:hover { background: var(--theme-accent-hover); color: var(--theme-accent-text); }
+.home-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 2.25rem; }
+.home-steps article { padding: 1.1rem; border: 1px solid var(--theme-border); border-radius: var(--theme-radius); background: var(--theme-surface-alt); }
+.home-steps strong, .home-steps span { display: block; }
+.home-steps span { margin-top: .45rem; color: var(--theme-muted); line-height: 1.5; }
+
+.signup-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.signup-step-status { flex: 0 0 auto; margin: .35rem 0 0; color: var(--theme-muted); }
+.signup-progress { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin: 1.5rem 0 2rem; padding: 0; list-style: none; }
+.signup-progress li { padding: .75rem; border-bottom: 2px solid var(--theme-border); color: var(--theme-muted); }
+.signup-progress li span { display: inline-grid; width: 1.65rem; height: 1.65rem; margin-right: .35rem; place-items: center; border: 1px solid currentColor; border-radius: 50%; }
+.signup-progress li.is-current { border-color: var(--theme-accent); color: var(--theme-text); }
+.signup-progress li.is-complete { border-color: var(--theme-success); color: var(--theme-success); }
+.signup-panel { min-width: 0; margin: 0; padding: 0; border: 0; }
+.signup-panel legend { margin-bottom: .35rem; padding: 0; font-family: var(--theme-heading-font); font-size: 1.45rem; font-weight: var(--theme-heading-weight); }
+.signup-controls { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1.5rem; }
+.signup-controls button { width: auto; min-width: 9rem; }
+.signup-controls .secondary-action { margin-right: auto; border: 1px solid var(--theme-border); background: transparent; color: var(--theme-text); }
+.signup-card .existing-account { margin-top: 1.5rem; }
+
+@media (max-width: 700px) {
+    .home-steps { grid-template-columns: 1fr; }
+    .signup-progress { grid-template-columns: 1fr; }
+    .signup-progress li { display: none; }
+    .signup-progress li.is-current { display: block; }
+    .signup-heading { display: block; }
+    .signup-controls { flex-wrap: wrap; }
+    .signup-controls button { flex: 1 1 8rem; }
+}
 @media (max-width: 34rem) {
     .account-summary div { grid-template-columns: 1fr; gap: .3rem; }
 }

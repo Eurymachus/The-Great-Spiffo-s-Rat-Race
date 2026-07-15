@@ -27,6 +27,20 @@ from .turnstile import validate_turnstile
 from .verification_email import send_password_reset_email, send_verification_email
 
 
+def home(request):
+    return render(request, "registry/home.html")
+
+
+def registration_start_step(form):
+    if not form.is_bound:
+        return 1
+    if form.errors.keys() & {"nickname", "email"}:
+        return 1
+    if form.errors.keys() & {"password", "password_confirmation"}:
+        return 2
+    return 3
+
+
 def issue_verification(participant, request):
     verification_url = request.build_absolute_uri(
         reverse(
@@ -68,7 +82,11 @@ def register(request):
             return render(
                 request,
                 "registry/register.html",
-                {"form": form, "turnstile_site_key": settings.TURNSTILE_SITE_KEY},
+                {
+                    "form": form,
+                    "turnstile_site_key": settings.TURNSTILE_SITE_KEY,
+                    "registration_start_step": 3,
+                },
                 status=400,
             )
         participant = Participant.objects.create_user(
@@ -90,7 +108,11 @@ def register(request):
     return render(
         request,
         "registry/register.html",
-        {"form": form, "turnstile_site_key": settings.TURNSTILE_SITE_KEY},
+        {
+            "form": form,
+            "turnstile_site_key": settings.TURNSTILE_SITE_KEY,
+            "registration_start_step": registration_start_step(form),
+        },
         status=status,
     )
 
