@@ -80,17 +80,6 @@ def activate_theme(modeladmin, request, queryset):
     )
 
 
-@admin.action(description="Preview selected theme on signup page")
-def preview_theme(modeladmin, request, queryset):
-    if queryset.count() != 1:
-        modeladmin.message_user(
-            request, "Select exactly one theme to preview.", level=messages.ERROR
-        )
-        return None
-    query = urlencode({"theme-preview": queryset.first().pk})
-    return redirect(f"{reverse('registry:register')}?{query}")
-
-
 @admin.action(description="Duplicate selected themes")
 def duplicate_themes(modeladmin, request, queryset):
     created = 0
@@ -139,6 +128,7 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "active_marker",
+        "preview_link",
         "colour_scheme",
         "background_style",
         "heading_font",
@@ -189,7 +179,7 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
         ),
         ("Record", {"fields": ("updated_at",)}),
     )
-    actions = (activate_theme, preview_theme, duplicate_themes, restore_presets)
+    actions = (activate_theme, duplicate_themes, restore_presets)
 
     class Media:
         css = {"all": ("branding/theme_admin.css",)}
@@ -198,6 +188,12 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
     def active_marker(self, obj):
         branding = SiteBranding.current()
         return bool(branding and branding.active_theme_id == obj.pk)
+
+    @admin.display(description="Preview")
+    def preview_link(self, obj):
+        query = urlencode({"theme-preview": obj.pk})
+        url = f"{reverse('registry:register')}?{query}"
+        return format_html('<a class="button" href="{}">Preview</a>', url)
 
     def has_delete_permission(self, request, obj=None):
         return False

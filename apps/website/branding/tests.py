@@ -126,12 +126,17 @@ class SiteBrandingAdminTests(TestCase):
         retro = WebsiteTheme.objects.get(preset_key="retro-road-race")
         self.client.force_login(superuser)
         changelist = reverse("admin:branding_websitetheme_changelist")
-        selection = {"action": "preview_theme", "_selected_action": str(retro.pk)}
+        preview_url = (
+            f"{reverse('registry:register')}?theme-preview={retro.pk}"
+        )
 
-        preview_redirect = self.client.post(changelist, selection)
+        changelist_page = self.client.get(changelist)
 
-        self.assertEqual(preview_redirect.status_code, 302)
-        preview_page = self.client.get(preview_redirect.url)
+        self.assertContains(changelist_page, f'href="{preview_url}"')
+        self.assertNotContains(
+            changelist_page, "Preview selected theme on signup page"
+        )
+        preview_page = self.client.get(preview_url)
         self.assertContains(preview_page, "Previewing <strong>Retro Road Race</strong>")
         self.assertContains(preview_page, "theme-background-road")
         self.assertContains(preview_page, "--theme-accent: #B53624")
