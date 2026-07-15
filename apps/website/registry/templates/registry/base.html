@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ site_full_title }}{% block title_suffix %}{% endblock %}</title>
     <script>
-        document.documentElement.classList.add("fonts-loading");
+        document.documentElement.classList.add("fonts-loading", "menu-enhanced");
         (() => {
             let revealed = false;
             const reveal = () => {
@@ -38,7 +38,7 @@
     </script>
     <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260716-3">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
-    <script src="{% static 'registry/site_menu.js' %}?v=20260716-1" defer></script>
+    <script src="{% static 'registry/site_menu.js' %}?v=20260716-2" defer></script>
     {% if site_theme %}
     <style>
         :root {

@@ -4,7 +4,6 @@
     const menu = document.querySelector("[data-site-menu]");
     if (!toggle || !menu) return;
 
-    document.documentElement.classList.add("menu-enhanced");
     const closeMenu = (restoreFocus = false) => {
         menu.classList.remove("is-open");
         toggle.setAttribute("aria-expanded", "false");
