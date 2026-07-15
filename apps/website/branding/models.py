@@ -20,6 +20,12 @@ class WebsiteTheme(models.Model):
         SEMI_BOLD = "600", "SemiBold (600)"
         BOLD = "700", "Bold (700)"
 
+    class FontSpacing(models.TextChoices):
+        TIGHT = "tight", "Tight"
+        NORMAL = "normal", "Normal"
+        RELAXED = "relaxed", "Relaxed"
+        WIDE = "wide", "Wide"
+
     class ColourScheme(models.TextChoices):
         DARK = "dark", "Dark"
         LIGHT = "light", "Light"
@@ -77,6 +83,12 @@ class WebsiteTheme(models.Model):
         ShadowStyle.SOFT: "0 1rem 2.5rem rgba(0, 0, 0, 0.24)",
         ShadowStyle.DRAMATIC: "0 1.5rem 4rem rgba(0, 0, 0, 0.42)",
     }
+    FONT_SPACING_VALUES = {
+        FontSpacing.TIGHT: "-0.03em",
+        FontSpacing.NORMAL: "0em",
+        FontSpacing.RELAXED: "0.03em",
+        FontSpacing.WIDE: "0.08em",
+    }
 
     name = models.CharField(max_length=80, unique=True)
     preset_key = models.CharField(max_length=40, blank=True, editable=False)
@@ -97,6 +109,12 @@ class WebsiteTheme(models.Model):
     )
     body_font_weight = models.CharField(
         max_length=3, choices=FontWeight.choices, default=FontWeight.REGULAR
+    )
+    heading_font_spacing = models.CharField(
+        max_length=8, choices=FontSpacing.choices, default=FontSpacing.NORMAL
+    )
+    body_font_spacing = models.CharField(
+        max_length=8, choices=FontSpacing.choices, default=FontSpacing.NORMAL
     )
     corner_style = models.CharField(
         max_length=12, choices=CornerStyle.choices, default=CornerStyle.ROUNDED
@@ -152,6 +170,14 @@ class WebsiteTheme(models.Model):
     @property
     def body_font_stack(self):
         return self.BODY_FONT_STACKS[self.body_font]
+
+    @property
+    def heading_letter_spacing(self):
+        return self.FONT_SPACING_VALUES[self.heading_font_spacing]
+
+    @property
+    def body_letter_spacing(self):
+        return self.FONT_SPACING_VALUES[self.body_font_spacing]
 
     @property
     def corner_radius(self):

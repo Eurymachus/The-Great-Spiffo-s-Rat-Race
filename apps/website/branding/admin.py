@@ -121,6 +121,7 @@ def restore_presets(modeladmin, request, queryset):
 @admin.register(WebsiteTheme)
 class WebsiteThemeAdmin(admin.ModelAdmin):
     form = WebsiteThemeAdminForm
+    change_form_template = "admin/branding/websitetheme/change_form.html"
     list_display = (
         "name",
         "active_marker",
@@ -140,8 +141,10 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
                 "fields": (
                     "heading_font",
                     "heading_font_weight",
+                    "heading_font_spacing",
                     "body_font",
                     "body_font_weight",
+                    "body_font_spacing",
                     "corner_style",
                     "shadow_style",
                     "background_style",

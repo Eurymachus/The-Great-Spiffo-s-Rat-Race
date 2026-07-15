@@ -150,8 +150,10 @@ class SiteBrandingAdminTests(TestCase):
         theme = WebsiteTheme.objects.get(preset_key="clean-competition")
         theme.heading_font = WebsiteTheme.HeadingFont.DERELICT_ROUGH
         theme.heading_font_weight = WebsiteTheme.FontWeight.SEMI_BOLD
+        theme.heading_font_spacing = WebsiteTheme.FontSpacing.WIDE
         theme.body_font = WebsiteTheme.BodyFont.OSWALD
         theme.body_font_weight = WebsiteTheme.FontWeight.LIGHT
+        theme.body_font_spacing = WebsiteTheme.FontSpacing.TIGHT
         theme.save()
         self.branding.active_theme = theme
         self.branding.save()
@@ -168,6 +170,8 @@ class SiteBrandingAdminTests(TestCase):
         )
         self.assertContains(public_page, "--theme-heading-weight: 600")
         self.assertContains(public_page, "--theme-body-weight: 300")
+        self.assertContains(public_page, "--theme-heading-spacing: 0.08em")
+        self.assertContains(public_page, "--theme-body-spacing: -0.03em")
 
         superuser = Participant.objects.create_superuser(
             email="font-superuser@example.com",
@@ -180,4 +184,6 @@ class SiteBrandingAdminTests(TestCase):
         )
         self.assertContains(change_page, "Derelict Rough")
         self.assertContains(change_page, "SemiBold (600)")
+        self.assertContains(change_page, "Font family")
+        self.assertContains(change_page, "Spacing")
         self.assertContains(change_page, "The Great Spiffo's Rat Race — Rat Racers")

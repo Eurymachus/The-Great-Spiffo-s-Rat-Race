@@ -1,0 +1,35 @@
+{% extends "admin/change_form.html" %}
+
+{% block field_sets %}
+{% for fieldset in adminform %}
+    {% if fieldset.name == "Typography and shape" %}
+        <fieldset class="module aligned typography-module" aria-labelledby="typography-heading">
+            <h2 id="typography-heading" class="fieldset-heading">Typography and shape</h2>
+
+            <div class="typography-row heading-typography">
+                <div class="typography-row-name">Heading font</div>
+                <label>Font family {{ adminform.form.heading_font }}</label>
+                <label>Font weight {{ adminform.form.heading_font_weight }}</label>
+                <label>Spacing {{ adminform.form.heading_font_spacing }}</label>
+                <div class="typography-errors">{{ adminform.form.heading_font.errors }}{{ adminform.form.heading_font_weight.errors }}{{ adminform.form.heading_font_spacing.errors }}</div>
+                <div class="typography-specimen field-heading_font">{{ adminform.form.heading_font.help_text|safe }}</div>
+            </div>
+
+            <div class="typography-row body-typography">
+                <div class="typography-row-name">Body font</div>
+                <label>Font family {{ adminform.form.body_font }}</label>
+                <label>Font weight {{ adminform.form.body_font_weight }}</label>
+                <label>Spacing {{ adminform.form.body_font_spacing }}</label>
+                <div class="typography-errors">{{ adminform.form.body_font.errors }}{{ adminform.form.body_font_weight.errors }}{{ adminform.form.body_font_spacing.errors }}</div>
+                <div class="typography-specimen field-body_font">{{ adminform.form.body_font.help_text|safe }}</div>
+            </div>
+
+            <div class="form-row field-corner_style">{{ adminform.form.corner_style.errors }}<div class="flex-container"><label for="{{ adminform.form.corner_style.id_for_label }}">Corner style:</label>{{ adminform.form.corner_style }}</div></div>
+            <div class="form-row field-shadow_style">{{ adminform.form.shadow_style.errors }}<div class="flex-container"><label for="{{ adminform.form.shadow_style.id_for_label }}">Shadow style:</label>{{ adminform.form.shadow_style }}</div></div>
+            <div class="form-row field-background_style">{{ adminform.form.background_style.errors }}<div class="flex-container"><label for="{{ adminform.form.background_style.id_for_label }}">Background style:</label>{{ adminform.form.background_style }}</div></div>
+        </fieldset>
+    {% else %}
+        {% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}
+    {% endif %}
+{% endfor %}
+{% endblock %}

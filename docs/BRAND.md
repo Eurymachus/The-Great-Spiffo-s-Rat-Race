@@ -65,6 +65,8 @@ headings or body copy; Derelict is intentionally limited to headings. The theme
 editor displays a live Rat Race specimen beside each typography selector.
 Heading and body weights are independently selectable from ExtraLight (200)
 through Bold (700); Oswald includes a matching supplied file for every option.
+Heading and body letter spacing are also independent, using constrained Tight,
+Normal, Relaxed, and Wide settings with live specimens in the theme editor.
 
 ## Website Configuration
 
