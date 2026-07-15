@@ -94,7 +94,10 @@ body {
     width: min(100%, var(--layout-reading-max));
     margin-inline: auto;
 }
-.site-header { margin-bottom: 2rem; }
+.site-header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
 .site-header h1 {
     margin: 0;
     font-size: clamp(1.15rem, 5.5vw, 3.4rem);
@@ -109,6 +112,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: .55rem 1rem;
     margin-top: 1.25rem;
 }
@@ -277,12 +281,14 @@ button:hover { background: var(--theme-accent-hover); }
 .site-footer {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: .65rem 1.25rem;
     width: min(100%, var(--layout-reading-max));
     margin-top: 1.5rem;
     padding: 1rem 0;
     color: var(--theme-muted);
     font-size: .82rem;
+    text-align: center;
 }
 .site-footer a { color: var(--theme-muted); }
 .theme-preview-banner {
