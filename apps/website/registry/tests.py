@@ -82,6 +82,9 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Routine security and email-delivery logs are kept for 90 days")
         self.assertContains(response, "We do not currently rely on consent")
         self.assertContains(response, "Former Rat Racer")
+        self.assertContains(response, "Your UK data-protection rights")
+        self.assertContains(response, "within one calendar month")
+        self.assertContains(response, "https://ico.org.uk/make-a-complaint/")
 
     @override_settings(
         SITE_LEGAL_NAME="Configured Operator Ltd",

@@ -56,10 +56,9 @@ a nickname using a verified email address.
 
 ## Recommended next action
 
-Settle the jurisdiction-specific rights and complaint wording, then replace the
-draft privacy notice. Sentinel Tech Ltd is the data controller; the approved
-retention schedule and lawful-basis assessment are in `docs/RETENTION.md` and
-`docs/LAWFUL_BASES.md`; and the provisional privacy contact is
-`thegreatspiffo@machus.co.uk`. Retention automation must also be completed and
-tested before launch. The final domain is not required for continued local
-development.
+Define and implement the participant-facing visual brand for the initial signup
+launch: logo/mark, colour palette, typography, imagery, spacing, and responsive
+page treatment. Preserve the completed account, privacy, and administration
+flows beneath that presentation layer. Run/report ingestion remains deferred
+until Project Zomboid B42 Stable and the challenge rules are finalised. Retention
+automation and a final pre-launch privacy review still remain required.

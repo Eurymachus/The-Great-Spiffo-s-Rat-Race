@@ -112,8 +112,9 @@ Normalised values exist only for reliable matching. They are not shown publicly.
   summarised in the participant privacy notice.
 - The lawful-basis map and legitimate-interests assessment are recorded in
   `docs/LAWFUL_BASES.md`.
-- Final jurisdiction-specific rights and complaint wording remains a launch
-  blocker.
+- The draft notice explains applicable UK rights, the normal one-calendar-month
+  response period, Sentinel Tech Ltd's contact route, and the ICO complaint route.
+- The operator procedure is recorded in `docs/PRIVACY_REQUESTS.md`.
 - The system currently sends no marketing messages, so there is no marketing
   subscription from which to unsubscribe. Any future optional communications
   must use explicit preferences.

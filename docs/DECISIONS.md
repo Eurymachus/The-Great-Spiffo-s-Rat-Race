@@ -107,3 +107,14 @@ Branding record. Environment-backed values remain safe defaults, while database
 values update rendered pages immediately. Superusers inherit access normally;
 the Branding Administrator group grants scoped view/change permissions and no
 participant-management access.
+
+## 2026-07-15 — Complete UK rights and complaint information before visual branding
+
+The participant privacy notice describes access, correction, erasure,
+restriction, portability, objection, the normal one-calendar-month response
+period, and the UK ICO complaint route. The operator procedure is documented in
+`docs/PRIVACY_REQUESTS.md`.
+
+The next product milestone is the front-end visual brand and signup-launch
+experience. Run/report ingestion is deliberately deferred until Project Zomboid
+B42 Stable and the challenge rules are finalised.
