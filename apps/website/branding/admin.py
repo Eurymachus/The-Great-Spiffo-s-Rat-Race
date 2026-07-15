@@ -4,30 +4,44 @@ from django import forms
 from django.contrib import admin, messages
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html, format_html_join
 
 from .models import SiteBranding, WebsiteTheme
 from .presets import THEME_PRESETS
 
 
-class WebsiteThemeAdminForm(forms.ModelForm):
-    FONT_SPECIMENS = mark_safe(
-        '<span class="font-specimens" aria-label="Font examples">'
-        '<span data-font="system">The Great Spiffo\'s Rat Race — Rat Racers</span>'
-        '<span data-font="condensed">The Great Spiffo\'s Rat Race — Rat Racers</span>'
-        '<span data-font="slab">The Great Spiffo\'s Rat Race — Rat Racers</span>'
-        '<span data-font="oswald">The Great Spiffo\'s Rat Race — Rat Racers</span>'
-        '<span data-font="derelict">The Great Spiffo\'s Rat Race — Rat Racers</span>'
-        '<span data-font="derelict_rough">The Great Spiffo\'s Rat Race — Rat Racers</span>'
-        '<span data-font="humanist">The Great Spiffo\'s Rat Race — Rat Racers</span>'
-        '<span data-font="mono">The Great Spiffo\'s Rat Race — Rat Racers</span>'
-        '</span>'
+def font_specimens(text):
+    font_keys = (
+        "system",
+        "condensed",
+        "slab",
+        "oswald",
+        "derelict",
+        "derelict_rough",
+        "humanist",
+        "mono",
     )
+    return format_html(
+        '<span class="font-specimens" aria-label="Font example">{}</span>',
+        format_html_join(
+            "", '<span data-font="{}">{}</span>', ((key, text) for key in font_keys)
+        ),
+    )
+
+
+class WebsiteThemeAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["heading_font"].help_text = self.FONT_SPECIMENS
-        self.fields["body_font"].help_text = self.FONT_SPECIMENS
+        self.fields["display_font"].help_text = font_specimens(
+            "The Great Spiffo's Rat Race"
+        )
+        self.fields["heading_font"].help_text = font_specimens(
+            "Welcome to the Rat Race!"
+        )
+        self.fields["body_font"].help_text = font_specimens(
+            "Your participant account is ready."
+        )
 
     class Meta:
         model = WebsiteTheme
@@ -139,6 +153,9 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
             "Typography and shape",
             {
                 "fields": (
+                    "display_font",
+                    "display_font_weight",
+                    "display_font_spacing",
                     "heading_font",
                     "heading_font_weight",
                     "heading_font_spacing",

@@ -148,7 +148,10 @@ class SiteBrandingAdminTests(TestCase):
 
     def test_supplied_fonts_are_selectable_and_rendered_as_theme_tokens(self):
         theme = WebsiteTheme.objects.get(preset_key="clean-competition")
-        theme.heading_font = WebsiteTheme.HeadingFont.DERELICT_ROUGH
+        theme.display_font = WebsiteTheme.HeadingFont.DERELICT_ROUGH
+        theme.display_font_weight = WebsiteTheme.FontWeight.REGULAR
+        theme.display_font_spacing = WebsiteTheme.FontSpacing.NORMAL
+        theme.heading_font = WebsiteTheme.HeadingFont.OSWALD
         theme.heading_font_weight = WebsiteTheme.FontWeight.SEMI_BOLD
         theme.heading_font_spacing = WebsiteTheme.FontSpacing.WIDE
         theme.body_font = WebsiteTheme.BodyFont.OSWALD
@@ -162,13 +165,17 @@ class SiteBrandingAdminTests(TestCase):
 
         self.assertContains(
             public_page,
-            "--theme-heading-font: RatRaceDerelictRough, RatRaceDerelict, Impact, sans-serif",
+            "--theme-display-font: RatRaceDerelictRough, RatRaceDerelict, Impact, sans-serif",
+        )
+        self.assertContains(
+            public_page, "--theme-heading-font: RatRaceOswald, Impact, sans-serif"
         )
         self.assertContains(
             public_page,
             "--theme-body-font: RatRaceOswald, Arial, sans-serif",
         )
         self.assertContains(public_page, "--theme-heading-weight: 600")
+        self.assertContains(public_page, "--theme-display-weight: 400")
         self.assertContains(public_page, "--theme-body-weight: 300")
         self.assertContains(public_page, "--theme-heading-spacing: 0.08em")
         self.assertContains(public_page, "--theme-body-spacing: -0.03em")
@@ -186,4 +193,6 @@ class SiteBrandingAdminTests(TestCase):
         self.assertContains(change_page, "SemiBold (600)")
         self.assertContains(change_page, "Font family")
         self.assertContains(change_page, "Spacing")
-        self.assertContains(change_page, "The Great Spiffo's Rat Race — Rat Racers")
+        self.assertContains(change_page, "The Great Spiffo&#x27;s Rat Race")
+        self.assertContains(change_page, "Welcome to the Rat Race!")
+        self.assertContains(change_page, "Your participant account is ready.")

@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ site_full_title }}{% block title_suffix %}{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260715-6">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260715-7">
     {% if site_theme %}
     <style>
         :root {
@@ -25,6 +25,9 @@
             --theme-heading-font: {{ site_theme.heading_font_stack }};
             --theme-heading-weight: {{ site_theme.heading_font_weight }};
             --theme-heading-spacing: {{ site_theme.heading_letter_spacing }};
+            --theme-display-font: {{ site_theme.display_font_stack }};
+            --theme-display-weight: {{ site_theme.display_font_weight }};
+            --theme-display-spacing: {{ site_theme.display_letter_spacing }};
             --theme-body-font: {{ site_theme.body_font_stack }};
             --theme-body-weight: {{ site_theme.body_font_weight }};
             --theme-body-spacing: {{ site_theme.body_letter_spacing }};

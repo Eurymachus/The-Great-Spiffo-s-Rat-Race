@@ -101,6 +101,9 @@ class WebsiteTheme(models.Model):
     heading_font = models.CharField(
         max_length=20, choices=HeadingFont.choices, default=HeadingFont.SYSTEM
     )
+    display_font = models.CharField(
+        max_length=20, choices=HeadingFont.choices, default=HeadingFont.SYSTEM
+    )
     body_font = models.CharField(
         max_length=20, choices=BodyFont.choices, default=BodyFont.SYSTEM
     )
@@ -114,6 +117,12 @@ class WebsiteTheme(models.Model):
         max_length=8, choices=FontSpacing.choices, default=FontSpacing.NORMAL
     )
     body_font_spacing = models.CharField(
+        max_length=8, choices=FontSpacing.choices, default=FontSpacing.NORMAL
+    )
+    display_font_weight = models.CharField(
+        max_length=3, choices=FontWeight.choices, default=FontWeight.BOLD
+    )
+    display_font_spacing = models.CharField(
         max_length=8, choices=FontSpacing.choices, default=FontSpacing.NORMAL
     )
     corner_style = models.CharField(
@@ -168,12 +177,20 @@ class WebsiteTheme(models.Model):
         return self.HEADING_FONT_STACKS[self.heading_font]
 
     @property
+    def display_font_stack(self):
+        return self.HEADING_FONT_STACKS[self.display_font]
+
+    @property
     def body_font_stack(self):
         return self.BODY_FONT_STACKS[self.body_font]
 
     @property
     def heading_letter_spacing(self):
         return self.FONT_SPACING_VALUES[self.heading_font_spacing]
+
+    @property
+    def display_letter_spacing(self):
+        return self.FONT_SPACING_VALUES[self.display_font_spacing]
 
     @property
     def body_letter_spacing(self):

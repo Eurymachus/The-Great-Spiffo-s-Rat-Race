@@ -67,6 +67,9 @@ Heading and body weights are independently selectable from ExtraLight (200)
 through Bold (700); Oswald includes a matching supplied file for every option.
 Heading and body letter spacing are also independent, using constrained Tight,
 Normal, Relaxed, and Wide settings with live specimens in the theme editor.
+Typography is divided into three roles: Display for the main challenge title,
+Heading for section and component headings, and Body for interface copy, labels,
+and paragraphs. Each role has independent family, weight, and spacing controls.
 
 ## Website Configuration
 

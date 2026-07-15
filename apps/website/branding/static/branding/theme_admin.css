@@ -50,6 +50,12 @@
 }
 
 .font-specimens > span { display: none; }
+.display-typography:has(select[name="display_font"] option[value="system"]:checked) [data-font="system"],
+.display-typography:has(select[name="display_font"] option[value="condensed"]:checked) [data-font="condensed"],
+.display-typography:has(select[name="display_font"] option[value="slab"]:checked) [data-font="slab"],
+.display-typography:has(select[name="display_font"] option[value="oswald"]:checked) [data-font="oswald"],
+.display-typography:has(select[name="display_font"] option[value="derelict"]:checked) [data-font="derelict"],
+.display-typography:has(select[name="display_font"] option[value="derelict_rough"]:checked) [data-font="derelict_rough"],
 .heading-typography:has(select[name="heading_font"] option[value="system"]:checked) [data-font="system"],
 .heading-typography:has(select[name="heading_font"] option[value="condensed"]:checked) [data-font="condensed"],
 .heading-typography:has(select[name="heading_font"] option[value="slab"]:checked) [data-font="slab"],

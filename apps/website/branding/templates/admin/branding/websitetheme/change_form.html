@@ -6,6 +6,15 @@
         <fieldset class="module aligned typography-module" aria-labelledby="typography-heading">
             <h2 id="typography-heading" class="fieldset-heading">Typography and shape</h2>
 
+            <div class="typography-row display-typography">
+                <div class="typography-row-name">Display font</div>
+                <label>Font family {{ adminform.form.display_font }}</label>
+                <label>Font weight {{ adminform.form.display_font_weight }}</label>
+                <label>Spacing {{ adminform.form.display_font_spacing }}</label>
+                <div class="typography-errors">{{ adminform.form.display_font.errors }}{{ adminform.form.display_font_weight.errors }}{{ adminform.form.display_font_spacing.errors }}</div>
+                <div class="typography-specimen field-display_font">{{ adminform.form.display_font.help_text|safe }}</div>
+            </div>
+
             <div class="typography-row heading-typography">
                 <div class="typography-row-name">Heading font</div>
                 <label>Font family {{ adminform.form.heading_font }}</label>

@@ -24,6 +24,9 @@
     --theme-heading-font: Inter, ui-sans-serif, system-ui, sans-serif;
     --theme-heading-weight: 700;
     --theme-heading-spacing: 0em;
+    --theme-display-font: Inter, ui-sans-serif, system-ui, sans-serif;
+    --theme-display-weight: 700;
+    --theme-display-spacing: 0em;
     --theme-body-font: Inter, ui-sans-serif, system-ui, sans-serif;
     --theme-body-weight: 400;
     --theme-body-spacing: 0em;
@@ -77,9 +80,9 @@ body {
     font-size: clamp(1.15rem, 5.5vw, 3.4rem);
     line-height: 1;
     white-space: nowrap;
-    font-family: var(--theme-heading-font);
-    font-weight: var(--theme-heading-weight);
-    letter-spacing: var(--theme-heading-spacing);
+    font-family: var(--theme-display-font);
+    font-weight: var(--theme-display-weight);
+    letter-spacing: var(--theme-display-spacing);
 }
 .eyebrow { margin: 0 0 .65rem; color: var(--theme-accent); font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
 .site-nav {
