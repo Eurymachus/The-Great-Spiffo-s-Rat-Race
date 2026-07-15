@@ -118,3 +118,11 @@ period, and the UK ICO complaint route. The operator procedure is documented in
 The next product milestone is the front-end visual brand and signup-launch
 experience. Run/report ingestion is deliberately deferred until Project Zomboid
 B42 Stable and the challenge rules are finalised.
+
+## 2026-07-15 — Use self-declared 18+ participation eligibility
+
+Participation is limited to people aged 18 or over. Signup requires a clear
+self-declaration and records its timestamp and policy version. This is an
+eligibility acknowledgement, not age verification. The website does not collect
+dates of birth or identity documents; accounts reasonably believed to belong to
+an under-18 participant may be disabled and investigated or removed.

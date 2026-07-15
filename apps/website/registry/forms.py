@@ -36,6 +36,15 @@ class RegistrationForm(forms.Form):
         label="I have read the draft privacy notice.",
         error_messages={"required": "You must confirm that you have read the privacy notice."},
     )
+    confirm_age_eligibility = forms.BooleanField(
+        label=f"I confirm that I am aged {settings.PARTICIPANT_MINIMUM_AGE} or over.",
+        error_messages={
+            "required": (
+                f"You must confirm that you are aged "
+                f"{settings.PARTICIPANT_MINIMUM_AGE} or over to participate."
+            )
+        },
+    )
 
     def clean_nickname(self):
         nickname = self.cleaned_data["nickname"].strip()

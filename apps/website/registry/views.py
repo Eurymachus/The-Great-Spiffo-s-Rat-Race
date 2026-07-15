@@ -72,6 +72,8 @@ def register(request):
             is_active=False,
             privacy_notice_acknowledged_at=timezone.now(),
             privacy_notice_version="draft-1",
+            age_eligibility_confirmed_at=timezone.now(),
+            age_policy_version=settings.AGE_ELIGIBILITY_POLICY_VERSION,
         )
         participant.groups.add(Group.objects.get_or_create(name="Participant")[0])
         verification_url = issue_verification(participant, request)
@@ -235,6 +237,12 @@ def download_my_data(request):
                 else None
             ),
             "privacy_notice_version": participant.privacy_notice_version,
+            "age_eligibility_confirmed_at": (
+                participant.age_eligibility_confirmed_at.isoformat()
+                if participant.age_eligibility_confirmed_at
+                else None
+            ),
+            "age_policy_version": participant.age_policy_version,
             "roles": list(
                 participant.groups.order_by("name").values_list("name", flat=True)
             ),

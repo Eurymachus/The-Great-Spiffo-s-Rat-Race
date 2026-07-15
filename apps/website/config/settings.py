@@ -160,6 +160,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = f"{SITE_FULL_TITLE} <no-reply@localhost>"
 VERIFICATION_LINK_MAX_AGE = 60 * 60 * 24
 PENDING_REGISTRATION_MAX_AGE = 60 * 60 * 24 * 7
+PARTICIPANT_MINIMUM_AGE = 18
+AGE_ELIGIBILITY_POLICY_VERSION = "18-plus-v1"
 
 # Cloudflare's published test credentials make the complete Turnstile flow work
 # on localhost. Production must provide real credentials through environment

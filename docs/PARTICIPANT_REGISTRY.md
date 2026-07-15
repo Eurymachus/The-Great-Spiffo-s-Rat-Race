@@ -9,7 +9,8 @@ verified private email address before the full challenge platform launches.
 
 1. Visit the Rat Race landing page.
 2. Enter a participant nickname, email address, and password.
-3. Pass a human-verification check and acknowledge reading the privacy notice.
+3. Confirm the 18+ participation rule, pass a human-verification check, and
+   acknowledge reading the privacy notice.
 4. Receive and follow an email verification link.
 5. See confirmation that the nickname is reserved.
 6. Log in to view the participant account, change the password, or log out.
@@ -53,7 +54,9 @@ publicly.
 - Email address and normalised email address
 - Registration status
 - Registration and verification timestamps
-- Privacy-notice version and consent timestamp
+- Privacy-notice version and acknowledgement timestamp
+- 18+ eligibility confirmation timestamp and policy version (not a date of birth
+  or identity document)
 - Administrative status and notes, if applicable
 
 - Secure password hash; the original password is never stored

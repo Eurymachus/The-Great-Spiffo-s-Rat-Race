@@ -23,6 +23,8 @@ a nickname using a verified email address.
 ## Implemented
 
 - Permanent participant accounts using nickname, email, and password.
+- Self-declared 18+ participation eligibility with versioned confirmation and no
+  collection of dates of birth or identity documents.
 - Email verification with pending, verified, expired, disabled, and removed states.
 - Participant login and secure password recovery.
 - Participant account summary, password change, staff administration link, and

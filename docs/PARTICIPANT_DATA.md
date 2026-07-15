@@ -13,11 +13,14 @@ disabled until verification succeeds.
 - Public display nickname and private normalised nickname
 - Private email address and normalised email address
 - Pending, verified, expired, disabled, or removed status
-- Registration, consent, latest verification-send, and optional verification times
+- Registration, privacy-notice acknowledgement, latest verification-send, and
+  optional verification times
 - Privacy-notice version
+- Self-declared 18+ eligibility confirmation timestamp and policy version
 - Private administrator notes
 
 Normalised values exist only for reliable matching. They are not shown publicly.
+The website does not collect dates of birth or identity documents.
 
 ## Current Development Limitations
 

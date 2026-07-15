@@ -35,6 +35,7 @@ class RegistrationTests(TestCase):
             "password": "Local-test-password-482!",
             "password_confirmation": "Local-test-password-482!",
             "acknowledge_privacy": True,
+            "confirm_age_eligibility": True,
         }
         data.update(overrides)
         return data
@@ -56,6 +57,7 @@ class RegistrationTests(TestCase):
         self.assertContains(response, 'href="#main-content"')
         self.assertContains(response, 'autocomplete="email"')
         self.assertContains(response, 'autocomplete="new-password"', count=2)
+        self.assertContains(response, "I confirm that I am aged 18 or over")
 
     def test_login_error_is_clear_without_revealing_account_state(self):
         response = self.client.post(
@@ -143,6 +145,8 @@ class RegistrationTests(TestCase):
             status=Participant.Status.VERIFIED,
             privacy_notice_acknowledged_at=timezone.now(),
             privacy_notice_version="draft-1",
+            age_eligibility_confirmed_at=timezone.now(),
+            age_policy_version="18-plus-v1",
         )
         self.client.force_login(participant)
 
@@ -156,6 +160,10 @@ class RegistrationTests(TestCase):
         self.assertNotContains(response, participant.password)
         self.assertNotIn("admin_notes", payload["participant"])
         self.assertNotIn("normalized_email", payload["participant"])
+        self.assertEqual(payload["participant"]["age_policy_version"], "18-plus-v1")
+        self.assertIsNotNone(
+            payload["participant"]["age_eligibility_confirmed_at"]
+        )
 
     def test_account_closure_requires_current_password(self):
         participant = Participant.objects.create_user(
@@ -533,13 +541,22 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Resend verification")
         self.assertContains(response, reverse("registry:resend"))
 
-    def test_privacy_consent_is_required(self):
+    def test_privacy_notice_acknowledgement_is_required(self):
         response = self.client.post(
             reverse("registry:register"),
             self.registration_data(acknowledge_privacy=False),
         )
         self.assertEqual(Participant.objects.count(), 0)
         self.assertContains(response, "confirm that you have read the privacy notice")
+
+    def test_age_eligibility_confirmation_is_required(self):
+        response = self.client.post(
+            reverse("registry:register"),
+            self.registration_data(confirm_age_eligibility=False),
+        )
+
+        self.assertEqual(Participant.objects.count(), 0)
+        self.assertContains(response, "aged 18 or over to participate")
 
     def test_resend_reactivates_expired_registration(self):
         self.client.post(reverse("registry:register"), self.registration_data())
