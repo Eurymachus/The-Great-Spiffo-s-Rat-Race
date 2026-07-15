@@ -27,12 +27,14 @@ The widget therefore passes without a real Cloudflare account. Production must
 set `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to live credentials and use
 a shared cache for the request limits.
 
-Public operator and reusable brand details are central Django settings sourced
-from environment variables. Development defaults identify Sentinel Tech Ltd,
-company number 10998950, and the approved Rat Race vocabulary. See
-`.env.example` for the supported `SITE_*` names. Django reads the process
-environment directly; the example file is a deployment reference and is not
-automatically loaded by the local development server.
+Public operator details remain central Django settings sourced from environment
+variables. Reusable brand details are editable in the singleton Site Branding
+admin record and fall back to the corresponding environment-backed settings if
+that record is unavailable. Development defaults identify Sentinel Tech Ltd,
+company number 10998950, and the approved Rat Race vocabulary. See `.env.example`
+for the supported `SITE_*` names. Django reads the process environment directly;
+the example file is a deployment reference and is not automatically loaded by
+the local development server.
 
 Local administrator setup and operation are documented in
 `docs/ADMINISTRATION.md`.

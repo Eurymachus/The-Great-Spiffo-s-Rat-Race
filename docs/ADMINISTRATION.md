@@ -73,6 +73,18 @@ Promoted participants use their existing participant email and password at
 automatically enables staff login; removing the final staff role disables it.
 Promotion does not grant superuser access.
 
+## Manage Website Branding
+
+The Website Configuration section contains one protected Site Branding record.
+It controls the reusable full title, short title, tagline, welcome message,
+former-participant label, and affiliation disclaimer. Saving it updates public
+pages immediately. It cannot be duplicated or deleted.
+
+Superusers already have access to this section. A participant may instead be
+promoted to the `Branding Administrator` group, which grants only view/change
+branding permissions and staff login. A branding-only administrator is sent
+directly to Site Branding when opening `/admin/` and cannot view participants.
+
 ## Expire Abandoned Registrations
 
 Run the following command manually during development:

@@ -2,6 +2,7 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 
+from branding.models import SiteBranding
 from .models import Participant
 
 
@@ -38,7 +39,13 @@ class RegistrationForm(forms.Form):
 
     def clean_nickname(self):
         nickname = self.cleaned_data["nickname"].strip()
-        if nickname.casefold() == settings.SITE_FORMER_PARTICIPANT_LABEL.casefold():
+        former_label = (
+            SiteBranding.objects.filter(pk=SiteBranding.SINGLETON_PK)
+            .values_list("former_participant_label", flat=True)
+            .first()
+            or settings.SITE_FORMER_PARTICIPANT_LABEL
+        )
+        if nickname.casefold() == former_label.casefold():
             raise forms.ValidationError("This nickname is reserved by the system.")
         if Participant.objects.filter(
             normalized_nickname=nickname.casefold()

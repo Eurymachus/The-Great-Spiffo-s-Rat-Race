@@ -5,7 +5,12 @@ from django.dispatch import receiver
 from .models import Participant
 
 
-STAFF_ROLE_NAMES = {"Approver", "Moderator", "Challenge Administrator"}
+STAFF_ROLE_NAMES = {
+    "Approver",
+    "Moderator",
+    "Challenge Administrator",
+    "Branding Administrator",
+}
 
 
 def sync_staff_status(participant):

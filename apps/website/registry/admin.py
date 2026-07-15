@@ -94,6 +94,11 @@ def promote_to_challenge_admin(modeladmin, request, queryset):
     promote_to_role(modeladmin, request, queryset, "Challenge Administrator")
 
 
+@admin.action(description="Promote selected participants to Branding Administrator")
+def promote_to_branding_admin(modeladmin, request, queryset):
+    promote_to_role(modeladmin, request, queryset, "Branding Administrator")
+
+
 @admin.action(description="Process closure and redact selected participants")
 def process_account_closures(modeladmin, request, queryset):
     if not can_process_closures(request.user):
@@ -180,7 +185,7 @@ class ParticipantAdmin(UserAdmin):
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("email", "nickname", "password1", "password2", "is_active", "is_staff", "groups")}),
     )
-    actions = (resend_verifications, promote_to_approver, promote_to_moderator, promote_to_challenge_admin, process_account_closures, export_registrations)
+    actions = (resend_verifications, promote_to_approver, promote_to_moderator, promote_to_challenge_admin, promote_to_branding_admin, process_account_closures, export_registrations)
     date_hierarchy = "registered_at"
 
     def has_delete_permission(self, request, obj=None):

@@ -15,6 +15,7 @@ ROLE_PERMISSIONS = {
         "change_participant",
         "view_accountclosurerecord",
     ),
+    "Branding Administrator": ("view_sitebranding", "change_sitebranding"),
 }
 
 
@@ -25,7 +26,8 @@ class Command(BaseCommand):
         for role_name, codenames in ROLE_PERMISSIONS.items():
             group, _ = Group.objects.get_or_create(name=role_name)
             permissions = Permission.objects.filter(
-                content_type__app_label="registry", codename__in=codenames
+                content_type__app_label__in=("registry", "branding"),
+                codename__in=codenames,
             )
             group.permissions.set(permissions)
         for participant in Participant.objects.prefetch_related("groups"):

@@ -13,6 +13,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from branding.models import SiteBranding
 from .admin import export_registrations, promote_to_role
 from .models import AccountClosureRecord, Participant
 from .tokens import create_verification_token
@@ -96,6 +97,7 @@ class RegistrationTests(TestCase):
         SITE_DISCLAIMER="Configured disclaimer.",
     )
     def test_public_operator_identity_comes_from_configuration(self):
+        SiteBranding.objects.all().delete()
         response = self.client.get(reverse("registry:privacy"))
 
         self.assertContains(response, "Configured Operator Ltd")
@@ -108,6 +110,26 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Configured disclaimer.")
         self.assertNotContains(response, "Sentinel Tech Ltd")
         self.assertNotContains(response, "The Great Spiffo&#x27;s Rat Race")
+
+    def test_database_branding_overrides_environment_defaults(self):
+        SiteBranding.objects.update_or_create(
+            pk=SiteBranding.SINGLETON_PK,
+            defaults={
+                "full_title": "Database Challenge",
+                "short_title": "Database Race",
+                "tagline": "Database tagline",
+                "welcome_message": "Database welcome!",
+                "former_participant_label": "Database Former Player",
+                "disclaimer": "Database disclaimer.",
+            },
+        )
+
+        response = self.client.get(reverse("registry:privacy"))
+
+        self.assertContains(response, "Database Challenge")
+        self.assertContains(response, "Database tagline")
+        self.assertContains(response, "Database Former Player")
+        self.assertContains(response, "Database disclaimer.")
 
     def test_participant_can_download_only_their_account_data(self):
         participant = Participant.objects.create_user(

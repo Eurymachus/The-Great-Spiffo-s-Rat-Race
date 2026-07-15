@@ -55,8 +55,8 @@ functional mock-up.
 
 ## Website Configuration
 
-Reusable website vocabulary is exposed through environment-backed Django
-settings rather than repeated in templates:
+Reusable website vocabulary is stored in the singleton Site Branding backend
+record rather than repeated in templates:
 
 - `SITE_FULL_TITLE`
 - `SITE_SHORT_TITLE`
@@ -65,5 +65,8 @@ settings rather than repeated in templates:
 - `SITE_FORMER_PARTICIPANT_LABEL`
 - `SITE_DISCLAIMER`
 
-The approved defaults remain version-controlled in settings and `.env.example`.
-Changing these values does not alter participant records.
+The approved defaults remain version-controlled in settings and `.env.example`
+as a fallback while migrations run or if the record is unavailable. Superusers
+and members of the Branding Administrator group can edit the record through
+`/admin/`; it cannot be added twice or deleted. Changes do not alter participant
+records.

@@ -30,8 +30,9 @@ a nickname using a verified email address.
 - Draft privacy notice, participant JSON data download, and authenticated
   account-closure requests visible to administrators.
 - Central environment-backed `SITE_*` configuration for public operator identity,
-  company details, privacy contact, eventual public URL, titles, tagline,
-  welcome message, former-participant label, and affiliation disclaimer.
+  company details, privacy contact, eventual public URL, and brand fallbacks.
+- Singleton Site Branding backend with safe environment defaults, immediate
+  public rendering, and a scoped Branding Administrator role.
 - Consistent primary navigation, authenticated-route redirects, accessible form
   metadata, keyboard focus treatment, and responsive local journey checks.
 - Privileged, confirmation-protected closure processing with non-personal

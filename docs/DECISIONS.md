@@ -99,3 +99,11 @@ Reusable approved brand vocabulary follows the same configuration path: full
 and short titles, tagline, welcome message, former-participant label, and Indie
 Stone disclaimer. Longer editorial and policy content remains version-controlled
 or becomes deliberately administrator-managed content in a future data model.
+
+## 2026-07-15 — Manage reusable branding through a singleton backend record
+
+Reusable presentation vocabulary is editable through one non-deletable Site
+Branding record. Environment-backed values remain safe defaults, while database
+values update rendered pages immediately. Superusers inherit access normally;
+the Branding Administrator group grants scoped view/change permissions and no
+participant-management access.
