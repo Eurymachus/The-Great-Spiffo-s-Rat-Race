@@ -29,6 +29,8 @@ a nickname using a verified email address.
   secure logout controls.
 - Draft privacy notice, participant JSON data download, and authenticated
   account-closure requests visible to administrators.
+- Consistent primary navigation, authenticated-route redirects, accessible form
+  metadata, keyboard focus treatment, and responsive local journey checks.
 - Cloudflare Turnstile integration using official test credentials locally.
 - Cache-backed request limits for signup, resend, and password recovery.
 - Administrator roles, participant promotion, status management, and CSV export.

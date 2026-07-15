@@ -50,6 +50,23 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Already signed up?")
         self.assertContains(response, reverse("registry:login"))
         self.assertContains(response, reverse("registry:privacy"))
+        self.assertContains(response, 'aria-label="Primary navigation"')
+        self.assertContains(response, 'href="#main-content"')
+        self.assertContains(response, 'autocomplete="email"')
+        self.assertContains(response, 'autocomplete="new-password"', count=2)
+
+    def test_login_error_is_clear_without_revealing_account_state(self):
+        response = self.client.post(
+            reverse("registry:login"),
+            {"username": "unknown@example.com", "password": "wrong-password"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "The email or password was not recognised, or this account is not yet active.",
+        )
+        self.assertContains(response, reverse("registry:resend"))
 
     def test_draft_privacy_notice_is_public(self):
         response = self.client.get(reverse("registry:privacy"))
@@ -218,6 +235,8 @@ class RegistrationTests(TestCase):
         self.assertContains(response, reverse("registry:password_change"))
         self.assertContains(response, "Run-update submissions will appear here")
         self.assertContains(response, reverse("registry:logout"))
+        self.assertContains(response, 'aria-current="page"')
+        self.assertNotContains(response, ">Administration<")
 
     def test_participant_can_change_password_and_remains_logged_in(self):
         self.client.post(reverse("registry:register"), self.registration_data())
@@ -271,6 +290,22 @@ class RegistrationTests(TestCase):
 
         self.assertContains(response, "Forgot your password?")
         self.assertContains(response, reverse("registry:password_reset"))
+
+    def test_authenticated_participant_is_redirected_away_from_auth_forms(self):
+        participant = Participant.objects.create_user(
+            email="signed-in@example.com",
+            nickname="Signed In",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+
+        login_response = self.client.get(reverse("registry:login"))
+        signup_response = self.client.get(reverse("registry:register"))
+
+        self.assertRedirects(login_response, reverse("registry:account"))
+        self.assertRedirects(signup_response, reverse("registry:account"))
 
     def test_password_reset_changes_password_and_link_becomes_invalid(self):
         self.client.post(reverse("registry:register"), self.registration_data())

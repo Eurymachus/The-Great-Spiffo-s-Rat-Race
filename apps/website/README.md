@@ -29,6 +29,8 @@ a shared cache for the request limits.
 
 Local administrator setup and operation are documented in
 `docs/ADMINISTRATION.md`.
+The participant navigation and local journey baseline are recorded in
+`docs/LOCAL_WEBSITE_EXPERIENCE.md`.
 
 ## Safety
 

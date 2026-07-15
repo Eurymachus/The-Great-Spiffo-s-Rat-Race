@@ -40,6 +40,8 @@ def issue_verification(participant, request):
 
 @require_http_methods(["GET", "POST"])
 def register(request):
+    if request.user.is_authenticated:
+        return redirect("registry:account")
     form = RegistrationForm(request.POST or None)
     status = 200
     if request.method == "POST" and exceeded(

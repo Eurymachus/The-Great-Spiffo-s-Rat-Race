@@ -12,21 +12,23 @@ class RegistrationForm(forms.Form):
         max_length=40,
         label="Participant nickname",
         help_text="This will be your public Rat Race name.",
+        widget=forms.TextInput(attrs={"autocomplete": "nickname"}),
     )
     email = forms.EmailField(
         label="Email address",
         help_text="Your email will not be displayed publicly.",
+        widget=forms.EmailInput(attrs={"autocomplete": "email"}),
     )
     password = forms.CharField(
         label="Password",
         strip=False,
-        widget=forms.PasswordInput,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
         help_text="Use a unique password of at least 8 characters.",
     )
     password_confirmation = forms.CharField(
         label="Confirm password",
         strip=False,
-        widget=forms.PasswordInput,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
     )
     accept_privacy = forms.BooleanField(
         label="I accept the draft privacy notice.",
@@ -65,6 +67,7 @@ class ResendVerificationForm(forms.Form):
     email = forms.EmailField(
         label="Email address",
         help_text="Enter the address used for your registration.",
+        widget=forms.EmailInput(attrs={"autocomplete": "email"}),
     )
 
     def clean_email(self):
@@ -75,6 +78,7 @@ class PasswordResetRequestForm(forms.Form):
     email = forms.EmailField(
         label="Email address",
         help_text="Enter the address used for your participant account.",
+        widget=forms.EmailInput(attrs={"autocomplete": "email"}),
     )
 
     def clean_email(self):
@@ -85,7 +89,7 @@ class AccountClosureRequestForm(forms.Form):
     current_password = forms.CharField(
         label="Current password",
         strip=False,
-        widget=forms.PasswordInput,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
         help_text="This confirms that the request comes from you.",
     )
     note = forms.CharField(

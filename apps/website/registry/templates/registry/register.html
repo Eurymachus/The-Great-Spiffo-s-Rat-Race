@@ -14,7 +14,7 @@
 
     <form method="post" novalidate>
         {% csrf_token %}
-        {% for error in form.non_field_errors %}<p class="error form-error">{{ error }}</p>{% endfor %}
+        {% for error in form.non_field_errors %}<p class="error form-error" role="alert">{{ error }}</p>{% endfor %}
         {% for field in form %}
             <div class="field{% if field.errors %} field-error{% endif %}">
                 {% if field.field.widget.input_type == "checkbox" %}

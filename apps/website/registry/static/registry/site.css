@@ -12,6 +12,19 @@ body {
     min-height: 100vh;
     background: radial-gradient(circle at top, #394628 0, #151912 46rem);
 }
+.skip-link {
+    position: fixed;
+    z-index: 100;
+    top: .5rem;
+    left: .5rem;
+    padding: .7rem 1rem;
+    transform: translateY(-150%);
+    border-radius: .35rem;
+    background: #f2a33a;
+    color: #17120a;
+    font-weight: 800;
+}
+.skip-link:focus { transform: translateY(0); }
 
 .page-shell {
     width: min(92%, 60rem);
@@ -27,6 +40,30 @@ body {
     white-space: nowrap;
 }
 .eyebrow { margin: 0 0 .65rem; color: #f2a33a; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
+.site-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .55rem 1rem;
+    margin-top: 1.25rem;
+}
+.site-nav a, .site-nav button {
+    width: auto;
+    padding: .35rem 0;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: #d7dbc9;
+    font-weight: 750;
+    text-decoration: none;
+}
+.site-nav a:hover, .site-nav button:hover, .site-nav [aria-current="page"] {
+    border-bottom-color: #f2a33a;
+    background: transparent;
+    color: #fff4cf;
+}
+.site-nav form { margin: 0; }
 
 .card {
     width: min(100%, 48rem);
@@ -63,6 +100,7 @@ body {
     font: inherit;
 }
 .field input:focus { outline: 3px solid #f2a33a55; border-color: #f2a33a; }
+:focus-visible { outline: 3px solid #f2a33a; outline-offset: 3px; }
 .checkbox { display: flex; align-items: start; gap: .65rem; }
 .checkbox input { width: 1.2rem; height: 1.2rem; }
 .help, .error { margin: .4rem 0 0; font-size: .9rem; }
@@ -115,6 +153,7 @@ button:hover { background: #f4ad53; }
     background: #0f130d;
 }
 .card-link { margin: 1.25rem 0 0; text-align: center; }
+.small-link { color: #c8cdbd; font-size: .9rem; }
 .card a { color: #f4ad53; }
 .account-summary { margin: 1.5rem 0; border-top: 1px solid #414a37; }
 .account-summary div {

@@ -43,9 +43,5 @@
     <p>Run-update submissions will appear here when mod integration opens.</p>
   </div>
 
-  <form class="logout-form" method="post" action="{% url 'registry:logout' %}">
-    {% csrf_token %}
-    <button class="quiet-button" type="submit">Log out</button>
-  </form>
 </section>
 {% endblock %}
