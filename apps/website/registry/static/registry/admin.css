@@ -3,3 +3,57 @@
 #nav-sidebar .current-app .section:visited {
     font-weight: 400;
 }
+
+/* Keep form actions available throughout every backend add/change form. */
+body.change-form #content,
+body.add-form #content {
+    padding-bottom: 6rem;
+}
+
+body.change-form .submit-row,
+body.add-form .submit-row {
+    position: fixed;
+    z-index: 1000;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .65rem;
+    margin: 0;
+    padding: .8rem max(1rem, env(safe-area-inset-right)) max(.8rem, env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 1px solid var(--hairline-color, #333);
+    border-radius: 0;
+    background: color-mix(in srgb, var(--body-bg, #121212) 94%, transparent);
+    box-shadow: 0 -.5rem 1.5rem rgba(0, 0, 0, .28);
+    backdrop-filter: blur(.5rem);
+}
+
+body.change-form .submit-row input,
+body.change-form .submit-row a.deletelink,
+body.add-form .submit-row input,
+body.add-form .submit-row a.deletelink {
+    float: none;
+    margin: 0;
+}
+
+@media (max-width: 900px) {
+    body.change-form .submit-row,
+    body.add-form .submit-row {
+        flex-direction: row !important;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    body.change-form .submit-row input,
+    body.change-form .submit-row a.deletelink,
+    body.add-form .submit-row input,
+    body.add-form .submit-row a.deletelink {
+        flex: 0 1 auto;
+        width: max-content !important;
+        max-width: 100%;
+        height: auto;
+    }
+}
