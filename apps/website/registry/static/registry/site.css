@@ -307,6 +307,14 @@ button:hover { background: var(--theme-accent-hover); }
 .signup-controls .secondary-action { margin-right: auto; border: 1px solid var(--theme-border); background: transparent; color: var(--theme-text); }
 .signup-card .existing-account { margin-top: 1.5rem; }
 
+.privacy-modal { width: min(92vw, 54rem); max-height: 86vh; padding: 0; border: 1px solid var(--theme-border); border-radius: var(--theme-radius); background: var(--theme-surface); color: var(--theme-text); box-shadow: var(--theme-shadow); }
+.privacy-modal::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
+.privacy-modal-header { position: sticky; z-index: 2; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--theme-border); background: var(--theme-surface-alt); }
+.privacy-modal-header strong { font-family: var(--theme-heading-font); font-size: 1.15rem; }
+.privacy-modal-close { width: auto; padding: .55rem .85rem; }
+.privacy-modal-content { padding: 1rem 1.5rem 2rem; }
+.privacy-modal-content h2 { margin-top: .5rem; }
+
 @media (max-width: 700px) {
     .home-steps { grid-template-columns: 1fr; }
     .signup-progress { grid-template-columns: 1fr; }

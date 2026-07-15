@@ -62,6 +62,9 @@ class RegistrationTests(TestCase):
         self.assertContains(response, 'autocomplete="email"')
         self.assertContains(response, 'autocomplete="new-password"', count=2)
         self.assertContains(response, "I confirm that I am aged 18 or over")
+        self.assertContains(response, "data-privacy-modal")
+        self.assertContains(response, "data-privacy-dialog")
+        self.assertContains(response, "Participant privacy notice")
 
     def test_home_introduces_challenge_and_links_to_signup(self):
         response = self.client.get(reverse("registry:home"))

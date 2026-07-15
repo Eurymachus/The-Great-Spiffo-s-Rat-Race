@@ -36,7 +36,8 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260715-10">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260715-11">
+    <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
     {% if site_theme %}
     <style>
         :root {
@@ -95,17 +96,26 @@
                     <a href="{% url 'registry:register' %}"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign up</a>
                     <a href="{% url 'registry:login' %}"{% if request.resolver_match.url_name == 'login' %} aria-current="page"{% endif %}>Log in</a>
                 {% endif %}
-                <a href="{% url 'registry:privacy' %}"{% if request.resolver_match.url_name == 'privacy' %} aria-current="page"{% endif %}>Privacy</a>
+                <a href="{% url 'registry:privacy' %}" data-privacy-modal{% if request.resolver_match.url_name == 'privacy' %} aria-current="page"{% endif %}>Privacy</a>
             </nav>
         </header>
         <main id="main-content">
             {% block content %}{% endblock %}
         </main>
         <footer class="site-footer">
-            <a href="{% url 'registry:privacy' %}">Privacy</a>
+            <a href="{% url 'registry:privacy' %}" data-privacy-modal>Privacy</a>
             <span>{{ site_legal_name }} · Company {{ site_company_number }}</span>
             <span>{{ site_disclaimer }}</span>
         </footer>
     </div>
+    <dialog class="privacy-modal" data-privacy-dialog aria-labelledby="privacy-modal-title">
+        <div class="privacy-modal-header">
+            <strong id="privacy-modal-title">Participant privacy notice</strong>
+            <button type="button" class="privacy-modal-close" data-privacy-close aria-label="Close privacy notice">Close</button>
+        </div>
+        <div class="policy-copy privacy-modal-content">
+            {% include "registry/_privacy_content.html" %}
+        </div>
+    </dialog>
 </body>
 </html>

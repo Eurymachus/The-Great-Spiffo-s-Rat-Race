@@ -59,7 +59,7 @@
             {% for field in form %}{% if field.name == "acknowledge_privacy" or field.name == "confirm_age_eligibility" %}
                 <div class="field{% if field.errors %} field-error{% endif %}">
                     <label class="checkbox">{{ field }} <span>{{ field.label }}</span></label>
-                    {% if field.name == "acknowledge_privacy" %}<p class="help"><a href="{% url 'registry:privacy' %}">Read the draft privacy notice</a></p>{% endif %}
+                    {% if field.name == "acknowledge_privacy" %}<p class="help"><a href="{% url 'registry:privacy' %}" data-privacy-modal>Read the draft privacy notice</a></p>{% endif %}
                     {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
                 </div>
             {% endif %}{% endfor %}
