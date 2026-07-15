@@ -9,20 +9,25 @@
         document.documentElement.classList.add("fonts-loading", "menu-enhanced");
         (() => {
             let revealed = false;
-            const reconcileEmulatedViewport = async () => {
-                const viewport = window.visualViewport;
-                const viewportMeta = document.querySelector('meta[name="viewport"]');
-                if (!viewport || !viewportMeta) return;
-                const visibleWidth = Math.round(viewport.width);
-                const layoutWidth = document.documentElement.clientWidth;
-                if (!visibleWidth || Math.abs(layoutWidth - visibleWidth) < 2) return;
-
-                viewportMeta.content = `width=${visibleWidth}, initial-scale=1`;
-                await new Promise((resolve) => window.requestAnimationFrame(
-                    () => window.requestAnimationFrame(resolve)
-                ));
-                viewportMeta.content = "width=device-width, initial-scale=1";
+            const applyEffectiveViewportWidth = () => {
+                const widths = [
+                    window.innerWidth,
+                    window.visualViewport?.width,
+                    window.screen?.width,
+                ].filter((width) => Number.isFinite(width) && width > 0);
+                if (!widths.length) return;
+                document.documentElement.style.setProperty(
+                    "--effective-viewport-width",
+                    `${Math.round(Math.min(...widths))}px`
+                );
             };
+            applyEffectiveViewportWidth();
+            window.addEventListener("resize", applyEffectiveViewportWidth);
+            window.visualViewport?.addEventListener("resize", applyEffectiveViewportWidth);
+            window.addEventListener("load", () => {
+                applyEffectiveViewportWidth();
+                window.setTimeout(applyEffectiveViewportWidth, 100);
+            }, {once: true});
             const reveal = () => {
                 if (revealed) return;
                 revealed = true;
@@ -34,7 +39,6 @@
             };
             window.setTimeout(reveal, 3000);
             const waitForFonts = async () => {
-                await reconcileEmulatedViewport();
                 if (!document.fonts) {
                     reveal();
                     return;
@@ -54,7 +58,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260716-5">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260716-6">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
     <script src="{% static 'registry/site_menu.js' %}?v=20260716-2" defer></script>
     {% if site_theme %}

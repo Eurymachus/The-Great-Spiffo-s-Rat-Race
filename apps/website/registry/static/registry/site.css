@@ -87,10 +87,11 @@ body {
 .skip-link:focus { transform: translateY(0); }
 
 .page-shell {
-    width: min(calc(100vw - 2rem), var(--layout-shell-max));
+    width: min(calc(var(--effective-viewport-width, 100vw) - 2rem), var(--layout-shell-max));
     min-width: 0;
     margin: 0 auto;
     padding: 4rem 0;
+    container: public-page / inline-size;
 }
 
 .site-header,
@@ -107,7 +108,7 @@ body {
     width: 100%;
     max-width: 100%;
     margin: 0;
-    font-size: clamp(1.15rem, 5.5vw, 3.4rem);
+    font-size: clamp(1.15rem, 5.5cqw, 3.4rem);
     line-height: 1;
     white-space: nowrap;
     font-family: var(--theme-display-font);
@@ -120,10 +121,10 @@ body {
     max-width: 100%;
     margin: 0 0 .65rem;
     color: var(--theme-accent);
-    font-size: clamp(.65rem, 2.1vw, 1rem);
+    font-size: clamp(.65rem, 2.1cqw, 1rem);
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: clamp(.06em, .25vw, .12em);
+    letter-spacing: clamp(.06em, .25cqw, .12em);
     white-space: nowrap;
     overflow: hidden;
 }
@@ -157,7 +158,7 @@ body {
 .card {
     width: min(100%, var(--layout-card-max));
     margin-inline: auto;
-    padding: clamp(1.4rem, 5vw, 2.5rem);
+    padding: clamp(1.4rem, 5cqw, 2.5rem);
     background: var(--theme-surface);
     border: 1px solid var(--theme-border);
     border-radius: var(--theme-radius);
@@ -322,7 +323,7 @@ button:hover { background: var(--theme-accent-hover); }
 }
 .theme-preview-banner a { margin-left: .5rem; color: var(--theme-accent-hover); font-weight: 800; }
 
-.home-hero h2 { max-width: 21ch; font-size: clamp(1.8rem, 4vw, 3.1rem); }
+.home-hero h2 { max-width: 21ch; font-size: clamp(1.8rem, 4cqw, 3.1rem); }
 .home-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin: 2rem 0; }
 .card .primary-link-button { display: inline-block; padding: .9rem 1.25rem; border-radius: var(--theme-radius); background: var(--theme-accent); color: var(--theme-accent-text); font-weight: 800; text-decoration: none; }
 .card .primary-link-button:hover { background: var(--theme-accent-hover); color: var(--theme-accent-text); }
@@ -345,7 +346,7 @@ button:hover { background: var(--theme-accent-hover); }
 .signup-controls .secondary-action { margin-right: auto; border: 1px solid var(--theme-border); background: transparent; color: var(--theme-text); }
 .signup-card .existing-account { margin-top: 1.5rem; }
 
-.privacy-modal { width: min(92vw, 54rem); max-height: 86vh; padding: 0; border: 1px solid var(--theme-border); border-radius: var(--theme-radius); background: var(--theme-surface); color: var(--theme-text); box-shadow: var(--theme-shadow); }
+.privacy-modal { width: min(calc(var(--effective-viewport-width, 100vw) * .92), 54rem); max-height: 86vh; padding: 0; border: 1px solid var(--theme-border); border-radius: var(--theme-radius); background: var(--theme-surface); color: var(--theme-text); box-shadow: var(--theme-shadow); }
 .privacy-modal::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 .privacy-modal-header { position: sticky; z-index: 2; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--theme-border); background: var(--theme-surface-alt); }
 .privacy-modal-header strong { font-family: var(--theme-heading-font); font-size: 1.15rem; }
@@ -353,7 +354,7 @@ button:hover { background: var(--theme-accent-hover); }
 .privacy-modal-content { padding: 1rem 1.5rem 2rem; }
 .privacy-modal-content h2 { margin-top: .5rem; }
 
-@media (max-width: 700px) {
+@container public-page (max-width: 700px) {
     .home-steps { grid-template-columns: 1fr; }
     .signup-progress { grid-template-columns: 1fr; }
     .signup-progress li { display: none; }
@@ -362,7 +363,7 @@ button:hover { background: var(--theme-accent-hover); }
     .signup-controls { flex-wrap: wrap; }
     .signup-controls button { flex: 1 1 8rem; }
 }
-@media (max-width: 34rem) {
+@container public-page (max-width: 34rem) {
     .account-summary div { grid-template-columns: 1fr; gap: .3rem; }
     html.menu-enhanced .site-menu-toggle {
         display: inline-flex;
