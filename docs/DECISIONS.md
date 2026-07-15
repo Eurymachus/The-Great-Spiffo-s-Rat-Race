@@ -62,3 +62,10 @@ excluded from individual leaderboards but may remain in anonymous aggregate
 statistics. A closure receipt retains only a random reference and request/process
 timestamps. This is the technical project policy; final privacy wording and
 retention review remain required before public launch.
+
+## 2026-07-15 — Sentinel Tech Ltd operates the challenge website
+
+Sentinel Tech Ltd is the data controller for The Great Spiffo's Rat Race
+challenge website and its participant data. Privacy and account-data enquiries
+use `thegreatspiffo@machus.co.uk` provisionally until a final Rat Race domain
+address is selected.

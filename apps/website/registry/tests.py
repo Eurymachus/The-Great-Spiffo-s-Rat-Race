@@ -75,6 +75,7 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Participant privacy notice")
         self.assertContains(response, "Draft for development review")
+        self.assertContains(response, "Sentinel Tech Ltd")
         self.assertContains(response, "thegreatspiffo@machus.co.uk")
 
     def test_participant_can_download_only_their_account_data(self):
