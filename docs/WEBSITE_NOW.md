@@ -52,7 +52,8 @@ a nickname using a verified email address.
 
 ## Recommended next action
 
-Settle the final privacy owner/contact, retention periods, and account-deletion
-procedure, then replace the draft privacy notice. These are decisions requiring
-the project owner before public launch; the final domain is not required for
-continued local development.
+Settle the final privacy owner identity and retention periods, then replace the
+draft privacy notice. The provisional privacy and account-data contact is
+`thegreatspiffo@machus.co.uk`. These are decisions requiring the project owner
+before public launch; the final domain is not required for continued local
+development.

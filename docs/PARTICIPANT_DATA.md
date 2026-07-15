@@ -102,8 +102,10 @@ Normalised values exist only for reliable matching. They are not shown publicly.
 - A clearly labelled development draft describes collected data, purposes,
   public/private boundaries, transactional email, planned service providers, and
   participant controls.
-- Final retention periods, data-controller identity, privacy contact address,
-  lawful bases, and jurisdiction-specific wording remain launch blockers.
+- Privacy and account-data enquiries use `thegreatspiffo@machus.co.uk` as the
+  provisional contact address. It can move to the final Rat Race domain later.
+- Final retention periods, data-controller identity, lawful bases, and
+  jurisdiction-specific wording remain launch blockers.
 - The system currently sends no marketing messages, so there is no marketing
   subscription from which to unsubscribe. Any future optional communications
   must use explicit preferences.
