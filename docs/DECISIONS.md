@@ -130,7 +130,7 @@ an under-18 participant may be disabled and investigated or removed.
 ## 2026-07-15 — Use structured, backend-managed visual themes
 
 Visual styling is managed as reusable Website Theme records, with one active
-theme selected by Site Branding. Authorised branding administrators can edit
+theme selected by Branding. Authorised branding administrators can edit
 validated design tokens, privately preview a theme on the real signup page,
 duplicate it, restore supplied presets, and activate an approved result. The
 system does not accept arbitrary administrator-authored CSS. This supports safe

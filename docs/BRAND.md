@@ -73,7 +73,7 @@ and paragraphs. Each role has independent family, weight, and spacing controls.
 
 ## Website Configuration
 
-Reusable website vocabulary is stored in the singleton Site Branding backend
+Reusable website vocabulary is stored in the singleton Branding backend
 record rather than repeated in templates:
 
 - `SITE_FULL_TITLE`

@@ -171,6 +171,8 @@ class WebsiteTheme(models.Model):
 
     class Meta:
         ordering = ("name",)
+        verbose_name = "theme"
+        verbose_name_plural = "themes"
 
     @property
     def heading_font_stack(self):
@@ -234,8 +236,8 @@ class SiteBranding(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "site branding"
-        verbose_name_plural = "site branding"
+        verbose_name = "branding"
+        verbose_name_plural = "branding"
 
     @classmethod
     def current(cls):

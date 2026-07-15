@@ -224,6 +224,16 @@ class SiteBrandingAdmin(admin.ModelAdmin):
     )
     readonly_fields = ("updated_at",)
 
+    def changelist_view(self, request, extra_context=None):
+        branding = SiteBranding.current()
+        if branding and self.has_view_or_change_permission(request, branding):
+            return redirect(
+                reverse("admin:branding_sitebranding_change", args=(branding.pk,))
+            )
+        if self.has_add_permission(request):
+            return redirect(reverse("admin:branding_sitebranding_add"))
+        return super().changelist_view(request, extra_context=extra_context)
+
     def has_add_permission(self, request):
         return not SiteBranding.objects.exists() and super().has_add_permission(request)
 

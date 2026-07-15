@@ -28,7 +28,7 @@ set `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to live credentials and use
 a shared cache for the request limits.
 
 Public operator details remain central Django settings sourced from environment
-variables. Reusable brand details are editable in the singleton Site Branding
+variables. Reusable brand details are editable in the singleton Branding
 admin record and fall back to the corresponding environment-backed settings if
 that record is unavailable. Development defaults identify Sentinel Tech Ltd,
 company number 10998950, and the approved Rat Race vocabulary. See `.env.example`

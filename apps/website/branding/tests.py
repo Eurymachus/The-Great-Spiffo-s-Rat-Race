@@ -33,8 +33,15 @@ class SiteBrandingAdminTests(TestCase):
         response = self.client.get(change_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Site branding")
+        self.assertContains(response, "Branding")
         self.assertNotContains(response, "Delete")
+
+        list_url = reverse("admin:branding_sitebranding_changelist")
+        self.assertRedirects(
+            self.client.get(list_url),
+            change_url,
+            fetch_redirect_response=False,
+        )
 
     def test_branding_administrator_has_only_scoped_admin_access(self):
         participant = Participant.objects.create_user(

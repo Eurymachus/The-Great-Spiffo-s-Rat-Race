@@ -75,7 +75,7 @@ Promotion does not grant superuser access.
 
 ## Manage Website Branding
 
-The Website Configuration section contains one protected Site Branding record.
+The Website Configuration section contains one protected Branding record.
 It controls the reusable full title, short title, tagline, welcome message,
 former-participant label, and affiliation disclaimer. Saving it updates public
 pages immediately. It cannot be duplicated or deleted.
@@ -83,7 +83,7 @@ pages immediately. It cannot be duplicated or deleted.
 Superusers already have access to this section. A participant may instead be
 promoted to the `Branding Administrator` group, which grants scoped branding and
 theme permissions plus staff login. A branding-only administrator is sent
-directly to Site Branding when opening `/admin/` and cannot view participants.
+directly to Branding when opening `/admin/` and cannot view participants.
 
 Website Themes provides three editable presets. From its list, a branding
 administrator can preview a selected theme on the real signup page, activate it,

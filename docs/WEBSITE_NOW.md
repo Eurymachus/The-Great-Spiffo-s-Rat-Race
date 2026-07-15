@@ -33,7 +33,7 @@ a nickname using a verified email address.
   account-closure requests visible to administrators.
 - Central environment-backed `SITE_*` configuration for public operator identity,
   company details, privacy contact, eventual public URL, and brand fallbacks.
-- Singleton Site Branding backend with safe environment defaults, immediate
+- Singleton Branding backend with safe environment defaults, immediate
   public rendering, and a scoped Branding Administrator role.
 - Managed visual themes with three editable presets, private signup-page preview,
   duplication, restoration, activation, and validated design controls.
