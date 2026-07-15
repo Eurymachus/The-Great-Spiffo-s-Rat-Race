@@ -121,6 +121,26 @@ def restore_presets(modeladmin, request, queryset):
     )
 
 
+@admin.action(description="Delete selected custom themes", permissions=("delete",))
+def delete_custom_themes(modeladmin, request, queryset):
+    branding = SiteBranding.current()
+    active_theme_id = branding.active_theme_id if branding else None
+    deletable = queryset.filter(preset_key="").exclude(pk=active_theme_id)
+    deleted = deletable.count()
+    skipped = queryset.count() - deleted
+    deletable.delete()
+    if deleted:
+        modeladmin.message_user(
+            request, f"Deleted {deleted} custom theme(s).", level=messages.SUCCESS
+        )
+    if skipped:
+        modeladmin.message_user(
+            request,
+            f"Kept {skipped} active or built-in theme(s).",
+            level=messages.WARNING,
+        )
+
+
 @admin.register(WebsiteTheme)
 class WebsiteThemeAdmin(admin.ModelAdmin):
     form = WebsiteThemeAdminForm
@@ -179,7 +199,12 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
         ),
         ("Record", {"fields": ("updated_at",)}),
     )
-    actions = (activate_theme, duplicate_themes, restore_presets)
+    actions = (
+        activate_theme,
+        duplicate_themes,
+        restore_presets,
+        delete_custom_themes,
+    )
 
     class Media:
         css = {"all": ("branding/theme_admin.css",)}
@@ -196,7 +221,18 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
         return format_html('<a class="button" href="{}">Preview</a>', url)
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        permitted = super().has_delete_permission(request, obj)
+        if not permitted or obj is None:
+            return permitted
+        branding = SiteBranding.current()
+        return not obj.preset_key and (
+            not branding or branding.active_theme_id != obj.pk
+        )
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop("delete_selected", None)
+        return actions
 
 
 @admin.register(SiteBranding)
@@ -219,6 +255,11 @@ class SiteBrandingAdmin(admin.ModelAdmin):
         ("Record", {"fields": ("updated_at",)}),
     )
     readonly_fields = ("updated_at",)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields["active_theme"].widget.can_delete_related = False
+        return form
 
     def changelist_view(self, request, extra_context=None):
         branding = SiteBranding.current()

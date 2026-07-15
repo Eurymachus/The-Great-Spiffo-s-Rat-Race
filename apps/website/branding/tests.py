@@ -60,6 +60,7 @@ class SiteBrandingAdminTests(TestCase):
         self.assertTrue(participant.has_perm("branding.change_sitebranding"))
         self.assertTrue(participant.has_perm("branding.add_websitetheme"))
         self.assertTrue(participant.has_perm("branding.change_websitetheme"))
+        self.assertTrue(participant.has_perm("branding.delete_websitetheme"))
         self.assertFalse(participant.has_perm("registry.view_participant"))
 
         admin_home = self.client.get("/admin/")
@@ -92,6 +93,51 @@ class SiteBrandingAdminTests(TestCase):
         public_page = self.client.get(reverse("registry:privacy"))
         self.assertContains(public_page, "Edited Full Challenge")
         self.assertContains(public_page, "Edited Former Racer")
+
+    def test_branding_administrator_can_delete_only_inactive_custom_themes(self):
+        participant = Participant.objects.create_user(
+            email="theme-delete@example.com",
+            nickname="Theme Deleter",
+            password="test-password-only",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        participant.groups.add(Group.objects.get(name="Branding Administrator"))
+        custom = WebsiteTheme.objects.create(name="Disposable Custom Theme")
+        active_custom = WebsiteTheme.objects.create(name="Active Custom Theme")
+        self.branding.active_theme = active_custom
+        self.branding.save()
+        built_in = WebsiteTheme.objects.get(preset_key="clean-competition")
+        self.client.force_login(participant)
+        changelist = reverse("admin:branding_websitetheme_changelist")
+
+        custom_page = self.client.get(
+            reverse("admin:branding_websitetheme_change", args=(custom.pk,))
+        )
+        active_page = self.client.get(
+            reverse("admin:branding_websitetheme_change", args=(active_custom.pk,))
+        )
+        built_in_page = self.client.get(
+            reverse("admin:branding_websitetheme_change", args=(built_in.pk,))
+        )
+        self.assertContains(custom_page, "Delete")
+        self.assertNotContains(active_page, "Delete")
+        self.assertNotContains(built_in_page, "Delete")
+
+        response = self.client.post(
+            changelist,
+            {
+                "action": "delete_custom_themes",
+                "_selected_action": [str(custom.pk), str(active_custom.pk), str(built_in.pk)],
+            },
+            follow=True,
+        )
+
+        self.assertContains(response, "Deleted 1 custom theme(s).")
+        self.assertContains(response, "Kept 2 active or built-in theme(s).")
+        self.assertFalse(WebsiteTheme.objects.filter(pk=custom.pk).exists())
+        self.assertTrue(WebsiteTheme.objects.filter(pk=active_custom.pk).exists())
+        self.assertTrue(WebsiteTheme.objects.filter(pk=built_in.pk).exists())
 
     def test_participant_email_uses_database_branding(self):
         self.branding.full_title = "Email Full Challenge"

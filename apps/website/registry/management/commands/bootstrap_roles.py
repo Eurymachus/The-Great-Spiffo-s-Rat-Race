@@ -23,6 +23,7 @@ ROLE_PERMISSIONS = {
         "add_websitetheme",
         "view_websitetheme",
         "change_websitetheme",
+        "delete_websitetheme",
     ),
 }
 
