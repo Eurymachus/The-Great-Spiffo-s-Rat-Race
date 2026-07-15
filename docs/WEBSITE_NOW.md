@@ -33,8 +33,8 @@ a nickname using a verified email address.
   company number, registered office, privacy contact, and eventual public URL.
 - Consistent primary navigation, authenticated-route redirects, accessible form
   metadata, keyboard focus treatment, and responsive local journey checks.
-- Privileged, confirmation-protected closure processing with a non-login
-  `Redacted` participant and non-personal closure receipts.
+- Privileged, confirmation-protected closure processing with non-personal
+  closure receipts and a documented nullable owner for future independent runs.
 - Cloudflare Turnstile integration using official test credentials locally.
 - Cache-backed request limits for signup, resend, and password recovery.
 - Administrator roles, participant promotion, status management, and CSV export.

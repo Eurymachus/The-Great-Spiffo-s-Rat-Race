@@ -56,12 +56,12 @@ privileges automatically.
 ## 2026-07-15 — Closed accounts retain anonymous challenge history
 
 Processing an approved account-closure request removes the participant login and
-personal identity. Future run updates and challenge history will be reassigned to
-a protected, non-login `Redacted` system participant. Redacted history is
-excluded from individual leaderboards but may remain in anonymous aggregate
-statistics. A closure receipt retains only a random reference and request/process
-timestamps. This is the technical project policy; final privacy wording and
-retention review remain required before public launch.
+personal identity. Future `Run.participant` relationships are nullable and use
+`SET_NULL`, preserving each run independently without combining former
+participants. Detached runs display as `Former Rat Racer`, have no participant
+profile link, and may remain in anonymous aggregate statistics. A closure receipt
+retains only a random reference and request/process timestamps. This supersedes
+the briefly considered shared Redacted-account design.
 
 ## 2026-07-15 — Sentinel Tech Ltd operates the challenge website
 

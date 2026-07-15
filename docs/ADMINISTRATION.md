@@ -57,15 +57,16 @@ the closure-processing action.
    participants`.
 5. Review the dedicated confirmation page and confirm the destructive action.
 
-The action permanently removes the participant login identity, ensures the
-protected `Redacted` system participant exists, and writes a non-personal closure
-receipt containing a random reference plus request/process timestamps. The
-system participant is inactive and has no usable password.
+The action permanently removes the participant login identity and writes a
+non-personal closure receipt containing a random reference plus request/process
+timestamps.
 
-The registry milestone has no run records to transfer. Every future model that
-owns participant run or report data must use protected deletion and be added to
-this action's reassignment transaction before launch. Never allow a cascading
-delete to discard historical challenge data accidentally.
+The registry milestone has no run records yet. The future `Run.participant`
+relationship must be nullable and use `on_delete=models.SET_NULL`. Deleting a
+participant will then detach its runs without deleting or combining them. Each
+detached run is displayed publicly as `Former Rat Racer`; run-owned daily data
+continues to belong to its independent run. Never use cascading deletion for
+historical challenge data.
 
 Promoted participants use their existing participant email and password at
 `/admin/`. Adding an Approver, Moderator, or Challenge Administrator group

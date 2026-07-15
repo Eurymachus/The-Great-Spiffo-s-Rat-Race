@@ -5,7 +5,7 @@
 
 <div class="deletions">
     <p><strong>This operation permanently removes participant login identities.</strong></p>
-    <p>Future challenge records must first be transferred to the protected <strong>Redacted</strong> system participant. The current registry milestone has no run records.</p>
+    <p>Each future run will remain intact while its participant link is removed. It will then be displayed publicly as <strong>Former Rat Racer</strong>. The current registry milestone has no run records.</p>
 
     {% if eligible_count %}
         <p>The following {{ eligible_count }} eligible account{{ eligible_count|pluralize }} will be processed:</p>
@@ -19,7 +19,7 @@
     {% endif %}
 
     {% if skipped_count %}
-        <p>{{ skipped_count }} selected account{{ skipped_count|pluralize }} will be skipped because it has no pending request, is a system account, or still has staff access.</p>
+        <p>{{ skipped_count }} selected account{{ skipped_count|pluralize }} will be skipped because it has no pending request or still has staff access.</p>
     {% endif %}
 
     <form method="post">

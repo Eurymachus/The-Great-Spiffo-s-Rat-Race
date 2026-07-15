@@ -37,7 +37,7 @@ class RegistrationForm(forms.Form):
 
     def clean_nickname(self):
         nickname = self.cleaned_data["nickname"].strip()
-        if nickname.casefold() == "redacted":
+        if nickname.casefold() == "former rat racer":
             raise forms.ValidationError("This nickname is reserved by the system.")
         if Participant.objects.filter(
             normalized_nickname=nickname.casefold()
@@ -47,8 +47,6 @@ class RegistrationForm(forms.Form):
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip()
-        if email.casefold() == "redacted@rat-race.invalid":
-            raise forms.ValidationError("This email address is reserved by the system.")
         if Participant.objects.filter(normalized_email=email.casefold()).exists():
             self.email_already_registered = True
             raise forms.ValidationError(

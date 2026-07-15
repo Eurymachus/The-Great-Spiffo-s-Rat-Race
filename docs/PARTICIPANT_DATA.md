@@ -93,9 +93,10 @@ Normalised values exist only for reliable matching. They are not shown publicly.
   destructive confirmation page. Staff accounts are refused until demoted.
 - Processing deletes the login identity and leaves a non-personal closure receipt
   containing only a random reference and request/process timestamps.
-- A protected, inactive `Redacted` system participant is the future owner for
-  retained anonymous run history. It has no usable password and must be excluded
-  from individual leaderboards while remaining eligible for aggregate statistics.
+- Future runs use a nullable participant relationship with `SET_NULL` deletion.
+  Account closure detaches each run from the deleted identity while preserving
+  the run and its daily data independently. Detached runs display as `Former Rat
+  Racer`, have no participant profile link, and may remain in aggregate statistics.
 
 ## Privacy Notice Status
 

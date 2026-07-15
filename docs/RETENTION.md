@@ -8,7 +8,7 @@ of The Great Spiffo's Rat Race challenge platform.
 | Unverified registrations | 30 days from registration | Delete the account and identifying data. |
 | Active participant accounts | While the account and challenge platform remain active | Retain unless closure is approved or the platform ends. Do not delete merely for inactivity. |
 | Closed participant identity | Until an approved closure is processed | Remove login credentials, email, nickname, and other identifying account information. |
-| Anonymised challenge reports and results | Indefinitely | Retain beneath the shared Redacted participant only when genuinely anonymised. |
+| Anonymised challenge reports and results | Indefinitely | Remove the participant link, retain each run independently, and display its owner as Former Rat Racer only when genuinely anonymised. |
 | Moderation notes and evidence | Two years after the relevant run, decision, or closure | Delete or anonymise, unless needed for an active dispute or legal obligation. |
 | Routine security and email-delivery logs | 90 days | Delete, unless needed for an active investigation. |
 | Backups | Rolling 30 days | Allow deleted personal information to expire and do not restore it to the live service. |

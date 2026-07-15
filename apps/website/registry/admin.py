@@ -21,32 +21,10 @@ admin.site.index_title = "Challenge administration"
 admin.site.index_template = "admin/rat_race_index.html"
 admin.site.app_index_template = "admin/rat_race_app_index.html"
 
-REDACTED_PARTICIPANT_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
-
-
 def can_process_closures(user):
     return user.is_superuser or user.groups.filter(
         name="Challenge Administrator"
     ).exists()
-
-
-def get_redacted_participant():
-    redacted, created = Participant.objects.get_or_create(
-        id=REDACTED_PARTICIPANT_ID,
-        defaults={
-            "nickname": "Redacted",
-            "email": "redacted@rat-race.invalid",
-            "status": Participant.Status.REMOVED,
-            "is_active": False,
-            "is_system_account": True,
-            "privacy_notice_version": "system",
-        },
-    )
-    if created:
-        redacted.set_unusable_password()
-        redacted.save(update_fields=("password",))
-    return redacted
-
 
 @admin.action(description="Export selected registrations as CSV")
 def export_registrations(modeladmin, request, queryset):
@@ -127,19 +105,17 @@ def process_account_closures(modeladmin, request, queryset):
 
     eligible = queryset.filter(
         deletion_requested_at__isnull=False,
-        is_system_account=False,
         is_staff=False,
     )
     skipped = queryset.count() - eligible.count()
 
     if request.POST.get("confirm") == "yes":
-        redacted = get_redacted_participant()
         processed = 0
         for participant in eligible:
             with transaction.atomic():
-                # Future run/report foreign keys must be reassigned to this
-                # protected system participant here before deleting identity.
-                # No participant-owned run records exist in the registry milestone.
+                # Future Run.participant foreign keys must use SET_NULL so the
+                # participant identity is detached while each run survives.
+                # The registry milestone does not have a Run model yet.
                 closure_reference = (
                     participant.deletion_request_reference or uuid.uuid4()
                 )
@@ -151,8 +127,8 @@ def process_account_closures(modeladmin, request, queryset):
                 processed += 1
         modeladmin.message_user(
             request,
-            f"Processed {processed} account closure(s) beneath {redacted.nickname}. "
-            f"Skipped {skipped} ineligible or staff account(s).",
+            f"Processed {processed} account closure(s). "
+            f"Skipped {skipped} account(s) without a pending request or with staff access.",
             level=messages.SUCCESS,
         )
         return None
@@ -191,7 +167,6 @@ class ParticipantAdmin(UserAdmin):
         "privacy_notice_acknowledged_at",
         "verification_sent_at",
         "deletion_requested_at",
-        "is_system_account",
     )
     ordering = ("email",)
     fieldsets = (
@@ -199,7 +174,7 @@ class ParticipantAdmin(UserAdmin):
         ("Participant", {"fields": ("nickname", "status", "verified_at", "admin_notes")}),
         ("Account closure request", {"fields": ("deletion_requested_at", "deletion_request_note")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
-        ("Registration record", {"fields": ("id", "normalized_nickname", "normalized_email", "registered_at", "privacy_notice_acknowledged_at", "verification_sent_at", "privacy_notice_version", "is_system_account")}),
+        ("Registration record", {"fields": ("id", "normalized_nickname", "normalized_email", "registered_at", "privacy_notice_acknowledged_at", "verification_sent_at", "privacy_notice_version")}),
     )
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("email", "nickname", "password1", "password2", "is_active", "is_staff", "groups")}),

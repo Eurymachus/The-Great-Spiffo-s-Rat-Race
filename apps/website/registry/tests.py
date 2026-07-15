@@ -80,6 +80,7 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Unverified registrations are deleted after 30 days")
         self.assertContains(response, "Routine security and email-delivery logs are kept for 90 days")
         self.assertContains(response, "We do not currently rely on consent")
+        self.assertContains(response, "Former Rat Racer")
 
     @override_settings(
         SITE_LEGAL_NAME="Configured Operator Ltd",
@@ -476,23 +477,14 @@ class RegistrationTests(TestCase):
         self.assertEqual(Participant.objects.count(), 1)
         self.assertContains(response, "nickname is already reserved")
 
-    def test_redacted_nickname_is_reserved_for_system_use(self):
+    def test_former_rat_racer_nickname_is_reserved_for_anonymous_display(self):
         response = self.client.post(
             reverse("registry:register"),
-            self.registration_data(nickname="Redacted"),
+            self.registration_data(nickname="Former Rat Racer"),
         )
 
         self.assertEqual(Participant.objects.count(), 0)
         self.assertContains(response, "nickname is reserved by the system")
-
-    def test_redacted_email_is_reserved_for_system_use(self):
-        response = self.client.post(
-            reverse("registry:register"),
-            self.registration_data(email="redacted@rat-race.invalid"),
-        )
-
-        self.assertEqual(Participant.objects.count(), 0)
-        self.assertContains(response, "email address is reserved by the system")
 
     def test_email_is_unique_ignoring_case(self):
         self.client.post(reverse("registry:register"), self.registration_data())
@@ -625,19 +617,18 @@ class RegistrationTests(TestCase):
         self.assertEqual(confirmation.status_code, 200)
         self.assertContains(confirmation, "Confirm account closure and redaction")
         self.assertContains(confirmation, "Leaving Player")
+        self.assertContains(confirmation, "Former Rat Racer")
         self.assertTrue(Participant.objects.filter(pk=participant.pk).exists())
 
         processed = self.client.post(admin_url, {**selection, "confirm": "yes"})
 
         self.assertEqual(processed.status_code, 302)
         self.assertFalse(Participant.objects.filter(pk=participant.pk).exists())
-        redacted = Participant.objects.get(
-            id="00000000-0000-0000-0000-000000000001"
+        self.assertFalse(
+            Participant.objects.filter(
+                id="00000000-0000-0000-0000-000000000001"
+            ).exists()
         )
-        self.assertEqual(redacted.nickname, "Redacted")
-        self.assertTrue(redacted.is_system_account)
-        self.assertFalse(redacted.is_active)
-        self.assertFalse(redacted.has_usable_password())
         self.assertTrue(
             AccountClosureRecord.objects.filter(reference=closure_reference).exists()
         )
