@@ -36,8 +36,9 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260716-2">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260716-3">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
+    <script src="{% static 'registry/site_menu.js' %}?v=20260716-1" defer></script>
     {% if site_theme %}
     <style>
         :root {
@@ -82,7 +83,8 @@
         <header class="site-header">
             <p class="eyebrow">{{ site_tagline }}</p>
             <h1>{{ site_full_title }}</h1>
-            <nav class="site-nav" aria-label="Primary navigation">
+            <button class="site-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-menu" data-site-menu-toggle>Menu</button>
+            <nav class="site-nav" id="primary-menu" aria-label="Primary navigation" data-site-menu>
                 {% if request.user.is_authenticated %}
                     <a href="{% url 'registry:home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a>
                     <a href="{% url 'registry:account' %}"{% if request.resolver_match.url_name == 'account' %} aria-current="page"{% endif %}>Your account</a>

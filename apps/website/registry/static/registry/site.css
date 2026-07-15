@@ -95,6 +95,7 @@ body {
     margin-inline: auto;
 }
 .site-header {
+    position: relative;
     margin-bottom: 2rem;
     text-align: center;
 }
@@ -107,7 +108,16 @@ body {
     font-weight: var(--theme-display-weight);
     letter-spacing: var(--theme-display-spacing);
 }
-.eyebrow { margin: 0 0 .65rem; color: var(--theme-accent); font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
+.eyebrow {
+    margin: 0 0 .65rem;
+    color: var(--theme-accent);
+    font-size: clamp(.65rem, 2.1vw, 1rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: clamp(.06em, .25vw, .12em);
+    white-space: nowrap;
+}
+.site-menu-toggle { display: none; }
 .site-nav {
     display: flex;
     flex-wrap: wrap;
@@ -343,4 +353,37 @@ button:hover { background: var(--theme-accent-hover); }
 }
 @media (max-width: 34rem) {
     .account-summary div { grid-template-columns: 1fr; gap: .3rem; }
+    html.menu-enhanced .site-menu-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: auto;
+        margin-top: 1rem;
+        padding: .55rem 1rem;
+        border: 1px solid var(--theme-border);
+        background: var(--theme-surface-alt);
+        color: var(--theme-text);
+    }
+    html.menu-enhanced .site-menu-toggle::before { content: "☰"; margin-right: .45rem; }
+    html.menu-enhanced .site-nav {
+        position: absolute;
+        z-index: 10;
+        top: 100%;
+        left: 50%;
+        display: none;
+        width: min(18rem, 100%);
+        margin-top: .5rem;
+        padding: .7rem;
+        transform: translateX(-50%);
+        flex-direction: column;
+        gap: .25rem;
+        border: 1px solid var(--theme-border);
+        border-radius: var(--theme-radius);
+        background: var(--theme-surface);
+        box-shadow: var(--theme-shadow);
+    }
+    html.menu-enhanced .site-nav.is-open { display: flex; }
+    html.menu-enhanced .site-nav a,
+    html.menu-enhanced .site-nav form,
+    html.menu-enhanced .site-nav button { width: 100%; }
 }

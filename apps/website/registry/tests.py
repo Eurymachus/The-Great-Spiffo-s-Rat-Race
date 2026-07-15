@@ -58,6 +58,8 @@ class RegistrationTests(TestCase):
         self.assertContains(response, reverse("registry:login"))
         self.assertContains(response, reverse("registry:privacy"))
         self.assertContains(response, 'aria-label="Primary navigation"')
+        self.assertContains(response, 'data-site-menu-toggle')
+        self.assertContains(response, 'aria-controls="primary-menu"')
         self.assertContains(response, 'href="#main-content"')
         self.assertContains(response, 'autocomplete="email"')
         self.assertContains(response, 'autocomplete="new-password"', count=2)
