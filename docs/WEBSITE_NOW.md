@@ -35,6 +35,8 @@ a nickname using a verified email address.
   company details, privacy contact, eventual public URL, and brand fallbacks.
 - Singleton Site Branding backend with safe environment defaults, immediate
   public rendering, and a scoped Branding Administrator role.
+- Managed visual themes with three editable presets, private signup-page preview,
+  duplication, restoration, activation, and validated design controls.
 - Consistent primary navigation, authenticated-route redirects, accessible form
   metadata, keyboard focus treatment, and responsive local journey checks.
 - Privileged, confirmation-protected closure processing with non-personal
@@ -58,9 +60,8 @@ a nickname using a verified email address.
 
 ## Recommended next action
 
-Define and implement the participant-facing visual brand for the initial signup
-launch: logo/mark, colour palette, typography, imagery, spacing, and responsive
-page treatment. Preserve the completed account, privacy, and administration
-flows beneath that presentation layer. Run/report ingestion remains deferred
-until Project Zomboid B42 Stable and the challenge rules are finalised. Retention
-automation and a final pre-launch privacy review still remain required.
+Use the new theme previews to choose and refine the participant-facing visual
+direction, then develop the logo/mark and imagery against that chosen theme.
+Run/report ingestion remains deferred until Project Zomboid B42 Stable and the
+challenge rules are finalised. Retention automation and a final pre-launch
+privacy review still remain required.

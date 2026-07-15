@@ -5,12 +5,41 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ site_full_title }}{% block title_suffix %}{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260715-3">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260715-4">
+    {% if site_theme %}
+    <style>
+        :root {
+            color-scheme: {{ site_theme.colour_scheme }};
+            --theme-background: {{ site_theme.background_colour }};
+            --theme-background-highlight: {{ site_theme.background_highlight_colour }};
+            --theme-surface: {{ site_theme.surface_colour }};
+            --theme-surface-alt: {{ site_theme.surface_alt_colour }};
+            --theme-text: {{ site_theme.text_colour }};
+            --theme-muted: {{ site_theme.muted_text_colour }};
+            --theme-accent: {{ site_theme.accent_colour }};
+            --theme-accent-hover: {{ site_theme.accent_hover_colour }};
+            --theme-accent-text: {{ site_theme.accent_text_colour }};
+            --theme-border: {{ site_theme.border_colour }};
+            --theme-success: {{ site_theme.success_colour }};
+            --theme-error: {{ site_theme.error_colour }};
+            --theme-heading-font: {{ site_theme.heading_font_stack }};
+            --theme-body-font: {{ site_theme.body_font_stack }};
+            --theme-radius: {{ site_theme.corner_radius }};
+            --theme-shadow: {{ site_theme.box_shadow }};
+        }
+    </style>
+    {% endif %}
     {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="theme-background-{{ site_theme.background_style|default:'radial' }}">
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="page-shell">
+        {% if site_theme_is_preview %}
+        <aside class="theme-preview-banner" role="status">
+            Previewing <strong>{{ site_theme.name }}</strong>. This theme is not public until activated.
+            <a href="{% url 'admin:branding_websitetheme_changelist' %}">Return to themes</a>
+        </aside>
+        {% endif %}
         <header class="site-header">
             <p class="eyebrow">{{ site_tagline }}</p>
             <h1>{{ site_full_title }}</h1>

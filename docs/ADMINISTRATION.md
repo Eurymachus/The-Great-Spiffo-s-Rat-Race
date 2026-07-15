@@ -81,9 +81,14 @@ former-participant label, and affiliation disclaimer. Saving it updates public
 pages immediately. It cannot be duplicated or deleted.
 
 Superusers already have access to this section. A participant may instead be
-promoted to the `Branding Administrator` group, which grants only view/change
-branding permissions and staff login. A branding-only administrator is sent
+promoted to the `Branding Administrator` group, which grants scoped branding and
+theme permissions plus staff login. A branding-only administrator is sent
 directly to Site Branding when opening `/admin/` and cannot view participants.
+
+Website Themes provides three editable presets. From its list, a branding
+administrator can preview a selected theme on the real signup page, activate it,
+duplicate it as a working copy, or restore the supplied presets. Previewing is
+private and does not change the public theme. Theme deletion is disabled.
 
 ## Expire Abandoned Registrations
 

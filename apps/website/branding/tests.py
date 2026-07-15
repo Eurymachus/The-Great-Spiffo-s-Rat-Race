@@ -1,13 +1,14 @@
 from django.contrib.auth.models import Group
 from django.core import mail
 from django.core.management import call_command
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
 from registry.models import Participant
 from registry.verification_email import send_verification_email
 
-from .models import SiteBranding
+from .models import SiteBranding, WebsiteTheme
 
 
 class SiteBrandingAdminTests(TestCase):
@@ -16,6 +17,7 @@ class SiteBrandingAdminTests(TestCase):
             pk=SiteBranding.SINGLETON_PK
         )
         call_command("bootstrap_roles", verbosity=0)
+        self.branding.refresh_from_db()
 
     def test_superuser_can_change_but_not_delete_branding(self):
         superuser = Participant.objects.create_superuser(
@@ -49,6 +51,8 @@ class SiteBrandingAdminTests(TestCase):
         self.assertTrue(participant.is_staff)
         self.assertTrue(participant.has_perm("branding.view_sitebranding"))
         self.assertTrue(participant.has_perm("branding.change_sitebranding"))
+        self.assertTrue(participant.has_perm("branding.add_websitetheme"))
+        self.assertTrue(participant.has_perm("branding.change_websitetheme"))
         self.assertFalse(participant.has_perm("registry.view_participant"))
 
         admin_home = self.client.get("/admin/")
@@ -74,6 +78,7 @@ class SiteBrandingAdminTests(TestCase):
                 "welcome_message": "Edited welcome!",
                 "former_participant_label": "Edited Former Racer",
                 "disclaimer": "Edited disclaimer.",
+                "active_theme": self.branding.active_theme_id,
             },
         )
         self.assertEqual(saved.status_code, 302)
@@ -97,3 +102,46 @@ class SiteBrandingAdminTests(TestCase):
         self.assertEqual(mail.outbox[0].subject, "Verify your Email Race nickname")
         self.assertIn("Email Full Challenge", mail.outbox[0].body)
         self.assertIn("Email tagline", mail.outbox[0].body)
+
+    def test_three_editable_presets_exist_and_survival_event_is_active(self):
+        self.assertSetEqual(
+            set(WebsiteTheme.objects.values_list("preset_key", flat=True)),
+            {"survival-event", "retro-road-race", "clean-competition"},
+        )
+        self.assertEqual(self.branding.active_theme.preset_key, "survival-event")
+
+    def test_superuser_can_preview_then_activate_a_theme(self):
+        superuser = Participant.objects.create_superuser(
+            email="theme-superuser@example.com",
+            nickname="Theme Superuser",
+            password="test-password-only",
+        )
+        retro = WebsiteTheme.objects.get(preset_key="retro-road-race")
+        self.client.force_login(superuser)
+        changelist = reverse("admin:branding_websitetheme_changelist")
+        selection = {"action": "preview_theme", "_selected_action": str(retro.pk)}
+
+        preview_redirect = self.client.post(changelist, selection)
+
+        self.assertEqual(preview_redirect.status_code, 302)
+        preview_page = self.client.get(preview_redirect.url)
+        self.assertContains(preview_page, "Previewing <strong>Retro Road Race</strong>")
+        self.assertContains(preview_page, "theme-background-road")
+        self.assertContains(preview_page, "--theme-accent: #B53624")
+        self.branding.refresh_from_db()
+        self.assertEqual(self.branding.active_theme.preset_key, "survival-event")
+
+        activated = self.client.post(
+            changelist,
+            {"action": "activate_theme", "_selected_action": str(retro.pk)},
+        )
+
+        self.assertEqual(activated.status_code, 302)
+        self.branding.refresh_from_db()
+        self.assertEqual(self.branding.active_theme, retro)
+
+    def test_theme_colours_reject_arbitrary_css(self):
+        theme = WebsiteTheme(name="Unsafe", accent_colour="red; background:url(x)")
+
+        with self.assertRaises(ValidationError):
+            theme.full_clean()

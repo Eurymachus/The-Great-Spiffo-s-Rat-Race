@@ -1,11 +1,19 @@
 from django.conf import settings
-from branding.models import SiteBranding
+from branding.models import SiteBranding, WebsiteTheme
 
 
 def site_identity(request):
     company_number = settings.SITE_COMPANY_NUMBER
     # Settings remain a safe fallback while migrations are being applied.
     brand = SiteBranding.current()
+    theme = brand.active_theme if brand else None
+    preview_theme_id = request.GET.get("theme-preview")
+    if (
+        preview_theme_id
+        and request.user.is_authenticated
+        and request.user.has_perm("branding.change_websitetheme")
+    ):
+        theme = WebsiteTheme.objects.filter(pk=preview_theme_id).first() or theme
     return {
         "site_legal_name": settings.SITE_LEGAL_NAME,
         "site_company_number": company_number,
@@ -27,5 +35,9 @@ def site_identity(request):
         "site_companies_house_url": (
             "https://find-and-update.company-information.service.gov.uk/company/"
             f"{company_number}"
+        ),
+        "site_theme": theme,
+        "site_theme_is_preview": bool(
+            theme and preview_theme_id and str(theme.pk) == preview_theme_id
         ),
     }

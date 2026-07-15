@@ -48,10 +48,16 @@ Avoid an unqualified “official Project Zomboid challenge.”
   Aiming skill points.”
 - Example community address: “Rat Racers, you best be ready for this...”
 
-## Visual Direction
+## Visual Themes
 
-Not decided yet. Current website colours and typography are placeholders for the
-functional mock-up.
+The visual direction is theme-driven so complete looks can be compared without
+editing templates. Three editable starting points are supplied: **Survival
+Event**, **Retro Road Race**, and **Clean Competition**.
+
+Only one theme is public. Branding administrators can privately preview another
+theme, duplicate it for experimentation, edit its structured palette and
+typography controls, and activate it when approved. Presets can be restored.
+Fields use constrained choices and validated colours rather than arbitrary CSS.
 
 ## Website Configuration
 
@@ -70,3 +76,6 @@ as a fallback while migrations run or if the record is unavailable. Superusers
 and members of the Branding Administrator group can edit the record through
 `/admin/`; it cannot be added twice or deleted. Changes do not alter participant
 records.
+
+The active visual theme is selected from this record. Individual themes are
+managed in the Website Themes section.

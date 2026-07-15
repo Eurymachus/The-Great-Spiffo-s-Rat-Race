@@ -42,7 +42,13 @@ def issue_verification(participant, request):
 
 @require_http_methods(["GET", "POST"])
 def register(request):
-    if request.user.is_authenticated:
+    is_staff_theme_preview = (
+        request.method == "GET"
+        and request.GET.get("theme-preview")
+        and request.user.is_authenticated
+        and request.user.has_perm("branding.change_websitetheme")
+    )
+    if request.user.is_authenticated and not is_staff_theme_preview:
         return redirect("registry:account")
     form = RegistrationForm(request.POST or None)
     status = 200
