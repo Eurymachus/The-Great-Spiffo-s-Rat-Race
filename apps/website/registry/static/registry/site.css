@@ -32,6 +32,9 @@
     --theme-body-spacing: 0em;
     --theme-radius: 1rem;
     --theme-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .35);
+    --layout-shell-max: 90rem;
+    --layout-reading-max: 60rem;
+    --layout-card-max: 48rem;
     font-family: var(--theme-body-font);
     font-weight: var(--theme-body-weight);
     letter-spacing: var(--theme-body-spacing);
@@ -81,11 +84,16 @@ body {
 .skip-link:focus { transform: translateY(0); }
 
 .page-shell {
-    width: min(92%, 60rem);
+    width: min(94%, var(--layout-shell-max));
     margin: 0 auto;
     padding: 4rem 0;
 }
 
+.site-header,
+.site-footer {
+    width: min(100%, var(--layout-reading-max));
+    margin-inline: auto;
+}
 .site-header { margin-bottom: 2rem; }
 .site-header h1 {
     margin: 0;
@@ -123,13 +131,16 @@ body {
 .site-nav form { margin: 0; }
 
 .card {
-    width: min(100%, 48rem);
+    width: min(100%, var(--layout-card-max));
+    margin-inline: auto;
     padding: clamp(1.4rem, 5vw, 2.5rem);
     background: var(--theme-surface);
     border: 1px solid var(--theme-border);
     border-radius: var(--theme-radius);
     box-shadow: var(--theme-shadow);
 }
+
+.card-wide { width: 100%; }
 
 .card h2 { margin-top: 0; font-family: var(--theme-heading-font); font-size: 1.65rem; font-weight: var(--theme-heading-weight); letter-spacing: var(--theme-heading-spacing); }
 .lede, .help, .development-note { color: var(--theme-muted); }
@@ -267,7 +278,7 @@ button:hover { background: var(--theme-accent-hover); }
     display: flex;
     flex-wrap: wrap;
     gap: .65rem 1.25rem;
-    width: min(100%, 48rem);
+    width: min(100%, var(--layout-reading-max));
     margin-top: 1.5rem;
     padding: 1rem 0;
     color: var(--theme-muted);
