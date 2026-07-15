@@ -28,6 +28,19 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# Public operator identity. These values are not secrets, but production may
+# override them without changing source code or participant data.
+SITE_LEGAL_NAME = os.environ.get("SITE_LEGAL_NAME", "Sentinel Tech Ltd")
+SITE_COMPANY_NUMBER = os.environ.get("SITE_COMPANY_NUMBER", "10998950")
+SITE_REGISTERED_OFFICE = os.environ.get(
+    "SITE_REGISTERED_OFFICE",
+    "Suite 15 The Enterprise Centre, Coxbridge Business Park, Farnham, Surrey, England, GU10 5EH",
+)
+SITE_PRIVACY_EMAIL = os.environ.get(
+    "SITE_PRIVACY_EMAIL", "thegreatspiffo@machus.co.uk"
+)
+SITE_PUBLIC_URL = os.environ.get("SITE_PUBLIC_URL", "http://127.0.0.1:8000")
+
 
 # Application definition
 
@@ -68,6 +81,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'config.context_processors.site_identity',
             ],
         },
     },

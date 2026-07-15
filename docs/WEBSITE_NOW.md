@@ -29,6 +29,8 @@ a nickname using a verified email address.
   secure logout controls.
 - Draft privacy notice, participant JSON data download, and authenticated
   account-closure requests visible to administrators.
+- Central environment-backed `SITE_*` configuration for public operator identity,
+  company number, registered office, privacy contact, and eventual public URL.
 - Consistent primary navigation, authenticated-route redirects, accessible form
   metadata, keyboard focus treatment, and responsive local journey checks.
 - Privileged, confirmation-protected closure processing with a non-login

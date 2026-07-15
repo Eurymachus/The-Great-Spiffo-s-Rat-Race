@@ -81,6 +81,22 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Routine security and email-delivery logs are kept for 90 days")
         self.assertContains(response, "We do not currently rely on consent")
 
+    @override_settings(
+        SITE_LEGAL_NAME="Configured Operator Ltd",
+        SITE_COMPANY_NUMBER="12345678",
+        SITE_REGISTERED_OFFICE="1 Test Street, Testville",
+        SITE_PRIVACY_EMAIL="privacy@example.com",
+        SITE_PUBLIC_URL="https://example.com",
+    )
+    def test_public_operator_identity_comes_from_configuration(self):
+        response = self.client.get(reverse("registry:privacy"))
+
+        self.assertContains(response, "Configured Operator Ltd")
+        self.assertContains(response, "12345678")
+        self.assertContains(response, "1 Test Street, Testville")
+        self.assertContains(response, "privacy@example.com")
+        self.assertNotContains(response, "Sentinel Tech Ltd")
+
     def test_participant_can_download_only_their_account_data(self):
         participant = Participant.objects.create_user(
             email="export@example.com",

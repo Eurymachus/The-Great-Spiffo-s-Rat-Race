@@ -103,7 +103,8 @@ Normalised values exist only for reliable matching. They are not shown publicly.
   public/private boundaries, transactional email, planned service providers, and
   participant controls.
 - Sentinel Tech Ltd is the data controller for the challenge website and its
-  participant data.
+  participant data. Its public legal identity is supplied to templates through
+  central `SITE_*` Django settings rather than participant database records.
 - Privacy and account-data enquiries use `thegreatspiffo@machus.co.uk` as the
   provisional contact address. It can move to the final Rat Race domain later.
 - The approved retention schedule is recorded in `docs/RETENTION.md` and

@@ -86,3 +86,11 @@ essential logs, and anonymisation use legitimate interests subject to the
 assessment in `docs/LAWFUL_BASES.md`. Applicable compliance processing uses
 legal obligation. Consent is reserved for genuinely optional future processing.
 Privacy-notice acknowledgement is recorded as acknowledgement, not consent.
+
+## 2026-07-15 — Keep operator identity in environment-backed settings
+
+Public legal/operator details are deployment configuration, not participant
+data or routinely editable site content. Django exposes central `SITE_*`
+settings to templates, with version-controlled development defaults and
+environment-variable overrides for production. Sentinel Tech Ltd's verified
+Companies House number is `10998950`.
