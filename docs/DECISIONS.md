@@ -69,3 +69,11 @@ Sentinel Tech Ltd is the data controller for The Great Spiffo's Rat Race
 challenge website and its participant data. Privacy and account-data enquiries
 use `thegreatspiffo@machus.co.uk` provisionally until a final Rat Race domain
 address is selected.
+
+## 2026-07-15 — Use a documented participant-data retention schedule
+
+Sentinel Tech Ltd will apply the retention schedule in `docs/RETENTION.md`.
+Identifiable information has finite, purpose-based periods; genuinely anonymised
+challenge history and non-personal closure receipts may be retained indefinitely.
+The schedule is reviewed at least annually and when the platform's purpose or
+processing changes.

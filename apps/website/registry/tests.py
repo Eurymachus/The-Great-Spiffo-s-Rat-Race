@@ -77,6 +77,8 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Draft for development review")
         self.assertContains(response, "Sentinel Tech Ltd")
         self.assertContains(response, "thegreatspiffo@machus.co.uk")
+        self.assertContains(response, "Unverified registrations are deleted after 30 days")
+        self.assertContains(response, "Routine security and email-delivery logs are kept for 90 days")
 
     def test_participant_can_download_only_their_account_data(self):
         participant = Participant.objects.create_user(

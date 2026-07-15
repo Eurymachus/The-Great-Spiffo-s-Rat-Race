@@ -52,8 +52,9 @@ a nickname using a verified email address.
 
 ## Recommended next action
 
-Settle the final retention periods and lawful bases, then replace the draft
-privacy notice. Sentinel Tech Ltd is the data controller, and the provisional
-privacy and account-data contact is `thegreatspiffo@machus.co.uk`. The remaining
-privacy decisions require the project owner before public launch; the final
-domain is not required for continued local development.
+Settle the lawful bases and jurisdiction-specific wording, then replace the
+draft privacy notice. Sentinel Tech Ltd is the data controller, the approved
+schedule is in `docs/RETENTION.md`, and the provisional privacy contact is
+`thegreatspiffo@machus.co.uk`. Retention automation must also be completed and
+tested before launch. The final domain is not required for continued local
+development.

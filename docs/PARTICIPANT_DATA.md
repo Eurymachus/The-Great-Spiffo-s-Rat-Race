@@ -106,8 +106,9 @@ Normalised values exist only for reliable matching. They are not shown publicly.
   participant data.
 - Privacy and account-data enquiries use `thegreatspiffo@machus.co.uk` as the
   provisional contact address. It can move to the final Rat Race domain later.
-- Final retention periods, lawful bases, and jurisdiction-specific wording
-  remain launch blockers.
+- The approved retention schedule is recorded in `docs/RETENTION.md` and
+  summarised in the participant privacy notice.
+- Final lawful bases and jurisdiction-specific wording remain launch blockers.
 - The system currently sends no marketing messages, so there is no marketing
   subscription from which to unsubscribe. Any future optional communications
   must use explicit preferences.
