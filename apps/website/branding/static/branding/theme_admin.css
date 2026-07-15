@@ -87,9 +87,47 @@
 .typography-row:has(select[name$="font_spacing"] option[value="relaxed"]:checked) .font-specimens { letter-spacing: .03em; }
 .typography-row:has(select[name$="font_spacing"] option[value="wide"]:checked) .font-specimens { letter-spacing: .08em; }
 
+body.model-websitetheme.change-form #content { padding-bottom: 6rem; }
+
+body.model-websitetheme.change-form .submit-row {
+    position: fixed;
+    z-index: 1000;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .65rem;
+    margin: 0;
+    padding: .8rem max(1rem, env(safe-area-inset-right)) max(.8rem, env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 1px solid var(--hairline-color, #333);
+    border-radius: 0;
+    background: color-mix(in srgb, var(--body-bg, #121212) 94%, transparent);
+    box-shadow: 0 -.5rem 1.5rem rgba(0, 0, 0, .28);
+    backdrop-filter: blur(.5rem);
+}
+
+body.model-websitetheme.change-form .submit-row input {
+    float: none;
+    margin: 0;
+}
+
 @media (max-width: 900px) {
     .typography-row { grid-template-columns: 1fr; }
     .typography-row-name,
     .typography-errors,
     .typography-specimen { grid-column: 1; }
+    body.model-websitetheme.change-form .submit-row {
+        flex-direction: row !important;
+        align-items: center;
+        justify-content: flex-end;
+    }
+    body.model-websitetheme.change-form .submit-row input {
+        flex: 0 1 auto;
+        width: max-content !important;
+        max-width: 100%;
+        height: auto;
+    }
 }
