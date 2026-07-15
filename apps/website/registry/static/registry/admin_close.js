@@ -21,8 +21,9 @@
     closeButton.textContent = "Close";
     const breadcrumbLinks = [...document.querySelectorAll(".breadcrumbs a")];
     const isBrandingSingleton = document.body.classList.contains("model-sitebranding");
-    const targetIndex = isBrandingSingleton ? -2 : -1;
-    const closeTarget = breadcrumbLinks.at(targetIndex)?.href || "/admin/";
+    const closeTarget = isBrandingSingleton
+        ? "/admin/"
+        : breadcrumbLinks.at(-1)?.href || "/admin/";
 
     const dialog = document.createElement("dialog");
     dialog.className = "admin-close-dialog";
