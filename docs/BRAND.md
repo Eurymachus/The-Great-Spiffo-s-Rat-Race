@@ -59,6 +59,11 @@ theme, duplicate it for experimentation, edit its structured palette and
 typography controls, and activate it when approved. Presets can be restored.
 Fields use constrained choices and validated colours rather than arbitrary CSS.
 
+The site self-hosts the supplied **Oswald** family (ExtraLight through Bold) and
+the **Derelict** Regular and Rough display faces. Oswald can be selected for
+headings or body copy; Derelict is intentionally limited to headings. The theme
+editor displays a live Rat Race specimen beside each typography selector.
+
 ## Website Configuration
 
 Reusable website vocabulary is stored in the singleton Site Branding backend

@@ -20,11 +20,15 @@ class WebsiteTheme(models.Model):
         SYSTEM = "system", "Modern system"
         CONDENSED = "condensed", "Condensed poster"
         SLAB = "slab", "Slab serif"
+        OSWALD = "oswald", "Oswald"
+        DERELICT = "derelict", "Derelict"
+        DERELICT_ROUGH = "derelict_rough", "Derelict Rough"
 
     class BodyFont(models.TextChoices):
         SYSTEM = "system", "Modern system"
         HUMANIST = "humanist", "Humanist"
         MONO = "mono", "Technical monospace"
+        OSWALD = "oswald", "Oswald"
 
     class CornerStyle(models.TextChoices):
         SQUARE = "square", "Square"
@@ -45,11 +49,15 @@ class WebsiteTheme(models.Model):
         HeadingFont.SYSTEM: "Inter, ui-sans-serif, system-ui, sans-serif",
         HeadingFont.CONDENSED: "Impact, Haettenschweiler, Arial, sans-serif",
         HeadingFont.SLAB: "Rockwell, Georgia, serif",
+        HeadingFont.OSWALD: "RatRaceOswald, Impact, sans-serif",
+        HeadingFont.DERELICT: "RatRaceDerelict, Impact, sans-serif",
+        HeadingFont.DERELICT_ROUGH: "RatRaceDerelictRough, RatRaceDerelict, Impact, sans-serif",
     }
     BODY_FONT_STACKS = {
         BodyFont.SYSTEM: "Inter, ui-sans-serif, system-ui, sans-serif",
         BodyFont.HUMANIST: "Verdana, Tahoma, sans-serif",
         BodyFont.MONO: "Consolas, Monaco, monospace",
+        BodyFont.OSWALD: "RatRaceOswald, Arial, sans-serif",
     }
     CORNER_RADII = {
         CornerStyle.SQUARE: "0rem",
@@ -71,10 +79,10 @@ class WebsiteTheme(models.Model):
         max_length=12, choices=BackgroundStyle.choices, default=BackgroundStyle.RADIAL
     )
     heading_font = models.CharField(
-        max_length=12, choices=HeadingFont.choices, default=HeadingFont.SYSTEM
+        max_length=20, choices=HeadingFont.choices, default=HeadingFont.SYSTEM
     )
     body_font = models.CharField(
-        max_length=12, choices=BodyFont.choices, default=BodyFont.SYSTEM
+        max_length=20, choices=BodyFont.choices, default=BodyFont.SYSTEM
     )
     corner_style = models.CharField(
         max_length=12, choices=CornerStyle.choices, default=CornerStyle.ROUNDED

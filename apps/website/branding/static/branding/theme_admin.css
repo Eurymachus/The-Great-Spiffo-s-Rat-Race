@@ -1,0 +1,37 @@
+@font-face { font-family: RatRaceDerelict; src: url("../registry/fonts/derelict/derelict_regular.otf") format("opentype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: RatRaceDerelictRough; src: url("../registry/fonts/derelict/derelict_rough.otf") format("opentype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: RatRaceOswald; src: url("../registry/fonts/oswald/Oswald-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+
+.font-specimens {
+    display: block;
+    max-width: 52rem;
+    margin-top: .65rem;
+    padding: .7rem 1rem;
+    border: 1px solid var(--border-color, #555);
+    border-radius: .35rem;
+    background: var(--darkened-bg, #222);
+    color: var(--body-fg, #eee);
+    font-size: 1.4rem;
+    line-height: 1.25;
+}
+
+.font-specimens > span { display: none; }
+.field-heading_font:has(select option[value="system"]:checked) [data-font="system"],
+.field-heading_font:has(select option[value="condensed"]:checked) [data-font="condensed"],
+.field-heading_font:has(select option[value="slab"]:checked) [data-font="slab"],
+.field-heading_font:has(select option[value="oswald"]:checked) [data-font="oswald"],
+.field-heading_font:has(select option[value="derelict"]:checked) [data-font="derelict"],
+.field-heading_font:has(select option[value="derelict_rough"]:checked) [data-font="derelict_rough"],
+.field-body_font:has(select option[value="system"]:checked) [data-font="system"],
+.field-body_font:has(select option[value="humanist"]:checked) [data-font="humanist"],
+.field-body_font:has(select option[value="mono"]:checked) [data-font="mono"],
+.field-body_font:has(select option[value="oswald"]:checked) [data-font="oswald"] { display: block; }
+
+[data-font="system"] { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+[data-font="condensed"] { font-family: Impact, Haettenschweiler, Arial, sans-serif; }
+[data-font="slab"] { font-family: Rockwell, Georgia, serif; }
+[data-font="oswald"] { font-family: RatRaceOswald, Arial, sans-serif; }
+[data-font="derelict"] { font-family: RatRaceDerelict, Impact, sans-serif; }
+[data-font="derelict_rough"] { font-family: RatRaceDerelictRough, RatRaceDerelict, Impact, sans-serif; }
+[data-font="humanist"] { font-family: Verdana, Tahoma, sans-serif; }
+[data-font="mono"] { font-family: Consolas, Monaco, monospace; }

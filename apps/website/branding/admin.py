@@ -4,12 +4,31 @@ from django import forms
 from django.contrib import admin, messages
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 
 from .models import SiteBranding, WebsiteTheme
 from .presets import THEME_PRESETS
 
 
 class WebsiteThemeAdminForm(forms.ModelForm):
+    FONT_SPECIMENS = mark_safe(
+        '<span class="font-specimens" aria-label="Font examples">'
+        '<span data-font="system">The Great Spiffo\'s Rat Race — Rat Racers</span>'
+        '<span data-font="condensed">The Great Spiffo\'s Rat Race — Rat Racers</span>'
+        '<span data-font="slab">The Great Spiffo\'s Rat Race — Rat Racers</span>'
+        '<span data-font="oswald">The Great Spiffo\'s Rat Race — Rat Racers</span>'
+        '<span data-font="derelict">The Great Spiffo\'s Rat Race — Rat Racers</span>'
+        '<span data-font="derelict_rough">The Great Spiffo\'s Rat Race — Rat Racers</span>'
+        '<span data-font="humanist">The Great Spiffo\'s Rat Race — Rat Racers</span>'
+        '<span data-font="mono">The Great Spiffo\'s Rat Race — Rat Racers</span>'
+        '</span>'
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["heading_font"].help_text = self.FONT_SPECIMENS
+        self.fields["body_font"].help_text = self.FONT_SPECIMENS
+
     class Meta:
         model = WebsiteTheme
         fields = "__all__"
@@ -149,6 +168,9 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
         ("Record", {"fields": ("updated_at",)}),
     )
     actions = (activate_theme, preview_theme, duplicate_themes, restore_presets)
+
+    class Media:
+        css = {"all": ("branding/theme_admin.css",)}
 
     @admin.display(boolean=True, description="Active")
     def active_marker(self, obj):

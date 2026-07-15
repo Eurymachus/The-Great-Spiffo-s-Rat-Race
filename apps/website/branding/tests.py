@@ -145,3 +145,34 @@ class SiteBrandingAdminTests(TestCase):
 
         with self.assertRaises(ValidationError):
             theme.full_clean()
+
+    def test_supplied_fonts_are_selectable_and_rendered_as_theme_tokens(self):
+        theme = WebsiteTheme.objects.get(preset_key="clean-competition")
+        theme.heading_font = WebsiteTheme.HeadingFont.DERELICT_ROUGH
+        theme.body_font = WebsiteTheme.BodyFont.OSWALD
+        theme.save()
+        self.branding.active_theme = theme
+        self.branding.save()
+
+        public_page = self.client.get(reverse("registry:register"))
+
+        self.assertContains(
+            public_page,
+            "--theme-heading-font: RatRaceDerelictRough, RatRaceDerelict, Impact, sans-serif",
+        )
+        self.assertContains(
+            public_page,
+            "--theme-body-font: RatRaceOswald, Arial, sans-serif",
+        )
+
+        superuser = Participant.objects.create_superuser(
+            email="font-superuser@example.com",
+            nickname="Font Superuser",
+            password="test-password-only",
+        )
+        self.client.force_login(superuser)
+        change_page = self.client.get(
+            reverse("admin:branding_websitetheme_change", args=(theme.pk,))
+        )
+        self.assertContains(change_page, "Derelict Rough")
+        self.assertContains(change_page, "The Great Spiffo's Rat Race — Rat Racers")
