@@ -96,7 +96,6 @@
                     <a href="{% url 'registry:register' %}"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign up</a>
                     <a href="{% url 'registry:login' %}"{% if request.resolver_match.url_name == 'login' %} aria-current="page"{% endif %}>Log in</a>
                 {% endif %}
-                <a href="{% url 'registry:privacy' %}" data-privacy-modal{% if request.resolver_match.url_name == 'privacy' %} aria-current="page"{% endif %}>Privacy</a>
             </nav>
         </header>
         <main id="main-content">
