@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div class="deletions">
+    <p><strong>This operation permanently removes participant login identities.</strong></p>
+    <p>Future challenge records must first be transferred to the protected <strong>Redacted</strong> system participant. The current registry milestone has no run records.</p>
+
+    {% if eligible_count %}
+        <p>The following {{ eligible_count }} eligible account{{ eligible_count|pluralize }} will be processed:</p>
+        <ul>
+            {% for participant in queryset %}
+                <li>{{ participant.nickname }} — closure requested {{ participant.deletion_requested_at }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p><strong>No eligible account-closure requests were selected.</strong></p>
+    {% endif %}
+
+    {% if skipped_count %}
+        <p>{{ skipped_count }} selected account{{ skipped_count|pluralize }} will be skipped because it has no pending request, is a system account, or still has staff access.</p>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        {% for participant in queryset %}
+            <input type="hidden" name="{{ action_checkbox_name }}" value="{{ participant.pk }}">
+        {% endfor %}
+        <input type="hidden" name="action" value="process_account_closures">
+        <input type="hidden" name="confirm" value="yes">
+        {% if eligible_count %}<input type="submit" value="Process closure and redact participant">{% endif %}
+        <a href="{% url 'admin:registry_participant_changelist' %}" class="button cancel-link">Cancel</a>
+    </form>
+</div>
+{% endblock %}

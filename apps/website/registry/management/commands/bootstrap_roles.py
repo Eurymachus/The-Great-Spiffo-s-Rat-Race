@@ -9,7 +9,12 @@ ROLE_PERMISSIONS = {
     "Participant": (),
     "Approver": ("view_participant",),
     "Moderator": ("view_participant", "change_participant"),
-    "Challenge Administrator": ("add_participant", "view_participant", "change_participant"),
+    "Challenge Administrator": (
+        "add_participant",
+        "view_participant",
+        "change_participant",
+        "view_accountclosurerecord",
+    ),
 }
 
 

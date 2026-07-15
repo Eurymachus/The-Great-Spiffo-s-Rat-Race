@@ -49,7 +49,9 @@ class Participant(AbstractUser):
     verification_sent_at = models.DateTimeField(null=True, blank=True)
     consented_at = models.DateTimeField(null=True, blank=True)
     privacy_notice_version = models.CharField(max_length=20, blank=True)
+    is_system_account = models.BooleanField(default=False)
     deletion_requested_at = models.DateTimeField(null=True, blank=True)
+    deletion_request_reference = models.UUIDField(null=True, blank=True, editable=False)
     deletion_request_note = models.TextField(blank=True)
     admin_notes = models.TextField(blank=True)
 
@@ -70,3 +72,15 @@ class Participant(AbstractUser):
 
     def __str__(self):
         return self.nickname
+
+
+class AccountClosureRecord(models.Model):
+    reference = models.UUIDField(primary_key=True, editable=False)
+    requested_at = models.DateTimeField()
+    processed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-processed_at",)
+
+    def __str__(self):
+        return f"Closure {self.reference}"

@@ -89,6 +89,13 @@ Normalised values exist only for reliable matching. They are not shown publicly.
 - Participants can submit an account-closure request after confirming their
   current password. The request is timestamped and queued for administrator
   review; it does not automatically erase or disable the account.
+- A Challenge Administrator processes an approved request through a separate
+  destructive confirmation page. Staff accounts are refused until demoted.
+- Processing deletes the login identity and leaves a non-personal closure receipt
+  containing only a random reference and request/process timestamps.
+- A protected, inactive `Redacted` system participant is the future owner for
+  retained anonymous run history. It has no usable password and must be excluded
+  from individual leaderboards while remaining eligible for aggregate statistics.
 
 ## Privacy Notice Status
 
@@ -107,9 +114,9 @@ Normalised values exist only for reliable matching. They are not shown publicly.
   filtering.
 - Administrators can edit status and private notes, resend verification, and
   export selected registrations as CSV.
-- Permanent database deletion is disabled in the administrator interface; use
-  the removed status to retain an audit trail until the formal deletion workflow
-  is implemented.
+- Ad hoc database deletion is disabled. Authenticated participant closure
+  requests use the privileged, confirmation-protected redaction workflow; use
+  Removed status for ordinary moderation removals.
 - See `docs/ADMINISTRATION.md` for the operator procedure.
 - Administrators can promote the same participant account to Approver, Moderator,
   or Challenge Administrator without changing its email or password.

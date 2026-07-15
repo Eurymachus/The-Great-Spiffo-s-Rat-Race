@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
@@ -259,9 +261,14 @@ def request_account_closure(request):
     form = AccountClosureRequestForm(request.user, request.POST or None)
     if request.method == "POST" and form.is_valid():
         request.user.deletion_requested_at = timezone.now()
+        request.user.deletion_request_reference = uuid.uuid4()
         request.user.deletion_request_note = form.cleaned_data["note"].strip()
         request.user.save(
-            update_fields=("deletion_requested_at", "deletion_request_note")
+            update_fields=(
+                "deletion_requested_at",
+                "deletion_request_reference",
+                "deletion_request_note",
+            )
         )
         return redirect("registry:account_closure_received")
     return render(request, "registry/account_closure.html", {"form": form})

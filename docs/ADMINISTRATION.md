@@ -34,15 +34,38 @@ The Participant Registry list supports:
 - Promote participants to Approver, Moderator, or Challenge Administrator
 - Filter and review participant account-closure requests
 
-Direct deletion is disabled. Mark a record removed until the formal privacy
-deletion procedure is implemented.
+Direct ad hoc deletion is disabled. Use Removed status for moderation removals;
+use the confirmed closure-processing procedure below only for authenticated
+participant deletion requests.
 
 Account-closure requests record the request time and an optional participant
 note. They do not automatically deactivate or erase the account. Before public
-launch, document the operator procedure for identity data, public challenge
-history, moderation records, database backups, and confirmation to the
+launch, finalise handling for database backups and confirmation to the
 participant. Until that policy is approved, administrators must not promise an
-immediate or complete purge.
+immediate purge from every backup.
+
+## Process an Account-Closure Request
+
+Only a superuser or member of the Challenge Administrator group can see and run
+the closure-processing action.
+
+1. Open Participants.
+2. Filter `Deletion requested at` by `Has date`.
+3. Confirm the participant has no staff access. Staff accounts are deliberately
+   refused until their privileged groups and staff status are removed.
+4. Select the participant and choose `Process closure and redact selected
+   participants`.
+5. Review the dedicated confirmation page and confirm the destructive action.
+
+The action permanently removes the participant login identity, ensures the
+protected `Redacted` system participant exists, and writes a non-personal closure
+receipt containing a random reference plus request/process timestamps. The
+system participant is inactive and has no usable password.
+
+The registry milestone has no run records to transfer. Every future model that
+owns participant run or report data must use protected deletion and be added to
+this action's reassignment transaction before launch. Never allow a cascading
+delete to discard historical challenge data accidentally.
 
 Promoted participants use their existing participant email and password at
 `/admin/`. Adding an Approver, Moderator, or Challenge Administrator group

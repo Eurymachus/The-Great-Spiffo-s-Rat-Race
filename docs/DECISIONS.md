@@ -52,3 +52,13 @@ securely hashed password. Verification activates the account. Administrators may
 promote that same account to Approver, Moderator, or Challenge Administrator and
 thereby grant scoped `/admin/` access. Signup never grants staff or superuser
 privileges automatically.
+
+## 2026-07-15 — Closed accounts retain anonymous challenge history
+
+Processing an approved account-closure request removes the participant login and
+personal identity. Future run updates and challenge history will be reassigned to
+a protected, non-login `Redacted` system participant. Redacted history is
+excluded from individual leaderboards but may remain in anonymous aggregate
+statistics. A closure receipt retains only a random reference and request/process
+timestamps. This is the technical project policy; final privacy wording and
+retention review remain required before public launch.

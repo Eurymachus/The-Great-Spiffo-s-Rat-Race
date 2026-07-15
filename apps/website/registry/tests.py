@@ -1,4 +1,5 @@
 import re
+import uuid
 from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch
@@ -13,7 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .admin import export_registrations, promote_to_role
-from .models import Participant
+from .models import AccountClosureRecord, Participant
 from .tokens import create_verification_token
 
 
@@ -454,6 +455,24 @@ class RegistrationTests(TestCase):
         self.assertEqual(Participant.objects.count(), 1)
         self.assertContains(response, "nickname is already reserved")
 
+    def test_redacted_nickname_is_reserved_for_system_use(self):
+        response = self.client.post(
+            reverse("registry:register"),
+            self.registration_data(nickname="Redacted"),
+        )
+
+        self.assertEqual(Participant.objects.count(), 0)
+        self.assertContains(response, "nickname is reserved by the system")
+
+    def test_redacted_email_is_reserved_for_system_use(self):
+        response = self.client.post(
+            reverse("registry:register"),
+            self.registration_data(email="redacted@rat-race.invalid"),
+        )
+
+        self.assertEqual(Participant.objects.count(), 0)
+        self.assertContains(response, "email address is reserved by the system")
+
     def test_email_is_unique_ignoring_case(self):
         self.client.post(reverse("registry:register"), self.registration_data())
         response = self.client.post(
@@ -556,6 +575,81 @@ class RegistrationTests(TestCase):
             reverse("admin:registry_participant_changelist"),
             fetch_redirect_response=False,
         )
+
+    def test_challenge_admin_can_confirm_and_process_account_closure(self):
+        admin_user = get_user_model().objects.create_superuser(
+            email="closure-admin@example.com",
+            nickname="Closure Admin",
+            password="test-password-only",
+        )
+        closure_reference = uuid.uuid4()
+        participant = Participant.objects.create_user(
+            email="leaving@example.com",
+            nickname="Leaving Player",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+            deletion_requested_at=timezone.now(),
+            deletion_request_reference=closure_reference,
+        )
+        self.client.force_login(admin_user)
+        admin_url = reverse("admin:registry_participant_changelist")
+        selection = {
+            "action": "process_account_closures",
+            "_selected_action": str(participant.pk),
+        }
+
+        confirmation = self.client.post(admin_url, selection)
+
+        self.assertEqual(confirmation.status_code, 200)
+        self.assertContains(confirmation, "Confirm account closure and redaction")
+        self.assertContains(confirmation, "Leaving Player")
+        self.assertTrue(Participant.objects.filter(pk=participant.pk).exists())
+
+        processed = self.client.post(admin_url, {**selection, "confirm": "yes"})
+
+        self.assertEqual(processed.status_code, 302)
+        self.assertFalse(Participant.objects.filter(pk=participant.pk).exists())
+        redacted = Participant.objects.get(
+            id="00000000-0000-0000-0000-000000000001"
+        )
+        self.assertEqual(redacted.nickname, "Redacted")
+        self.assertTrue(redacted.is_system_account)
+        self.assertFalse(redacted.is_active)
+        self.assertFalse(redacted.has_usable_password())
+        self.assertTrue(
+            AccountClosureRecord.objects.filter(reference=closure_reference).exists()
+        )
+
+    def test_staff_account_is_not_eligible_for_closure_processing(self):
+        admin_user = get_user_model().objects.create_superuser(
+            email="closure-admin@example.com",
+            nickname="Closure Admin",
+            password="test-password-only",
+        )
+        staff_participant = Participant.objects.create_user(
+            email="staff-leaving@example.com",
+            nickname="Staff Leaving",
+            password="Local-test-password-482!",
+            is_active=True,
+            is_staff=True,
+            status=Participant.Status.VERIFIED,
+            deletion_requested_at=timezone.now(),
+            deletion_request_reference=uuid.uuid4(),
+        )
+        self.client.force_login(admin_user)
+
+        response = self.client.post(
+            reverse("admin:registry_participant_changelist"),
+            {
+                "action": "process_account_closures",
+                "_selected_action": str(staff_participant.pk),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No eligible account-closure requests")
+        self.assertTrue(Participant.objects.filter(pk=staff_participant.pk).exists())
 
     def test_admin_app_landing_page_keeps_navigation_sidebar(self):
         user = get_user_model().objects.create_superuser(
