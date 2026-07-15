@@ -52,9 +52,10 @@ a nickname using a verified email address.
 
 ## Recommended next action
 
-Settle the lawful bases and jurisdiction-specific wording, then replace the
-draft privacy notice. Sentinel Tech Ltd is the data controller, the approved
-schedule is in `docs/RETENTION.md`, and the provisional privacy contact is
+Settle the jurisdiction-specific rights and complaint wording, then replace the
+draft privacy notice. Sentinel Tech Ltd is the data controller; the approved
+retention schedule and lawful-basis assessment are in `docs/RETENTION.md` and
+`docs/LAWFUL_BASES.md`; and the provisional privacy contact is
 `thegreatspiffo@machus.co.uk`. Retention automation must also be completed and
 tested before launch. The final domain is not required for continued local
 development.

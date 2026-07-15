@@ -33,7 +33,7 @@ class RegistrationTests(TestCase):
             "email": "player@example.com",
             "password": "Local-test-password-482!",
             "password_confirmation": "Local-test-password-482!",
-            "accept_privacy": True,
+            "acknowledge_privacy": True,
         }
         data.update(overrides)
         return data
@@ -79,6 +79,7 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "thegreatspiffo@machus.co.uk")
         self.assertContains(response, "Unverified registrations are deleted after 30 days")
         self.assertContains(response, "Routine security and email-delivery logs are kept for 90 days")
+        self.assertContains(response, "We do not currently rely on consent")
 
     def test_participant_can_download_only_their_account_data(self):
         participant = Participant.objects.create_user(
@@ -87,7 +88,7 @@ class RegistrationTests(TestCase):
             password="Local-test-password-482!",
             is_active=True,
             status=Participant.Status.VERIFIED,
-            consented_at=timezone.now(),
+            privacy_notice_acknowledged_at=timezone.now(),
             privacy_notice_version="draft-1",
         )
         self.client.force_login(participant)
@@ -491,10 +492,10 @@ class RegistrationTests(TestCase):
     def test_privacy_consent_is_required(self):
         response = self.client.post(
             reverse("registry:register"),
-            self.registration_data(accept_privacy=False),
+            self.registration_data(acknowledge_privacy=False),
         )
         self.assertEqual(Participant.objects.count(), 0)
-        self.assertContains(response, "must accept the privacy notice")
+        self.assertContains(response, "confirm that you have read the privacy notice")
 
     def test_resend_reactivates_expired_registration(self):
         self.client.post(reverse("registry:register"), self.registration_data())

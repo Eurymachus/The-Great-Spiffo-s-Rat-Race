@@ -9,7 +9,7 @@ verified private email address before the full challenge platform launches.
 
 1. Visit the Rat Race landing page.
 2. Enter a participant nickname, email address, and password.
-3. Pass a human-verification check and accept the privacy notice.
+3. Pass a human-verification check and acknowledge reading the privacy notice.
 4. Receive and follow an email verification link.
 5. See confirmation that the nickname is reserved.
 6. Log in to view the participant account, change the password, or log out.

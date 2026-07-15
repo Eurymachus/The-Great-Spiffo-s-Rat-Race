@@ -188,7 +188,7 @@ class ParticipantAdmin(UserAdmin):
         "normalized_nickname",
         "normalized_email",
         "registered_at",
-        "consented_at",
+        "privacy_notice_acknowledged_at",
         "verification_sent_at",
         "deletion_requested_at",
         "is_system_account",
@@ -199,7 +199,7 @@ class ParticipantAdmin(UserAdmin):
         ("Participant", {"fields": ("nickname", "status", "verified_at", "admin_notes")}),
         ("Account closure request", {"fields": ("deletion_requested_at", "deletion_request_note")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
-        ("Registration record", {"fields": ("id", "normalized_nickname", "normalized_email", "registered_at", "consented_at", "verification_sent_at", "privacy_notice_version", "is_system_account")}),
+        ("Registration record", {"fields": ("id", "normalized_nickname", "normalized_email", "registered_at", "privacy_notice_acknowledged_at", "verification_sent_at", "privacy_notice_version", "is_system_account")}),
     )
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("email", "nickname", "password1", "password2", "is_active", "is_staff", "groups")}),

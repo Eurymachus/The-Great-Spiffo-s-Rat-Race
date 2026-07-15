@@ -77,3 +77,12 @@ Identifiable information has finite, purpose-based periods; genuinely anonymised
 challenge history and non-personal closure receipts may be retained indefinitely.
 The schedule is reviewed at least annually and when the platform's purpose or
 processing changes.
+
+## 2026-07-15 — Use contract, legitimate interests, and legal obligation
+
+Core participant-account and challenge services use contract as their lawful
+basis. Security, abuse prevention, moderation, validation, challenge integrity,
+essential logs, and anonymisation use legitimate interests subject to the
+assessment in `docs/LAWFUL_BASES.md`. Applicable compliance processing uses
+legal obligation. Consent is reserved for genuinely optional future processing.
+Privacy-notice acknowledgement is recorded as acknowledgement, not consent.

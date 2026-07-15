@@ -70,7 +70,7 @@ def register(request):
             email=form.cleaned_data["email"],
             password=form.cleaned_data["password"],
             is_active=False,
-            consented_at=timezone.now(),
+            privacy_notice_acknowledged_at=timezone.now(),
             privacy_notice_version="draft-1",
         )
         participant.groups.add(Group.objects.get_or_create(name="Participant")[0])
@@ -229,9 +229,9 @@ def download_my_data(request):
                 if participant.verified_at
                 else None
             ),
-            "consented_at": (
-                participant.consented_at.isoformat()
-                if participant.consented_at
+            "privacy_notice_acknowledged_at": (
+                participant.privacy_notice_acknowledged_at.isoformat()
+                if participant.privacy_notice_acknowledged_at
                 else None
             ),
             "privacy_notice_version": participant.privacy_notice_version,

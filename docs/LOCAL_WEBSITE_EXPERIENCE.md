@@ -6,7 +6,8 @@ checks completed before deployment work begins.
 ## Public journey
 
 1. Landing page offers nickname reservation and a clear login route.
-2. Signup collects nickname, email, password, privacy consent, and Turnstile.
+2. Signup collects nickname, email, password, privacy-notice acknowledgement,
+   and Turnstile verification.
 3. Verification confirmation activates the participant login.
 4. Login provides password recovery and verification-resend routes.
 5. The draft privacy notice remains available from primary navigation and the

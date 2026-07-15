@@ -108,7 +108,10 @@ Normalised values exist only for reliable matching. They are not shown publicly.
   provisional contact address. It can move to the final Rat Race domain later.
 - The approved retention schedule is recorded in `docs/RETENTION.md` and
   summarised in the participant privacy notice.
-- Final lawful bases and jurisdiction-specific wording remain launch blockers.
+- The lawful-basis map and legitimate-interests assessment are recorded in
+  `docs/LAWFUL_BASES.md`.
+- Final jurisdiction-specific rights and complaint wording remains a launch
+  blocker.
 - The system currently sends no marketing messages, so there is no marketing
   subscription from which to unsubscribe. Any future optional communications
   must use explicit preferences.

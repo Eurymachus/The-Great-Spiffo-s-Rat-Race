@@ -47,7 +47,7 @@ class Participant(AbstractUser):
     registered_at = models.DateTimeField(auto_now_add=True)
     verified_at = models.DateTimeField(null=True, blank=True)
     verification_sent_at = models.DateTimeField(null=True, blank=True)
-    consented_at = models.DateTimeField(null=True, blank=True)
+    privacy_notice_acknowledged_at = models.DateTimeField(null=True, blank=True)
     privacy_notice_version = models.CharField(max_length=20, blank=True)
     is_system_account = models.BooleanField(default=False)
     deletion_requested_at = models.DateTimeField(null=True, blank=True)

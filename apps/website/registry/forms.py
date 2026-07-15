@@ -30,9 +30,9 @@ class RegistrationForm(forms.Form):
         strip=False,
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
     )
-    accept_privacy = forms.BooleanField(
-        label="I accept the draft privacy notice.",
-        error_messages={"required": "You must accept the privacy notice."},
+    acknowledge_privacy = forms.BooleanField(
+        label="I have read the draft privacy notice.",
+        error_messages={"required": "You must confirm that you have read the privacy notice."},
     )
 
     def clean_nickname(self):
