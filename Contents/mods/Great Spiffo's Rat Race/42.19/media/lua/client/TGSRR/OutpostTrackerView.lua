@@ -1,44 +1,73 @@
 require "ISUI/ISPanel"
 require "ISUI/ISScrollingListBox"
 
-local Outposts = require "TGSRR/OutpostDefinitions"
-require "TGSRR/OutpostRoomActivationCheck"
+local Snapshot = require "TGSRR/OutpostTrackerSnapshot"
 
 local View = ISPanel:derive("TGSRROutpostTrackerView")
 local REFRESH_INTERVAL_MS = 1000
+local HEADER_Y = 8
+local HEADER_HEIGHT = 28
+local LIST_BOTTOM_MARGIN = 8
+local COLUMN_RATIOS = { 0.48, 0.62, 0.75, 0.90 }
 
-local function activationResult(outpost, player)
-    local inspection = Outposts.inspect(outpost, { player = player })
-    return inspection.checks and inspection.checks.room_activation or nil
+local function columnX(width, index)
+    return math.floor(width * COLUMN_RATIOS[index])
 end
 
 function View:createChildren()
     ISPanel.createChildren(self)
-    self.list = ISScrollingListBox:new(8, 8, self.width - 16, self.height - 16)
+    local listY = HEADER_Y + HEADER_HEIGHT
+    self.list = ISScrollingListBox:new(8, listY, self.width - 16, self.height - listY - LIST_BOTTOM_MARGIN)
     self.list:initialise()
     self.list:instantiate()
-    self.list.itemheight = 36
-    self.list.vscroll:setVisible(true)
+    self.list.itemheight = 27
     self.list.doDrawItem = self.drawOutpost
+    self.list.drawBorder = true
     self.list:setOnMouseDoubleClick(self, View.onActivate)
     self:addChild(self.list)
     self:refresh(getSpecificPlayer(0) or getPlayer())
 end
 
+function View:prerender()
+    ISPanel.prerender(self)
+    local x = 8
+    local scrollWidth = self.list and self.list:isVScrollBarVisible() and self.list.vscroll:getWidth() or 0
+    local width = self.width - 16 - scrollWidth
+    self:drawRect(x, HEADER_Y, width, HEADER_HEIGHT, 0.9, 0.12, 0.12, 0.12)
+    self:drawRectBorder(x, HEADER_Y, width, HEADER_HEIGHT, 0.7, 0.65, 0.65, 0.65)
+
+    local textY = HEADER_Y + math.floor((HEADER_HEIGHT - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    self:drawText("Outpost", x + 8, textY, 1, 1, 1, 1, UIFont.Small)
+    local headers = { "Rooms", "Floors", "Buildings", "%" }
+    local left = columnX(width, 1)
+    for index, header in ipairs(headers) do
+        local right = index < #headers and columnX(width, index + 1) or width
+        self:drawTextCentre(header, x + left + math.floor((right - left) / 2), textY,
+            1, 1, 1, 1, UIFont.Small)
+        left = right
+    end
+end
+
 function View:drawOutpost(y, item, alt)
     local data = item.item
-    local barX, barY = 8, y + 4
-    local barW, barH = self:getWidth() - 30, self.itemheight - 8
+    local scrollWidth = self:isVScrollBarVisible() and self.vscroll:getWidth() or 0
+    local width = self:getWidth() - scrollWidth
     local hovered = self.mouseoverselected == item.index
-    self:drawRect(barX, barY, barW, barH, hovered and 0.92 or 0.78, 0.035, 0.035, 0.035)
-    if data.progress > 0 then
-        self:drawRect(barX + 1, barY + 1, math.floor((barW - 2) * data.progress), barH - 2,
-            hovered and 0.78 or 0.64, data.r, data.g, data.b)
+    if item.index % 2 == 0 then self:drawRect(0, y, width, self.itemheight - 1, 0.18, 0.12, 0.12, 0.12) end
+    if hovered then self:drawRect(0, y, width, self.itemheight - 1, 0.4, 0.28, 0.28, 0.28) end
+    self:drawRect(0, y + self.itemheight - 1, width, 1, 0.35, 0.6, 0.6, 0.6)
+
+    local textY = y + math.floor((self.itemheight - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    local color = data.complete and { 0.42, 0.9, 0.48 } or { 1, 1, 1 }
+    self:drawText(data.title, 8, textY, color[1], color[2], color[3], 1, UIFont.Small)
+    local values = { data.rooms, data.floors, data.buildings, tostring(data.percent) .. "%" }
+    local left = columnX(width, 1)
+    for index, value in ipairs(values) do
+        local right = index < #values and columnX(width, index + 1) or width
+        self:drawTextCentre(value, left + math.floor((right - left) / 2), textY,
+            color[1], color[2], color[3], 1, UIFont.Small)
+        left = right
     end
-    self:drawRectBorder(barX, barY, barW, barH, 0.95, 0.82, 0.82, 0.82)
-    local textY = barY + math.floor((barH - getTextManager():getFontHeight(UIFont.Small)) / 2)
-    self:drawText(data.title, barX + 8, textY, 1, 1, 1, 1, UIFont.Small)
-    self:drawTextRight(data.progressText, barX + barW - 8, textY, 1, 1, 1, 1, UIFont.Small)
     return y + self.itemheight
 end
 
@@ -63,31 +92,32 @@ end
 
 function View:refresh(player)
     if not self.list then return end
-    local selectedId = self.list.items[self.list.selected] and self.list.items[self.list.selected].item.id or nil
-    local scrollY = self.list:getYScroll()
-    self.list:clear()
-    for _, outpost in ipairs(Outposts.getAll()) do
-        local activation = activationResult(outpost, player)
-        local current = activation and activation.activatedRooms or 0
-        local required = activation and activation.totalRooms or 0
-        local complete = required > 0 and current >= required
-        local progress = required > 0 and current / required or 0
-        local percent = math.floor(progress * 100 + 0.5)
-        local data = {
-            id = outpost.id,
-            title = outpost.name,
-            progressText = tostring(percent) .. "/100%",
-            progress = math.max(0, math.min(1, progress)),
-            r = 0.12,
-            g = complete and 0.72 or 0.52,
-            b = 0.18,
-            outpost = outpost,
-            activation = activation,
-        }
-        local item = self.list:addItem(outpost.name, data, buildTooltip(outpost, activation, percent))
-        if selectedId == outpost.id then self.list.selected = item.itemindex end
+    local snapshot = Snapshot.getAll(player)
+    local rebuild = #self.list.items ~= #snapshot.rows
+    if not rebuild then
+        for index, row in ipairs(snapshot.rows) do
+            if self.list.items[index].item.id ~= row.id then rebuild = true; break end
+        end
     end
-    self.list:setYScroll(scrollY)
+
+    if rebuild then
+        local selectedId = self.list.items[self.list.selected] and self.list.items[self.list.selected].item.id or nil
+        local scrollY = self.list:getYScroll()
+        self.list:clear()
+        for _, row in ipairs(snapshot.rows) do
+            local item = self.list:addItem(row.title, row,
+                buildTooltip(row.outpost, row.activation, row.percent))
+            if selectedId == row.id then self.list.selected = item.itemindex end
+        end
+        self.list:setYScroll(scrollY)
+    else
+        for index, row in ipairs(snapshot.rows) do
+            local item = self.list.items[index]
+            item.text = row.title
+            item.item = row
+            item.tooltip = buildTooltip(row.outpost, row.activation, row.percent)
+        end
+    end
     self.lastRefreshMs = getTimestampMs()
 end
 
@@ -118,8 +148,7 @@ function View:onResize(width, height)
     self:setHeight(height)
     if self.list then
         self.list:setWidth(width - 16)
-        self.list:setHeight(height - 16)
-        self.list.vscroll:setVisible(true)
+        self.list:setHeight(height - HEADER_Y - HEADER_HEIGHT - LIST_BOTTOM_MARGIN)
         self.list.vscroll:bringToTop()
     end
 end
