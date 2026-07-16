@@ -50,8 +50,27 @@ a nickname using a verified email address.
 
 - Run update-code submission
 - Leaderboards and statistics
-- Report moderation
+- Report moderation implementation
 - Full mod integration
+
+## Future Core Deliverable: Moderated Run Updates
+
+Run-update ingestion is deferred, but its integrity workflow is a settled
+requirement:
+
+- Every upload is a complete cumulative snapshot of one mod-generated run ID.
+- Uploading creates an immutable pending submission and never changes approved
+  run data automatically.
+- A new submission is compared with the latest approved snapshot for that run.
+- Previously approved daily data that differs in the pending snapshot must be
+  highlighted clearly for moderator review.
+- Automated validators, including debug-mode detection and future
+  challenge-integrity checks, produce visible findings but never approve a
+  submission.
+- Only an authorised moderator's explicit approval may add to or replace the
+  canonical approved run data.
+- Denied or invalid submissions remain available as an auditable record and
+  never become the comparison baseline for later submissions.
 
 ## Pending Team Decision
 

@@ -143,3 +143,21 @@ action, and participant terminology are managed through the singleton Branding
 record with environment-backed defaults. Themes control presentation only.
 Generic interface instructions, validation messages, accessibility labels, and
 administrative controls remain version-controlled application text.
+
+## 2026-07-16 — Run updates require explicit human approval
+
+Each encoded upload is an immutable, complete cumulative snapshot identified by
+the mod-generated run ID. Uploading and decoding a snapshot must not add to,
+replace, or otherwise alter canonical approved run data.
+
+The review system compares a pending submission with the latest approved
+snapshot for the same run. Previously approved daily data that has changed must
+be prominently highlighted alongside other validator findings, including
+whether the run was opened in debug mode. Validators classify and explain
+findings for moderators; they never approve submissions automatically.
+
+Only an authorised moderator's explicit approval applies a submission to the
+canonical run data. Denied, invalid, older, duplicate, and superseded
+submissions remain immutable audit records and do not become comparison
+baselines. Approval and denial record the moderator, timestamp, and decision
+reason, and applying an approval must be transactional.
