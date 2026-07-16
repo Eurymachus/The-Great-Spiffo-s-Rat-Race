@@ -9,24 +9,36 @@
         document.documentElement.classList.add("fonts-loading", "menu-enhanced");
         (() => {
             let revealed = false;
-            const applyEffectiveViewportWidth = () => {
+            const applyEffectiveViewportSize = () => {
                 const widths = [
                     window.innerWidth,
                     window.visualViewport?.width,
                     window.screen?.width,
                 ].filter((width) => Number.isFinite(width) && width > 0);
-                if (!widths.length) return;
-                document.documentElement.style.setProperty(
-                    "--effective-viewport-width",
-                    `${Math.round(Math.min(...widths))}px`
-                );
+                const heights = [
+                    window.innerHeight,
+                    window.visualViewport?.height,
+                    window.screen?.height,
+                ].filter((height) => Number.isFinite(height) && height > 0);
+                if (widths.length) {
+                    document.documentElement.style.setProperty(
+                        "--effective-viewport-width",
+                        `${Math.round(Math.min(...widths))}px`
+                    );
+                }
+                if (heights.length) {
+                    document.documentElement.style.setProperty(
+                        "--effective-viewport-height",
+                        `${Math.round(Math.min(...heights))}px`
+                    );
+                }
             };
-            applyEffectiveViewportWidth();
-            window.addEventListener("resize", applyEffectiveViewportWidth);
-            window.visualViewport?.addEventListener("resize", applyEffectiveViewportWidth);
+            applyEffectiveViewportSize();
+            window.addEventListener("resize", applyEffectiveViewportSize);
+            window.visualViewport?.addEventListener("resize", applyEffectiveViewportSize);
             window.addEventListener("load", () => {
-                applyEffectiveViewportWidth();
-                window.setTimeout(applyEffectiveViewportWidth, 100);
+                applyEffectiveViewportSize();
+                window.setTimeout(applyEffectiveViewportSize, 100);
             }, {once: true});
 
             const reveal = () => {
@@ -58,7 +70,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260716-9">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260716-10">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
     <script src="{% static 'registry/site_menu.js' %}?v=20260716-2" defer></script>
     {% if site_theme %}
