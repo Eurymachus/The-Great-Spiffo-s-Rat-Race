@@ -5,14 +5,14 @@
 
 {% block extrastyle %}
     {{ block.super }}
-    <link rel="stylesheet" href="{% static 'registry/admin.css' %}?v=20260716-3">
+    <link rel="stylesheet" href="{% static 'registry/admin.css' %}?v=20260716-4">
 {% endblock %}
 
 {% block extrahead %}
     {{ block.super }}
     <script src="{% static 'registry/admin_close.js' %}?v=20260715-3" defer></script>
     <script>window.ratRaceAdminGate = {returnUrl: "{% url 'registry:account' %}"};</script>
-    <script src="{% static 'registry/admin_viewport_gate.js' %}?v=20260716-2" defer></script>
+    <script src="{% static 'registry/admin_viewport_gate.js' %}?v=20260716-3" defer></script>
 {% endblock %}
 
 {% block branding %}

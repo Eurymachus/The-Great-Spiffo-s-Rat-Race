@@ -119,17 +119,20 @@ body.add-form .submit-row a.deletelink {
     overflow: auto;
     background: rgba(0, 0, 0, .82);
     backdrop-filter: blur(4px);
+    box-sizing: border-box;
 }
 
 .admin-viewport-gate.is-visible { display: flex; }
 .admin-viewport-gate-panel {
-    width: min(100%, 32rem);
+    width: 100%;
+    max-width: 32rem;
     padding: 1.5rem;
     border: 1px solid var(--hairline-color, #555);
     border-radius: .6rem;
     background: var(--body-bg, #121212);
     color: var(--body-fg, #eee);
     box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .55);
+    box-sizing: border-box;
 }
 .admin-viewport-gate-panel h1 { margin: 0 0 .8rem; font-size: 1.5rem; }
 .admin-viewport-gate-panel p { margin: 0; line-height: 1.5; }
@@ -141,5 +144,11 @@ body.add-form .submit-row a.deletelink {
     margin-top: 1.5rem;
 }
 .admin-viewport-gate-actions a,
-.admin-viewport-gate-actions button { margin: 0; padding: .7rem 1rem; }
+.admin-viewport-gate-actions button { margin: 0; padding: .7rem 1rem; box-sizing: border-box; }
 .admin-viewport-gate-actions a { display: inline-flex; align-items: center; text-decoration: none; }
+.admin-viewport-gate.is-compact .admin-viewport-gate-actions { flex-direction: column; }
+.admin-viewport-gate.is-compact .admin-viewport-gate-actions a,
+.admin-viewport-gate.is-compact .admin-viewport-gate-actions button {
+    justify-content: center;
+    width: 100%;
+}

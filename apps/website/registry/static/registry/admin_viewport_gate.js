@@ -40,6 +40,7 @@
         gate.style.width = `${width}px`;
         gate.style.height = `${height}px`;
         gate.style.top = `${Math.round(window.visualViewport?.offsetTop || 0)}px`;
+        gate.classList.toggle("is-compact", width < 480);
         gate.classList.toggle("is-visible", !overridden && width < minimumWidth);
     };
 
