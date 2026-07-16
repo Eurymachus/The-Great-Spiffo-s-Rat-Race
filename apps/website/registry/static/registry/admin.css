@@ -106,3 +106,40 @@ body.add-form .submit-row a.deletelink {
 
     .submit-row .admin-close-button { margin-right: auto; }
 }
+
+.admin-viewport-gate {
+    position: fixed;
+    z-index: 100000;
+    top: 0;
+    left: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    overflow: auto;
+    background: rgba(0, 0, 0, .82);
+    backdrop-filter: blur(4px);
+}
+
+.admin-viewport-gate.is-visible { display: flex; }
+.admin-viewport-gate-panel {
+    width: min(100%, 32rem);
+    padding: 1.5rem;
+    border: 1px solid var(--hairline-color, #555);
+    border-radius: .6rem;
+    background: var(--body-bg, #121212);
+    color: var(--body-fg, #eee);
+    box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .55);
+}
+.admin-viewport-gate-panel h1 { margin: 0 0 .8rem; font-size: 1.5rem; }
+.admin-viewport-gate-panel p { margin: 0; line-height: 1.5; }
+.admin-viewport-gate-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .7rem;
+    margin-top: 1.5rem;
+}
+.admin-viewport-gate-actions a,
+.admin-viewport-gate-actions button { margin: 0; padding: .7rem 1rem; }
+.admin-viewport-gate-actions a { display: inline-flex; align-items: center; text-decoration: none; }
