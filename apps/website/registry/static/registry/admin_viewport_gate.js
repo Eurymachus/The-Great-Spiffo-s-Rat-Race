@@ -1,7 +1,7 @@
 (() => {
     "use strict";
 
-    const minimumWidth = 900;
+    const minimumWidth = 1200;
     const overrideKey = "rat-race-admin-small-screen-override";
     const config = window.ratRaceAdminGate || {};
     let overridden = sessionStorage.getItem(overrideKey) === "true";
