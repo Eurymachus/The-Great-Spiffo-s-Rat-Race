@@ -50,8 +50,59 @@ SITE_TAGLINE = os.environ.get(
 SITE_WELCOME_MESSAGE = os.environ.get(
     "SITE_WELCOME_MESSAGE", "Welcome to the Rat Race!"
 )
+SITE_HOMEPAGE_SMALL_HEADING = os.environ.get(
+    "SITE_HOMEPAGE_SMALL_HEADING", "Welcome to The Rat Race"
+)
+SITE_HOMEPAGE_MAIN_HEADING = os.environ.get(
+    "SITE_HOMEPAGE_MAIN_HEADING",
+    "A survival challenge measured in stories, statistics and stubbornness.",
+)
+SITE_HOMEPAGE_INTRODUCTION = os.environ.get(
+    "SITE_HOMEPAGE_INTRODUCTION",
+    "The Great Spiffo's Rat Race is a long-form Project Zomboid challenge. "
+    "Create your participant account now and you will be ready when the live "
+    "challenge platform opens.",
+)
+SITE_HOMEPAGE_PRIMARY_BUTTON = os.environ.get(
+    "SITE_HOMEPAGE_PRIMARY_BUTTON", "Join The Rat Race"
+)
+SITE_HOMEPAGE_SECONDARY_LINK = os.environ.get(
+    "SITE_HOMEPAGE_SECONDARY_LINK", "I already have an account"
+)
+SITE_HOMEPAGE_ACCOUNT_BUTTON = os.environ.get(
+    "SITE_HOMEPAGE_ACCOUNT_BUTTON", "Go to your account"
+)
+SITE_JOIN_STEP_1_HEADING = os.environ.get(
+    "SITE_JOIN_STEP_1_HEADING", "Reserve your name"
+)
+SITE_JOIN_STEP_1_DESCRIPTION = os.environ.get(
+    "SITE_JOIN_STEP_1_DESCRIPTION",
+    "Choose the nickname other Rat Racers will know you by.",
+)
+SITE_JOIN_STEP_2_HEADING = os.environ.get(
+    "SITE_JOIN_STEP_2_HEADING", "Verify your email"
+)
+SITE_JOIN_STEP_2_DESCRIPTION = os.environ.get(
+    "SITE_JOIN_STEP_2_DESCRIPTION",
+    "Confirm the address used to secure your participant account.",
+)
+SITE_JOIN_STEP_3_HEADING = os.environ.get(
+    "SITE_JOIN_STEP_3_HEADING", "Get race-ready"
+)
+SITE_JOIN_STEP_3_DESCRIPTION = os.environ.get(
+    "SITE_JOIN_STEP_3_DESCRIPTION",
+    "Your account will be waiting for run updates when mod integration opens.",
+)
+SITE_PARTICIPANT_LABEL = os.environ.get("SITE_PARTICIPANT_LABEL", "Rat Racer")
+SITE_PARTICIPANT_PLURAL_LABEL = os.environ.get(
+    "SITE_PARTICIPANT_PLURAL_LABEL", "Rat Racers"
+)
 SITE_FORMER_PARTICIPANT_LABEL = os.environ.get(
     "SITE_FORMER_PARTICIPANT_LABEL", "Former Rat Racer"
+)
+SITE_RUN_UPDATE_LABEL = os.environ.get("SITE_RUN_UPDATE_LABEL", "Run update")
+SITE_RUN_UPDATE_PLURAL_LABEL = os.environ.get(
+    "SITE_RUN_UPDATE_PLURAL_LABEL", "Run updates"
 )
 SITE_DISCLAIMER = os.environ.get(
     "SITE_DISCLAIMER", "Not affiliated with or endorsed by The Indie Stone."

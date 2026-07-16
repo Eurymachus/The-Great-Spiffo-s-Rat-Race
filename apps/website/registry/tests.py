@@ -77,6 +77,39 @@ class RegistrationTests(TestCase):
         self.assertContains(response, reverse("registry:register"))
         self.assertNotContains(response, 'data-registration-form')
 
+    def test_homepage_editorial_content_comes_from_branding(self):
+        branding = SiteBranding.current()
+        branding.homepage_small_heading = "Custom small heading"
+        branding.homepage_main_heading = "Custom main heading"
+        branding.homepage_introduction = "Custom homepage introduction."
+        branding.homepage_primary_button = "Custom join action"
+        branding.homepage_secondary_link = "Custom returning-player action"
+        branding.homepage_account_button = "Custom account action"
+        branding.join_step_1_heading = "Custom first step"
+        branding.join_step_1_description = "Custom first description."
+        branding.join_step_2_heading = "Custom second step"
+        branding.join_step_2_description = "Custom second description."
+        branding.join_step_3_heading = "Custom third step"
+        branding.join_step_3_description = "Custom third description."
+        branding.save()
+
+        response = self.client.get(reverse("registry:home"))
+
+        for expected in (
+            "Custom small heading",
+            "Custom main heading",
+            "Custom homepage introduction.",
+            "Custom join action",
+            "Custom returning-player action",
+            "Custom first step",
+            "Custom second description.",
+            "Custom third description.",
+        ):
+            self.assertContains(response, expected)
+        self.assertNotContains(
+            response, "A survival challenge measured in stories"
+        )
+
     def test_login_error_is_clear_without_revealing_account_state(self):
         response = self.client.post(
             reverse("registry:login"),
@@ -318,7 +351,7 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "player@example.com")
         self.assertContains(response, "Verified")
         self.assertContains(response, reverse("registry:password_change"))
-        self.assertContains(response, "Run-update submissions will appear here")
+        self.assertContains(response, "Run update submissions will appear here")
         self.assertContains(response, reverse("registry:logout"))
         self.assertContains(response, 'aria-current="page"')
         self.assertNotContains(response, ">Administration<")

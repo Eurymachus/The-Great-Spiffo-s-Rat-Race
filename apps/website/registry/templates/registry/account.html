@@ -6,7 +6,7 @@
   <p class="lede">Your participant account is ready.</p>
 
   <dl class="account-summary">
-    <div><dt>Participant nickname</dt><dd>{{ request.user.nickname }}</dd></div>
+    <div><dt>{{ site_participant_label }} nickname</dt><dd>{{ request.user.nickname }}</dd></div>
     <div><dt>Email address</dt><dd>{{ request.user.email }}</dd></div>
     <div><dt>Account status</dt><dd><span class="status-pill status-{{ request.user.status }}">{{ request.user.get_status_display }}</span></dd></div>
     <div><dt>Registered</dt><dd>{{ request.user.registered_at|date:"j F Y" }}</dd></div>
@@ -39,8 +39,8 @@
   {% endif %}
 
   <div class="future-feature">
-    <strong>Run updates</strong>
-    <p>Run-update submissions will appear here when mod integration opens.</p>
+    <strong>{{ site_run_update_plural_label }}</strong>
+    <p>{{ site_run_update_label }} submissions will appear here when mod integration opens.</p>
   </div>
 
 </section>

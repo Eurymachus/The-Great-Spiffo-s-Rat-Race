@@ -246,8 +246,45 @@ class SiteBrandingAdmin(admin.ModelAdmin):
                     "short_title",
                     "tagline",
                     "welcome_message",
-                    "former_participant_label",
                     "active_theme",
+                )
+            },
+        ),
+        (
+            "Homepage introduction",
+            {
+                "fields": (
+                    "homepage_small_heading",
+                    "homepage_main_heading",
+                    "homepage_introduction",
+                    "homepage_primary_button",
+                    "homepage_secondary_link",
+                    "homepage_account_button",
+                )
+            },
+        ),
+        (
+            "How to join",
+            {
+                "fields": (
+                    "join_step_1_heading",
+                    "join_step_1_description",
+                    "join_step_2_heading",
+                    "join_step_2_description",
+                    "join_step_3_heading",
+                    "join_step_3_description",
+                )
+            },
+        ),
+        (
+            "Participant terminology",
+            {
+                "fields": (
+                    "participant_label",
+                    "participant_plural_label",
+                    "former_participant_label",
+                    "run_update_label",
+                    "run_update_plural_label",
                 )
             },
         ),

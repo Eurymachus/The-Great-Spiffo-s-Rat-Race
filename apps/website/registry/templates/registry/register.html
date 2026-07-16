@@ -1,7 +1,7 @@
 {% extends "registry/base.html" %}
 {% load static %}
 
-{% block title_suffix %} | Join The Rat Race{% endblock %}
+{% block title_suffix %} | {{ site_homepage_primary_button }}{% endblock %}
 {% block extra_head %}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="{% static 'registry/registration_steps.js' %}?v=20260715-2" defer></script>
@@ -11,7 +11,7 @@
 <section class="card signup-card" data-registration-form data-start-step="{{ registration_start_step|default:1 }}">
     <div class="signup-heading">
         <div>
-            <h2>Join The Rat Race</h2>
+            <h2>{{ site_homepage_primary_button }}</h2>
             <p class="lede">Create your participant account in three short steps.</p>
         </div>
         <p class="signup-step-status" aria-live="polite">Step <span data-current-step>1</span> of 3</p>

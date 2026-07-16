@@ -12,7 +12,7 @@ class RegistrationForm(forms.Form):
     nickname = forms.CharField(
         min_length=3,
         max_length=40,
-        label="Participant nickname",
+        label="Nickname",
         help_text=f"This will be your public {settings.SITE_SHORT_TITLE} name.",
         widget=forms.TextInput(attrs={"autocomplete": "nickname"}),
     )
@@ -45,6 +45,18 @@ class RegistrationForm(forms.Form):
             )
         },
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        brand = SiteBranding.current()
+        participant_label = (
+            brand.participant_label if brand else settings.SITE_PARTICIPANT_LABEL
+        )
+        short_title = brand.short_title if brand else settings.SITE_SHORT_TITLE
+        self.fields["nickname"].label = f"{participant_label} nickname"
+        self.fields["nickname"].help_text = (
+            f"This will be your public {short_title} name."
+        )
 
     def clean_nickname(self):
         nickname = self.cleaned_data["nickname"].strip()

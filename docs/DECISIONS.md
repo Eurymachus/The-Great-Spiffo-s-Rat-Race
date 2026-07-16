@@ -135,3 +135,11 @@ validated design tokens, privately preview a theme on the real signup page,
 duplicate it, restore supplied presets, and activate an approved result. The
 system does not accept arbitrary administrator-authored CSS. This supports safe
 experimentation now and a clean hand-off to professional designers later.
+
+## 2026-07-16 — Keep brand and editorial wording out of public templates
+
+Reusable challenge identity, homepage introduction, joining steps, calls to
+action, and participant terminology are managed through the singleton Branding
+record with environment-backed defaults. Themes control presentation only.
+Generic interface instructions, validation messages, accessibility labels, and
+administrative controls remain version-controlled application text.

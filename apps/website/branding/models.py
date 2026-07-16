@@ -222,8 +222,88 @@ class SiteBranding(models.Model):
     welcome_message = models.CharField(
         max_length=160, default=settings.SITE_WELCOME_MESSAGE
     )
+    homepage_small_heading = models.CharField(
+        "small heading",
+        max_length=160,
+        default=settings.SITE_HOMEPAGE_SMALL_HEADING,
+    )
+    homepage_main_heading = models.CharField(
+        "main heading",
+        max_length=240,
+        default=settings.SITE_HOMEPAGE_MAIN_HEADING,
+    )
+    homepage_introduction = models.TextField(
+        "introduction text",
+        max_length=600,
+        default=settings.SITE_HOMEPAGE_INTRODUCTION,
+    )
+    homepage_primary_button = models.CharField(
+        "primary button text",
+        max_length=80,
+        default=settings.SITE_HOMEPAGE_PRIMARY_BUTTON,
+    )
+    homepage_secondary_link = models.CharField(
+        "secondary link text",
+        max_length=80,
+        default=settings.SITE_HOMEPAGE_SECONDARY_LINK,
+    )
+    homepage_account_button = models.CharField(
+        "signed-in account button text",
+        max_length=80,
+        default=settings.SITE_HOMEPAGE_ACCOUNT_BUTTON,
+    )
+    join_step_1_heading = models.CharField(
+        "step 1 heading",
+        max_length=100,
+        default=settings.SITE_JOIN_STEP_1_HEADING,
+    )
+    join_step_1_description = models.CharField(
+        "step 1 description",
+        max_length=240,
+        default=settings.SITE_JOIN_STEP_1_DESCRIPTION,
+    )
+    join_step_2_heading = models.CharField(
+        "step 2 heading",
+        max_length=100,
+        default=settings.SITE_JOIN_STEP_2_HEADING,
+    )
+    join_step_2_description = models.CharField(
+        "step 2 description",
+        max_length=240,
+        default=settings.SITE_JOIN_STEP_2_DESCRIPTION,
+    )
+    join_step_3_heading = models.CharField(
+        "step 3 heading",
+        max_length=100,
+        default=settings.SITE_JOIN_STEP_3_HEADING,
+    )
+    join_step_3_description = models.CharField(
+        "step 3 description",
+        max_length=240,
+        default=settings.SITE_JOIN_STEP_3_DESCRIPTION,
+    )
+    participant_label = models.CharField(
+        "participant name",
+        max_length=60,
+        default=settings.SITE_PARTICIPANT_LABEL,
+    )
+    participant_plural_label = models.CharField(
+        "participant plural",
+        max_length=60,
+        default=settings.SITE_PARTICIPANT_PLURAL_LABEL,
+    )
     former_participant_label = models.CharField(
         max_length=60, default=settings.SITE_FORMER_PARTICIPANT_LABEL
+    )
+    run_update_label = models.CharField(
+        "run update name",
+        max_length=60,
+        default=settings.SITE_RUN_UPDATE_LABEL,
+    )
+    run_update_plural_label = models.CharField(
+        "run update plural",
+        max_length=60,
+        default=settings.SITE_RUN_UPDATE_PLURAL_LABEL,
     )
     disclaimer = models.CharField(max_length=240, default=settings.SITE_DISCLAIMER)
     active_theme = models.ForeignKey(

@@ -84,7 +84,23 @@ class SiteBrandingAdminTests(TestCase):
                 "short_title": "Edited Race",
                 "tagline": "Edited tagline",
                 "welcome_message": "Edited welcome!",
+                "homepage_small_heading": "Edited small heading",
+                "homepage_main_heading": "Edited main heading",
+                "homepage_introduction": "Edited introduction.",
+                "homepage_primary_button": "Edited join button",
+                "homepage_secondary_link": "Edited login link",
+                "homepage_account_button": "Edited account button",
+                "join_step_1_heading": "Edited step one",
+                "join_step_1_description": "Edited step one description.",
+                "join_step_2_heading": "Edited step two",
+                "join_step_2_description": "Edited step two description.",
+                "join_step_3_heading": "Edited step three",
+                "join_step_3_description": "Edited step three description.",
+                "participant_label": "Edited Racer",
+                "participant_plural_label": "Edited Racers",
                 "former_participant_label": "Edited Former Racer",
+                "run_update_label": "Edited update",
+                "run_update_plural_label": "Edited updates",
                 "disclaimer": "Edited disclaimer.",
                 "active_theme": self.branding.active_theme_id,
             },
@@ -93,6 +109,30 @@ class SiteBrandingAdminTests(TestCase):
         public_page = self.client.get(reverse("registry:privacy"))
         self.assertContains(public_page, "Edited Full Challenge")
         self.assertContains(public_page, "Edited Former Racer")
+
+        homepage = self.client.get(reverse("registry:home"))
+        self.assertContains(homepage, "Edited small heading")
+        self.assertContains(homepage, "Edited main heading")
+        self.assertContains(homepage, "Edited introduction.")
+        self.assertContains(homepage, "Edited account button")
+        self.assertContains(homepage, "Edited step three description.")
+
+        self.client.logout()
+        registration = self.client.get(reverse("registry:register"))
+        self.assertContains(registration, "Edited join button")
+        self.assertContains(registration, "Edited Racer nickname")
+
+        account_user = Participant.objects.create_user(
+            email="branding-account@example.com",
+            nickname="Branding Account",
+            password="test-password-only",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(account_user)
+        account = self.client.get(reverse("registry:account"))
+        self.assertContains(account, "Edited updates")
+        self.assertContains(account, "Edited update submissions")
 
     def test_branding_administrator_can_delete_only_inactive_custom_themes(self):
         participant = Participant.objects.create_user(
