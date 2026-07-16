@@ -28,9 +28,15 @@
         return widths.length ? Math.round(Math.min(...widths)) : window.innerWidth;
     };
 
+    const effectiveViewportHeight = () => {
+        const heights = [window.innerHeight, window.visualViewport?.height, window.screen?.height]
+            .filter((height) => Number.isFinite(height) && height > 0);
+        return heights.length ? Math.round(Math.min(...heights)) : window.innerHeight;
+    };
+
     const updateGate = () => {
         const width = effectiveViewport();
-        const height = Math.round(window.visualViewport?.height || window.innerHeight);
+        const height = effectiveViewportHeight();
         gate.style.width = `${width}px`;
         gate.style.height = `${height}px`;
         gate.style.top = `${Math.round(window.visualViewport?.offsetTop || 0)}px`;
