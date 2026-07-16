@@ -6,9 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ site_full_title }}{% block title_suffix %}{% endblock %}</title>
     <script>
-        document.documentElement.classList.add("fonts-loading", "menu-enhanced");
+        document.documentElement.classList.add("menu-enhanced");
         (() => {
-            let revealed = false;
             const applyEffectiveViewportWidth = () => {
                 const widths = [
                     window.innerWidth,
@@ -28,37 +27,9 @@
                 applyEffectiveViewportWidth();
                 window.setTimeout(applyEffectiveViewportWidth, 100);
             }, {once: true});
-            const reveal = () => {
-                if (revealed) return;
-                revealed = true;
-                window.requestAnimationFrame(() => {
-                    document.documentElement.getBoundingClientRect();
-                    document.documentElement.classList.remove("fonts-loading");
-                    document.documentElement.classList.add("fonts-ready");
-                });
-            };
-            window.setTimeout(reveal, 3000);
-            const waitForFonts = async () => {
-                if (!document.fonts) {
-                    reveal();
-                    return;
-                }
-                const styles = getComputedStyle(document.documentElement);
-                const fontLoads = ["display", "heading", "body"].map((role) => {
-                    const family = styles.getPropertyValue(`--theme-${role}-font`).trim();
-                    const weight = styles.getPropertyValue(`--theme-${role}-weight`).trim();
-                    return document.fonts.load(`${weight} 1em ${family}`);
-                });
-                Promise.all([...fontLoads, document.fonts.ready]).then(reveal, reveal);
-            };
-            if (document.readyState === "loading") {
-                document.addEventListener("DOMContentLoaded", waitForFonts, {once: true});
-            } else {
-                waitForFonts();
-            }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260716-6">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260716-7">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
     <script src="{% static 'registry/site_menu.js' %}?v=20260716-2" defer></script>
     {% if site_theme %}
