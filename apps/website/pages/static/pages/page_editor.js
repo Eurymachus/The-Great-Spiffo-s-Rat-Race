@@ -19,13 +19,28 @@ document.addEventListener("DOMContentLoaded", () => {
         return wrapper;
     };
 
-    const button = (text, action, danger = false) => {
+    const button = (text, action, danger = false, label = "") => {
         const control = document.createElement("button");
         control.type = "button";
         control.className = `button${danger ? " page-editor-danger" : ""}`;
         control.textContent = text;
         control.dataset.action = action;
+        if (label) {
+            control.setAttribute("aria-label", label);
+            control.title = label;
+        }
         return control;
+    };
+
+    const orderButtons = (upAction, downAction, index, total, subject) => {
+        const actions = document.createElement("span");
+        actions.className = "page-editor-summary-actions";
+        const up = button("↑", upAction, false, `Move ${subject} up`);
+        const down = button("↓", downAction, false, `Move ${subject} down`);
+        up.disabled = index === 0;
+        down.disabled = index === total - 1;
+        actions.append(up, down);
+        return actions;
     };
 
     const read = () => {
@@ -61,7 +76,9 @@ document.addEventListener("DOMContentLoaded", () => {
             panel.className = "page-section-editor";
             panel.dataset.id = section.id || "";
             const summary = document.createElement("summary");
-            summary.textContent = `${sectionIndex + 1}. ${section.section_type === "steps" ? "Numbered information cards" : "Introduction and actions"}${section.is_visible === false ? " - Hidden" : ""}`;
+            const summaryTitle = document.createElement("span");
+            summaryTitle.textContent = `${sectionIndex + 1}. ${section.section_type === "steps" ? "Numbered information cards" : "Introduction and actions"}${section.is_visible === false ? " - Hidden" : ""}`;
+            summary.append(summaryTitle, orderButtons("section-up", "section-down", sectionIndex, sections.length, "section"));
             panel.append(summary);
             const body = document.createElement("div");
             body.className = "page-section-body";
@@ -95,24 +112,25 @@ document.addEventListener("DOMContentLoaded", () => {
             const cardList = document.createElement("div"); cardList.className = "page-card-list";
             (section.items || []).forEach((item, itemIndex) => {
                 const card = document.createElement("details"); card.className = "page-card-editor"; card.dataset.id = item.id || "";
-                const cardSummary = document.createElement("summary"); cardSummary.textContent = `${itemIndex + 1}. ${item.heading || "Untitled card"}`; card.append(cardSummary);
+                const cardSummary = document.createElement("summary");
+                const cardSummaryTitle = document.createElement("span"); cardSummaryTitle.textContent = `${itemIndex + 1}. ${item.heading || "Untitled card"}`;
+                cardSummary.append(cardSummaryTitle, orderButtons("card-up", "card-down", itemIndex, section.items.length, "card")); card.append(cardSummary);
                 const cardBody = document.createElement("div"); cardBody.className = "page-card-body page-editor-grid";
                 cardBody.append(field("Heading", "heading", item.heading), field("Description", "description", item.description, "textarea", true));
                 const cardToolbar = document.createElement("div"); cardToolbar.className = "page-card-toolbar page-editor-field-wide";
-                const cardActions = document.createElement("div"); cardActions.className = "page-editor-actions";
-                cardActions.append(button("Move up", "card-up"), button("Move down", "card-down"));
-                cardToolbar.append(cardActions, button("Remove card", "remove-card", true)); cardBody.append(cardToolbar); card.append(cardBody); cardList.append(card);
+                cardToolbar.append(button("Remove card", "remove-card", true)); cardBody.append(cardToolbar); card.append(cardBody); cardList.append(card);
             });
             cards.append(cardList, button("Add card", "add-card")); body.append(cards);
             const toolbar = document.createElement("div"); toolbar.className = "page-editor-toolbar";
-            const actions = document.createElement("div"); actions.className = "page-editor-actions"; actions.append(button("Move up", "section-up"), button("Move down", "section-down"));
-            toolbar.append(actions, button("Remove section", "remove-section", true)); body.append(toolbar); panel.append(body); list.append(panel);
+            toolbar.append(button("Remove section", "remove-section", true)); body.append(toolbar); panel.append(body); list.append(panel);
         });
     };
 
     editor.addEventListener("click", (event) => {
         const action = event.target.dataset.action;
         if (!action) return;
+        event.preventDefault();
+        event.stopPropagation();
         sections = read();
         const sectionPanel = event.target.closest(".page-section-editor");
         const sectionIndex = [...list.querySelectorAll(":scope > .page-section-editor")].indexOf(sectionPanel);
