@@ -43,6 +43,16 @@ document.addEventListener("DOMContentLoaded", () => {
         return actions;
     };
 
+    const dragHandle = (subject) => {
+        const handle = document.createElement("span");
+        handle.className = "page-editor-drag-handle";
+        handle.draggable = true;
+        handle.textContent = "☰";
+        handle.setAttribute("aria-hidden", "true");
+        handle.title = `Drag to reorder ${subject}`;
+        return handle;
+    };
+
     const read = () => {
         return [...list.querySelectorAll(":scope > .page-section-editor")].map((panel) => ({
             id: panel.dataset.id ? Number(panel.dataset.id) : null,
@@ -99,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const summary = document.createElement("summary");
             const summaryTitle = document.createElement("span");
             summaryTitle.textContent = `${sectionIndex + 1}. ${section.section_type === "steps" ? "Numbered information cards" : "Introduction and actions"}${section.is_visible === false ? " - Hidden" : ""}`;
-            summary.append(summaryTitle, orderButtons("section-up", "section-down", sectionIndex, sections.length, "section"));
+            summary.append(dragHandle("section"), summaryTitle, orderButtons("section-up", "section-down", sectionIndex, sections.length, "section"));
             panel.append(summary);
             const body = document.createElement("div");
             body.className = "page-section-body";
@@ -135,7 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const card = document.createElement("details"); card.className = "page-card-editor"; card.dataset.id = item.id || "";
                 const cardSummary = document.createElement("summary");
                 const cardSummaryTitle = document.createElement("span"); cardSummaryTitle.textContent = `${itemIndex + 1}. ${item.heading || "Untitled card"}`;
-                cardSummary.append(cardSummaryTitle, orderButtons("card-up", "card-down", itemIndex, section.items.length, "card")); card.append(cardSummary);
+                cardSummary.append(dragHandle("card"), cardSummaryTitle, orderButtons("card-up", "card-down", itemIndex, section.items.length, "card")); card.append(cardSummary);
                 const cardBody = document.createElement("div"); cardBody.className = "page-card-body page-editor-grid";
                 cardBody.append(field("Heading", "heading", item.heading), field("Description", "description", item.description, "textarea", true));
                 const cardToolbar = document.createElement("div"); cardToolbar.className = "page-card-toolbar page-editor-field-wide";
@@ -148,6 +158,11 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     editor.addEventListener("click", (event) => {
+        if (event.target.closest(".page-editor-drag-handle")) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
         const action = event.target.dataset.action;
         if (!action) return;
         event.preventDefault();
@@ -189,6 +204,61 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     list.addEventListener("input", () => { refreshOrderControls(); sync(); });
     list.addEventListener("change", () => { refreshOrderControls(); sync(); });
+
+    let draggedPanel = null;
+    let draggedList = null;
+
+    const clearDragState = () => {
+        list.querySelectorAll(".page-editor-dragging, .page-editor-drop-before, .page-editor-drop-after").forEach((element) => {
+            element.classList.remove("page-editor-dragging", "page-editor-drop-before", "page-editor-drop-after");
+        });
+        draggedPanel = null;
+        draggedList = null;
+    };
+
+    list.addEventListener("dragstart", (event) => {
+        const handle = event.target.closest(".page-editor-drag-handle");
+        if (!handle) {
+            event.preventDefault();
+            return;
+        }
+        draggedPanel = handle.closest(".page-card-editor, .page-section-editor");
+        draggedList = draggedPanel.parentElement;
+        draggedPanel.classList.add("page-editor-dragging");
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", "page-editor-order");
+    });
+
+    list.addEventListener("dragover", (event) => {
+        if (!draggedPanel) return;
+        const selector = draggedPanel.classList.contains("page-card-editor") ? ".page-card-editor" : ".page-section-editor";
+        const target = event.target.closest(selector);
+        if (!target || target === draggedPanel || target.parentElement !== draggedList) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        draggedList.querySelectorAll(".page-editor-drop-before, .page-editor-drop-after").forEach((element) => {
+            element.classList.remove("page-editor-drop-before", "page-editor-drop-after");
+        });
+        const bounds = target.getBoundingClientRect();
+        target.classList.add(event.clientY > bounds.top + bounds.height / 2 ? "page-editor-drop-after" : "page-editor-drop-before");
+    });
+
+    list.addEventListener("drop", (event) => {
+        if (!draggedPanel) return;
+        const selector = draggedPanel.classList.contains("page-card-editor") ? ".page-card-editor" : ".page-section-editor";
+        const target = event.target.closest(selector);
+        if (!target || target === draggedPanel || target.parentElement !== draggedList) {
+            clearDragState();
+            return;
+        }
+        event.preventDefault();
+        draggedList.insertBefore(draggedPanel, target.classList.contains("page-editor-drop-after") ? target.nextElementSibling : target);
+        refreshOrderControls();
+        sync();
+        clearDragState();
+    });
+
+    list.addEventListener("dragend", clearDragState);
     editor.querySelector("[data-add-section]").addEventListener("click", () => { sections = read(); sections.push({section_type: "introduction", is_visible: true, items: []}); render(); sync(); });
     editor.closest("form").addEventListener("submit", sync);
     render();
