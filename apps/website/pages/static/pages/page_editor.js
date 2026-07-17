@@ -161,6 +161,44 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
+    const rerenderPreservingState = ({openCard = null, openLastSection = false} = {}) => {
+        const scrollPosition = {x: window.scrollX, y: window.scrollY};
+        const state = [...list.querySelectorAll(":scope > .page-section-editor")].map((panel) => {
+            const cards = panel.querySelector(":scope > .page-section-body > .page-cards");
+            return {
+                sectionOpen: panel.open,
+                cardsOpen: cards?.open ?? false,
+                cardOpen: cards ? [...cards.querySelectorAll(".page-card-list > .page-card-editor")].map((card) => card.open) : [],
+            };
+        });
+
+        render();
+
+        const sectionPanels = [...list.querySelectorAll(":scope > .page-section-editor")];
+        sectionPanels.forEach((panel, sectionIndex) => {
+            if (state[sectionIndex]) panel.open = state[sectionIndex].sectionOpen;
+            const cards = panel.querySelector(":scope > .page-section-body > .page-cards");
+            if (!cards) return;
+            if (state[sectionIndex]) cards.open = state[sectionIndex].cardsOpen;
+            [...cards.querySelectorAll(".page-card-list > .page-card-editor")].forEach((card, cardIndex) => {
+                if (state[sectionIndex]?.cardOpen[cardIndex]) card.open = true;
+            });
+        });
+
+        if (openLastSection && sectionPanels.length) sectionPanels[sectionPanels.length - 1].open = true;
+        if (openCard !== null) {
+            const sectionPanel = sectionPanels[openCard];
+            const cards = sectionPanel?.querySelector(":scope > .page-section-body > .page-cards");
+            const cardPanels = cards ? [...cards.querySelectorAll(".page-card-list > .page-card-editor")] : [];
+            if (sectionPanel) sectionPanel.open = true;
+            if (cards) cards.open = true;
+            if (cardPanels.length) cardPanels[cardPanels.length - 1].open = true;
+        }
+
+        window.scrollTo(scrollPosition.x, scrollPosition.y);
+        window.requestAnimationFrame(() => window.scrollTo(scrollPosition.x, scrollPosition.y));
+    };
+
     editor.addEventListener("click", (event) => {
         if (event.target.closest(".page-editor-drag-handle")) {
             event.preventDefault();
@@ -203,7 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (action === "add-card") sections[sectionIndex].items.push({});
         if (action === "remove-card") sections[sectionIndex].items.splice(cardIndex, 1);
         if (action === "remove-section") sections.splice(sectionIndex, 1);
-        render();
+        rerenderPreservingState({openCard: action === "add-card" ? sectionIndex : null});
         sync();
     });
     list.addEventListener("input", () => { refreshOrderControls(); sync(); });
@@ -272,7 +310,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     list.addEventListener("dragend", clearDragState);
-    editor.querySelector("[data-add-section]").addEventListener("click", () => { sections = read(); sections.push({section_type: "introduction", is_visible: true, items: []}); render(); sync(); });
+    editor.querySelector("[data-add-section]").addEventListener("click", () => { sections = read(); sections.push({section_type: "introduction", is_visible: true, items: []}); rerenderPreservingState({openLastSection: true}); sync(); });
     editor.closest("form").addEventListener("submit", sync);
     render();
 });
