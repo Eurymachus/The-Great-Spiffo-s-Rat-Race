@@ -1,0 +1,20 @@
+<section class="card home-hero">
+    {% if section.small_heading %}<p class="eyebrow">{{ section.small_heading }}</p>{% endif %}
+    <h2>{{ section.main_heading }}</h2>
+    {% if section.introduction %}<p class="lede">{{ section.introduction }}</p>{% endif %}
+    <div class="home-actions">
+        {% if request.user.is_authenticated %}
+            {% if section.signed_in_button %}<a class="primary-link-button" href="{% url 'registry:account' %}">{{ section.signed_in_button }}</a>{% endif %}
+        {% else %}
+            {% if section.visitor_primary_button %}<a class="primary-link-button" href="{% url 'registry:register' %}">{{ section.visitor_primary_button }}</a>{% endif %}
+            {% if section.visitor_secondary_link %}<a class="secondary-button" href="{% url 'registry:login' %}">{{ section.visitor_secondary_link }}</a>{% endif %}
+        {% endif %}
+    </div>
+    {% if section.items.all %}
+    <div class="home-steps" aria-label="How participation begins">
+        {% for item in section.items.all %}
+            <article><strong>{{ forloop.counter }}. {{ item.heading }}</strong><span>{{ item.description }}</span></article>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>

@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from branding.models import SiteBranding
+from pages.models import Page
 from .admin import export_registrations, promote_to_role
 from .models import AccountClosureRecord, Participant
 from .tokens import create_verification_token
@@ -77,21 +78,23 @@ class RegistrationTests(TestCase):
         self.assertContains(response, reverse("registry:register"))
         self.assertNotContains(response, 'data-registration-form')
 
-    def test_homepage_editorial_content_comes_from_branding(self):
-        branding = SiteBranding.current()
-        branding.homepage_small_heading = "Custom small heading"
-        branding.homepage_main_heading = "Custom main heading"
-        branding.homepage_introduction = "Custom homepage introduction."
-        branding.homepage_primary_button = "Custom join action"
-        branding.homepage_secondary_link = "Custom returning-player action"
-        branding.homepage_account_button = "Custom account action"
-        branding.join_step_1_heading = "Custom first step"
-        branding.join_step_1_description = "Custom first description."
-        branding.join_step_2_heading = "Custom second step"
-        branding.join_step_2_description = "Custom second description."
-        branding.join_step_3_heading = "Custom third step"
-        branding.join_step_3_description = "Custom third description."
-        branding.save()
+    def test_homepage_editorial_content_comes_from_managed_page(self):
+        page = Page.objects.get(slug="home")
+        section = page.sections.get(position=0)
+        section.small_heading = "Custom small heading"
+        section.main_heading = "Custom main heading"
+        section.introduction = "Custom homepage introduction."
+        section.visitor_primary_button = "Custom join action"
+        section.visitor_secondary_link = "Custom returning-player action"
+        section.signed_in_button = "Custom account action"
+        section.save()
+        items = list(section.items.all())
+        items[0].heading = "Custom first step"
+        items[0].save()
+        items[1].description = "Custom second description."
+        items[1].save()
+        items[2].description = "Custom third description."
+        items[2].save()
 
         response = self.client.get(reverse("registry:home"))
 

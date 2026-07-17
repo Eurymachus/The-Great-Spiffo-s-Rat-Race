@@ -119,6 +119,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'branding',
+    'pages',
     'registry',
 ]
 

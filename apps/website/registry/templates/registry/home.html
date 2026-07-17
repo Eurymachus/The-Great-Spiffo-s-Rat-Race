@@ -1,6 +1,17 @@
 {% extends "registry/base.html" %}
 
 {% block content %}
+{% if managed_page %}
+    {% for section in managed_page.sections.all %}
+        {% if section.is_visible %}
+            {% if section.section_type == "introduction" %}
+                {% include "registry/sections/introduction.html" %}
+            {% elif section.section_type == "steps" %}
+                {% include "registry/sections/numbered_cards.html" %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+{% else %}
 <section class="card home-hero">
     <p class="eyebrow">{{ site_homepage_small_heading }}</p>
     <h2>{{ site_homepage_main_heading }}</h2>
@@ -19,4 +30,5 @@
         {% endfor %}
     </div>
 </section>
+{% endif %}
 {% endblock %}

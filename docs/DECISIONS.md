@@ -161,3 +161,23 @@ canonical run data. Denied, invalid, older, duplicate, and superseded
 submissions remain immutable audit records and do not become comparison
 baselines. Approval and denial record the moderator, timestamp, and decision
 reason, and applying an approval must be transactional.
+
+## 2026-07-17 - Use a constrained, reusable page system
+
+Public editorial content will evolve through backend-managed Pages assembled
+from ordered, approved section types. Editors may change content, order sections,
+and hide sections, but cannot enter arbitrary HTML, CSS, or JavaScript. Responsive
+layout and accessibility remain responsibilities of the version-controlled
+section templates.
+
+The existing homepage is the first managed page and is seeded automatically from
+the previous Branding content without changing its public presentation. Branding
+retains global identity, theme selection, and shared terminology. Page-specific
+copy belongs to Pages. The old homepage fields remain temporarily as migration
+and startup fallbacks, but are no longer presented in the Branding editor.
+
+Signup, authentication, participant accounts, privacy, and administration remain
+structured application screens rather than editable page-builder content. The
+architecture should favour reuse by future Sentinel Tech websites, while new
+components are added only for proven Rat Race requirements rather than attempting
+to build a general-purpose WordPress replacement now.

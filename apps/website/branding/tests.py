@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from registry.models import Participant
 from registry.verification_email import send_verification_email
+from pages.models import Page
 
 from .models import SiteBranding, WebsiteTheme
 
@@ -61,6 +62,9 @@ class SiteBrandingAdminTests(TestCase):
         self.assertTrue(participant.has_perm("branding.add_websitetheme"))
         self.assertTrue(participant.has_perm("branding.change_websitetheme"))
         self.assertTrue(participant.has_perm("branding.delete_websitetheme"))
+        self.assertTrue(participant.has_perm("pages.change_page"))
+        self.assertTrue(participant.has_perm("pages.change_pagesection"))
+        self.assertTrue(participant.has_perm("pages.change_sectionitem"))
         self.assertFalse(participant.has_perm("registry.view_participant"))
 
         admin_home = self.client.get("/admin/")
@@ -84,18 +88,6 @@ class SiteBrandingAdminTests(TestCase):
                 "short_title": "Edited Race",
                 "tagline": "Edited tagline",
                 "welcome_message": "Edited welcome!",
-                "homepage_small_heading": "Edited small heading",
-                "homepage_main_heading": "Edited main heading",
-                "homepage_introduction": "Edited introduction.",
-                "homepage_primary_button": "Edited join button",
-                "homepage_secondary_link": "Edited login link",
-                "homepage_account_button": "Edited account button",
-                "join_step_1_heading": "Edited step one",
-                "join_step_1_description": "Edited step one description.",
-                "join_step_2_heading": "Edited step two",
-                "join_step_2_description": "Edited step two description.",
-                "join_step_3_heading": "Edited step three",
-                "join_step_3_description": "Edited step three description.",
                 "participant_label": "Edited Racer",
                 "participant_plural_label": "Edited Racers",
                 "former_participant_label": "Edited Former Racer",
@@ -110,16 +102,17 @@ class SiteBrandingAdminTests(TestCase):
         self.assertContains(public_page, "Edited Full Challenge")
         self.assertContains(public_page, "Edited Former Racer")
 
-        homepage = self.client.get(reverse("registry:home"))
-        self.assertContains(homepage, "Edited small heading")
-        self.assertContains(homepage, "Edited main heading")
-        self.assertContains(homepage, "Edited introduction.")
-        self.assertContains(homepage, "Edited account button")
-        self.assertContains(homepage, "Edited step three description.")
+        page_admin = self.client.get(reverse("admin:pages_page_changelist"))
+        self.assertRedirects(
+            page_admin,
+            reverse(
+                "admin:pages_page_change", args=(Page.objects.get(slug="home").pk,)
+            ),
+            fetch_redirect_response=False,
+        )
 
         self.client.logout()
         registration = self.client.get(reverse("registry:register"))
-        self.assertContains(registration, "Edited join button")
         self.assertContains(registration, "Edited Racer nickname")
 
         account_user = Participant.objects.create_user(

@@ -14,6 +14,8 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
+from pages.models import Page
+
 from .forms import (
     AccountClosureRequestForm,
     PasswordResetRequestForm,
@@ -28,7 +30,12 @@ from .verification_email import send_password_reset_email, send_verification_ema
 
 
 def home(request):
-    return render(request, "registry/home.html")
+    page = (
+        Page.objects.filter(slug="home", is_published=True)
+        .prefetch_related("sections__items")
+        .first()
+    )
+    return render(request, "registry/home.html", {"managed_page": page})
 
 
 def registration_start_step(form):

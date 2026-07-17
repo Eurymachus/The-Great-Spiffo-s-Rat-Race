@@ -1,0 +1,10 @@
+<section class="card home-information">
+    {% if section.small_heading %}<p class="eyebrow">{{ section.small_heading }}</p>{% endif %}
+    {% if section.main_heading %}<h2>{{ section.main_heading }}</h2>{% endif %}
+    {% if section.introduction %}<p class="lede">{{ section.introduction }}</p>{% endif %}
+    <div class="home-steps" aria-label="Numbered information">
+        {% for item in section.items.all %}
+            <article><strong>{{ forloop.counter }}. {{ item.heading }}</strong><span>{{ item.description }}</span></article>
+        {% endfor %}
+    </div>
+</section>

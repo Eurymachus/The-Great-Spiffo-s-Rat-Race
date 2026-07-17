@@ -24,6 +24,17 @@ ROLE_PERMISSIONS = {
         "view_websitetheme",
         "change_websitetheme",
         "delete_websitetheme",
+        "view_page",
+        "change_page",
+        "delete_page",
+        "add_pagesection",
+        "view_pagesection",
+        "change_pagesection",
+        "delete_pagesection",
+        "add_sectionitem",
+        "view_sectionitem",
+        "change_sectionitem",
+        "delete_sectionitem",
     ),
 }
 
@@ -35,7 +46,7 @@ class Command(BaseCommand):
         for role_name, codenames in ROLE_PERMISSIONS.items():
             group, _ = Group.objects.get_or_create(name=role_name)
             permissions = Permission.objects.filter(
-                content_type__app_label__in=("registry", "branding"),
+                content_type__app_label__in=("registry", "branding", "pages"),
                 codename__in=codenames,
             )
             group.permissions.set(permissions)

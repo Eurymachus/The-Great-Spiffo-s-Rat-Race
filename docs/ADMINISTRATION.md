@@ -90,6 +90,34 @@ administrator can preview a selected theme on the real signup page, activate it,
 duplicate it as a working copy, or restore the supplied presets. Previewing is
 private and does not change the public theme. Theme deletion is disabled.
 
+## Manage Website Pages
+
+The Website Content section contains Pages. The protected Homepage record is the
+first backend-managed public page. Its existing wording was copied from Branding
+when the page system was introduced, so the public appearance did not reset.
+Because it is currently the only managed page, opening Pages takes an editor
+straight to Homepage. Additional standalone pages will only be enabled when
+public routing and navigation management are ready.
+
+Open Homepage to manage its ordered sections. Each section uses an approved,
+responsive template rather than arbitrary HTML, CSS, or JavaScript. The first
+available section types are:
+
+- Introduction and actions, with headings, introductory text, visitor actions,
+  a signed-in action, and optional ordered information cards.
+- Numbered information cards, for a separate ordered group of explanatory cards.
+
+Use Position to control section and card order, and Is visible to temporarily
+hide a section without deleting it. From the Homepage editor, use the section's
+change link to edit its ordered cards. The homepage record cannot be deleted and
+its `home` address cannot be changed.
+
+Branding Administrators can manage Branding, Themes, Pages, sections, and
+section items. This role still cannot view or manage participant records.
+Authentication, signup, account, privacy, and administration screens remain
+structured application pages so an editor cannot accidentally damage a security
+or legal workflow.
+
 ## Expire Abandoned Registrations
 
 Run the following command manually during development:

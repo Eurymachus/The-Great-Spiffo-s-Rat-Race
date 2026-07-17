@@ -37,6 +37,8 @@ a nickname using a verified email address.
   public rendering, and a scoped Branding Administrator role.
 - Managed visual themes with three editable presets, private signup-page preview,
   duplication, restoration, activation, and validated design controls.
+- A protected backend-managed Homepage assembled from ordered, reusable,
+  responsive sections without administrator-authored HTML or JavaScript.
 - Consistent primary navigation, authenticated-route redirects, accessible form
   metadata, keyboard focus treatment, and responsive local journey checks.
 - Privileged, confirmation-protected closure processing with non-personal
@@ -79,8 +81,9 @@ requirement:
 
 ## Recommended next action
 
-Use the new theme previews to choose and refine the participant-facing visual
-direction, then develop the logo/mark and imagery against that chosen theme.
+Extend the structured content system only when the Rat Race needs another real
+section type. Add managed brand assets and navigation next, while the team chooses
+the final participant-facing visual direction.
 Run/report ingestion remains deferred until Project Zomboid B42 Stable and the
 challenge rules are finalised. Retention automation and a final pre-launch
 privacy review still remain required.
