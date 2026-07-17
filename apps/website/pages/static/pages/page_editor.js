@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const sectionType = panel.querySelector('[data-key="section_type"]').value;
             const isVisible = panel.querySelector('[data-key="is_visible"]').checked;
             const summary = panel.querySelector(":scope > summary");
-            summary.querySelector(":scope > span").textContent = `${sectionIndex + 1}. ${sectionType === "steps" ? "Numbered information cards" : "Introduction and actions"}${isVisible ? "" : " - Hidden"}`;
+            summary.querySelector(":scope > .page-editor-summary-title").textContent = `${sectionIndex + 1}. ${sectionType === "steps" ? "Numbered information cards" : "Introduction and actions"}${isVisible ? "" : " - Hidden"}`;
             summary.querySelector('[data-action="section-up"]').disabled = sectionIndex === 0;
             summary.querySelector('[data-action="section-down"]').disabled = sectionIndex === sectionPanels.length - 1;
 
@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
             cardPanels.forEach((card, cardIndex) => {
                 const cardSummary = card.querySelector(":scope > summary");
                 const heading = card.querySelector('[data-key="heading"]').value;
-                cardSummary.querySelector(":scope > span").textContent = `${cardIndex + 1}. ${heading || "Untitled card"}`;
+                cardSummary.querySelector(":scope > .page-editor-summary-title").textContent = `${cardIndex + 1}. ${heading || "Untitled card"}`;
                 cardSummary.querySelector('[data-action="card-up"]').disabled = cardIndex === 0;
                 cardSummary.querySelector('[data-action="card-down"]').disabled = cardIndex === cardPanels.length - 1;
             });
@@ -108,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
             panel.dataset.id = section.id || "";
             const summary = document.createElement("summary");
             const summaryTitle = document.createElement("span");
+            summaryTitle.className = "page-editor-summary-title";
             summaryTitle.textContent = `${sectionIndex + 1}. ${section.section_type === "steps" ? "Numbered information cards" : "Introduction and actions"}${section.is_visible === false ? " - Hidden" : ""}`;
             summary.append(dragHandle("section"), summaryTitle, orderButtons("section-up", "section-down", sectionIndex, sections.length, "section"));
             panel.append(summary);
@@ -144,7 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
             (section.items || []).forEach((item, itemIndex) => {
                 const card = document.createElement("details"); card.className = "page-card-editor"; card.dataset.id = item.id || "";
                 const cardSummary = document.createElement("summary");
-                const cardSummaryTitle = document.createElement("span"); cardSummaryTitle.textContent = `${itemIndex + 1}. ${item.heading || "Untitled card"}`;
+                const cardSummaryTitle = document.createElement("span"); cardSummaryTitle.className = "page-editor-summary-title"; cardSummaryTitle.textContent = `${itemIndex + 1}. ${item.heading || "Untitled card"}`;
                 cardSummary.append(dragHandle("card"), cardSummaryTitle, orderButtons("card-up", "card-down", itemIndex, section.items.length, "card")); card.append(cardSummary);
                 const cardBody = document.createElement("div"); cardBody.className = "page-card-body page-editor-grid";
                 cardBody.append(field("Heading", "heading", item.heading), field("Description", "description", item.description, "textarea", true));
@@ -232,27 +233,36 @@ document.addEventListener("DOMContentLoaded", () => {
     list.addEventListener("dragover", (event) => {
         if (!draggedPanel) return;
         const selector = draggedPanel.classList.contains("page-card-editor") ? ".page-card-editor" : ".page-section-editor";
-        const target = event.target.closest(selector);
-        if (!target || target === draggedPanel || target.parentElement !== draggedList) return;
+        const hoveredPanel = event.target.closest(selector);
+        if (!hoveredPanel || hoveredPanel.parentElement !== draggedList) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = "move";
         draggedList.querySelectorAll(".page-editor-drop-before, .page-editor-drop-after").forEach((element) => {
             element.classList.remove("page-editor-drop-before", "page-editor-drop-after");
         });
-        const bounds = target.getBoundingClientRect();
-        target.classList.add(event.clientY > bounds.top + bounds.height / 2 ? "page-editor-drop-after" : "page-editor-drop-before");
+        const candidates = [...draggedList.querySelectorAll(`:scope > ${selector}`)].filter((panel) => panel !== draggedPanel);
+        const nextPanel = candidates.find((panel) => {
+            const bounds = panel.getBoundingClientRect();
+            return event.clientY < bounds.top + bounds.height / 2;
+        });
+        if (nextPanel) {
+            nextPanel.classList.add("page-editor-drop-before");
+        } else if (candidates.length) {
+            candidates[candidates.length - 1].classList.add("page-editor-drop-after");
+        }
     });
 
     list.addEventListener("drop", (event) => {
         if (!draggedPanel) return;
         const selector = draggedPanel.classList.contains("page-card-editor") ? ".page-card-editor" : ".page-section-editor";
-        const target = event.target.closest(selector);
-        if (!target || target === draggedPanel || target.parentElement !== draggedList) {
+        const beforeTarget = draggedList.querySelector(":scope > .page-editor-drop-before");
+        const afterTarget = draggedList.querySelector(":scope > .page-editor-drop-after");
+        if (!beforeTarget && !afterTarget) {
             clearDragState();
             return;
         }
         event.preventDefault();
-        draggedList.insertBefore(draggedPanel, target.classList.contains("page-editor-drop-after") ? target.nextElementSibling : target);
+        draggedList.insertBefore(draggedPanel, beforeTarget || afterTarget.nextElementSibling);
         refreshOrderControls();
         sync();
         clearDragState();
