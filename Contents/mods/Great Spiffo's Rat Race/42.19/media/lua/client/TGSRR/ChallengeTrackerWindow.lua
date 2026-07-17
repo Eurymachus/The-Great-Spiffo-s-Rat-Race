@@ -3,6 +3,7 @@ require "ISUI/ISButton"
 
 local Tracker = require "TGSRR/ChallengeTracker"
 local State = require "TGSRR/ChallengeTrackerState"
+local L = require "TGSRR/Localization"
 require "TGSRR/OverviewTrackerModule"
 require "TGSRR/KillsTrackerModule"
 require "TGSRR/SkillsTrackerModule"
@@ -187,7 +188,7 @@ end
 
 function TGSRRChallengeTrackerWindow:new(x, y, width, height)
     local o = ISCollapsableWindow.new(self, x, y, width, height)
-    o.title = "The Great Spiffo's Rat Race"
+    o.title = L.text("UI_TGSRR_Tracker_Title", "The Great Spiffo's Rat Race")
     o.resizable = false
     o:setResizable(false)
     return o
@@ -236,7 +237,8 @@ local function createTracker()
         launcher:initialise()
         launcher:instantiate()
         launcher:setImage(getTexture(LAUNCHER_TEXTURE))
-        launcher:setTooltip("Open the Rat Race Challenge Tracker (drag to move)")
+        launcher:setTooltip(L.text("UI_TGSRR_Tracker_Launcher_Tooltip",
+            "Open the Rat Race Challenge Tracker (drag to move)"))
         launcher:setDisplayBackground(false)
         launcher.backgroundColor = { r = 0, g = 0, b = 0, a = 0.65 }
         launcher.backgroundColorMouseOver = { r = 0.16, g = 0.16, b = 0.16, a = 0.9 }

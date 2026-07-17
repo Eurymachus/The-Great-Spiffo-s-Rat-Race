@@ -28,7 +28,27 @@
 ### Persistence and files
 
 - Debug survey output uses one INI-style record set at `TGSRR/Outposts.ini`; no JSON decoder is required.
-- Player-facing clearing/completion persistence is designed but not implemented.
+- World-level `ModData` under `TGSRR_OutpostProgress` stores discovery plus normalized last-known deliverable snapshots.
+- Persisted deliverables use `available`, `passed`, `current`, `required`, and `observedAt`; transient scan/debug data is excluded.
+- A runtime last-written cache prevents unchanged one-second checks from mutating `ModData`.
+- Only the outpost containing the player is monitored; there is no remote zombie scan.
+- Live outpost deliverables are evaluated on area entry/load, room changes, `OnZombieDead`, and a one-second in-area fallback.
+- A ten-second in-area grace period prevents clearance certification before instantiated zombies finish loading.
+
+### Ground-floor window survey
+
+- The expected exterior envelope is derived once from the union of registered room rectangles at the outpost sealing level.
+- Interior tiles are converted into normalized north/west boundary segments wherever an adjacent tile is outside that union.
+- It recognizes `IsoWindow`, `IsoWindowFrame`, and window-type `IsoThumpable` objects.
+- Window openings are discovered afresh on those cached boundary segments and inspect barricades on both sides.
+- Wood planks, sheet metal, and metal bars are reported as qualifying barricade materials.
+- The result is authoritative only when every boundary segment's owning square is loaded.
+- The runtime cache stores expected boundary geometry rather than physical window objects, allowing new player-built windows to be detected after walls are demolished.
+- A shared per-inspection classification pass identifies walls, windows, door frames, present doors, and door open/closed state for each segment.
+- `enclosed` counts segments sealed by a wall, window opening, or present door; an empty door frame is not sealed.
+- `doors_fitted` counts present exterior doors against exterior door frames.
+- `doors_closed` counts closed exterior doors against the same frame total, so missing doors cannot pass.
+- Authoritative aggregate results persist as the outpost's last-known `window_barricades` deliverable.
 
 ### Zombie kills
 
@@ -57,3 +77,5 @@ A `BufferUnderflowException` occurred inside `ZombiePopulationManager.updateMain
 - [MOD_DECISION_006_ROOM_ACTIVATION.md](MOD_DECISION_006_ROOM_ACTIVATION.md)
 - [MOD_DECISION_007_LIVE_ZOMBIE_CLEARANCE.md](MOD_DECISION_007_LIVE_ZOMBIE_CLEARANCE.md)
 - [MOD_DECISION_010_ZOMBIE_KILL_AUTHORITY.md](MOD_DECISION_010_ZOMBIE_KILL_AUTHORITY.md)
+- [MOD_DECISION_011_OUTPOST_STAGES_AND_CLEARANCE_TRIGGERS.md](MOD_DECISION_011_OUTPOST_STAGES_AND_CLEARANCE_TRIGGERS.md)
+- [MOD_DECISION_012_OUTPOST_PROGRESS_PERSISTENCE.md](MOD_DECISION_012_OUTPOST_PROGRESS_PERSISTENCE.md)

@@ -1,12 +1,14 @@
 local Tracker = require "TGSRR/ChallengeTracker"
 local Deliverables = require "TGSRR/ChallengeDeliverables"
 local PendingView = require "TGSRR/PendingTrackerView"
+local L = require "TGSRR/Localization"
 
-local MESSAGE = "Accepted skill set and verification are not implemented."
+local MESSAGE = L.text("UI_TGSRR_Tracker_SkillsPending",
+    "Accepted skill set and verification are not implemented.")
 
 Deliverables.register({
     id = "skills",
-    label = "Skills",
+    label = L.text("UI_TGSRR_Tracker_Skills", "Skills"),
     order = 20,
     getRecord = function()
         return {
@@ -20,10 +22,11 @@ Deliverables.register({
 
 Tracker.registerModule({
     id = "skills",
-    title = "Skills",
+    title = L.text("UI_TGSRR_Tracker_Tab_Skills", "Skills"),
     order = 30,
     createView = function(parent, x, y, width, height)
-        return PendingView:new(x, y, width, height, "Skills", MESSAGE)
+        return PendingView:new(x, y, width, height,
+            L.text("UI_TGSRR_Tracker_Skills", "Skills"), MESSAGE)
     end,
 })
 

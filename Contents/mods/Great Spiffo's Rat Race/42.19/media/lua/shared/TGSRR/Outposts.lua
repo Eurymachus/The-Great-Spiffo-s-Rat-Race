@@ -121,6 +121,16 @@ function Outposts.getAt(x, y, z)
     return nil
 end
 
+function Outposts.getAtClearance(x, y)
+    for _, definition in ipairs(ordered) do
+        local minX, minY, maxX, maxY = clearanceBounds(definition.clearance)
+        if x >= minX and x <= maxX and y >= minY and y <= maxY then
+            return definition
+        end
+    end
+    return nil
+end
+
 function Outposts.getNearest(x, y, maxDistance)
     local nearest, nearestDistance = nil, maxDistance or math.huge
     for _, definition in ipairs(ordered) do

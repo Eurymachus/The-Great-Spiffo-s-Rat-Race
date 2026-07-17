@@ -2,13 +2,16 @@ require "ISUI/ISPanel"
 require "ISUI/ISScrollingListBox"
 
 local Snapshot = require "TGSRR/OutpostTrackerSnapshot"
+local L = require "TGSRR/Localization"
+local Icons = require "TGSRR/OutpostIcons"
 
 local View = ISPanel:derive("TGSRROutpostTrackerView")
 local REFRESH_INTERVAL_MS = 1000
 local HEADER_Y = 8
 local HEADER_HEIGHT = 28
 local LIST_BOTTOM_MARGIN = 8
-local COLUMN_RATIOS = { 0.48, 0.62, 0.75, 0.90 }
+local COLUMN_RATIOS = { 0.44, 0.58, 0.75 }
+local OUTPOST_ICON_SIZE = 19
 
 local function columnX(width, index)
     return math.floor(width * COLUMN_RATIOS[index])
@@ -37,8 +40,13 @@ function View:prerender()
     self:drawRectBorder(x, HEADER_Y, width, HEADER_HEIGHT, 0.7, 0.65, 0.65, 0.65)
 
     local textY = HEADER_Y + math.floor((HEADER_HEIGHT - getTextManager():getFontHeight(UIFont.Small)) / 2)
-    self:drawText("Outpost", x + 8, textY, 1, 1, 1, 1, UIFont.Small)
-    local headers = { "Rooms", "Floors", "Buildings", "%" }
+    self:drawText(L.text("UI_TGSRR_Tracker_Outpost", "Outpost"),
+        x + 8, textY, 1, 1, 1, 1, UIFont.Small)
+    local headers = {
+        L.text("UI_TGSRR_Tracker_Rooms", "Rooms"),
+        L.text("UI_TGSRR_Tracker_Stage", "Stage"),
+        L.text("UI_TGSRR_Tracker_Progress", "Progress"),
+    }
     local left = columnX(width, 1)
     for index, header in ipairs(headers) do
         local right = index < #headers and columnX(width, index + 1) or width
@@ -59,34 +67,76 @@ function View:drawOutpost(y, item, alt)
 
     local textY = y + math.floor((self.itemheight - getTextManager():getFontHeight(UIFont.Small)) / 2)
     local color = data.complete and { 0.42, 0.9, 0.48 } or { 1, 1, 1 }
-    self:drawText(data.title, 8, textY, color[1], color[2], color[3], 1, UIFont.Small)
-    local values = { data.rooms, data.floors, data.buildings, tostring(data.percent) .. "%" }
+    local icon = Icons.get(data.outpost)
+    local iconR, iconG, iconB = Icons.getColor(data.status, data.complete)
+    if icon then
+        self:drawTextureScaledAspect(icon, 6,
+            y + math.floor((self.itemheight - OUTPOST_ICON_SIZE) / 2),
+            OUTPOST_ICON_SIZE, OUTPOST_ICON_SIZE, 1,
+            iconR, iconG, iconB)
+    end
+    self:drawText(data.title, 30, textY, color[1], color[2], color[3], 1, UIFont.Small)
+    local stage = data.status == "undiscovered" and
+        L.text("UI_TGSRR_Tracker_Stage_Undiscovered", "Undiscovered") or
+        L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered")
+    local values = { data.rooms, stage }
     local left = columnX(width, 1)
     for index, value in ipairs(values) do
-        local right = index < #values and columnX(width, index + 1) or width
+        local right = columnX(width, index + 1)
         self:drawTextCentre(value, left + math.floor((right - left) / 2), textY,
             color[1], color[2], color[3], 1, UIFont.Small)
         left = right
     end
+
+    local progressX = left + 6
+    local progressWidth = math.max(1, width - progressX - 6)
+    local progressY = y + math.floor((self.itemheight - 17) / 2)
+    self:drawRect(progressX, progressY, progressWidth, 17, 0.8, 0.02, 0.02, 0.02)
+    if data.percent > 0 then
+        self:drawRect(progressX + 1, progressY + 1,
+            math.floor((progressWidth - 2) * data.percent / 100), 15,
+            0.76, 0.12, 0.58, 0.18)
+    end
+    self:drawRectBorder(progressX, progressY, progressWidth, 17, 0.62, 0.55, 0.55, 0.55)
+    self:drawTextCentre(tostring(data.percent) .. "%",
+        progressX + math.floor(progressWidth / 2), textY,
+        color[1], color[2], color[3], 1, UIFont.Small)
     return y + self.itemheight
 end
 
-local function buildTooltip(outpost, activation, percent)
+local function buildTooltip(outpost, activation, percent, runtime, status)
     local lines = {
-        outpost.name,
-        "Completion: " .. tostring(percent) .. "%",
+        L.text(outpost.nameKey, outpost.name),
+        L.text("UI_TGSRR_Tracker_Stage", "Stage") .. ": " ..
+            (status == "undiscovered" and
+                L.text("UI_TGSRR_Tracker_Stage_Undiscovered", "Undiscovered") or
+                L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered")),
+        L.text("UI_TGSRR_Tracker_Progress", "Progress") .. ": " .. tostring(percent) .. "%",
     }
     if activation then
-        lines[#lines + 1] = "Rooms activated: " .. activation.activatedRooms .. " / " .. activation.totalRooms
-        lines[#lines + 1] = "Floors activated: " .. activation.activatedFloors .. " / " .. activation.totalFloors
-        lines[#lines + 1] = "Buildings found: " .. activation.resolvedBuildings .. " / " .. activation.expectedBuildings
+        lines[#lines + 1] = L.text("UI_TGSRR_Tracker_RoomsActivated", "Rooms activated") ..
+            ": " .. activation.activatedRooms .. " / " .. activation.totalRooms
+        lines[#lines + 1] = L.text("UI_TGSRR_Tracker_FloorsActivated", "Floors activated") ..
+            ": " .. activation.activatedFloors .. " / " .. activation.totalFloors
         if activation.loadedRooms ~= nil then
-            lines[#lines + 1] = "Rooms currently loaded: " .. activation.loadedRooms .. " / " .. activation.totalRooms
+            lines[#lines + 1] = L.text("UI_TGSRR_Tracker_RoomsLoaded", "Rooms currently loaded") ..
+                ": " .. activation.loadedRooms .. " / " .. activation.totalRooms
         end
     else
-        lines[#lines + 1] = "Outpost data has not been evaluated."
+        lines[#lines + 1] = L.text("UI_TGSRR_Tracker_OutpostNotEvaluated",
+            "Outpost data has not been evaluated.")
     end
-    lines[#lines + 1] = "Double-click for details"
+    if runtime and runtime.discovered then
+        local clearance = runtime.deliverables and runtime.deliverables.zombie_clearance or nil
+        lines[#lines + 1] = L.text("UI_TGSRR_Tracker_Clearance", "Clearance") .. ": " ..
+            (clearance and clearance.passed and L.text("UI_TGSRR_Tracker_Passed", "Passed") or
+                L.text("UI_TGSRR_Tracker_Pending", "Pending"))
+        if clearance then
+            lines[#lines + 1] = L.text("UI_TGSRR_Tracker_LastObservedZombies",
+                "Last observed zombies") .. ": " .. tostring(clearance.current)
+        end
+    end
+    lines[#lines + 1] = L.text("UI_TGSRR_Tracker_DoubleClickDetails", "Double-click for details")
     return table.concat(lines, "\n")
 end
 
@@ -106,7 +156,7 @@ function View:refresh(player)
         self.list:clear()
         for _, row in ipairs(snapshot.rows) do
             local item = self.list:addItem(row.title, row,
-                buildTooltip(row.outpost, row.activation, row.percent))
+                buildTooltip(row.outpost, row.activation, row.percent, row.runtime, row.status))
             if selectedId == row.id then self.list.selected = item.itemindex end
         end
         self.list:setYScroll(scrollY)
@@ -115,7 +165,7 @@ function View:refresh(player)
             local item = self.list.items[index]
             item.text = row.title
             item.item = row
-            item.tooltip = buildTooltip(row.outpost, row.activation, row.percent)
+            item.tooltip = buildTooltip(row.outpost, row.activation, row.percent, row.runtime, row.status)
         end
     end
     self.lastRefreshMs = getTimestampMs()
@@ -132,8 +182,8 @@ end
 
 function View:onActivate(item)
     if not item then return end
-    local Inspector = require "TGSRR/OutpostInspectorWindow"
-    Inspector.showFor(item.outpost)
+    local Overview = require "TGSRR/OutpostOverviewWindow"
+    Overview.showFor(item.outpost)
 end
 
 function View:onShow()

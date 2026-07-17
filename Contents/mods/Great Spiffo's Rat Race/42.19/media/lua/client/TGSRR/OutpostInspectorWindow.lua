@@ -1,13 +1,18 @@
 require "ISUI/ISCollapsableWindow"
 require "ISUI/ISScrollingListBox"
 require "ISUI/ISButton"
+require "TimedActions/ISBarricadeAction"
+require "TimedActions/ISUnbarricadeAction"
 
 local Outposts = require "TGSRR/OutpostDefinitions"
 require "TGSRR/OutpostRoomActivationCheck"
+require "TGSRR/OutpostGroundFloorWindowCheck"
 
 local Inspector = ISCollapsableWindow:derive("TGSRROutpostInspectorWindow")
 Inspector.instance = nil
 local STATE_FILE = "TGSRR/OutpostInspectorWindow.ini"
+local AUTOMATIC_SURVEY_INTERVAL_MS = 1000
+local nextAutomaticSurveyAt = 0
 
 local function loadWindowState()
     local reader = getFileReader(STATE_FILE, false)
@@ -70,7 +75,50 @@ local function buildLines(result)
             end
         end
     end
+
+    addLine(lines, "", "neutral")
+    local windows = result.checks.ground_floor_windows
+    if not windows then
+        addLine(lines, "Ground-floor window check is not registered.", "fail")
+        return lines
+    end
+    if type(windows.openings) ~= "table" then
+        addLine(lines, "Ground-floor window survey failed: " .. tostring(windows.error or "unknown error"), "fail")
+        return lines
+    end
+    addLine(lines, "Exterior ground-floor windows: " .. tostring(windows.current) .. " / " ..
+        tostring(windows.required) .. " barricaded", windows.available and
+        (windows.passed and "pass" or "partial") or "fail")
+    addLine(lines, "Survey squares loaded: " .. tostring(windows.scannedSquares) ..
+        ", missing: " .. tostring(windows.missingSquares), windows.available and "neutral" or "fail")
+    for _, opening in ipairs(windows.openings) do
+        local orientation = opening.north and "N" or "W"
+        local materials = {}
+        if opening.sameMaterial then materials[#materials + 1] = "same=" .. opening.sameMaterial end
+        if opening.oppositeMaterial then materials[#materials + 1] = "opposite=" .. opening.oppositeMaterial end
+        local detail = #materials > 0 and table.concat(materials, ", ") or "unbarricaded"
+        addLine(lines, string.format("  %d,%d,%d %s  %-15s  %s", opening.x, opening.y,
+            opening.z, orientation, opening.kind, detail), opening.barricaded and "pass" or "fail", opening)
+    end
     return lines
+end
+
+local function resultSignature(result)
+    local checks = result and result.checks or {}
+    local activation = checks.room_activation or {}
+    local windows = checks.ground_floor_windows or {}
+    local parts = {
+        tostring(activation.activatedRooms), tostring(activation.totalRooms),
+        tostring(activation.activatedFloors), tostring(activation.totalFloors),
+        tostring(windows.current), tostring(windows.required), tostring(windows.missingSquares),
+    }
+    for _, opening in ipairs(windows.openings or {}) do
+        parts[#parts + 1] = table.concat({
+            tostring(opening.key), tostring(opening.barricaded),
+            tostring(opening.sameMaterial), tostring(opening.oppositeMaterial),
+        }, ":")
+    end
+    return table.concat(parts, "|")
 end
 
 function Inspector:createChildren()
@@ -100,7 +148,10 @@ end
 
 function Inspector:onRefresh()
     if not self.outpost then return end
-    self:setResult(Outposts.inspect(self.outpost, { player = getSpecificPlayer(0) or getPlayer() }))
+    self:setResult(Outposts.inspect(self.outpost, {
+        player = getSpecificPlayer(0) or getPlayer(),
+        includeWindowSurvey = true,
+    }))
 end
 
 function Inspector:onResize()
@@ -149,6 +200,7 @@ end
 
 function Inspector:setResult(result)
     self.result = result
+    self.resultSignature = resultSignature(result)
     self.title = "TGSRR Inspector - " .. tostring(result and result.name or "Unknown")
     if not self.list then return end
     self.list:clear()
@@ -168,7 +220,10 @@ function Inspector:new(x, y, width, height, result)
 end
 
 function Inspector.showFor(outpost)
-    local result = Outposts.inspect(outpost, { player = getSpecificPlayer(0) or getPlayer() })
+    local result = Outposts.inspect(outpost, {
+        player = getSpecificPlayer(0) or getPlayer(),
+        includeWindowSurvey = true,
+    })
     local window = Inspector.instance
     if not window then
         local state = loadWindowState()
@@ -191,7 +246,49 @@ function Inspector.showFor(outpost)
     window:addToUIManager()
     window:setVisible(true)
     window:bringToTop()
+    nextAutomaticSurveyAt = getTimestampMs() + AUTOMATIC_SURVEY_INTERVAL_MS
     return result
 end
+
+local function refreshOpenInspector()
+    if Inspector.instance then Inspector.instance:onRefresh() end
+end
+
+if not TGSRR_OutpostInspectorBarricadeHooksInstalled then
+    TGSRR_OutpostInspectorBarricadeHooksInstalled = true
+
+    local completeBarricade = ISBarricadeAction.complete
+    function ISBarricadeAction:complete()
+        local completed = completeBarricade(self)
+        if completed then refreshOpenInspector() end
+        return completed
+    end
+
+    local completeUnbarricade = ISUnbarricadeAction.complete
+    function ISUnbarricadeAction:complete()
+        local completed = completeUnbarricade(self)
+        if completed then refreshOpenInspector() end
+        return completed
+    end
+end
+
+local function onPlayerUpdate(player)
+    local window = Inspector.instance
+    if not window or not window:getIsVisible() or not window.outpost then return end
+    if player ~= (getSpecificPlayer(0) or getPlayer()) then return end
+    if Outposts.getAtClearance(player:getX(), player:getY()) ~= window.outpost then return end
+
+    local now = getTimestampMs()
+    if now < nextAutomaticSurveyAt then return end
+    nextAutomaticSurveyAt = now + AUTOMATIC_SURVEY_INTERVAL_MS
+
+    local result = Outposts.inspect(window.outpost, {
+        player = player,
+        includeWindowSurvey = true,
+    })
+    if resultSignature(result) ~= window.resultSignature then window:setResult(result) end
+end
+
+Events.OnPlayerUpdate.Add(onPlayerUpdate)
 
 return Inspector

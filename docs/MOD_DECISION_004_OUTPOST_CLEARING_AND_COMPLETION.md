@@ -1,6 +1,6 @@
 # MOD Decision 004: Separate Outpost Clearing from Completion
 
-- Status: Accepted
+- Status: Superseded in part by Decision 011
 - Date: 2026-07-16
 
 ## Context

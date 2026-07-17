@@ -1,5 +1,21 @@
 local Outposts = require "TGSRR/Outposts"
 
+local NAME_KEYS = {
+    brandenburg = "UI_TGSRR_Outpost_Brandenburg",
+    echo_creek = "UI_TGSRR_Outpost_EchoCreek",
+    ekron = "UI_TGSRR_Outpost_Ekron",
+    fallas_lake = "UI_TGSRR_Outpost_FallasLake",
+    hog_wallow_military_base = "UI_TGSRR_Outpost_HogWallowMilitaryBase",
+    irvington = "UI_TGSRR_Outpost_Irvington",
+    louisville = "UI_TGSRR_Outpost_Louisville",
+    march_ridge = "UI_TGSRR_Outpost_MarchRidge",
+    muldraugh = "UI_TGSRR_Outpost_Muldraugh",
+    riverside = "UI_TGSRR_Outpost_Riverside",
+    rosewood = "UI_TGSRR_Outpost_Rosewood",
+    valley_station = "UI_TGSRR_Outpost_ValleyStation",
+    west_point = "UI_TGSRR_Outpost_WestPoint",
+}
+
 local function building(id, options)
     local value = options or {}
     value.id = tostring(id)
@@ -13,6 +29,7 @@ local function add(id, name, anchor, zone, center, buildings, options)
     return Outposts.add({
         id = id,
         name = name,
+        nameKey = NAME_KEYS[id],
         anchor = { x = anchor[1], y = anchor[2], z = anchor[3] },
         coreZone = { minX = zone[1], minY = zone[2], maxX = zone[3], maxY = zone[4] },
         clearance = { centerX = center[1], centerY = center[2], width = 150, height = 150 },

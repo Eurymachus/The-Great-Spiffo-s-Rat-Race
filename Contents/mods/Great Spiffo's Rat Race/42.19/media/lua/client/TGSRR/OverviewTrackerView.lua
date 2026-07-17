@@ -2,6 +2,7 @@ require "ISUI/ISPanel"
 require "ISUI/ISScrollingListBox"
 
 local Deliverables = require "TGSRR/ChallengeDeliverables"
+local L = require "TGSRR/Localization"
 
 local View = ISPanel:derive("TGSRROverviewTrackerView")
 local REFRESH_INTERVAL_MS = 1000
@@ -20,7 +21,7 @@ end
 local function formatCount(record)
     if record.current == nil or record.target == nil then
         if record.target ~= nil then return "- / " .. tostring(record.target) end
-        return "Not tracked"
+        return L.text("UI_TGSRR_Tracker_NotTracked", "Not tracked")
     end
     return commaValue(record.current) .. " / " .. commaValue(record.target)
 end
@@ -71,7 +72,8 @@ function View:drawDeliverable(y, item, alt)
     end
     self:drawRectBorder(barX, barY, barWidth, 18, 0.62, 0.55, 0.55, 0.55)
 
-    local percentText = available and string.format("%.1f%%", record.percent) or "Unavailable"
+    local percentText = available and string.format("%.1f%%", record.percent) or
+        L.text("UI_TGSRR_Tracker_Unavailable", "Unavailable")
     self:drawTextRight(percentText, width - 12, y + 66,
         titleColor, titleColor, titleColor, 1, UIFont.Small)
     self:drawText(record.detail or "", 12, y + 66,

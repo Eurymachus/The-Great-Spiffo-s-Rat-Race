@@ -1,6 +1,7 @@
 require "ISUI/ISPanel"
 
 local KillsData = require "TGSRR/KillsTrackerData"
+local L = require "TGSRR/Localization"
 
 local View = ISPanel:derive("TGSRRKillsTrackerView")
 local TARGET_KILLS = 1000000
@@ -33,16 +34,18 @@ function View:prerender()
     local width = self.width - margin * 2
     local y = 24
 
-    self:drawText("Zombie Kills", margin, y, 1, 1, 1, 1, UIFont.Large)
+    self:drawText(L.text("UI_TGSRR_Tracker_ZombieKills", "Zombie Kills"), margin, y,
+        1, 1, 1, 1, UIFont.Large)
     y = y + getTextManager():getFontHeight(UIFont.Large) + 18
 
     if not self.playerAvailable then
-        self:drawText("Player data is unavailable.", margin, y, 0.75, 0.75, 0.75, 1, UIFont.Small)
+        self:drawText(L.text("UI_TGSRR_Tracker_PlayerUnavailable", "Player data is unavailable."),
+            margin, y, 0.75, 0.75, 0.75, 1, UIFont.Small)
         return
     end
 
     self:drawText(commaValue(self.current), margin, y, 1, 1, 1, 1, UIFont.Large)
-    self:drawTextRight("of " .. commaValue(TARGET_KILLS), margin + width, y,
+    self:drawTextRight(L.text("UI_TGSRR_Tracker_Of", "of") .. " " .. commaValue(TARGET_KILLS), margin + width, y,
         0.75, 0.75, 0.75, 1, UIFont.Medium)
     y = y + getTextManager():getFontHeight(UIFont.Large) + 18
 
@@ -58,7 +61,8 @@ function View:prerender()
         1, 1, 1, 1, UIFont.Small)
     y = y + barHeight + 20
 
-    self:drawText("Remaining", margin, y, 0.72, 0.72, 0.72, 1, UIFont.Small)
+    self:drawText(L.text("UI_TGSRR_Tracker_Remaining", "Remaining"),
+        margin, y, 0.72, 0.72, 0.72, 1, UIFont.Small)
     self:drawTextRight(commaValue(self.remaining), margin + width, y, 1, 1, 1, 1, UIFont.Small)
 end
 

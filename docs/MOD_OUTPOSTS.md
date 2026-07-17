@@ -29,12 +29,12 @@ Registered outposts:
 - **Clearance area**: configured `150x150` X/Y bounds used for surrounding-zombie clearance.
 - **Support radius**: provisional nearby range for support requirements such as the spare car; currently defaults to 15 tiles.
 - **Activated room**: a required RoomDef whose discovery/spawn path is represented by `RoomDef:isExplored()`.
-- **Approaching/Proximity**: player-facing notification that an outpost is nearby; not a certification state.
-- **Clearing**: an authoritative in-area monitoring session is active.
-- **Cleared**: required activation is complete and an authoritative live visit records zero zombies in the clearance area.
-- **Completed**: Cleared plus every required security, habitation, supplies, utilities, and vehicle deliverable currently passes.
+- **Undiscovered**: the player has never entered the configured clearance area.
+- **Discovered**: the player has entered the clearance area, but one or more completion requirements remain.
+- **Clearance**: a requirement that passes after required activation is complete and an authoritative live visit records zero zombies in the clearance area.
+- **Complete**: clearance plus every required security, habitation, supplies, utilities, and vehicle deliverable currently passes.
 
-Completed is a live classification. If a required car, generator/power source, food supply, barricade, or other completion deliverable stops qualifying, the outpost returns to Cleared until the requirement is restored.
+Discovery is permanently latched. Complete is a live classification. If a required car, generator/power source, food supply, barricade, or other completion deliverable stops qualifying, the outpost returns to Discovered until the requirement is restored.
 
 See [MOD_DECISION_004_OUTPOST_CLEARING_AND_COMPLETION.md](MOD_DECISION_004_OUTPOST_CLEARING_AND_COMPLETION.md) and [MOD_DECISION_005_OUTPOST_SPATIAL_MODEL.md](MOD_DECISION_005_OUTPOST_SPATIAL_MODEL.md).
 
@@ -49,8 +49,8 @@ See [MOD_DECISION_004_OUTPOST_CLEARING_AND_COMPLETION.md](MOD_DECISION_004_OUTPO
 ### Ground-floor security
 
 - Every exterior window requires at least one wood or metal barricade.
-- Every exterior doorway requires a repaired or replaced door.
-- Exterior walls must be sealed.
+- Every exterior-envelope segment must contain a wall, window opening, or doorway containing a door.
+- Every exterior door frame must contain a door and every exterior door must be closed.
 - These window, doorway, and exterior-wall rules apply to the ground floor only.
 
 ### Habitation, supplies, utilities, and support
@@ -79,6 +79,10 @@ A generator and spare car were allowed to be near the core zone rather than nece
 - Explicit decorative tower exclusions for Echo Creek, Ekron, Irvington, and Muldraugh.
 - Underground BuildingDefs registered for Ekron, Hog Wallow, and Irvington.
 - Provisional snapshot data: rooms, floors, buildings, and activation percentage.
+- Persistent discovery and awarded-clearance records in world ModData.
+- Live deliverable evaluation on area entry/load, room changes, `OnZombieDead`, and a one-second fallback while the player remains in the area.
+- Normalized last-known deliverable snapshots persist for tracker display and future export when an outpost is unloaded.
+- Verified ground-floor exterior-window discovery over cached building-envelope segments, one-second barricade checks, and a player-facing persisted `current / required` aggregate.
 
 ## Provisional implementation
 
@@ -94,10 +98,9 @@ A generator and spare car were allowed to be near the core zone rather than nece
 - Which inventories count toward 5000 calories, and how are calories calculated?
 - What exactly qualifies as a **plumbed sink**?
 - Must bed, food, and sink be inside sealed contained spaces, and how is sealing evaluated?
-- Must exterior doors be closed as well as present and repaired/replaced?
 - What qualifies as a **spare car**: operability, fuel, key, condition, ownership, and distance?
 - Final support-radius origin and distance.
-- Whether the Cleared certification itself can later regress when zombies return.
+- Whether an awarded clearance requirement can later regress when zombies return.
 - Final per-outpost partial-progress formula.
 
 ## Accepted Overview aggregate
@@ -119,3 +122,5 @@ The formula used to calculate each individual outpost's percentage remains unres
 - [MOD_DECISION_006_ROOM_ACTIVATION.md](MOD_DECISION_006_ROOM_ACTIVATION.md)
 - [MOD_DECISION_007_LIVE_ZOMBIE_CLEARANCE.md](MOD_DECISION_007_LIVE_ZOMBIE_CLEARANCE.md)
 - [MOD_DECISION_009_OUTPOST_DELIVERABLES.md](MOD_DECISION_009_OUTPOST_DELIVERABLES.md)
+- [MOD_DECISION_011_OUTPOST_STAGES_AND_CLEARANCE_TRIGGERS.md](MOD_DECISION_011_OUTPOST_STAGES_AND_CLEARANCE_TRIGGERS.md)
+- [MOD_DECISION_012_OUTPOST_PROGRESS_PERSISTENCE.md](MOD_DECISION_012_OUTPOST_PROGRESS_PERSISTENCE.md)

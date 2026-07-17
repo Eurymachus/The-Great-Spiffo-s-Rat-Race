@@ -2,10 +2,11 @@ local Tracker = require "TGSRR/ChallengeTracker"
 local Deliverables = require "TGSRR/ChallengeDeliverables"
 local KillsData = require "TGSRR/KillsTrackerData"
 local KillsView = require "TGSRR/KillsTrackerView"
+local L = require "TGSRR/Localization"
 
 Deliverables.register({
     id = "kills",
-    label = "Zombie Kills",
+    label = L.text("UI_TGSRR_Tracker_ZombieKills", "Zombie Kills"),
     order = 10,
     refreshRecord = function(context)
         KillsData.refresh(context.player)
@@ -17,7 +18,7 @@ Deliverables.register({
 
 Tracker.registerModule({
     id = "kills",
-    title = "Kills",
+    title = L.text("UI_TGSRR_Tracker_Tab_Kills", "Kills"),
     order = 20,
     createView = function(parent, x, y, width, height)
         return KillsView:new(x, y, width, height)
