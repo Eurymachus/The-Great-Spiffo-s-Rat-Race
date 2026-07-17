@@ -60,7 +60,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const panel = document.createElement("details");
             panel.className = "page-section-editor";
             panel.dataset.id = section.id || "";
-            if (sectionIndex === 0) panel.open = true;
             const summary = document.createElement("summary");
             summary.textContent = `${sectionIndex + 1}. ${section.section_type === "steps" ? "Numbered information cards" : "Introduction and actions"}${section.is_visible === false ? " - Hidden" : ""}`;
             panel.append(summary);
