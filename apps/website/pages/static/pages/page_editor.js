@@ -63,6 +63,27 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     const sync = () => { payload.value = JSON.stringify(read()); };
 
+    const refreshOrderControls = () => {
+        const sectionPanels = [...list.querySelectorAll(":scope > .page-section-editor")];
+        sectionPanels.forEach((panel, sectionIndex) => {
+            const sectionType = panel.querySelector('[data-key="section_type"]').value;
+            const isVisible = panel.querySelector('[data-key="is_visible"]').checked;
+            const summary = panel.querySelector(":scope > summary");
+            summary.querySelector(":scope > span").textContent = `${sectionIndex + 1}. ${sectionType === "steps" ? "Numbered information cards" : "Introduction and actions"}${isVisible ? "" : " - Hidden"}`;
+            summary.querySelector('[data-action="section-up"]').disabled = sectionIndex === 0;
+            summary.querySelector('[data-action="section-down"]').disabled = sectionIndex === sectionPanels.length - 1;
+
+            const cardPanels = [...panel.querySelectorAll(".page-card-list > .page-card-editor")];
+            cardPanels.forEach((card, cardIndex) => {
+                const cardSummary = card.querySelector(":scope > summary");
+                const heading = card.querySelector('[data-key="heading"]').value;
+                cardSummary.querySelector(":scope > span").textContent = `${cardIndex + 1}. ${heading || "Untitled card"}`;
+                cardSummary.querySelector('[data-action="card-up"]').disabled = cardIndex === 0;
+                cardSummary.querySelector('[data-action="card-down"]').disabled = cardIndex === cardPanels.length - 1;
+            });
+        });
+    };
+
     const render = () => {
         list.replaceChildren();
         if (!sections.length) {
@@ -136,18 +157,38 @@ document.addEventListener("DOMContentLoaded", () => {
         const sectionIndex = [...list.querySelectorAll(":scope > .page-section-editor")].indexOf(sectionPanel);
         const cardPanel = event.target.closest(".page-card-editor");
         const cardIndex = cardPanel ? [...cardPanel.parentElement.children].indexOf(cardPanel) : -1;
+        if (action === "section-up" && sectionPanel.previousElementSibling) {
+            list.insertBefore(sectionPanel, sectionPanel.previousElementSibling);
+            refreshOrderControls();
+            sync();
+            return;
+        }
+        if (action === "section-down" && sectionPanel.nextElementSibling) {
+            list.insertBefore(sectionPanel.nextElementSibling, sectionPanel);
+            refreshOrderControls();
+            sync();
+            return;
+        }
+        if (action === "card-up" && cardPanel.previousElementSibling) {
+            cardPanel.parentElement.insertBefore(cardPanel, cardPanel.previousElementSibling);
+            refreshOrderControls();
+            sync();
+            return;
+        }
+        if (action === "card-down" && cardPanel.nextElementSibling) {
+            cardPanel.parentElement.insertBefore(cardPanel.nextElementSibling, cardPanel);
+            refreshOrderControls();
+            sync();
+            return;
+        }
         if (action === "add-card") sections[sectionIndex].items.push({});
         if (action === "remove-card") sections[sectionIndex].items.splice(cardIndex, 1);
-        if (action === "card-up" && cardIndex > 0) [sections[sectionIndex].items[cardIndex - 1], sections[sectionIndex].items[cardIndex]] = [sections[sectionIndex].items[cardIndex], sections[sectionIndex].items[cardIndex - 1]];
-        if (action === "card-down" && cardIndex < sections[sectionIndex].items.length - 1) [sections[sectionIndex].items[cardIndex + 1], sections[sectionIndex].items[cardIndex]] = [sections[sectionIndex].items[cardIndex], sections[sectionIndex].items[cardIndex + 1]];
         if (action === "remove-section") sections.splice(sectionIndex, 1);
-        if (action === "section-up" && sectionIndex > 0) [sections[sectionIndex - 1], sections[sectionIndex]] = [sections[sectionIndex], sections[sectionIndex - 1]];
-        if (action === "section-down" && sectionIndex < sections.length - 1) [sections[sectionIndex + 1], sections[sectionIndex]] = [sections[sectionIndex], sections[sectionIndex + 1]];
         render();
         sync();
     });
-    list.addEventListener("input", sync);
-    list.addEventListener("change", sync);
+    list.addEventListener("input", () => { refreshOrderControls(); sync(); });
+    list.addEventListener("change", () => { refreshOrderControls(); sync(); });
     editor.querySelector("[data-add-section]").addEventListener("click", () => { sections = read(); sections.push({section_type: "introduction", is_visible: true, items: []}); render(); sync(); });
     editor.closest("form").addEventListener("submit", sync);
     render();
