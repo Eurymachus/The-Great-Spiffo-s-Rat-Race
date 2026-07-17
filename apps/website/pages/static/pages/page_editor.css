@@ -78,6 +78,10 @@
     color: #fff !important;
 }
 .page-cards { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--hairline-color); }
-.page-cards > summary { cursor: pointer; font-size: 1rem; font-weight: 600; }
+.page-cards > summary { min-height: 2rem; cursor: pointer; font-size: 1rem; font-weight: 600; }
+.page-editor-add-card {
+    float: right;
+    margin: -.4rem 0;
+}
 .page-editor-empty { margin: 1rem 0; padding: 1.5rem; border: 1px dashed var(--hairline-color); text-align: center; color: var(--body-quiet-color); }
 @media (max-width: 900px) { .page-editor-grid { grid-template-columns: 1fr; } }

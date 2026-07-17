@@ -140,7 +140,10 @@ document.addEventListener("DOMContentLoaded", () => {
             body.append(grid);
 
             const cards = document.createElement("details"); cards.className = "page-cards"; cards.open = true;
-            const cardsSummary = document.createElement("summary"); cardsSummary.textContent = `Cards (${(section.items || []).length})`; cards.append(cardsSummary);
+            const cardsSummary = document.createElement("summary");
+            const cardsSummaryTitle = document.createElement("span"); cardsSummaryTitle.textContent = `Cards (${(section.items || []).length})`;
+            const addCard = button("Add card", "add-card"); addCard.classList.add("page-editor-add-card");
+            cardsSummary.append(cardsSummaryTitle, addCard); cards.append(cardsSummary);
             const cardList = document.createElement("div"); cardList.className = "page-card-list";
             (section.items || []).forEach((item, itemIndex) => {
                 const card = document.createElement("details"); card.className = "page-card-editor"; card.dataset.id = item.id || "";
@@ -152,7 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const cardToolbar = document.createElement("div"); cardToolbar.className = "page-card-toolbar page-editor-field-wide";
                 cardToolbar.append(button("Remove card", "remove-card", true)); cardBody.append(cardToolbar); card.append(cardBody); cardList.append(card);
             });
-            cards.append(cardList, button("Add card", "add-card")); body.append(cards);
+            cards.append(cardList); body.append(cards);
             const toolbar = document.createElement("div"); toolbar.className = "page-editor-toolbar";
             toolbar.append(button("Remove section", "remove-section", true)); body.append(toolbar); panel.append(body); list.append(panel);
         });
