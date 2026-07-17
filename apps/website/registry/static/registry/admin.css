@@ -3,6 +3,12 @@ html {
     scrollbar-gutter: stable;
 }
 
+/* Keep the sidebar control with the navigation instead of centring it on the page. */
+.toggle-nav-sidebar {
+    align-items: flex-start;
+    padding-top: 1rem;
+}
+
 /* Keep navigation geometry stable when an app becomes the current selection. */
 #nav-sidebar .current-app .section:link,
 #nav-sidebar .current-app .section:visited {
