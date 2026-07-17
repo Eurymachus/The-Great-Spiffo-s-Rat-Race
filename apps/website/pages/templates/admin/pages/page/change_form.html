@@ -1,0 +1,26 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'pages/page_editor.js' %}?v=20260717-1" defer></script>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'pages/page_editor.css' %}?v=20260717-1">
+{% endblock %}
+
+{% block after_field_sets %}
+{{ block.super }}
+<section class="page-editor" data-page-editor>
+  <div class="page-editor-heading">
+    <div>
+      <h2>Page sections</h2>
+      <p>Build this page from approved sections. Changes are saved with the page.</p>
+    </div>
+    <button type="button" class="button" data-add-section>Add section</button>
+  </div>
+  <div data-section-list></div>
+</section>
+{% endblock %}

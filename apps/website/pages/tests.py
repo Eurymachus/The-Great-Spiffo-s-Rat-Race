@@ -2,6 +2,7 @@ from django.contrib.auth.models import Group
 from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
+import json
 
 from registry.models import Participant
 
@@ -81,9 +82,61 @@ class ManagedPageTests(TestCase):
         )
 
         self.assertEqual(page_response.status_code, 200)
-        self.assertContains(page_response, "Introduction and actions")
-        self.assertContains(page_response, "Visitor primary button")
+        self.assertContains(page_response, "Page sections")
+        self.assertContains(page_response, "data-page-editor")
+        self.assertContains(page_response, "page_editor.js")
         self.assertEqual(participant_response.status_code, 403)
+
+    def test_page_editor_saves_sections_and_cards_together(self):
+        superuser = Participant.objects.create_superuser(
+            email="nested-editor@example.com",
+            nickname="Nested Editor",
+            password="test-password-only",
+        )
+        self.client.force_login(superuser)
+        existing_item = self.section.items.first()
+        payload = [
+            {
+                "id": self.section.pk,
+                "section_type": "introduction",
+                "is_visible": True,
+                "small_heading": "Edited small heading",
+                "main_heading": "Edited main heading",
+                "introduction": "Edited introduction.",
+                "visitor_primary_button": "Edited join button",
+                "visitor_secondary_link": "Edited login link",
+                "signed_in_button": "Edited account button",
+                "items": [
+                    {
+                        "id": existing_item.pk,
+                        "heading": "Edited existing card",
+                        "description": "Edited existing description.",
+                    },
+                    {
+                        "heading": "New nested card",
+                        "description": "Created on the page editor.",
+                    },
+                ],
+            }
+        ]
+
+        response = self.client.post(
+            reverse("admin:pages_page_change", args=(self.page.pk,)),
+            {
+                "title": self.page.title,
+                "is_published": "on",
+                "page_builder_data": json.dumps(payload),
+                "_save": "Save",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.section.refresh_from_db()
+        self.assertEqual(self.section.main_heading, "Edited main heading")
+        self.assertEqual(
+            list(self.section.items.values_list("heading", flat=True)),
+            ["Edited existing card", "New nested card"],
+        )
 
     def test_homepage_cannot_be_deleted_or_have_its_address_changed(self):
         superuser = Participant.objects.create_superuser(

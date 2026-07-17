@@ -99,18 +99,21 @@ Opening Pages shows the managed page list, even while Homepage is the only
 entry. Additional standalone pages will only be enabled when public routing and
 navigation management are ready.
 
-Open Homepage to manage its ordered sections. Each section uses an approved,
-responsive template rather than arbitrary HTML, CSS, or JavaScript. The first
-available section types are:
+Open Homepage to manage the complete page from one editor. Sections are
+collapsible, and each section contains its own collapsible cards. Add, remove,
+and reorder sections or cards without navigating away from the page. Everything
+is saved together using the page's Save controls.
+
+Each section uses an approved, responsive template rather than arbitrary HTML,
+CSS, or JavaScript. The first available section types are:
 
 - Introduction and actions, with headings, introductory text, visitor actions,
   a signed-in action, and optional ordered information cards.
 - Numbered information cards, for a separate ordered group of explanatory cards.
 
-Use Position to control section and card order, and Is visible to temporarily
-hide a section without deleting it. From the Homepage editor, use the section's
-change link to edit its ordered cards. The homepage record cannot be deleted and
-its `home` address cannot be changed.
+Use the Move up and Move down controls to change section and card order. Use
+Visible publicly to temporarily hide a section without deleting its content.
+The homepage record cannot be deleted and its `home` address cannot be changed.
 
 Branding Administrators can manage Branding, Themes, Pages, sections, and
 section items. This role still cannot view or manage participant records.
