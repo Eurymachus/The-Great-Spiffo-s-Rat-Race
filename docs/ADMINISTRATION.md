@@ -95,9 +95,9 @@ private and does not change the public theme. Theme deletion is disabled.
 The Website Content section contains Pages. The protected Homepage record is the
 first backend-managed public page. Its existing wording was copied from Branding
 when the page system was introduced, so the public appearance did not reset.
-Because it is currently the only managed page, opening Pages takes an editor
-straight to Homepage. Additional standalone pages will only be enabled when
-public routing and navigation management are ready.
+Opening Pages shows the managed page list, even while Homepage is the only
+entry. Additional standalone pages will only be enabled when public routing and
+navigation management are ready.
 
 Open Homepage to manage its ordered sections. Each section uses an approved,
 responsive template rather than arbitrary HTML, CSS, or JavaScript. The first

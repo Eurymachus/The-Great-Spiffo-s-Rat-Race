@@ -103,13 +103,8 @@ class SiteBrandingAdminTests(TestCase):
         self.assertContains(public_page, "Edited Former Racer")
 
         page_admin = self.client.get(reverse("admin:pages_page_changelist"))
-        self.assertRedirects(
-            page_admin,
-            reverse(
-                "admin:pages_page_change", args=(Page.objects.get(slug="home").pk,)
-            ),
-            fetch_redirect_response=False,
-        )
+        self.assertEqual(page_admin.status_code, 200)
+        self.assertContains(page_admin, Page.objects.get(slug="home").title)
 
         self.client.logout()
         registration = self.client.get(reverse("registry:register"))

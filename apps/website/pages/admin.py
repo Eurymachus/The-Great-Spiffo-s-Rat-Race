@@ -1,6 +1,4 @@
 from django.contrib import admin
-from django.shortcuts import redirect
-from django.urls import reverse
 
 from .models import Page, PageSection, SectionItem
 
@@ -33,14 +31,6 @@ class PageAdmin(admin.ModelAdmin):
         ("Record", {"fields": ("updated_at",)}),
     )
     inlines = (PageSectionInline,)
-
-    def changelist_view(self, request, extra_context=None):
-        pages = self.get_queryset(request)
-        if pages.count() == 1:
-            return redirect(
-                reverse("admin:pages_page_change", args=(pages.first().pk,))
-            )
-        return super().changelist_view(request, extra_context=extra_context)
 
     def has_add_permission(self, request):
         return not Page.objects.exists() and super().has_add_permission(request)
