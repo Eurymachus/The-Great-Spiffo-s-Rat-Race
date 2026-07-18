@@ -13,12 +13,15 @@ from .models import Page, PageSection, SectionItem
 class PageAdmin(admin.ModelAdmin):
     form = PageEditorForm
     change_form_template = "admin/pages/page/change_form.html"
-    list_display = ("title", "slug", "is_published", "updated_at")
+    list_display = ("title", "slug", "content_width", "show_in_navigation", "is_published", "updated_at")
     list_filter = ("is_published",)
     search_fields = ("title", "slug")
     readonly_fields = ("updated_at",)
     fieldsets = (
-        ("Page", {"fields": ("title", "slug", "is_published", "page_builder_data")}),
+        ("Page", {"fields": (
+            "title", "slug", "is_published", "content_width",
+            "navigation_label", "show_in_navigation", "page_builder_data",
+        )}),
         ("Record", {"fields": ("updated_at",)}),
     )
 
@@ -62,7 +65,8 @@ class PageAdmin(admin.ModelAdmin):
                 if section_data["id"]:
                     section = form.instance.sections.get(pk=section_data["id"])
                     for field in (
-                        "section_type", "position", "is_visible", "small_heading",
+                        "section_type", "position", "is_visible", "width", "layout",
+                        "background", "full_bleed_background", "small_heading",
                         "main_heading", "introduction", "visitor_primary_button",
                         "visitor_secondary_link", "signed_in_button",
                     ):

@@ -37,6 +37,23 @@ document.addEventListener("DOMContentLoaded", () => {
         return control;
     };
 
+    const selectField = (label, key, value, choices) => {
+        const wrapper = document.createElement("label");
+        wrapper.className = "page-editor-field";
+        wrapper.append(document.createTextNode(label));
+        const control = document.createElement("select");
+        control.dataset.key = key;
+        choices.forEach(([choiceValue, choiceLabel]) => {
+            const option = document.createElement("option");
+            option.value = choiceValue;
+            option.textContent = choiceLabel;
+            option.selected = value === choiceValue;
+            control.append(option);
+        });
+        wrapper.append(control);
+        return wrapper;
+    };
+
     const orderButtons = (upAction, downAction, removeAction, index, total, subject) => {
         const actions = document.createElement("span");
         actions.className = "page-editor-summary-actions";
@@ -65,6 +82,10 @@ document.addEventListener("DOMContentLoaded", () => {
             id: panel.dataset.id ? Number(panel.dataset.id) : null,
             section_type: panel.querySelector('[data-key="section_type"]').value,
             is_visible: panel.querySelector('[data-key="is_visible"]').checked,
+            width: panel.querySelector('[data-key="width"]').value,
+            layout: panel.querySelector('[data-key="layout"]').value,
+            background: panel.querySelector('[data-key="background"]').value,
+            full_bleed_background: panel.querySelector('[data-key="full_bleed_background"]').checked,
             small_heading: panel.querySelector('[data-key="small_heading"]').value,
             main_heading: panel.querySelector('[data-key="main_heading"]').value,
             introduction: panel.querySelector('[data-key="introduction"]').value,
@@ -185,6 +206,29 @@ document.addEventListener("DOMContentLoaded", () => {
             const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.dataset.key = "is_visible"; checkbox.checked = section.is_visible !== false;
             visible.append(checkbox, document.createTextNode(" Visible publicly"));
             grid.append(typeField, visible,
+                selectField("Content width", "width", section.width || "inherit", [
+                    ["inherit", "Use page width"], ["narrow", "Narrow"],
+                    ["standard", "Standard"], ["wide", "Wide"], ["full", "Full width"],
+                ]),
+                selectField("Content layout", "layout", section.layout || "single", [
+                    ["single", "Single column"], ["two", "Two equal columns"],
+                    ["wide_left", "Two columns - wide left"], ["wide_right", "Two columns - wide right"],
+                    ["three", "Three columns"], ["four", "Four columns"],
+                ]),
+                selectField("Background", "background", section.background || "default", [
+                    ["default", "Page background"], ["surface", "Raised surface"],
+                    ["alternate", "Alternate surface"],
+                ]),
+                (() => {
+                    const label = document.createElement("label");
+                    label.className = "page-editor-field";
+                    const input = document.createElement("input");
+                    input.type = "checkbox";
+                    input.dataset.key = "full_bleed_background";
+                    input.checked = section.full_bleed_background === true;
+                    label.append(input, document.createTextNode(" Extend background to screen edges"));
+                    return label;
+                })(),
                 field("Small heading", "small_heading", section.small_heading),
                 field("Main heading", "main_heading", section.main_heading),
                 field("Introduction", "introduction", section.introduction, "textarea", true),
@@ -397,7 +441,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     list.addEventListener("dragend", clearDragState);
-    editor.querySelector("[data-add-section]").addEventListener("click", () => { sections = read(); sections.push({section_type: "introduction", is_visible: true, items: []}); rerenderPreservingState({openLastSection: true}); sync(); });
+    editor.querySelector("[data-add-section]").addEventListener("click", () => { sections = read(); sections.push({section_type: "introduction", is_visible: true, width: "inherit", layout: "single", background: "default", full_bleed_background: false, items: []}); rerenderPreservingState({openLastSection: true}); sync(); });
     const savedViewStateKey = `page-editor-view:${window.location.pathname}`;
     form.addEventListener("input", updateDirtyState);
     form.addEventListener("change", updateDirtyState);

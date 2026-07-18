@@ -225,3 +225,24 @@ feedback and server-side validation both use the same stored value, with a safe
 - Background images support opacity, theme overlay, saturation, brightness, contrast, position, scale and fixed or scrolling placement.
 - Homepage feature images support crop or contain fitting, standard, natural, short, tall or custom heights, and a selectable focal position.
 - Existing sites retain the previous presentation by default: a covering fixed background, 28% theme overlay, neutral filters, and a feature image constrained to a maximum height of 24rem.
+
+## 2026-07-19 - Compose pages from responsive sections and approved blocks
+
+The public page system uses a constrained hierarchy: a Page owns publishing,
+navigation and its default content width; ordered Sections may override that
+width and select an approved responsive column layout and background treatment;
+Blocks provide content inside those sections. Application features such as
+signup, accounts, submissions and leaderboards remain code-controlled components
+that may be placed by approved section types rather than recreated by editors.
+
+Pages support narrow, standard, wide and full-width content. Sections may inherit
+that setting or override it, and may extend their background to the viewport
+edges while keeping their content constrained. Column layouts automatically
+collapse to one column on small screens. This gives editors meaningful layout
+control without exposing arbitrary HTML, CSS, absolute positioning or a fragile
+freeform canvas.
+
+The existing Section Item records are the first reusable block type and remain
+compatible with the seeded homepage. Future block types should be added only
+when a real content need is identified and must provide safe validation,
+responsive rendering and accessible markup in version-controlled templates.

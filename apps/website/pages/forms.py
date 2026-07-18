@@ -11,7 +11,10 @@ class PageEditorForm(forms.ModelForm):
 
     class Meta:
         model = Page
-        fields = ("title", "slug", "is_published", "page_builder_data")
+        fields = (
+            "title", "slug", "is_published", "content_width",
+            "navigation_label", "show_in_navigation", "page_builder_data",
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -23,6 +26,10 @@ class PageEditorForm(forms.ModelForm):
                         "section_type": section.section_type,
                         "position": section.position,
                         "is_visible": section.is_visible,
+                        "width": section.width,
+                        "layout": section.layout,
+                        "background": section.background,
+                        "full_bleed_background": section.full_bleed_background,
                         "small_heading": section.small_heading,
                         "main_heading": section.main_heading,
                         "introduction": section.introduction,
@@ -66,6 +73,10 @@ class PageEditorForm(forms.ModelForm):
                 section_type=raw.get("section_type", ""),
                 position=index * 10,
                 is_visible=bool(raw.get("is_visible", True)),
+                width=raw.get("width", PageSection.Width.INHERIT),
+                layout=raw.get("layout", PageSection.Layout.SINGLE),
+                background=raw.get("background", PageSection.Background.DEFAULT),
+                full_bleed_background=bool(raw.get("full_bleed_background", False)),
                 small_heading=str(raw.get("small_heading", "")),
                 main_heading=str(raw.get("main_heading", "")),
                 introduction=str(raw.get("introduction", "")),

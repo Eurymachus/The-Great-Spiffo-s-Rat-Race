@@ -124,6 +124,8 @@ class ManagedPageTests(TestCase):
             reverse("admin:pages_page_change", args=(self.page.pk,)),
             {
                 "title": self.page.title,
+                "content_width": Page.ContentWidth.STANDARD,
+                "navigation_label": "",
                 "is_published": "on",
                 "page_builder_data": json.dumps(payload),
                 "_save": "Save",
@@ -137,6 +139,60 @@ class ManagedPageTests(TestCase):
             list(self.section.items.values_list("heading", flat=True)),
             ["Edited existing card", "New nested card"],
         )
+
+    def test_page_editor_saves_responsive_page_and_section_layout(self):
+        superuser = Participant.objects.create_superuser(
+            email="layout-editor@example.com",
+            nickname="Layout Editor",
+            password="test-password-only",
+        )
+        self.client.force_login(superuser)
+        payload = [
+            {
+                "id": self.section.pk,
+                "section_type": "introduction",
+                "is_visible": True,
+                "width": "wide",
+                "layout": "two",
+                "background": "alternate",
+                "full_bleed_background": True,
+                "small_heading": self.section.small_heading,
+                "main_heading": self.section.main_heading,
+                "introduction": self.section.introduction,
+                "visitor_primary_button": self.section.visitor_primary_button,
+                "visitor_secondary_link": self.section.visitor_secondary_link,
+                "signed_in_button": self.section.signed_in_button,
+                "items": [],
+            }
+        ]
+
+        response = self.client.post(
+            reverse("admin:pages_page_change", args=(self.page.pk,)),
+            {
+                "title": self.page.title,
+                "content_width": Page.ContentWidth.WIDE,
+                "navigation_label": "Start",
+                "show_in_navigation": "on",
+                "is_published": "on",
+                "page_builder_data": json.dumps(payload),
+                "_save": "Save",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.page.refresh_from_db()
+        self.section.refresh_from_db()
+        self.assertEqual(self.page.content_width, Page.ContentWidth.WIDE)
+        self.assertEqual(self.page.navigation_label, "Start")
+        self.assertTrue(self.page.show_in_navigation)
+        self.assertEqual(self.section.width, PageSection.Width.WIDE)
+        self.assertEqual(self.section.layout, PageSection.Layout.TWO)
+        self.assertEqual(self.section.background, PageSection.Background.ALTERNATE)
+        self.assertTrue(self.section.full_bleed_background)
+
+        public_response = self.client.get(reverse("registry:home"))
+        self.assertContains(public_response, "managed-page-width-wide")
+        self.assertContains(public_response, "managed-section-layout-two")
 
     def test_homepage_cannot_be_deleted_or_have_its_address_changed(self):
         superuser = Participant.objects.create_superuser(

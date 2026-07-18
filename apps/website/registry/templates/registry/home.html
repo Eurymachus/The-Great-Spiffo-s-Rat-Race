@@ -2,6 +2,7 @@
 
 {% block content %}
 {% if managed_page %}
+<div class="managed-page managed-page-width-{{ managed_page.content_width }}">
     {% for section in managed_page.sections.all %}
         {% if section.is_visible %}
             {% if section.section_type == "introduction" %}
@@ -11,6 +12,7 @@
             {% endif %}
         {% endif %}
     {% endfor %}
+</div>
 {% else %}
 <section class="card home-hero">
     {% if site_homepage_feature_image_url %}
