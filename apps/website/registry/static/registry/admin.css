@@ -3,6 +3,21 @@ html {
     scrollbar-gutter: stable;
 }
 
+/* Use one calm table surface with fine row separators instead of zebra striping. */
+body.change-list #result_list tbody tr.row1,
+body.change-list #result_list tbody tr.row2 {
+    background: var(--body-bg);
+}
+
+body.change-list #result_list tbody tr {
+    border-bottom: 1px solid var(--hairline-color);
+}
+
+body.change-list #result_list tbody tr > th,
+body.change-list #result_list tbody tr > td {
+    background: inherit;
+}
+
 /* Keep the sidebar control with the navigation instead of centring it on the page. */
 .toggle-nav-sidebar {
     align-items: flex-start;

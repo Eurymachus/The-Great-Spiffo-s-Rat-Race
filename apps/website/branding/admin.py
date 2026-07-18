@@ -535,9 +535,12 @@ class ManagedImageAdmin(admin.ModelAdmin):
         )
 
     def get_actions(self, request):
-        actions = super().get_actions(request)
-        actions.pop("delete_selected", None)
-        return actions
+        return super().get_actions(request)
+
+    def delete_queryset(self, request, queryset):
+        # Use each model's delete method so the stored image file is removed too.
+        for image in queryset:
+            image.delete()
 
     def get_model_perms(self, request):
         permissions = super().get_model_perms(request)
