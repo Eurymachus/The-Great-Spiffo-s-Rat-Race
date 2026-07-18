@@ -437,4 +437,7 @@ document.addEventListener("DOMContentLoaded", () => {
         event.preventDefault();
         event.returnValue = "";
     });
+    window.addEventListener("rat-race:admin-discard-navigation", () => {
+        isSubmitting = true;
+    });
 });

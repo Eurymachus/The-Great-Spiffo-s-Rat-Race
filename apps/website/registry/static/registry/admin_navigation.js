@@ -19,6 +19,12 @@
         backLink.setAttribute("aria-label", `Back to ${parentName}`);
         backLink.title = `Back to ${parentName}`;
     }
+    backLink.addEventListener("click", (event) => {
+        const navigation = window.ratRaceAdminNavigation;
+        if (!navigation?.navigate) return;
+        event.preventDefault();
+        navigation.navigate(backLink.href);
+    });
 
     bar.append(backLink);
     content.prepend(bar);

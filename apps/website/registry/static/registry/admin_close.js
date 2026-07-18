@@ -24,30 +24,43 @@
     const closeTarget = isBrandingSingleton
         ? "/admin/"
         : breadcrumbLinks.at(-1)?.href || "/admin/";
+    let navigationTarget = closeTarget;
+
+    const leavePage = () => {
+        window.dispatchEvent(new CustomEvent("rat-race:admin-discard-navigation"));
+        window.location.assign(navigationTarget);
+    };
 
     const dialog = document.createElement("dialog");
     dialog.className = "admin-close-dialog";
     dialog.innerHTML = `
         <form method="dialog">
             <h2>Unsaved changes</h2>
-            <p>Your changes have not been saved and will be lost if you close this page.</p>
+            <p>Your changes have not been saved and will be lost if you leave this page.</p>
             <div class="admin-close-dialog-actions">
                 <button value="cancel">Keep editing</button>
-                <button value="discard" class="admin-discard-button">Close without saving</button>
+                <button value="discard" class="admin-discard-button">Leave without saving</button>
             </div>
         </form>
     `;
     dialog.addEventListener("close", () => {
-        if (dialog.returnValue === "discard") window.location.assign(closeTarget);
+        if (dialog.returnValue === "discard") leavePage();
     });
     document.body.append(dialog);
 
-    closeButton.addEventListener("click", () => {
+    const navigate = (target) => {
+        navigationTarget = target || closeTarget;
         if (dirty) {
             dialog.showModal();
             return;
         }
-        window.location.assign(closeTarget);
+        leavePage();
+    };
+
+    window.ratRaceAdminNavigation = {navigate};
+
+    closeButton.addEventListener("click", () => {
+        navigate(closeTarget);
     });
     submitRow.prepend(closeButton);
 })();
