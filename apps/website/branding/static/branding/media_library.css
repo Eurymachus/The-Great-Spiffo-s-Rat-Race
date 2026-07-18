@@ -37,8 +37,19 @@
 .branding-image-panel { margin: 0 0 .8rem; border: 1px solid var(--hairline-color); background: var(--body-bg); }
 .branding-image-panel > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 2.9rem; padding: .65rem 1rem; background: var(--darkened-bg); cursor: pointer; list-style: none; }
 .branding-image-panel > summary::-webkit-details-marker { display: none; }
-.branding-image-panel > summary::before { content: "\25B6"; flex: 0 0 auto; font-size: .8rem; }
-.branding-image-panel[open] > summary::before { content: "\25BC"; }
+.branding-image-panel > summary::before {
+    content: "";
+    flex: 0 0 1rem;
+    width: .45rem;
+    height: .55rem;
+    background: currentColor;
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.branding-image-panel[open] > summary::before {
+    width: .55rem;
+    height: .45rem;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
 .branding-image-panel > summary > span { margin-right: auto; font-weight: 700; }
 .branding-image-enabled { display: inline-flex; align-items: center; gap: .45rem; margin: 0; cursor: pointer; }
 .branding-image-panel-body { display: grid; gap: 1rem; padding: 1rem; }
