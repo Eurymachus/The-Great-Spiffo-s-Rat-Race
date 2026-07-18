@@ -25,14 +25,19 @@
 .page-card-editor > summary::-webkit-details-marker { display: none; }
 .page-section-editor > summary::before,
 .page-card-editor > summary::before {
-    content: "▶";
+    content: "";
     flex: 0 0 1rem;
-    font-size: .7rem;
-    line-height: 1;
-    text-align: center;
+    width: .45rem;
+    height: .55rem;
+    background: currentColor;
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 .page-section-editor[open] > summary::before,
-.page-card-editor[open] > summary::before { content: "▼"; }
+.page-card-editor[open] > summary::before {
+    width: .55rem;
+    height: .45rem;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
 .page-editor-summary-title { min-width: 0; }
 .page-editor-drag-handle {
     display: inline-flex;
