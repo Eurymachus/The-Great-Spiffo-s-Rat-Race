@@ -245,8 +245,19 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         if (action === "add-card") sections[sectionIndex].items.push({});
-        if (action === "remove-card") sections[sectionIndex].items.splice(cardIndex, 1);
-        if (action === "remove-section") sections.splice(sectionIndex, 1);
+        if (action === "remove-card") {
+            const cardName = sections[sectionIndex].items[cardIndex].heading || "Untitled card";
+            if (!window.confirm(`Remove the card "${cardName}"?\n\nIt will be deleted when you save the page.`)) return;
+            sections[sectionIndex].items.splice(cardIndex, 1);
+        }
+        if (action === "remove-section") {
+            const section = sections[sectionIndex];
+            const sectionName = section.section_type === "steps" ? "Numbered information cards" : "Introduction and actions";
+            const cardCount = section.items.length;
+            const cardWarning = cardCount ? ` This will also remove ${cardCount} nested card${cardCount === 1 ? "" : "s"}.` : "";
+            if (!window.confirm(`Remove the section "${sectionName}"?${cardWarning}\n\nIt will be deleted when you save the page.`)) return;
+            sections.splice(sectionIndex, 1);
+        }
         rerenderPreservingState({openCard: action === "add-card" ? sectionIndex : null});
         sync();
     });
