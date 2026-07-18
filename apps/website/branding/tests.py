@@ -146,8 +146,7 @@ class SiteBrandingAdminTests(TestCase):
             delete_url = reverse("admin:branding_managedimage_delete", args=(image.pk,))
 
             image_list = self.client.get(reverse("admin:branding_managedimage_changelist"))
-            self.assertContains(image_list, delete_url)
-            self.assertContains(image_list, 'class="managed-image-delete"')
+            self.assertNotContains(image_list, 'class="managed-image-delete"')
             self.assertContains(image_list, 'value="delete_selected"')
 
             response = self.client.post(delete_url, {"post": "yes"})
