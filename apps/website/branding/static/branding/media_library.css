@@ -6,7 +6,8 @@
 .media-picker-current img { width: 9rem; height: 6rem; object-fit: contain; background: #202020; border-radius: 3px; }
 .media-picker-current strong { color: var(--body-fg); }
 .media-picker-placeholder { display: grid; place-items: center; width: 9rem; height: 6rem; padding: .5rem; background: var(--darkened-bg); border: 1px dashed var(--border-color); text-align: center; }
-.media-picker-button { padding: .65rem 1rem !important; }
+.media-picker-button, .media-picker-clear { padding: .65rem 1rem !important; }
+.media-picker-clear:disabled { cursor: default; opacity: .45; }
 .media-library-dialog { width: min(70rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); padding: 0; color: var(--body-fg); background: var(--body-bg); border: 1px solid var(--border-color); border-radius: 8px; }
 .media-library-dialog::backdrop { background: rgb(0 0 0 / 72%); }
 .media-library-modal { padding: 1.25rem; }

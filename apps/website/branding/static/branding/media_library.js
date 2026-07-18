@@ -53,9 +53,12 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const updateControlPreview = (select) => {
-        const preview = select.closest(".media-picker-control")?.querySelector(".media-picker-current");
+        const control = select.closest(".media-picker-control");
+        const preview = control?.querySelector(".media-picker-current");
         if (!preview) return;
         const image = library.find((candidate) => String(candidate.id) === select.value);
+        const clear = control.querySelector(".media-picker-clear");
+        if (clear) clear.disabled = !select.value;
         preview.replaceChildren();
         if (!image) {
             preview.innerHTML = '<span class="media-picker-placeholder">No image selected</span>';
@@ -198,7 +201,16 @@ document.addEventListener("DOMContentLoaded", () => {
         choose.addEventListener("click", async () => {
             try { await openModal({select}); } catch (error) { window.alert(error.message); }
         });
-        wrapper.append(current, choose);
+        const clear = document.createElement("button");
+        clear.type = "button";
+        clear.className = "button media-picker-clear";
+        clear.textContent = "Clear";
+        clear.disabled = !select.value;
+        clear.addEventListener("click", () => {
+            select.value = "";
+            select.dispatchEvent(new Event("change", {bubbles: true}));
+        });
+        wrapper.append(current, choose, clear);
         select.addEventListener("change", () => updateControlPreview(select));
     });
 
