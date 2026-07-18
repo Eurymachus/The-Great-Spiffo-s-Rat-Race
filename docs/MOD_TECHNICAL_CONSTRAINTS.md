@@ -29,10 +29,14 @@
 
 - Debug survey output uses one INI-style record set at `TGSRR/Outposts.ini`; no JSON decoder is required.
 - World-level `ModData` under `TGSRR_OutpostProgress` stores discovery plus normalized last-known deliverable snapshots.
-- Persisted deliverables use `available`, `passed`, `current`, `required`, and `observedAt`; transient scan/debug data is excluded.
+- Persisted deliverables use `available`, `passed`, `current`, `required`, optional presentation `state`, and `observedAt`; transient scan/debug data is excluded.
 - A runtime last-written cache prevents unchanged one-second checks from mutating `ModData`.
 - Only the outpost containing the player is monitored; there is no remote zombie scan.
 - Live outpost deliverables are evaluated on area entry/load, room changes, `OnZombieDead`, and a one-second in-area fallback.
+- Fixture deliverables use registered-room reverse lookup, object mutation hooks, and persistent installation ledgers. Good-bed tracking uses `OnObjectAdded` and `OnObjectAboutToBeRemoved` without object scans.
+- A lightweight in-process deliverable notification bus refreshes open player-facing views after meaningful record changes; timed UI refresh remains a fallback.
+- Recorded generators are resolved only at their persisted XYZ and checked once per second for `isConnected()` and `getFuelPercentage()`; the outpost is not scanned for generators.
+- Cached room-object references are invalidated when registered ground-floor rooms unload. A temporarily unstreamed food or sink check is unavailable and must not overwrite its last persisted result; full streaming rebuilds and re-affirms the cache.
 - A ten-second in-area grace period prevents clearance certification before instantiated zombies finish loading.
 
 ### Ground-floor window survey

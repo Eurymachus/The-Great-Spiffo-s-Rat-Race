@@ -3,6 +3,7 @@ require "ISUI/ISScrollingListBox"
 
 local Deliverables = require "TGSRR/ChallengeDeliverables"
 local L = require "TGSRR/Localization"
+local Notifications = require "TGSRR/DeliverableNotifications"
 
 local View = ISPanel:derive("TGSRROverviewTrackerView")
 local REFRESH_INTERVAL_MS = 1000
@@ -138,7 +139,13 @@ end
 function View:new(x, y, width, height)
     local o = ISPanel.new(self, x, y, width, height)
     o.background = false
+    View.instance = o
     return o
 end
+
+Notifications.subscribe("overview-tracker-view", function()
+    local view = View.instance
+    if view and view:getIsVisible() then view:refresh(getSpecificPlayer(0) or getPlayer()) end
+end)
 
 return View

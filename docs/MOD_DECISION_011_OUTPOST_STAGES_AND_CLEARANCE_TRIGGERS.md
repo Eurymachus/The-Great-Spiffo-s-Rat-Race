@@ -1,21 +1,24 @@
-# MOD Decision 011: Simplify Outpost Stages and Clearance Triggers
+# MOD Decision 011: Outpost Stages and Clearance Triggers
 
 - Status: Accepted
 - Date: 2026-07-17
 
 ## Context
 
-Earlier design used `Clearing` and `Cleared` as player-facing lifecycle stages. The tracker only needs to distinguish an unknown outpost, a known unfinished outpost, and one whose complete live deliverable set passes.
+Earlier design used `Clearing` and `Cleared` as player-facing lifecycle stages. The tracker instead distinguishes an unknown outpost, a discovered baseline, an outpost where qualifying work has begun, and one whose complete live deliverable set passes.
 
 ## Decision
 
-Use three player-facing stages:
+Use four player-facing stages:
 
 - **Undiscovered**: the player has never entered the configured `150x150` clearance area.
-- **Discovered**: the area has been entered, but one or more completion requirements do not pass.
+- **Discovered**: the area has been entered, but no authoritative non-zombie deliverable has improved beyond its first-observed baseline.
+- **In Progress**: at least one authoritative non-zombie deliverable has improved beyond its persisted baseline. This transition is permanently latched.
 - **Complete**: room activation, zombie clearance, and every security, habitation, supplies, utilities, and vehicle requirement currently passes.
 
-Discovery is permanently latched. Complete is derived live and returns to Discovered if an ongoing requirement stops passing. Zombie clearance remains a structured requirement rather than a player-facing stage.
+Discovery and In Progress are permanently latched. Complete is derived live and returns to In Progress if an ongoing requirement stops passing. Zombie clearance remains a structured requirement and is excluded from the In Progress transition.
+
+During discovery, authoritative non-zombie values continuously update a draft normalized baseline while the outpost streams. Every draft change resets the settling clock. The baseline is sealed only after every non-zombie check is authoritative and the complete draft has remained unchanged for ten seconds. The outpost enters In Progress when a later normalized fraction exceeds that sealed baseline. This prevents staged room activation during TP/loading from masquerading as player work. Regressions and observational noise do not start work, and no fragile raw-world-object snapshot is required.
 
 Evaluate clearance when:
 
@@ -31,7 +34,7 @@ Clearance passes only when every required non-excluded room across all registere
 ## Consequences
 
 - `Clearing` and `Cleared` are no longer player-facing stages.
-- The implementation persists discovery and an awarded clearance requirement result.
+- The implementation persists discovery, per-deliverable progress baselines, a monotonic work-started latch, and an awarded clearance requirement result.
 - The clearance-regression policy remains deferred; the current awarded result is latched until that policy is settled.
 - No historical player-kill attribution is required.
 

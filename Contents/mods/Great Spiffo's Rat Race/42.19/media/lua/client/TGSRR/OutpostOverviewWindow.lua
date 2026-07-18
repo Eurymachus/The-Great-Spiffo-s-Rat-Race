@@ -2,8 +2,10 @@ require "ISUI/ISCollapsableWindow"
 require "ISUI/ISScrollingListBox"
 
 local Snapshot = require "TGSRR/OutpostTrackerSnapshot"
+local Outposts = require "TGSRR/OutpostDefinitions"
 local L = require "TGSRR/Localization"
 local Icons = require "TGSRR/OutpostIcons"
+local Notifications = require "TGSRR/DeliverableNotifications"
 
 local Window = ISCollapsableWindow:derive("TGSRROutpostOverviewWindow")
 Window.instance = nil
@@ -25,18 +27,20 @@ local function loadWindowState()
         local line = reader:readLine()
         if line == nil then break end
         local key, value = line:match("^%s*(.-)%s*=%s*(.-)%s*$")
-        if key then state[key] = tonumber(value) end
+        if key then state[key] = tonumber(value) or value end
     end
     reader:close()
     if not state.x or not state.y then return nil end
     return state
 end
 
-local function saveWindowState(window)
+local function saveWindowState(window, open)
     local writer = getFileWriter(STATE_FILE, true, false)
     if not writer then return end
     writer:write("x=" .. tostring(math.floor(window:getX())) .. "\n")
     writer:write("y=" .. tostring(math.floor(window:getY())) .. "\n")
+    writer:write("open=" .. tostring(open == true) .. "\n")
+    writer:write("outpostId=" .. tostring(window.outpost and window.outpost.id or "") .. "\n")
     writer:close()
 end
 
@@ -46,13 +50,65 @@ local function statusText(status)
     return L.text("UI_TGSRR_Tracker_Unavailable", "Unavailable")
 end
 
-local function requirement(labelKey, fallback, tooltipKey, tooltipFallback, value, status)
+local function requirement(labelKey, fallback, tooltipKey, tooltipFallback, value, status, tooltip)
     return {
         label = L.text(labelKey, fallback),
-        tooltip = L.text(tooltipKey, tooltipFallback),
+        tooltip = tooltip or L.text(tooltipKey, tooltipFallback),
         value = value or "-",
         status = status or "unavailable",
     }
+end
+
+local function roundedPercent(value)
+    return tostring(math.floor((tonumber(value) or 0) + 0.5)) .. "%"
+end
+
+local function spareCarTooltip(deliverable)
+    local base = L.text("UI_TGSRR_Tracker_Tooltip_SpareCar",
+        "Park a qualifying spare car within the outpost's support area.")
+    local details = deliverable and deliverable.details or nil
+    local facts = details and details.vehicle or nil
+    local failures = details and details.failures or nil
+    if not facts or type(failures) ~= "table" or #failures == 0 then return base end
+
+    local target = "75% " .. L.text("UI_TGSRR_Tracker_Required", "required")
+    local labels = {
+        engine = L.text("UI_TGSRR_Vehicle_EngineCondition", "Engine condition"),
+        fuel = L.text("UI_TGSRR_Vehicle_Fuel", "Fuel"),
+        battery_condition = L.text("UI_TGSRR_Vehicle_BatteryCondition", "Battery condition"),
+        battery_charge = L.text("UI_TGSRR_Vehicle_BatteryCharge", "Battery charge"),
+        driver_seat = L.text("UI_TGSRR_Vehicle_DriverSeat", "Driver's seat"),
+        tyres = L.text("UI_TGSRR_Vehicle_Tyres", "Tyres"),
+    }
+    local values = {
+        engine = facts.engine and facts.engine.condition or 0,
+        fuel = facts.fuel and facts.fuel.percent or 0,
+        battery_condition = facts.battery and facts.battery.condition or 0,
+        battery_charge = facts.battery and facts.battery.charge or 0,
+        driver_seat = facts.driverSeat and facts.driverSeat.condition or 0,
+    }
+    local lines = {
+        L.text("UI_TGSRR_Vehicle_DoesNotQualify", "This vehicle does not qualify:"),
+    }
+    for _, failure in ipairs(failures) do
+        local id, partId = tostring(failure):match("^([^:]+):?(.*)$")
+        local label = labels[id]
+        local value = values[id]
+        if id == "tyre_condition" or id == "tyre_pressure" then
+            local tyre = facts.parts and facts.parts[partId] or nil
+            local tyreName = getTextOrNull("IGUI_VehiclePart" .. partId)
+                or partId:gsub("Tire", ""):gsub("(%l)(%u)", "%1 %2")
+            local suffix = id == "tyre_condition"
+                and L.text("UI_TGSRR_Vehicle_Condition", "condition")
+                or L.text("UI_TGSRR_Vehicle_Pressure", "pressure")
+            label = tyreName .. " " .. suffix
+            value = tyre and (id == "tyre_condition" and tyre.condition or tyre.pressurePercent) or 0
+        end
+        if label then
+            lines[#lines + 1] = "- " .. label .. ": " .. roundedPercent(value) .. " / " .. target
+        end
+    end
+    return table.concat(lines, "\n")
 end
 
 local function buildRequirements(row)
@@ -64,6 +120,11 @@ local function buildRequirements(row)
     local enclosed = deliverables.enclosed
     local doorsFitted = deliverables.doors_fitted
     local doorsClosed = deliverables.doors_closed
+    local goodBed = deliverables.good_bed
+    local generator = deliverables.generator
+    local food = deliverables.food
+    local plumbedSink = deliverables.plumbed_sink
+    local spareCar = deliverables.spare_car
     local discovered = runtime.discovered == true
     local activationPassed = activation and activation.passed == true
     local clearanceValue = clearance and
@@ -77,6 +138,29 @@ local function buildRequirements(row)
         (tostring(doorsFitted.current) .. " / " .. tostring(doorsFitted.required)) or "-"
     local doorsValue = doorsClosed and
         (tostring(doorsClosed.current) .. " / " .. tostring(doorsClosed.required)) or "-"
+    local goodBedValue = goodBed and
+        (tostring(goodBed.current) .. " / " .. tostring(goodBed.required)) or "-"
+    local generatorValue = L.text("UI_TGSRR_Tracker_None", "None")
+    if generator and generator.state == "not_connected" then
+        generatorValue = L.text("UI_TGSRR_Tracker_NotConnected", "Not Connected")
+    elseif generator and generator.state == "fuel" then
+        generatorValue = L.text("UI_TGSRR_Tracker_Fuel", "Fuel") .. ": " ..
+            tostring(math.floor((generator.current or 0) + 0.5)) .. "%"
+    end
+    local sinkValue = L.text("UI_TGSRR_Tracker_None", "None")
+    if plumbedSink and plumbedSink.state == "not_plumbed" then
+        sinkValue = L.text("UI_TGSRR_Tracker_NotPlumbed", "Not Plumbed")
+    elseif plumbedSink and plumbedSink.state == "source_missing" then
+        sinkValue = L.text("UI_TGSRR_Tracker_WaterSourceMissing", "Water Source Missing")
+    elseif plumbedSink and plumbedSink.state == "connected" then
+        sinkValue = L.text("UI_TGSRR_Tracker_Connected", "Connected")
+    end
+    local spareCarValue = L.text("UI_TGSRR_Tracker_None", "None")
+    if spareCar and spareCar.state == "ready" then
+        spareCarValue = L.text("UI_TGSRR_Tracker_Ready", "Ready")
+    elseif spareCar and spareCar.state == "requirements_unmet" then
+        spareCarValue = L.text("UI_TGSRR_Tracker_NeedsRepairs", "Needs repairs")
+    end
 
     return {
         requirement("UI_TGSRR_Tracker_Discovery", "Discovery",
@@ -106,15 +190,23 @@ local function buildRequirements(row)
             "UI_TGSRR_Tracker_Tooltip_DoorsClosed", "Close every ground-floor exterior door. Missing doors cannot pass.",
             doorsValue, doorsClosed and (doorsClosed.passed and "passed" or "pending") or "unavailable"),
         requirement("UI_TGSRR_Tracker_GoodBed", "Good bed",
-            "UI_TGSRR_Tracker_Tooltip_GoodBed", "Provide a qualifying good bed within the outpost."),
-        requirement("UI_TGSRR_Tracker_Power", "Power",
-            "UI_TGSRR_Tracker_Tooltip_Power", "Provide a qualifying source of electrical power for the outpost."),
-        requirement("UI_TGSRR_Tracker_Food", "5,000 calories of food",
-            "UI_TGSRR_Tracker_Tooltip_Food", "Store at least 5,000 qualifying calories of food at the outpost."),
-        requirement("UI_TGSRR_Tracker_PlumbedSink", "Plumbed sink",
-            "UI_TGSRR_Tracker_Tooltip_PlumbedSink", "Provide a qualifying plumbed sink within the outpost."),
+            "UI_TGSRR_Tracker_Tooltip_GoodBed", "Provide a bed that offers Good sleep quality in a registered ground-floor outpost room.",
+            goodBedValue, goodBed and (goodBed.passed and "passed" or "pending") or "unavailable"),
+        requirement("UI_TGSRR_Tracker_Generator", "Generator",
+            "UI_TGSRR_Tracker_Tooltip_Generator", "Place and connect a fully fuelled generator within the outpost boundary.",
+            generatorValue, generator and (generator.passed and "passed" or "pending") or "pending"),
+        requirement("UI_TGSRR_Tracker_Food", "Food",
+            "UI_TGSRR_Tracker_Tooltip_Food", "Store at least 5,000 calories of non-spoilable food in containers within registered ground-floor outpost rooms.",
+            food and (tostring(food.current) .. " / " .. tostring(food.required)) or "-",
+            food and (food.passed and "passed" or "pending") or "unavailable"),
+        requirement("UI_TGSRR_Tracker_PlumbedSink", "Sink",
+            "UI_TGSRR_Tracker_Tooltip_PlumbedSink", "Provide a plumbed sink with its external water source still installed within a registered ground-floor outpost room.",
+            sinkValue,
+            plumbedSink and (plumbedSink.passed and "passed" or "pending") or "unavailable"),
         requirement("UI_TGSRR_Tracker_SpareCar", "Spare car",
-            "UI_TGSRR_Tracker_Tooltip_SpareCar", "Park a qualifying spare car within the outpost's support area."),
+            "UI_TGSRR_Tracker_Tooltip_SpareCar", "Park a qualifying spare car within the outpost's support area.",
+            spareCarValue, spareCar and (spareCar.passed and "passed" or "pending") or "unavailable",
+            spareCarTooltip(spareCar)),
     }
 end
 
@@ -151,9 +243,11 @@ function Window:prerender()
 
     self:drawText(self.row.title, 78, top + 2, 1, 1, 1, 1, UIFont.Large)
     local stage = self.row.complete and L.text("UI_TGSRR_Tracker_Stage_Complete", "Complete") or
+        (self.row.status == "in_progress" and
+            L.text("UI_TGSRR_Tracker_Stage_InProgress", "In Progress") or
         (self.row.status == "undiscovered" and
             L.text("UI_TGSRR_Tracker_Stage_Undiscovered", "Undiscovered") or
-            L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered"))
+            L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered")))
     self:drawText(L.text("UI_TGSRR_Tracker_Stage", "Stage") .. ": " .. stage,
         78, top + 34, 0.76, 0.76, 0.76, 1, UIFont.Small)
 
@@ -214,18 +308,18 @@ function Window:update()
 end
 
 function Window:close()
-    saveWindowState(self)
+    saveWindowState(self, false)
     self:setVisible(false)
 end
 
 function Window:onMouseUp(x, y)
     ISCollapsableWindow.onMouseUp(self, x, y)
-    saveWindowState(self)
+    saveWindowState(self, self:getIsVisible())
 end
 
 function Window:onMouseUpOutside(x, y)
     ISCollapsableWindow.onMouseUpOutside(self, x, y)
-    saveWindowState(self)
+    saveWindowState(self, self:getIsVisible())
 end
 
 function Window:new(x, y, width, height, outpost)
@@ -257,7 +351,29 @@ function Window.showFor(outpost)
     window:addToUIManager()
     window:setVisible(true)
     window:bringToTop()
+    saveWindowState(window, true)
     return window
 end
+
+Notifications.subscribe("outpost-overview-window", function(outpostId)
+    local window = Window.instance
+    if window and window:getIsVisible() and window.outpost and window.outpost.id == outpostId then
+        window:refresh()
+    end
+end)
+
+local function isRatRace()
+    if not getCore():isChallenge() then return false end
+    local id = getCore():getChallengeID()
+    return id == "TGSRR" or id == "TGSRR_CDDA" or id == "TGSRR_Sprinters"
+end
+
+Events.OnGameStart.Add(function()
+    if not isRatRace() then return end
+    local state = loadWindowState()
+    if not state or state.open ~= "true" or not state.outpostId then return end
+    local outpost = Outposts.get(state.outpostId)
+    if outpost then Window.showFor(outpost) end
+end)
 
 return Window

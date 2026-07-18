@@ -1,6 +1,7 @@
 local Outposts = require "TGSRR/OutpostDefinitions"
 local Runtime = require "TGSRR/OutpostRuntimeState"
 local L = require "TGSRR/Localization"
+local Completion = require "TGSRR/OutpostCompletion"
 require "TGSRR/OutpostRoomActivationCheck"
 
 local Snapshot = {}
@@ -10,6 +11,7 @@ function Snapshot.getAll(player)
     local activatedRooms = 0
     local totalRooms = 0
     local percentTotal = 0
+    local completed = 0
 
     for _, outpost in ipairs(Outposts.getAll()) do
         local runtimeRecord = Runtime.getRecord(outpost.id)
@@ -25,7 +27,8 @@ function Snapshot.getAll(player)
         } or nil
         local current = rooms and rooms.current or 0
         local required = rooms and rooms.required or 0
-        local progress = required > 0 and current / required or 0
+        local completion = Completion.calculate(runtimeRecord)
+        local progress = completion.progress
 
         activatedRooms = activatedRooms + current
         totalRooms = totalRooms + required
@@ -37,13 +40,16 @@ function Snapshot.getAll(player)
             runtime = runtimeRecord,
             status = Runtime.getStatus(outpost.id),
             progress = math.max(0, math.min(1, progress)),
-            percent = math.floor(progress * 100 + 0.5),
-            complete = false,
+            percent = math.floor(completion.percent + 0.5),
+            complete = completion.complete,
+            requirements = tostring(completion.passedRequirements) .. "/" ..
+                tostring(completion.totalRequirements),
             rooms = tostring(current) .. "/" .. tostring(required),
             floors = activation and
                 (tostring(activation.activatedFloors) .. "/" .. tostring(activation.totalFloors)) or "-",
         }
-        percentTotal = percentTotal + progress * 100
+        if completion.complete then completed = completed + 1 end
+        percentTotal = percentTotal + completion.percent
     end
 
     local percent = #rows > 0 and percentTotal / #rows or 0
@@ -51,6 +57,7 @@ function Snapshot.getAll(player)
         rows = rows,
         activatedRooms = activatedRooms,
         totalRooms = totalRooms,
+        completed = completed,
         progress = math.max(0, math.min(1, percent / 100)),
         percent = percent,
     }

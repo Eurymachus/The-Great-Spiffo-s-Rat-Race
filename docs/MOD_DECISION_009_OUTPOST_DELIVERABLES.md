@@ -16,18 +16,19 @@ A Completed outpost requires:
 - Every ground-floor exterior window barricaded at least once with wood or metal.
 - Every ground-floor exterior-envelope segment fitted with a wall, window opening, or doorway containing a door.
 - Every ground-floor exterior door frame contains a door and every exterior door is closed.
-- A good bed.
-- Power.
-- At least 5000 calories of food.
-- A plumbed sink.
-- A spare car near the outpost.
+- At least one bed in a registered ground-floor outpost room whose vanilla `BedType` is `goodBed`.
+- A connected generator at 100% fuel within the configured outpost core zone; it need not be running.
+- At least 5000 calories of non-spoilable food stored in world-object containers within registered ground-floor outpost rooms. Nested containers stored within those containers count; vehicles, corpses, player inventory, and loose floor items do not.
+- At least one sink in a registered ground-floor outpost room with vanilla `usesExternalWaterSource` plumbing enabled and a currently resolvable external water-source barrel. The barrel may be empty but must remain installed. Other water-piped fixtures do not qualify.
+- A spare car within the outpost support area. The provisional first rule requires a non-wrecked, non-trailer vehicle with at least 75% engine condition, fuel, battery condition and charge, driver-seat condition, and condition and inflation in every script-defined tyre.
 
 ## Consequences
 
 - Each requirement should expose structured current/required/status data for Outpost Overview.
 - Complete is a live classification and regresses to Discovered whenever any required deliverable stops qualifying.
 - Upper-floor windows and doors are outside the accepted ground-floor security scope.
-- Exact qualification rules for bed, power, food storage, sink containment, and spare car remain open and must not be invented by implementation.
+- Spare-car thresholds remain mutable before release. Vehicle inspection is deliberately generic and separate from the provisional run requirement.
+- Pillows do not upgrade an average or bad bed for this requirement; the fixture itself must provide vanilla Good sleep quality.
 
 ## Related documents
 

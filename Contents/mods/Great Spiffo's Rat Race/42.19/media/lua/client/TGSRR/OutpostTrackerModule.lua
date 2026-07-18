@@ -11,12 +11,12 @@ Deliverables.register({
     getRecord = function(context)
         local snapshot = Snapshot.getAll(context.player)
         return {
-            current = nil,
+            current = snapshot.completed,
             target = #snapshot.rows,
             percent = snapshot.percent,
-            status = "provisional",
-            detail = L.text("UI_TGSRR_Tracker_OutpostsProvisional",
-                "Room activation only; completion checks are not implemented."),
+            status = snapshot.completed == #snapshot.rows and "complete" or "active",
+            detail = L.text("UI_TGSRR_Tracker_OutpostsProgress",
+                "Mean progress across all registered outposts."),
             detailTab = "outposts",
         }
     end,

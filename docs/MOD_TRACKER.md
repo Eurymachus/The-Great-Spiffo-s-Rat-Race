@@ -64,9 +64,9 @@ The Outposts tab compares all 13 outposts. Earlier design intent included:
 - Activation and deliverable summaries.
 - Activation of a row to open Outpost Overview.
 
-The accepted player-facing stages are `Undiscovered`, `Discovered`, and `Complete`. Clearance and remaining zombies are structured requirement details within the Discovered stage rather than separate lifecycle stages.
+The accepted player-facing stages are `Undiscovered`, `Discovered`, `In Progress`, and `Complete`. In Progress is a persisted monotonic latch triggered when an authoritative non-zombie deliverable improves beyond a discovery baseline sealed after full authority and ten unchanged seconds. Clearance and remaining zombies remain structured requirement details rather than lifecycle stages.
 
-The current diagnostic table is provisional. Final columns and percentage semantics remain open.
+The player-facing table uses passed `Requirements`, strict `Stage`, and weighted `Progress`. Room and floor detail remains in the tooltip. Percentage semantics are defined in [MOD_DECISION_013_OUTPOST_PROGRESS_WEIGHTS.md](MOD_DECISION_013_OUTPOST_PROGRESS_WEIGHTS.md).
 
 ## Outpost Overview intent
 
@@ -80,11 +80,11 @@ Outpost Overview is the player-facing detail screen for one outpost. It should g
 
 Rows should report structured values such as `Windows barricaded: 14/16`, not raw RoomDef IDs. The current Inspector is not this screen.
 
-The implementation opens on double-click from the Outposts table and reports persisted last-known discovery, activation, clearance, and window-barricade results. Remaining security, habitation, supplies, utilities, and vehicle rows explicitly show Unavailable until their qualification rules are implemented.
+The implementation opens on double-click from the Outposts table and reports the complete persisted last-known discovery, activation, clearance, security, habitation, supplies, utilities, and vehicle deliverable set.
 
-Persisted outpost deliverables share `available`, `passed`, `current`, `required`, and `observedAt`. Live checks update this snapshot only when a meaningful field changes; transient debug details and world-object references are not part of the player/export contract.
+Persisted outpost deliverables share `available`, `passed`, `current`, `required`, optional presentation `state`, and `observedAt`. Live checks update this snapshot only when a meaningful field changes; transient debug details and world-object references are not part of the player/export contract.
 
-Each Outpost Overview requirement row has a localized explanatory tooltip. The fixed-size window persists and clamps its screen position independently of the main tracker.
+Each Outpost Overview requirement row has a localized explanatory tooltip. The fixed-size window persists and clamps its screen position independently of the main tracker, remembers its open/closed state and selected outpost, and remains closed by default when no saved state exists.
 
 ## Inspector responsibility
 
@@ -108,6 +108,12 @@ The Inspector is developer-facing diagnostics for BuildingDefs, RoomDefs, activa
 - `KillsTrackerModule.lua`
 - `KillsTrackerData.lua`
 - `KillsTrackerView.lua`
+  - Shows the authoritative kill total, million-kill progress, and the registered kill milestone ladder.
+- `ChallengeEvents.lua`, `MilestoneRegistry.lua`, and `MilestoneLedger.lua`
+  - Provide a domain-neutral event/award pipeline with persistent dynamic claim keys.
+  - Definitions can be gated by challenge mode or a future option callback without changing event producers.
+- `MilestoneNotificationPresenter.lua`
+  - Presents awarded milestones through localized player halo text.
 - `SkillsTrackerModule.lua`
 - `PendingTrackerView.lua`
 - `OutpostTrackerModule.lua`

@@ -6,6 +6,7 @@ local State = require "TGSRR/ChallengeTrackerState"
 local L = require "TGSRR/Localization"
 require "TGSRR/OverviewTrackerModule"
 require "TGSRR/KillsTrackerModule"
+require "TGSRR/MilestoneNotificationPresenter"
 require "TGSRR/SkillsTrackerModule"
 require "TGSRR/OutpostTrackerModule"
 

@@ -4,6 +4,8 @@ require "ISUI/ISScrollingListBox"
 local Snapshot = require "TGSRR/OutpostTrackerSnapshot"
 local L = require "TGSRR/Localization"
 local Icons = require "TGSRR/OutpostIcons"
+local Notifications = require "TGSRR/DeliverableNotifications"
+local Overview = require "TGSRR/OutpostOverviewWindow"
 
 local View = ISPanel:derive("TGSRROutpostTrackerView")
 local REFRESH_INTERVAL_MS = 1000
@@ -43,7 +45,7 @@ function View:prerender()
     self:drawText(L.text("UI_TGSRR_Tracker_Outpost", "Outpost"),
         x + 8, textY, 1, 1, 1, 1, UIFont.Small)
     local headers = {
-        L.text("UI_TGSRR_Tracker_Rooms", "Rooms"),
+        L.text("UI_TGSRR_Tracker_Requirements", "Requirements"),
         L.text("UI_TGSRR_Tracker_Stage", "Stage"),
         L.text("UI_TGSRR_Tracker_Progress", "Progress"),
     }
@@ -76,10 +78,12 @@ function View:drawOutpost(y, item, alt)
             iconR, iconG, iconB)
     end
     self:drawText(data.title, 30, textY, color[1], color[2], color[3], 1, UIFont.Small)
-    local stage = data.status == "undiscovered" and
-        L.text("UI_TGSRR_Tracker_Stage_Undiscovered", "Undiscovered") or
-        L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered")
-    local values = { data.rooms, stage }
+    local stage = data.complete and L.text("UI_TGSRR_Tracker_Stage_Complete", "Complete") or
+        (data.status == "in_progress" and L.text("UI_TGSRR_Tracker_Stage_InProgress", "In Progress") or
+        (data.status == "undiscovered" and
+            L.text("UI_TGSRR_Tracker_Stage_Undiscovered", "Undiscovered") or
+            L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered")))
+    local values = { data.requirements, stage }
     local left = columnX(width, 1)
     for index, value in ipairs(values) do
         local right = columnX(width, index + 1)
@@ -108,9 +112,11 @@ local function buildTooltip(outpost, activation, percent, runtime, status)
     local lines = {
         L.text(outpost.nameKey, outpost.name),
         L.text("UI_TGSRR_Tracker_Stage", "Stage") .. ": " ..
+            (status == "complete" and L.text("UI_TGSRR_Tracker_Stage_Complete", "Complete") or
+            (status == "in_progress" and L.text("UI_TGSRR_Tracker_Stage_InProgress", "In Progress") or
             (status == "undiscovered" and
                 L.text("UI_TGSRR_Tracker_Stage_Undiscovered", "Undiscovered") or
-                L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered")),
+                L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered")))),
         L.text("UI_TGSRR_Tracker_Progress", "Progress") .. ": " .. tostring(percent) .. "%",
     }
     if activation then
@@ -182,7 +188,6 @@ end
 
 function View:onActivate(item)
     if not item then return end
-    local Overview = require "TGSRR/OutpostOverviewWindow"
     Overview.showFor(item.outpost)
 end
 
@@ -206,7 +211,13 @@ end
 function View:new(x, y, width, height)
     local o = ISPanel.new(self, x, y, width, height)
     o.background = false
+    View.instance = o
     return o
 end
+
+Notifications.subscribe("outpost-tracker-view", function()
+    local view = View.instance
+    if view and view:getIsVisible() then view:refresh(getSpecificPlayer(0) or getPlayer()) end
+end)
 
 return View
