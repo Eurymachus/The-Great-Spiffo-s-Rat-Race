@@ -368,6 +368,7 @@ class SiteBrandingAdmin(admin.ModelAdmin):
             widget.can_add_related = False
             widget.can_change_related = False
             widget.can_delete_related = False
+            widget.can_view_related = False
         return form
 
     def changelist_view(self, request, extra_context=None):
