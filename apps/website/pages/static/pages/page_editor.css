@@ -156,6 +156,8 @@
 .page-card-list { padding: 0 1rem 1rem; }
 .page-editor-add-card {
     float: right;
+    width: auto !important;
+    padding-inline: 15px !important;
 }
 .page-editor-empty { margin: 1rem 0; padding: 1.5rem; border: 1px dashed var(--hairline-color); text-align: center; color: var(--body-quiet-color); }
 @media (max-width: 900px) { .page-editor-grid { grid-template-columns: 1fr; } }
