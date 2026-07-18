@@ -7,6 +7,16 @@
 .page-editor-heading h2,
 .page-editor-heading p { margin: 0; }
 .page-editor-heading p { margin-top: .35rem; color: var(--body-quiet-color); }
+.page-editor-heading > .button,
+.page-editor-add-card {
+    min-height: 2.25rem;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 10px 15px;
+    border-radius: 4px;
+    box-sizing: border-box;
+    line-height: 1;
+}
 .page-section-editor,
 .page-card-editor { margin-top: 1rem; border: 1px solid var(--hairline-color); background: var(--body-bg); }
 .page-section-editor > summary,
@@ -146,7 +156,6 @@
 .page-card-list { padding: 0 1rem 1rem; }
 .page-editor-add-card {
     float: right;
-    margin: -.4rem 0;
 }
 .page-editor-empty { margin: 1rem 0; padding: 1.5rem; border: 1px dashed var(--hairline-color); text-align: center; color: var(--body-quiet-color); }
 @media (max-width: 900px) { .page-editor-grid { grid-template-columns: 1fr; } }
