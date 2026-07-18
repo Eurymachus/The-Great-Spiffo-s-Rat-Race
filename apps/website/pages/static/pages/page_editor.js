@@ -4,6 +4,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!editor || !payload) return;
 
     const list = editor.querySelector("[data-section-list]");
+    const form = editor.closest("form");
+    let baselineState = null;
+    let isDirty = false;
+    let isSubmitting = false;
     let sections = [];
     try { sections = JSON.parse(payload.value || "[]"); } catch (_) { sections = []; }
 
@@ -73,7 +77,40 @@ document.addEventListener("DOMContentLoaded", () => {
             })),
         }));
     };
-    const sync = () => { payload.value = JSON.stringify(read()); };
+    const captureFormState = () => {
+        const state = {};
+        new FormData(form).forEach((value, key) => {
+            if (key === "csrfmiddlewaretoken" || key.startsWith("_")) return;
+            const normalizedValue = typeof value === "string" ? value : value.name;
+            if (!(key in state)) state[key] = normalizedValue;
+            else if (Array.isArray(state[key])) state[key].push(normalizedValue);
+            else state[key] = [state[key], normalizedValue];
+        });
+        return state;
+    };
+    const updateDirtyState = () => {
+        if (baselineState !== null) {
+            isDirty = JSON.stringify(captureFormState()) !== JSON.stringify(baselineState);
+        }
+    };
+    const sync = () => {
+        payload.value = JSON.stringify(read());
+        updateDirtyState();
+    };
+
+    const commitRemovalToBaseline = (contentType, contentId) => {
+        if (!contentId || !baselineState?.page_builder_data) return;
+        let baselineSections = [];
+        try { baselineSections = JSON.parse(baselineState.page_builder_data); } catch (_) { return; }
+        if (contentType === "section") {
+            baselineSections = baselineSections.filter((section) => section.id !== contentId);
+        } else {
+            baselineSections.forEach((section) => {
+                section.items = section.items.filter((item) => item.id !== contentId);
+            });
+        }
+        baselineState.page_builder_data = JSON.stringify(baselineSections);
+    };
 
     const persistRemoval = async (contentType, contentId) => {
         if (!contentId) return true;
@@ -266,6 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.alert("The card could not be removed. Please refresh the page and try again.");
                 return;
             }
+            commitRemovalToBaseline("card", sections[sectionIndex].items[cardIndex].id);
             sections[sectionIndex].items.splice(cardIndex, 1);
         }
         if (action === "remove-section") {
@@ -278,6 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.alert("The section could not be removed. Please refresh the page and try again.");
                 return;
             }
+            commitRemovalToBaseline("section", section.id);
             sections.splice(sectionIndex, 1);
         }
         rerenderPreservingState({openCard: action === "add-card" ? sectionIndex : null});
@@ -350,10 +389,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     list.addEventListener("dragend", clearDragState);
     editor.querySelector("[data-add-section]").addEventListener("click", () => { sections = read(); sections.push({section_type: "introduction", is_visible: true, items: []}); rerenderPreservingState({openLastSection: true}); sync(); });
-    const form = editor.closest("form");
     const savedViewStateKey = `page-editor-view:${window.location.pathname}`;
+    form.addEventListener("input", updateDirtyState);
+    form.addEventListener("change", updateDirtyState);
     form.addEventListener("submit", (event) => {
         sync();
+        isSubmitting = true;
         try {
             if (event.submitter?.name === "_continue") {
                 window.sessionStorage.setItem(savedViewStateKey, JSON.stringify(captureViewState()));
@@ -374,4 +415,12 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (_) {
         // The editor remains usable without restoring its previous view.
     }
+    sync();
+    baselineState = captureFormState();
+    updateDirtyState();
+    window.addEventListener("beforeunload", (event) => {
+        if (!isDirty || isSubmitting) return;
+        event.preventDefault();
+        event.returnValue = "";
+    });
 });
