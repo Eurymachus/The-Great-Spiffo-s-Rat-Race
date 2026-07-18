@@ -75,6 +75,20 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     const sync = () => { payload.value = JSON.stringify(read()); };
 
+    const persistRemoval = async (contentType, contentId) => {
+        if (!contentId) return true;
+        const urlTemplate = editor.dataset.removeUrl;
+        const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]')?.value;
+        if (!urlTemplate || !csrfToken) return false;
+        const url = urlTemplate.replace("CONTENT_TYPE", contentType).replace(/0\/$/, `${contentId}/`);
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {"X-CSRFToken": csrfToken, "X-Requested-With": "XMLHttpRequest"},
+            credentials: "same-origin",
+        });
+        return response.ok;
+    };
+
     const refreshOrderControls = () => {
         const sectionPanels = [...list.querySelectorAll(":scope > .page-section-editor")];
         sectionPanels.forEach((panel, sectionIndex) => {
@@ -205,7 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
         restoreViewState(state, options);
     };
 
-    editor.addEventListener("click", (event) => {
+    editor.addEventListener("click", async (event) => {
         if (event.target.closest(".page-editor-drag-handle")) {
             event.preventDefault();
             event.stopPropagation();
@@ -247,7 +261,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (action === "add-card") sections[sectionIndex].items.push({});
         if (action === "remove-card") {
             const cardName = sections[sectionIndex].items[cardIndex].heading || "Untitled card";
-            if (!window.confirm(`Remove the card "${cardName}"?\n\nIt will be deleted when you save the page.`)) return;
+            if (!window.confirm(`Permanently remove the card "${cardName}"?\n\nThis takes effect immediately and cannot be undone.`)) return;
+            if (!await persistRemoval("card", sections[sectionIndex].items[cardIndex].id)) {
+                window.alert("The card could not be removed. Please refresh the page and try again.");
+                return;
+            }
             sections[sectionIndex].items.splice(cardIndex, 1);
         }
         if (action === "remove-section") {
@@ -255,7 +273,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const sectionName = section.section_type === "steps" ? "Numbered information cards" : "Introduction and actions";
             const cardCount = section.items.length;
             const cardWarning = cardCount ? ` This will also remove ${cardCount} nested card${cardCount === 1 ? "" : "s"}.` : "";
-            if (!window.confirm(`Remove the section "${sectionName}"?${cardWarning}\n\nIt will be deleted when you save the page.`)) return;
+            if (!window.confirm(`Permanently remove the section "${sectionName}"?${cardWarning}\n\nThis takes effect immediately and cannot be undone.`)) return;
+            if (!await persistRemoval("section", section.id)) {
+                window.alert("The section could not be removed. Please refresh the page and try again.");
+                return;
+            }
             sections.splice(sectionIndex, 1);
         }
         rerenderPreservingState({openCard: action === "add-card" ? sectionIndex : null});

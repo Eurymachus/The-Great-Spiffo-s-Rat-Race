@@ -1,5 +1,9 @@
 from django.contrib import admin
 from django.db import transaction
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.urls import path
+from django.utils import timezone
 
 from .forms import PageEditorForm
 from .models import Page, PageSection, SectionItem
@@ -17,6 +21,35 @@ class PageAdmin(admin.ModelAdmin):
         ("Page", {"fields": ("title", "slug", "is_published", "page_builder_data")}),
         ("Record", {"fields": ("updated_at",)}),
     )
+
+    def get_urls(self):
+        custom_urls = [
+            path(
+                "<path:object_id>/remove-content/<str:content_type>/<int:content_id>/",
+                self.admin_site.admin_view(self.remove_content_view),
+                name="pages_page_remove_content",
+            ),
+        ]
+        return custom_urls + super().get_urls()
+
+    def remove_content_view(self, request, object_id, content_type, content_id):
+        page = get_object_or_404(Page, pk=object_id)
+        if request.method != "POST" or not self.has_change_permission(request, page):
+            return JsonResponse({"removed": False}, status=403)
+
+        if content_type == "section":
+            content = get_object_or_404(page.sections, pk=content_id)
+        elif content_type == "card":
+            content = get_object_or_404(
+                SectionItem.objects.filter(section__page=page), pk=content_id
+            )
+        else:
+            return JsonResponse({"removed": False}, status=400)
+
+        with transaction.atomic():
+            content.delete()
+            Page.objects.filter(pk=page.pk).update(updated_at=timezone.now())
+        return JsonResponse({"removed": True})
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)

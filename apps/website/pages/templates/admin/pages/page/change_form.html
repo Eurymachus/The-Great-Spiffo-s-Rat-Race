@@ -3,7 +3,7 @@
 
 {% block extrahead %}
 {{ block.super }}
-<script src="{% static 'pages/page_editor.js' %}?v=20260718-13" defer></script>
+<script src="{% static 'pages/page_editor.js' %}?v=20260718-14" defer></script>
 {% endblock %}
 
 {% block extrastyle %}
@@ -13,7 +13,11 @@
 
 {% block after_field_sets %}
 {{ block.super }}
-<section class="page-editor" data-page-editor>
+<section
+  class="page-editor"
+  data-page-editor
+  {% if original %}data-remove-url="{% url 'admin:pages_page_remove_content' original.pk 'CONTENT_TYPE' 0 %}"{% endif %}
+>
   <div class="page-editor-heading">
     <div>
       <h2>Page sections</h2>

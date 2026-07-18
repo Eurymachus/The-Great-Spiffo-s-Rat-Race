@@ -154,3 +154,49 @@ class ManagedPageTests(TestCase):
         self.assertNotContains(response, 'class="deletelink"')
         self.assertContains(response, "field-slug")
         self.assertNotContains(response, 'name="slug"')
+
+    def test_page_editor_can_destructively_remove_one_card(self):
+        superuser = Participant.objects.create_superuser(
+            email="destructive-editor@example.com",
+            nickname="Destructive Editor",
+            password="test-password-only",
+        )
+        self.client.force_login(superuser)
+        retained_item = self.section.items.first()
+        removed_item = SectionItem.objects.create(
+            section=self.section,
+            position=99,
+            heading="Remove immediately",
+        )
+
+        response = self.client.post(
+            reverse(
+                "admin:pages_page_remove_content",
+                args=(self.page.pk, "card", removed_item.pk),
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(SectionItem.objects.filter(pk=removed_item.pk).exists())
+        self.assertTrue(SectionItem.objects.filter(pk=retained_item.pk).exists())
+
+    def test_removing_a_section_also_removes_its_nested_cards(self):
+        superuser = Participant.objects.create_superuser(
+            email="section-remover@example.com",
+            nickname="Section Remover",
+            password="test-password-only",
+        )
+        self.client.force_login(superuser)
+        section_id = self.section.pk
+        item_ids = list(self.section.items.values_list("pk", flat=True))
+
+        response = self.client.post(
+            reverse(
+                "admin:pages_page_remove_content",
+                args=(self.page.pk, "section", section_id),
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(PageSection.objects.filter(pk=section_id).exists())
+        self.assertFalse(SectionItem.objects.filter(pk__in=item_ids).exists())
