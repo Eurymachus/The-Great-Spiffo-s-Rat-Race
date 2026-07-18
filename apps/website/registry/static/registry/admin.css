@@ -3,6 +3,43 @@ html {
     scrollbar-gutter: stable;
 }
 
+/* A consistent parent-navigation strip for every nested administration screen. */
+.admin-navigation-bar {
+    display: flex;
+    align-items: center;
+    min-height: 3.25rem;
+    margin: 0 0 1rem;
+    padding: .65rem 1rem;
+    border-bottom: 1px solid var(--hairline-color);
+    background: var(--darkened-bg);
+    box-sizing: border-box;
+}
+
+.admin-navigation-back {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .55rem .9rem;
+    border: 1px solid var(--hairline-color);
+    border-radius: 4px;
+    background: var(--button-bg);
+    color: var(--button-fg) !important;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.admin-navigation-back::before {
+    content: "\2039";
+    font-size: 1.35em;
+    line-height: .75;
+}
+
+.admin-navigation-back:hover,
+.admin-navigation-back:focus {
+    background: var(--button-hover-bg);
+    text-decoration: none;
+}
+
 /* Use one calm table surface with fine row separators instead of zebra striping. */
 body.change-list #result_list tbody tr {
     background: var(--body-bg);
