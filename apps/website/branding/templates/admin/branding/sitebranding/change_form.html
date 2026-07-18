@@ -1,0 +1,56 @@
+{% extends "admin/change_form.html" %}
+
+{% block field_sets %}
+{% for fieldset in adminform %}
+    {% if fieldset.name == "Images" %}
+        <fieldset class="module aligned branding-images-module" aria-labelledby="branding-images-heading">
+            <h2 id="branding-images-heading">Images</h2>
+            {% if fieldset.description %}<div class="description">{{ fieldset.description|safe }}</div>{% endif %}
+
+            <details class="branding-image-panel" data-image-panel="header-logo">
+                <summary><span>Header logo</span><label class="branding-image-enabled" onclick="event.stopPropagation()">{{ adminform.form.enable_header_logo }} Enabled</label></summary>
+                <div class="branding-image-panel-body">
+                    {{ adminform.form.enable_header_logo.errors }}{{ adminform.form.header_logo_asset.errors }}
+                    <div class="branding-image-selection">{{ adminform.form.header_logo_asset }}</div>
+                    <div class="branding-image-extra"><label for="{{ adminform.form.header_logo_alt.id_for_label }}">Alternative text</label>{{ adminform.form.header_logo_alt }}{{ adminform.form.header_logo_alt.errors }}<div class="help">Describe the logo for people who cannot see it.</div></div>
+                </div>
+            </details>
+
+            <details class="branding-image-panel" data-image-panel="favicon">
+                <summary><span>Browser icon</span><label class="branding-image-enabled" onclick="event.stopPropagation()">{{ adminform.form.enable_favicon }} Enabled</label></summary>
+                <div class="branding-image-panel-body">
+                    {{ adminform.form.enable_favicon.errors }}{{ adminform.form.favicon_asset.errors }}
+                    <div class="branding-image-selection">{{ adminform.form.favicon_asset }}</div>
+                </div>
+            </details>
+
+            <details class="branding-image-panel" data-image-panel="social-image">
+                <summary><span>Social sharing image</span><label class="branding-image-enabled" onclick="event.stopPropagation()">{{ adminform.form.enable_social_image }} Enabled</label></summary>
+                <div class="branding-image-panel-body">
+                    {{ adminform.form.enable_social_image.errors }}{{ adminform.form.social_image_asset.errors }}
+                    <div class="branding-image-selection">{{ adminform.form.social_image_asset }}</div>
+                </div>
+            </details>
+
+            <details class="branding-image-panel" data-image-panel="homepage-feature">
+                <summary><span>Homepage feature image</span><label class="branding-image-enabled" onclick="event.stopPropagation()">{{ adminform.form.enable_homepage_feature_image }} Enabled</label></summary>
+                <div class="branding-image-panel-body">
+                    {{ adminform.form.enable_homepage_feature_image.errors }}{{ adminform.form.homepage_feature_image_asset.errors }}
+                    <div class="branding-image-selection">{{ adminform.form.homepage_feature_image_asset }}</div>
+                    <div class="branding-image-extra"><label for="{{ adminform.form.homepage_feature_image_alt.id_for_label }}">Alternative text</label>{{ adminform.form.homepage_feature_image_alt }}{{ adminform.form.homepage_feature_image_alt.errors }}<div class="help">Describe the image for people who cannot see it.</div></div>
+                </div>
+            </details>
+
+            <details class="branding-image-panel" data-image-panel="background-image">
+                <summary><span>Background image</span><label class="branding-image-enabled" onclick="event.stopPropagation()">{{ adminform.form.enable_background_image }} Enabled</label></summary>
+                <div class="branding-image-panel-body">
+                    {{ adminform.form.enable_background_image.errors }}{{ adminform.form.background_image_asset.errors }}
+                    <div class="branding-image-selection">{{ adminform.form.background_image_asset }}</div>
+                </div>
+            </details>
+        </fieldset>
+    {% else %}
+        {% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}
+    {% endif %}
+{% endfor %}
+{% endblock %}

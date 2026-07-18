@@ -8,13 +8,16 @@ document.addEventListener("DOMContentLoaded", () => {
     let activeSelect = null;
     let library = [];
     let pending = [];
+    let uploadOnly = false;
 
     const dialog = document.createElement("dialog");
     dialog.className = "media-library-dialog";
     dialog.innerHTML = `
         <div class="media-library-modal">
-            <header><div><h2>Choose an image</h2><p>Select an existing image or upload new files.</p></div><button type="button" class="media-modal-close" aria-label="Close">×</button></header>
-            <div class="media-library-grid" data-media-grid></div>
+            <header><div><h2 data-modal-title>Choose an image</h2><p data-modal-introduction>Select an existing image or upload new files.</p></div><button type="button" class="media-modal-close" aria-label="Close">&times;</button></header>
+            <section class="media-library-section" data-library-section>
+                <div class="media-library-grid" data-media-grid></div>
+            </section>
             <section class="media-upload-panel">
                 <div class="media-upload-heading"><div><h3>Upload images</h3><p>PNG, JPEG, WebP or ICO, up to 5 MB each.</p></div><label class="button media-choose-files">Choose files<input type="file" accept=".png,.jpg,.jpeg,.webp,.ico,image/png,image/jpeg,image/webp,image/x-icon" multiple hidden></label></div>
                 <div class="media-upload-list" data-upload-list><p class="media-empty">No files selected.</p></div>
@@ -23,6 +26,9 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>`;
     document.body.append(dialog);
 
+    const modalTitle = dialog.querySelector("[data-modal-title]");
+    const modalIntroduction = dialog.querySelector("[data-modal-introduction]");
+    const librarySection = dialog.querySelector("[data-library-section]");
     const grid = dialog.querySelector("[data-media-grid]");
     const fileInput = dialog.querySelector('input[type="file"]');
     const uploadList = dialog.querySelector("[data-upload-list]");
@@ -38,6 +44,31 @@ document.addEventListener("DOMContentLoaded", () => {
         return "";
     };
 
+    const resetPending = () => {
+        pending.forEach((entry) => { if (entry.preview) URL.revokeObjectURL(entry.preview); });
+        pending = [];
+        fileInput.value = "";
+        uploadSummary.textContent = "";
+        renderPending();
+    };
+
+    const updateControlPreview = (select) => {
+        const preview = select.closest(".media-picker-control")?.querySelector(".media-picker-current");
+        if (!preview) return;
+        const image = library.find((candidate) => String(candidate.id) === select.value);
+        preview.replaceChildren();
+        if (!image) {
+            preview.innerHTML = '<span class="media-picker-placeholder">No image selected</span>';
+            return;
+        }
+        const thumbnail = document.createElement("img");
+        thumbnail.src = image.url;
+        thumbnail.alt = "";
+        const name = document.createElement("strong");
+        name.textContent = image.name;
+        preview.append(thumbnail, name);
+    };
+
     const refreshSelects = () => {
         selects.forEach((select) => {
             const value = select.value;
@@ -47,13 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
             select.value = value;
             updateControlPreview(select);
         });
-    };
-
-    const updateControlPreview = (select) => {
-        const preview = select.closest(".media-picker-control")?.querySelector(".media-picker-current");
-        if (!preview) return;
-        const image = library.find((candidate) => String(candidate.id) === select.value);
-        preview.innerHTML = image ? `<img src="${image.url}" alt=""><span>${image.name}</span>` : `<span>No image selected</span>`;
     };
 
     const renderLibrary = () => {
@@ -67,13 +91,9 @@ document.addEventListener("DOMContentLoaded", () => {
             item.type = "button";
             item.className = "media-library-item";
             if (activeSelect && String(image.id) === activeSelect.value) item.classList.add("is-selected");
-            item.innerHTML = `<img src="${image.url}" alt=""><strong></strong><small>${image.type} · ${image.dimensions} · ${formatSize(image.size)}</small>`;
+            item.innerHTML = `<img src="${image.url}" alt=""><strong></strong><small>${image.type} &middot; ${image.dimensions} &middot; ${formatSize(image.size)}</small>`;
             item.querySelector("strong").textContent = image.name;
             item.addEventListener("click", () => {
-                if (!activeSelect) {
-                    window.open(image.url, "_blank", "noopener,noreferrer");
-                    return;
-                }
                 activeSelect.value = String(image.id);
                 activeSelect.dispatchEvent(new Event("change", {bubbles: true}));
                 updateControlPreview(activeSelect);
@@ -91,14 +111,22 @@ document.addEventListener("DOMContentLoaded", () => {
         renderLibrary();
     };
 
+    const renderUploadState = () => {
+        const valid = pending.filter((entry) => !entry.error && entry.name.trim());
+        const invalid = pending.filter((entry) => entry.error || !entry.name.trim());
+        uploadButton.disabled = !valid.length;
+        uploadButton.textContent = valid.length ? `Upload ${valid.length} image${valid.length === 1 ? "" : "s"}` : "Upload";
+        uploadSummary.textContent = pending.length ? `${valid.length} ready, ${invalid.length} not ready` : "";
+    };
+
     const renderPending = () => {
         uploadList.replaceChildren();
         if (!pending.length) uploadList.innerHTML = '<p class="media-empty">No files selected.</p>';
-        pending.forEach((entry, index) => {
+        pending.forEach((entry) => {
             const row = document.createElement("div");
             row.className = `media-upload-row ${entry.error ? "is-invalid" : "is-valid"}`;
-            const preview = entry.preview ? `<img src="${entry.preview}" alt="">` : '<span class="media-file-placeholder">×</span>';
-            row.innerHTML = `${preview}<div class="media-upload-details"><strong></strong><small>${formatSize(entry.file.size)}</small>${entry.error ? '<p class="media-error"></p>' : '<label>Name<input type="text" maxlength="120"></label>'}</div><span class="media-validity">${entry.error ? "×" : "✓"}</span>`;
+            const preview = entry.preview ? `<img src="${entry.preview}" alt="">` : '<span class="media-file-placeholder">&times;</span>';
+            row.innerHTML = `${preview}<div class="media-upload-details"><strong></strong><small>${formatSize(entry.file.size)}</small>${entry.error ? '<p class="media-error"></p>' : '<label>Name<input type="text" maxlength="120"></label>'}</div><span class="media-validity">${entry.error ? "&times;" : "&#10003;"}</span>`;
             row.querySelector("strong").textContent = entry.file.name;
             if (entry.error) row.querySelector(".media-error").textContent = entry.error;
             else {
@@ -111,15 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderUploadState();
     };
 
-    const renderUploadState = () => {
-        const valid = pending.filter((entry) => !entry.error && entry.name.trim());
-        const invalid = pending.filter((entry) => entry.error || !entry.name.trim());
-        uploadButton.disabled = !valid.length;
-        uploadButton.textContent = valid.length ? `Upload ${valid.length} image${valid.length === 1 ? "" : "s"}` : "Upload";
-        uploadSummary.textContent = pending.length ? `${valid.length} ready, ${invalid.length} not ready` : "";
-    };
-
-    fileInput.addEventListener("change", async () => {
+    fileInput.addEventListener("change", () => {
         pending.forEach((entry) => { if (entry.preview) URL.revokeObjectURL(entry.preview); });
         pending = [...fileInput.files].map((file) => ({file, name: deriveName(file.name), error: compatible(file), preview: ""}));
         pending.forEach((entry) => { if (!entry.error) entry.preview = URL.createObjectURL(entry.file); });
@@ -131,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = new FormData();
         valid.forEach((entry) => { data.append("images", entry.file); data.append("names", entry.name.trim()); });
         uploadButton.disabled = true;
-        uploadButton.textContent = "Uploading…";
+        uploadButton.textContent = "Uploading...";
         try {
             const response = await fetch(libraryUrl, {method: "POST", headers: {"X-CSRFToken": csrfToken, "X-Requested-With": "XMLHttpRequest"}, body: data});
             const result = await response.json();
@@ -140,14 +160,26 @@ document.addEventListener("DOMContentLoaded", () => {
             const failures = result.results.filter((item) => !item.ok);
             pending = failures.map((item) => ({file: {name: item.filename, size: 0}, name: "", error: item.error, preview: ""}));
             refreshSelects();
-            renderLibrary();
+            if (!uploadOnly) renderLibrary();
             renderPending();
-            uploadSummary.textContent = failures.length ? "Some files could not be uploaded." : "Upload complete. Choose an image above.";
+            uploadSummary.textContent = failures.length ? "Some files could not be uploaded." : "Upload complete.";
         } catch (error) {
             uploadSummary.textContent = error.message;
             renderUploadState();
         }
     });
+
+    const openModal = async ({select = null, uploadsOnly = false} = {}) => {
+        activeSelect = select;
+        uploadOnly = uploadsOnly;
+        resetPending();
+        librarySection.hidden = uploadOnly;
+        dialog.classList.toggle("is-upload-only", uploadOnly);
+        modalTitle.textContent = uploadOnly ? "Upload images" : "Choose an image";
+        modalIntroduction.textContent = uploadOnly ? "Choose one or more image files to add to the library." : "Select an existing image or upload new files.";
+        if (!uploadOnly) await loadLibrary();
+        dialog.showModal();
+    };
 
     dialog.querySelector(".media-modal-close").addEventListener("click", () => dialog.close());
     dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
@@ -157,20 +189,56 @@ document.addEventListener("DOMContentLoaded", () => {
         wrapper.className = "media-picker-control";
         select.parentNode.insertBefore(wrapper, select);
         wrapper.append(select);
-        const current = document.createElement("span"); current.className = "media-picker-current";
-        const choose = document.createElement("button"); choose.type = "button"; choose.className = "button media-picker-button"; choose.textContent = "Choose image";
+        const current = document.createElement("span");
+        current.className = "media-picker-current";
+        const choose = document.createElement("button");
+        choose.type = "button";
+        choose.className = "button media-picker-button";
+        choose.textContent = "Select image";
         choose.addEventListener("click", async () => {
-            activeSelect = select;
-            try { await loadLibrary(); dialog.showModal(); } catch (error) { window.alert(error.message); }
+            try { await openModal({select}); } catch (error) { window.alert(error.message); }
         });
         wrapper.append(current, choose);
         select.addEventListener("change", () => updateControlPreview(select));
     });
 
-    managerButton?.addEventListener("click", async () => {
-        activeSelect = null;
-        try { await loadLibrary(); dialog.showModal(); } catch (error) { window.alert(error.message); }
-    });
-
+    managerButton?.addEventListener("click", () => openModal({uploadsOnly: true}));
     loadLibrary().catch(() => {});
+
+    const panels = [...document.querySelectorAll(".branding-image-panel")];
+    if (panels.length) {
+        const form = document.querySelector("#content-main form");
+        const viewStateKey = `branding-image-view:${window.location.pathname}`;
+        let lastSubmitter = null;
+        form?.addEventListener("click", (event) => {
+            const submitter = event.target.closest('button[type="submit"], input[type="submit"]');
+            if (submitter) lastSubmitter = submitter;
+        });
+        form?.addEventListener("submit", (event) => {
+            const submitter = event.submitter || lastSubmitter;
+            if (submitter?.name !== "_continue") {
+                sessionStorage.removeItem(viewStateKey);
+                return;
+            }
+            sessionStorage.setItem(viewStateKey, JSON.stringify({
+                scrollX: window.scrollX,
+                scrollY: window.scrollY,
+                openPanels: panels.filter((panel) => panel.open).map((panel) => panel.dataset.imagePanel),
+            }));
+        });
+        try {
+            const saved = sessionStorage.getItem(viewStateKey);
+            if (saved) {
+                sessionStorage.removeItem(viewStateKey);
+                const state = JSON.parse(saved);
+                panels.forEach((panel) => { panel.open = state.openPanels.includes(panel.dataset.imagePanel); });
+                const restoreScroll = () => window.scrollTo(state.scrollX, state.scrollY);
+                restoreScroll();
+                requestAnimationFrame(restoreScroll);
+                setTimeout(restoreScroll, 0);
+            }
+        } catch (_) {
+            // The form remains fully usable when browser storage is unavailable.
+        }
+    }
 });

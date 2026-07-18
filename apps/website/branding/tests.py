@@ -47,6 +47,9 @@ class SiteBrandingAdminTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Branding")
+        self.assertContains(response, 'class="branding-image-panel"', count=5)
+        self.assertContains(response, "branding/media_library.js")
+        self.assertNotContains(response, "Header logo preview:")
         self.assertNotContains(response, "Delete")
 
         list_url = reverse("admin:branding_sitebranding_changelist")
@@ -85,6 +88,7 @@ class SiteBrandingAdminTests(TestCase):
         self.client.force_login(superuser)
         image_list = self.client.get(reverse("admin:branding_managedimage_changelist"))
         self.assertContains(image_list, "Upload images")
+        self.assertNotContains(image_list, "Add image")
         self.assertContains(image_list, "branding/media_library.js")
         with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
             response = self.client.post(

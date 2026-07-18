@@ -1,9 +1,12 @@
 .managed-image-thumbnail { width: 5rem; height: 3.5rem; object-fit: contain; background: #202020; border-radius: 4px; }
 .managed-image-preview { display: block; max-width: 36rem; max-height: 20rem; object-fit: contain; background: #202020; padding: .75rem; border-radius: 4px; }
-.media-picker-control { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
-.media-picker-control select { min-width: 18rem; }
-.media-picker-current { display: inline-flex; align-items: center; gap: .5rem; color: var(--body-quiet-color); }
-.media-picker-current img { width: 3rem; height: 2.25rem; object-fit: contain; background: #202020; border-radius: 3px; }
+.media-picker-control { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.media-picker-control select { display: none; }
+.media-picker-current { display: inline-flex; align-items: center; gap: .8rem; min-width: 18rem; color: var(--body-quiet-color); }
+.media-picker-current img { width: 9rem; height: 6rem; object-fit: contain; background: #202020; border-radius: 3px; }
+.media-picker-current strong { color: var(--body-fg); }
+.media-picker-placeholder { display: grid; place-items: center; width: 9rem; height: 6rem; padding: .5rem; background: var(--darkened-bg); border: 1px dashed var(--border-color); text-align: center; }
+.media-picker-button { padding: .65rem 1rem !important; }
 .media-library-dialog { width: min(70rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); padding: 0; color: var(--body-fg); background: var(--body-bg); border: 1px solid var(--border-color); border-radius: 8px; }
 .media-library-dialog::backdrop { background: rgb(0 0 0 / 72%); }
 .media-library-modal { padding: 1.25rem; }
@@ -16,6 +19,8 @@
 .media-library-item img { width: 100%; height: 6rem; object-fit: contain; background: #202020; }
 .media-library-item small, .media-empty { color: var(--body-quiet-color); }
 .media-upload-panel { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+.media-library-dialog.is-upload-only { width: min(58rem, calc(100vw - 2rem)); }
+.media-library-dialog.is-upload-only .media-upload-panel { margin-top: 0; padding-top: 1rem; border-top: 0; }
 .media-choose-files { position: relative; display: inline-flex; padding: .65rem 1rem !important; cursor: pointer; }
 .media-upload-list { display: grid; gap: .65rem; margin: .8rem 0; max-height: 18rem; overflow: auto; }
 .media-upload-row { display: grid; grid-template-columns: 5rem minmax(0, 1fr) 2rem; align-items: center; gap: .75rem; padding: .65rem; background: var(--darkened-bg); border-left: 4px solid #4f8c62; }
@@ -28,4 +33,16 @@
 .is-invalid .media-validity, .media-error { color: #d98787; }
 .media-upload-button { padding: .65rem 1rem !important; }
 .object-tools .media-manager-button { border: 0; cursor: pointer; }
+.branding-images-module > .description { margin: 0 0 1rem; color: var(--body-quiet-color); }
+.branding-image-panel { margin: 0 0 .8rem; border: 1px solid var(--hairline-color); background: var(--body-bg); }
+.branding-image-panel > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 2.9rem; padding: .65rem 1rem; background: var(--darkened-bg); cursor: pointer; list-style: none; }
+.branding-image-panel > summary::-webkit-details-marker { display: none; }
+.branding-image-panel > summary::before { content: "\25B6"; flex: 0 0 auto; font-size: .8rem; }
+.branding-image-panel[open] > summary::before { content: "\25BC"; }
+.branding-image-panel > summary > span { margin-right: auto; font-weight: 700; }
+.branding-image-enabled { display: inline-flex; align-items: center; gap: .45rem; margin: 0; cursor: pointer; }
+.branding-image-panel-body { display: grid; gap: 1rem; padding: 1rem; }
+.branding-image-extra { display: grid; grid-template-columns: 11rem minmax(14rem, 36rem); align-items: center; gap: .4rem 1rem; }
+.branding-image-extra .help { grid-column: 2; margin: 0; }
+.branding-image-extra input { width: 100%; }
 @media (max-width: 700px) { .media-upload-row { grid-template-columns: 3.5rem minmax(0, 1fr) 1.5rem; } .media-upload-row > img, .media-file-placeholder { width: 3.5rem; height: 3.5rem; } }

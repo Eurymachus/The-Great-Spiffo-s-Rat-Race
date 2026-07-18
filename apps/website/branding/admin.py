@@ -238,6 +238,7 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
 
 @admin.register(SiteBranding)
 class SiteBrandingAdmin(admin.ModelAdmin):
+    change_form_template = "admin/branding/sitebranding/change_form.html"
     fieldsets = (
         (
             "Challenge identity",
@@ -512,6 +513,13 @@ class ManagedImageAdmin(admin.ModelAdmin):
         actions = super().get_actions(request)
         actions.pop("delete_selected", None)
         return actions
+
+    def get_model_perms(self, request):
+        permissions = super().get_model_perms(request)
+        # Images are created through the validated multi-file uploader. Hiding the
+        # ordinary add shortcut keeps administrators on that single workflow.
+        permissions["add"] = False
+        return permissions
 
     class Media:
         css = {"all": ("branding/media_library.css",)}
