@@ -346,7 +346,7 @@ button:hover { background: var(--theme-accent-hover); }
     background: var(--theme-surface-alt);
 }
 .request-pending p, .warning-panel p { margin-bottom: 0; color: var(--theme-muted); }
-.account-closure-link { margin: 1.5rem 0; font-size: .9rem; }
+.account-closure-link { margin: 1.5rem 0; font-size: .9rem; text-align: center; }
 .draft-label { color: var(--theme-accent); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
 .homepage-feature-image {
     display: block;

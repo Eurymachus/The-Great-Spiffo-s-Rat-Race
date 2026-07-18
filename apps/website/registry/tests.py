@@ -361,6 +361,26 @@ class RegistrationTests(TestCase):
         self.assertContains(response, 'aria-current="page"')
         self.assertNotContains(response, ">Administration<")
 
+    def test_staff_account_omits_administration_from_public_navigation(self):
+        self.client.post(reverse("registry:register"), self.registration_data())
+        participant = Participant.objects.get()
+        self.client.get(
+            reverse(
+                "registry:verify",
+                kwargs={"token": create_verification_token(participant)},
+            )
+        )
+        participant.refresh_from_db()
+        participant.is_staff = True
+        participant.save(update_fields=("is_staff",))
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:account"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, ">Administration<")
+        self.assertContains(response, "Challenge administration")
+
     def test_participant_can_change_password_and_remains_logged_in(self):
         self.client.post(reverse("registry:register"), self.registration_data())
         participant = Participant.objects.get()
