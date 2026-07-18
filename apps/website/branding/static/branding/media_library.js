@@ -1,9 +1,65 @@
 document.addEventListener("DOMContentLoaded", () => {
     const selects = [...document.querySelectorAll("select.media-library-select")];
     const managerButton = document.querySelector("[data-media-library-manager]");
-    if (!selects.length && !managerButton) return;
+    const galleryTriggers = [...document.querySelectorAll(".managed-image-gallery-trigger")];
+    if (!selects.length && !managerButton && !galleryTriggers.length) return;
 
-    const libraryUrl = selects[0]?.dataset.libraryUrl || managerButton.dataset.mediaLibraryManager;
+    if (galleryTriggers.length) {
+        const galleryDialog = document.createElement("dialog");
+        galleryDialog.className = "managed-image-gallery-dialog";
+        galleryDialog.innerHTML = `
+            <div class="managed-image-gallery-viewer">
+                <button type="button" class="managed-image-gallery-close" aria-label="Close gallery">&times;</button>
+                <button type="button" class="managed-image-gallery-nav is-previous" aria-label="Previous image">&#8249;</button>
+                <figure>
+                    <img alt="">
+                    <figcaption><strong></strong><span></span></figcaption>
+                </figure>
+                <button type="button" class="managed-image-gallery-nav is-next" aria-label="Next image">&#8250;</button>
+                <output class="managed-image-gallery-count" aria-live="polite"></output>
+            </div>`;
+        document.body.append(galleryDialog);
+
+        const galleryImage = galleryDialog.querySelector("figure img");
+        const galleryName = galleryDialog.querySelector("figcaption strong");
+        const galleryDetails = galleryDialog.querySelector("figcaption span");
+        const galleryCount = galleryDialog.querySelector(".managed-image-gallery-count");
+        let galleryIndex = 0;
+
+        const showGalleryImage = (index) => {
+            galleryIndex = (index + galleryTriggers.length) % galleryTriggers.length;
+            const trigger = galleryTriggers[galleryIndex];
+            galleryImage.src = trigger.dataset.galleryUrl;
+            galleryImage.alt = trigger.dataset.galleryName;
+            galleryName.textContent = trigger.dataset.galleryName;
+            galleryDetails.textContent = trigger.dataset.galleryDetails;
+            galleryCount.textContent = `${galleryIndex + 1} of ${galleryTriggers.length}`;
+            [-1, 1].forEach((offset) => {
+                const adjacent = galleryTriggers[(galleryIndex + offset + galleryTriggers.length) % galleryTriggers.length];
+                const preload = new Image();
+                preload.src = adjacent.dataset.galleryUrl;
+            });
+        };
+        const moveGallery = (offset) => showGalleryImage(galleryIndex + offset);
+
+        galleryTriggers.forEach((trigger, index) => {
+            trigger.addEventListener("click", () => {
+                showGalleryImage(index);
+                galleryDialog.showModal();
+            });
+        });
+        galleryDialog.querySelector(".managed-image-gallery-close").addEventListener("click", () => galleryDialog.close());
+        galleryDialog.querySelector(".is-previous").addEventListener("click", () => moveGallery(-1));
+        galleryDialog.querySelector(".is-next").addEventListener("click", () => moveGallery(1));
+        galleryDialog.addEventListener("click", (event) => { if (event.target === galleryDialog) galleryDialog.close(); });
+        galleryDialog.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowLeft") { event.preventDefault(); moveGallery(-1); }
+            if (event.key === "ArrowRight") { event.preventDefault(); moveGallery(1); }
+        });
+    }
+
+    const libraryUrl = selects[0]?.dataset.libraryUrl || managerButton?.dataset.mediaLibraryManager;
+    if (!libraryUrl) return;
     const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]')?.value || "";
     let activeSelect = null;
     let library = [];

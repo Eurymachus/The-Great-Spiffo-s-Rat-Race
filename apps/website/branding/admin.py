@@ -520,7 +520,19 @@ class ManagedImageAdmin(admin.ModelAdmin):
 
     @admin.display(description="Preview")
     def thumbnail(self, obj):
-        return format_html('<img src="{}" alt="" class="managed-image-thumbnail">', obj.image.url)
+        return format_html(
+            '<button type="button" class="managed-image-gallery-trigger" '
+            'data-gallery-url="{}" data-gallery-name="{}" '
+            'data-gallery-details="{} - {} - {}" aria-label="View {}">'
+            '<img src="{}" alt="" class="managed-image-thumbnail"></button>',
+            obj.image.url,
+            obj.name,
+            obj.file_type,
+            obj.dimensions,
+            self.formatted_size(obj),
+            obj.name,
+            obj.image.url,
+        )
 
     @admin.display(ordering="name", description="Name")
     def editable_name(self, obj):
