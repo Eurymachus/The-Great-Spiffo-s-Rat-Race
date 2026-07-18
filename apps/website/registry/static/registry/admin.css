@@ -4,12 +4,8 @@ html {
 }
 
 /* Use one calm table surface with fine row separators instead of zebra striping. */
-body.change-list #result_list tbody tr.row1,
-body.change-list #result_list tbody tr.row2 {
-    background: var(--body-bg);
-}
-
 body.change-list #result_list tbody tr {
+    background: var(--body-bg);
     border-bottom: 1px solid var(--hairline-color);
 }
 
