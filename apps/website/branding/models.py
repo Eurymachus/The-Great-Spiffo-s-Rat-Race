@@ -66,6 +66,14 @@ class ManagedImage(models.Model):
         self.full_clean()
         return super().save(*args, **kwargs)
 
+    def delete(self, *args, **kwargs):
+        storage = self.image.storage if self.image else None
+        stored_name = self.image.name if self.image else ""
+        result = super().delete(*args, **kwargs)
+        if storage and stored_name:
+            storage.delete(stored_name)
+        return result
+
     @property
     def file_type(self):
         return self.original_filename.rsplit(".", 1)[-1].upper() if "." in self.original_filename else ""

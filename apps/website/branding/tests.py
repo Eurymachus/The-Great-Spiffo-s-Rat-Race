@@ -128,6 +128,33 @@ class SiteBrandingAdminTests(TestCase):
             self.assertIn("not a valid image", result["error"])
             self.assertFalse(ManagedImage.objects.exists())
 
+    def test_media_library_row_delete_removes_record_and_stored_file(self):
+        superuser = Participant.objects.create_superuser(
+            email="delete-media@example.com",
+            nickname="Delete Media",
+            password="test-password-only",
+        )
+        self.client.force_login(superuser)
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            image = ManagedImage.objects.create(
+                name="Temporary Image",
+                image=SimpleUploadedFile("temporary.png", png_bytes(), content_type="image/png"),
+                original_filename="temporary.png",
+            )
+            stored_name = image.image.name
+            storage = image.image.storage
+            delete_url = reverse("admin:branding_managedimage_delete", args=(image.pk,))
+
+            image_list = self.client.get(reverse("admin:branding_managedimage_changelist"))
+            self.assertContains(image_list, delete_url)
+            self.assertContains(image_list, 'class="managed-image-delete"')
+
+            response = self.client.post(delete_url, {"post": "yes"})
+
+            self.assertEqual(response.status_code, 302)
+            self.assertFalse(ManagedImage.objects.filter(pk=image.pk).exists())
+            self.assertFalse(storage.exists(stored_name))
+
     def test_selected_library_image_can_supply_header_logo(self):
         with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
             image = ManagedImage.objects.create(

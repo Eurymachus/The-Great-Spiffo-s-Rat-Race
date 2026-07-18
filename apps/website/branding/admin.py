@@ -403,6 +403,7 @@ class ManagedImageAdmin(admin.ModelAdmin):
         "dimensions",
         "formatted_size",
         "uploaded_at",
+        "delete_control",
     )
     search_fields = ("name", "original_filename")
     readonly_fields = (
@@ -495,11 +496,34 @@ class ManagedImageAdmin(admin.ModelAdmin):
         size = obj.file_size
         return f"{size / 1024:.1f} KB" if size < 1024 * 1024 else f"{size / (1024 * 1024):.1f} MB"
 
+    @admin.display(description="")
+    def delete_control(self, obj):
+        if self._is_referenced(obj):
+            return format_html(
+                '<span class="managed-image-delete is-disabled" title="Clear this image from Branding before deleting it" aria-label="Image is in use">&times;</span>'
+            )
+        return format_html(
+            '<a class="managed-image-delete" href="{}" title="Delete {}" aria-label="Delete {}">&times;</a>',
+            reverse("admin:branding_managedimage_delete", args=(obj.pk,)),
+            obj.name,
+            obj.name,
+        )
+
+    def get_list_display(self, request):
+        columns = super().get_list_display(request)
+        if not self.has_delete_permission(request):
+            return tuple(column for column in columns if column != "delete_control")
+        return columns
+
     def has_delete_permission(self, request, obj=None):
         permitted = super().has_delete_permission(request, obj)
         if not permitted or obj is None:
             return permitted
-        return not any(
+        return not self._is_referenced(obj)
+
+    @staticmethod
+    def _is_referenced(obj):
+        return any(
             getattr(obj, relation).exists()
             for relation in (
                 "header_logo_branding",
