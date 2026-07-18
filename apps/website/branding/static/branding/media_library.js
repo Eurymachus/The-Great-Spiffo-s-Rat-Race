@@ -46,8 +46,10 @@ document.addEventListener("DOMContentLoaded", () => {
             trigger.addEventListener("click", () => {
                 showGalleryImage(index);
                 galleryDialog.showModal();
+                document.documentElement.classList.add("managed-image-gallery-open");
             });
         });
+        galleryDialog.addEventListener("close", () => document.documentElement.classList.remove("managed-image-gallery-open"));
         galleryDialog.querySelector(".managed-image-gallery-close").addEventListener("click", () => galleryDialog.close());
         galleryDialog.querySelector(".is-previous").addEventListener("click", () => moveGallery(-1));
         galleryDialog.querySelector(".is-next").addEventListener("click", () => moveGallery(1));

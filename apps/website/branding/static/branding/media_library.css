@@ -2,9 +2,10 @@
 .managed-image-gallery-trigger { display: block; padding: 0; background: transparent; border: 0; border-radius: 4px; cursor: zoom-in; }
 .managed-image-gallery-trigger:hover .managed-image-thumbnail { outline: 2px solid var(--link-fg); outline-offset: 2px; }
 .managed-image-gallery-trigger:focus-visible { outline: 2px solid var(--link-fg); outline-offset: 3px; }
-.managed-image-gallery-dialog { width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; color: #fff; background: rgb(7 9 8 / 97%); border: 0; }
+.managed-image-gallery-dialog { box-sizing: border-box; width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; overflow: hidden; color: #fff; background: rgb(7 9 8 / 97%); border: 0; }
 .managed-image-gallery-dialog::backdrop { background: rgb(0 0 0 / 88%); }
-.managed-image-gallery-viewer { position: relative; display: grid; grid-template-columns: clamp(3.5rem, 7vw, 6rem) minmax(0, 1fr) clamp(3.5rem, 7vw, 6rem); grid-template-rows: minmax(0, 1fr) auto; align-items: center; width: 100%; height: 100%; padding: 2rem 1rem 1rem; }
+.managed-image-gallery-viewer { position: relative; box-sizing: border-box; display: grid; grid-template-columns: clamp(3.5rem, 7vw, 6rem) minmax(0, 1fr) clamp(3.5rem, 7vw, 6rem); grid-template-rows: minmax(0, 1fr) auto; align-items: center; width: 100%; height: 100%; padding: 2rem 1rem 1rem; overflow: hidden; }
+.managed-image-gallery-open { overflow: hidden !important; }
 .managed-image-gallery-viewer figure { display: grid; grid-column: 2; grid-row: 1 / 3; grid-template-rows: minmax(0, 1fr) auto; gap: 1rem; align-items: center; justify-items: center; min-width: 0; min-height: 0; margin: 0; }
 .managed-image-gallery-viewer figure img { display: block; max-width: 100%; max-height: calc(100vh - 8rem); object-fit: contain; }
 .managed-image-gallery-viewer figcaption { display: flex; gap: .75rem; align-items: baseline; justify-content: center; min-height: 2rem; text-align: center; }
