@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let baselineState = null;
     let isDirty = false;
     let isSubmitting = false;
+    let lastSubmitter = null;
     let sections = [];
     try { sections = JSON.parse(payload.value || "[]"); } catch (_) { sections = []; }
 
@@ -212,14 +213,19 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
+    const panelKey = (panel, index) => panel.dataset.id ? `id:${panel.dataset.id}` : `index:${index}`;
     const captureViewState = () => ({
         scrollPosition: {x: window.scrollX, y: window.scrollY},
-        sections: [...list.querySelectorAll(":scope > .page-section-editor")].map((panel) => {
+        sections: [...list.querySelectorAll(":scope > .page-section-editor")].map((panel, sectionIndex) => {
             const cards = panel.querySelector(":scope > .page-section-body > .page-cards");
             return {
+                key: panelKey(panel, sectionIndex),
                 sectionOpen: panel.open,
                 cardsOpen: cards?.open ?? false,
-                cardOpen: cards ? [...cards.querySelectorAll(".page-card-list > .page-card-editor")].map((card) => card.open) : [],
+                cards: cards ? [...cards.querySelectorAll(".page-card-list > .page-card-editor")].map((card, cardIndex) => ({
+                    key: panelKey(card, cardIndex),
+                    open: card.open,
+                })) : [],
             };
         }),
     });
@@ -227,12 +233,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const restoreViewState = (state, {openCard = null, openLastSection = false} = {}) => {
         const sectionPanels = [...list.querySelectorAll(":scope > .page-section-editor")];
         sectionPanels.forEach((panel, sectionIndex) => {
-            if (state.sections[sectionIndex]) panel.open = state.sections[sectionIndex].sectionOpen;
+            const sectionState = state.sections.find((candidate) => candidate.key === panelKey(panel, sectionIndex)) || state.sections[sectionIndex];
+            if (sectionState) panel.open = sectionState.sectionOpen;
             const cards = panel.querySelector(":scope > .page-section-body > .page-cards");
             if (!cards) return;
-            if (state.sections[sectionIndex]) cards.open = state.sections[sectionIndex].cardsOpen;
+            if (sectionState) cards.open = sectionState.cardsOpen;
             [...cards.querySelectorAll(".page-card-list > .page-card-editor")].forEach((card, cardIndex) => {
-                if (state.sections[sectionIndex]?.cardOpen[cardIndex]) card.open = true;
+                const cardState = sectionState?.cards?.find((candidate) => candidate.key === panelKey(card, cardIndex));
+                card.open = cardState?.open ?? sectionState?.cardOpen?.[cardIndex] ?? false;
             });
         });
 
@@ -248,6 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         window.scrollTo(state.scrollPosition.x, state.scrollPosition.y);
         window.requestAnimationFrame(() => window.scrollTo(state.scrollPosition.x, state.scrollPosition.y));
+        window.setTimeout(() => window.scrollTo(state.scrollPosition.x, state.scrollPosition.y), 0);
     };
 
     const rerenderPreservingState = (options = {}) => {
@@ -392,11 +401,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const savedViewStateKey = `page-editor-view:${window.location.pathname}`;
     form.addEventListener("input", updateDirtyState);
     form.addEventListener("change", updateDirtyState);
+    form.addEventListener("click", (event) => {
+        const submitter = event.target.closest('button[type="submit"], input[type="submit"]');
+        if (submitter) lastSubmitter = submitter;
+    });
     form.addEventListener("submit", (event) => {
         sync();
         isSubmitting = true;
         try {
-            if (event.submitter?.name === "_continue") {
+            const submitter = event.submitter || lastSubmitter;
+            if (submitter?.name === "_continue") {
                 window.sessionStorage.setItem(savedViewStateKey, JSON.stringify(captureViewState()));
             } else {
                 window.sessionStorage.removeItem(savedViewStateKey);
