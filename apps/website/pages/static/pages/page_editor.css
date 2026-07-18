@@ -52,6 +52,7 @@
     cursor: default;
     opacity: .35;
 }
+.page-editor-summary-actions .page-editor-remove-icon { font-weight: 700; }
 .page-section-body,
 .page-card-body { padding: 1rem; }
 .page-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }

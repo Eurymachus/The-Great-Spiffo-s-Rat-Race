@@ -32,14 +32,16 @@ document.addEventListener("DOMContentLoaded", () => {
         return control;
     };
 
-    const orderButtons = (upAction, downAction, index, total, subject) => {
+    const orderButtons = (upAction, downAction, removeAction, index, total, subject) => {
         const actions = document.createElement("span");
         actions.className = "page-editor-summary-actions";
         const up = button("↑", upAction, false, `Move ${subject} up`);
         const down = button("↓", downAction, false, `Move ${subject} down`);
+        const remove = button("X", removeAction, true, `Remove ${subject}`);
+        remove.classList.add("page-editor-remove-icon");
         up.disabled = index === 0;
         down.disabled = index === total - 1;
-        actions.append(up, down);
+        actions.append(up, down, remove);
         return actions;
     };
 
@@ -110,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const summaryTitle = document.createElement("span");
             summaryTitle.className = "page-editor-summary-title";
             summaryTitle.textContent = `${sectionIndex + 1}. ${section.section_type === "steps" ? "Numbered information cards" : "Introduction and actions"}${section.is_visible === false ? " - Hidden" : ""}`;
-            summary.append(dragHandle("section"), summaryTitle, orderButtons("section-up", "section-down", sectionIndex, sections.length, "section"));
+            summary.append(dragHandle("section"), summaryTitle, orderButtons("section-up", "section-down", "remove-section", sectionIndex, sections.length, "section"));
             panel.append(summary);
             const body = document.createElement("div");
             body.className = "page-section-body";
@@ -149,15 +151,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 const card = document.createElement("details"); card.className = "page-card-editor"; card.dataset.id = item.id || "";
                 const cardSummary = document.createElement("summary");
                 const cardSummaryTitle = document.createElement("span"); cardSummaryTitle.className = "page-editor-summary-title"; cardSummaryTitle.textContent = `${itemIndex + 1}. ${item.heading || "Untitled card"}`;
-                cardSummary.append(dragHandle("card"), cardSummaryTitle, orderButtons("card-up", "card-down", itemIndex, section.items.length, "card")); card.append(cardSummary);
+                cardSummary.append(dragHandle("card"), cardSummaryTitle, orderButtons("card-up", "card-down", "remove-card", itemIndex, section.items.length, "card")); card.append(cardSummary);
                 const cardBody = document.createElement("div"); cardBody.className = "page-card-body page-editor-grid";
                 cardBody.append(field("Heading", "heading", item.heading), field("Description", "description", item.description, "textarea", true));
-                const cardToolbar = document.createElement("div"); cardToolbar.className = "page-card-toolbar page-editor-field-wide";
-                cardToolbar.append(button("Remove card", "remove-card", true)); cardBody.append(cardToolbar); card.append(cardBody); cardList.append(card);
+                card.append(cardBody); cardList.append(card);
             });
             cards.append(cardList); body.append(cards);
-            const toolbar = document.createElement("div"); toolbar.className = "page-editor-toolbar";
-            toolbar.append(button("Remove section", "remove-section", true)); body.append(toolbar); panel.append(body); list.append(panel);
+            panel.append(body); list.append(panel);
         });
     };
 
