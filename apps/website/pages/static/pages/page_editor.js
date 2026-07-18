@@ -161,27 +161,27 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
-    const rerenderPreservingState = ({openCard = null, openLastSection = false} = {}) => {
-        const scrollPosition = {x: window.scrollX, y: window.scrollY};
-        const state = [...list.querySelectorAll(":scope > .page-section-editor")].map((panel) => {
+    const captureViewState = () => ({
+        scrollPosition: {x: window.scrollX, y: window.scrollY},
+        sections: [...list.querySelectorAll(":scope > .page-section-editor")].map((panel) => {
             const cards = panel.querySelector(":scope > .page-section-body > .page-cards");
             return {
                 sectionOpen: panel.open,
                 cardsOpen: cards?.open ?? false,
                 cardOpen: cards ? [...cards.querySelectorAll(".page-card-list > .page-card-editor")].map((card) => card.open) : [],
             };
-        });
+        }),
+    });
 
-        render();
-
+    const restoreViewState = (state, {openCard = null, openLastSection = false} = {}) => {
         const sectionPanels = [...list.querySelectorAll(":scope > .page-section-editor")];
         sectionPanels.forEach((panel, sectionIndex) => {
-            if (state[sectionIndex]) panel.open = state[sectionIndex].sectionOpen;
+            if (state.sections[sectionIndex]) panel.open = state.sections[sectionIndex].sectionOpen;
             const cards = panel.querySelector(":scope > .page-section-body > .page-cards");
             if (!cards) return;
-            if (state[sectionIndex]) cards.open = state[sectionIndex].cardsOpen;
+            if (state.sections[sectionIndex]) cards.open = state.sections[sectionIndex].cardsOpen;
             [...cards.querySelectorAll(".page-card-list > .page-card-editor")].forEach((card, cardIndex) => {
-                if (state[sectionIndex]?.cardOpen[cardIndex]) card.open = true;
+                if (state.sections[sectionIndex]?.cardOpen[cardIndex]) card.open = true;
             });
         });
 
@@ -195,8 +195,14 @@ document.addEventListener("DOMContentLoaded", () => {
             if (cardPanels.length) cardPanels[cardPanels.length - 1].open = true;
         }
 
-        window.scrollTo(scrollPosition.x, scrollPosition.y);
-        window.requestAnimationFrame(() => window.scrollTo(scrollPosition.x, scrollPosition.y));
+        window.scrollTo(state.scrollPosition.x, state.scrollPosition.y);
+        window.requestAnimationFrame(() => window.scrollTo(state.scrollPosition.x, state.scrollPosition.y));
+    };
+
+    const rerenderPreservingState = (options = {}) => {
+        const state = captureViewState();
+        render();
+        restoreViewState(state, options);
     };
 
     editor.addEventListener("click", (event) => {
@@ -311,6 +317,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     list.addEventListener("dragend", clearDragState);
     editor.querySelector("[data-add-section]").addEventListener("click", () => { sections = read(); sections.push({section_type: "introduction", is_visible: true, items: []}); rerenderPreservingState({openLastSection: true}); sync(); });
-    editor.closest("form").addEventListener("submit", sync);
+    const form = editor.closest("form");
+    const savedViewStateKey = `page-editor-view:${window.location.pathname}`;
+    form.addEventListener("submit", (event) => {
+        sync();
+        try {
+            if (event.submitter?.name === "_continue") {
+                window.sessionStorage.setItem(savedViewStateKey, JSON.stringify(captureViewState()));
+            } else {
+                window.sessionStorage.removeItem(savedViewStateKey);
+            }
+        } catch (_) {
+            // Saving must still work if browser storage is unavailable.
+        }
+    });
     render();
+    try {
+        const savedViewState = window.sessionStorage.getItem(savedViewStateKey);
+        if (savedViewState) {
+            window.sessionStorage.removeItem(savedViewStateKey);
+            restoreViewState(JSON.parse(savedViewState));
+        }
+    } catch (_) {
+        // The editor remains usable without restoring its previous view.
+    }
 });
