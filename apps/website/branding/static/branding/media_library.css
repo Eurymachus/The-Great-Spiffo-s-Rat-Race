@@ -1,5 +1,11 @@
 .managed-image-thumbnail { width: 5rem; height: 3.5rem; object-fit: contain; background: #202020; border-radius: 4px; }
 .managed-image-preview { display: block; max-width: 36rem; max-height: 20rem; object-fit: contain; background: #202020; padding: .75rem; border-radius: 4px; }
+.managed-image-name { padding: 0; color: var(--link-fg); background: transparent; border: 0; font: inherit; font-weight: 600; cursor: text; }
+.managed-image-name:hover, .managed-image-name:focus { color: var(--link-hover-color); text-decoration: underline; }
+.managed-image-name-editor { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+.managed-image-name-editor input { width: min(18rem, 100%); }
+.managed-image-name-editor .button { padding: .5rem .75rem !important; }
+.managed-image-name-error { flex-basis: 100%; color: #d98787; }
 .media-picker-control { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .media-picker-control select { display: none; }
 .media-picker-current { display: inline-flex; align-items: center; gap: .8rem; min-width: 18rem; color: var(--body-quiet-color); }

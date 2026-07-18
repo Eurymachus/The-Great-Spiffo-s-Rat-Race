@@ -2,6 +2,7 @@ from urllib.parse import urlencode
 
 from django import forms
 from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import path, reverse
@@ -397,13 +398,14 @@ class ManagedImageAdmin(admin.ModelAdmin):
     change_list_template = "admin/branding/managedimage/change_list.html"
     list_display = (
         "thumbnail",
-        "name",
+        "editable_name",
         "original_filename",
         "file_type",
         "dimensions",
         "formatted_size",
         "uploaded_at",
     )
+    list_display_links = None
     search_fields = ("name", "original_filename")
     readonly_fields = (
         "preview",
@@ -430,8 +432,36 @@ class ManagedImageAdmin(admin.ModelAdmin):
                 "library/",
                 self.admin_site.admin_view(self.library_view),
                 name="branding_managedimage_library",
-            )
+            ),
+            path(
+                "<path:object_id>/rename/",
+                self.admin_site.admin_view(self.rename_view),
+                name="branding_managedimage_rename",
+            ),
         ] + super().get_urls()
+
+    def rename_view(self, request, object_id):
+        if request.method != "POST":
+            return JsonResponse({"error": "Method not allowed."}, status=405)
+        image = self.get_object(request, object_id)
+        if not image:
+            return JsonResponse({"error": "Image not found."}, status=404)
+        if not self.has_change_permission(request, image):
+            return JsonResponse({"error": "Permission denied."}, status=403)
+        image.name = request.POST.get("name", "").strip()
+        try:
+            image.save(update_fields=("name",))
+        except ValidationError as exc:
+            if hasattr(exc, "message_dict"):
+                error = " ".join(
+                    message
+                    for field_messages in exc.message_dict.values()
+                    for message in field_messages
+                )
+            else:
+                error = " ".join(exc.messages)
+            return JsonResponse({"error": error}, status=400)
+        return JsonResponse({"id": image.pk, "name": image.name})
 
     def library_view(self, request):
         if request.method == "GET":
@@ -483,6 +513,15 @@ class ManagedImageAdmin(admin.ModelAdmin):
     @admin.display(description="Preview")
     def thumbnail(self, obj):
         return format_html('<img src="{}" alt="" class="managed-image-thumbnail">', obj.image.url)
+
+    @admin.display(ordering="name", description="Name")
+    def editable_name(self, obj):
+        return format_html(
+            '<button type="button" class="managed-image-name" data-image-id="{}" data-rename-url="{}">{}</button>',
+            obj.pk,
+            reverse("admin:branding_managedimage_rename", args=(obj.pk,)),
+            obj.name,
+        )
 
     @admin.display(description="Preview")
     def preview(self, obj):

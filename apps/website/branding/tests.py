@@ -128,6 +128,67 @@ class SiteBrandingAdminTests(TestCase):
             self.assertIn("not a valid image", result["error"])
             self.assertFalse(ManagedImage.objects.exists())
 
+    def test_media_library_name_can_be_changed_inline(self):
+        superuser = Participant.objects.create_superuser(
+            email="rename-media@example.com",
+            nickname="Rename Media",
+            password="test-password-only",
+        )
+        self.client.force_login(superuser)
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            image = ManagedImage.objects.create(
+                name="Original Name",
+                image=SimpleUploadedFile("original.png", png_bytes(), content_type="image/png"),
+                original_filename="original.png",
+            )
+            list_url = reverse("admin:branding_managedimage_changelist")
+            rename_url = reverse("admin:branding_managedimage_rename", args=(image.pk,))
+
+            image_list = self.client.get(list_url)
+            self.assertContains(image_list, 'class="managed-image-name"')
+            self.assertContains(image_list, f'data-rename-url="{rename_url}"')
+            self.assertNotContains(
+                image_list,
+                reverse("admin:branding_managedimage_change", args=(image.pk,)),
+            )
+
+            response = self.client.post(rename_url, {"name": "Updated Name"})
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["name"], "Updated Name")
+            image.refresh_from_db()
+            self.assertEqual(image.name, "Updated Name")
+
+    def test_media_library_inline_name_rejects_blank_and_duplicate_names(self):
+        superuser = Participant.objects.create_superuser(
+            email="invalid-rename-media@example.com",
+            nickname="Invalid Rename Media",
+            password="test-password-only",
+        )
+        self.client.force_login(superuser)
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            first = ManagedImage.objects.create(
+                name="First Image",
+                image=SimpleUploadedFile("first.png", png_bytes(), content_type="image/png"),
+                original_filename="first.png",
+            )
+            second = ManagedImage.objects.create(
+                name="Second Image",
+                image=SimpleUploadedFile("second.png", png_bytes(), content_type="image/png"),
+                original_filename="second.png",
+            )
+            rename_url = reverse("admin:branding_managedimage_rename", args=(second.pk,))
+
+            blank_response = self.client.post(rename_url, {"name": "   "})
+            duplicate_response = self.client.post(rename_url, {"name": first.name.lower()})
+
+            self.assertEqual(blank_response.status_code, 400)
+            self.assertIn("Enter a name", blank_response.json()["error"])
+            self.assertEqual(duplicate_response.status_code, 400)
+            self.assertIn("already exists", duplicate_response.json()["error"])
+            second.refresh_from_db()
+            self.assertEqual(second.name, "Second Image")
+
     def test_media_library_row_delete_removes_record_and_stored_file(self):
         superuser = Participant.objects.create_superuser(
             email="delete-media@example.com",

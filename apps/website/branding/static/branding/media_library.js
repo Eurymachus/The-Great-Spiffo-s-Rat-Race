@@ -35,6 +35,61 @@ document.addEventListener("DOMContentLoaded", () => {
     const uploadButton = dialog.querySelector(".media-upload-button");
     const uploadSummary = dialog.querySelector("[data-upload-summary]");
 
+    document.querySelectorAll(".managed-image-name").forEach((nameButton) => {
+        nameButton.addEventListener("click", () => {
+            if (nameButton.hidden) return;
+            const originalName = nameButton.textContent.trim();
+            const editor = document.createElement("span");
+            editor.className = "managed-image-name-editor";
+            editor.innerHTML = '<input type="text" maxlength="120"><button type="button" class="button" data-name-save>Save</button><button type="button" class="button" data-name-cancel>Cancel</button><small class="managed-image-name-error" hidden></small>';
+            const input = editor.querySelector("input");
+            const save = editor.querySelector("[data-name-save]");
+            const cancel = editor.querySelector("[data-name-cancel]");
+            const error = editor.querySelector(".managed-image-name-error");
+            input.value = originalName;
+            nameButton.hidden = true;
+            nameButton.after(editor);
+            input.focus();
+            input.select();
+
+            const closeEditor = () => {
+                editor.remove();
+                nameButton.hidden = false;
+                nameButton.focus();
+            };
+            cancel.addEventListener("click", closeEditor);
+            save.addEventListener("click", async () => {
+                const name = input.value.trim();
+                error.hidden = true;
+                save.disabled = true;
+                try {
+                    const data = new FormData();
+                    data.append("name", name);
+                    const response = await fetch(nameButton.dataset.renameUrl, {
+                        method: "POST",
+                        headers: {"X-CSRFToken": csrfToken, "X-Requested-With": "XMLHttpRequest"},
+                        body: data,
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || "The image name could not be saved.");
+                    nameButton.textContent = result.name;
+                    const libraryImage = library.find((image) => String(image.id) === String(result.id));
+                    if (libraryImage) libraryImage.name = result.name;
+                    closeEditor();
+                } catch (saveError) {
+                    error.textContent = saveError.message;
+                    error.hidden = false;
+                    save.disabled = false;
+                    input.focus();
+                }
+            });
+            input.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") { event.preventDefault(); save.click(); }
+                if (event.key === "Escape") { event.preventDefault(); closeEditor(); }
+            });
+        });
+    });
+
     const formatSize = (bytes) => bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     const deriveName = (filename) => filename.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (letter) => letter.toUpperCase());
     const compatible = (file) => {
