@@ -35,7 +35,7 @@
 .object-tools .media-manager-button { border: 0; cursor: pointer; }
 .branding-images-module > .description { margin: 0 0 1rem; color: var(--body-quiet-color); }
 .branding-image-panel { margin: 0 0 .8rem; border: 1px solid var(--hairline-color); background: var(--body-bg); }
-.branding-image-panel > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 2.9rem; padding: .65rem 1rem; background: var(--darkened-bg); cursor: pointer; list-style: none; }
+.branding-image-panel > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 2.9rem; padding: .65rem 1rem; background: var(--darkened-bg); cursor: pointer; list-style: none; user-select: none; }
 .branding-image-panel > summary::-webkit-details-marker { display: none; }
 .branding-image-panel > summary::before {
     content: "";

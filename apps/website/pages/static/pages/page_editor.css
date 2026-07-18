@@ -31,6 +31,7 @@
     background: var(--darkened-bg);
     font-weight: 600;
     list-style: none;
+    user-select: none;
 }
 .page-section-editor > summary::-webkit-details-marker,
 .page-card-editor > summary::-webkit-details-marker,
