@@ -45,6 +45,14 @@ class ManagedImage(models.Model):
         validators=brand_image_validators,
     )
     original_filename = models.CharField(max_length=255, editable=False)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        editable=False,
+        on_delete=models.SET_NULL,
+        related_name="uploaded_brand_images",
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

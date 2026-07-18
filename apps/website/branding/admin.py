@@ -403,6 +403,7 @@ class ManagedImageAdmin(admin.ModelAdmin):
         "file_type",
         "dimensions",
         "formatted_size",
+        "uploaded_by_name",
         "uploaded_at",
     )
     list_display_links = None
@@ -413,6 +414,7 @@ class ManagedImageAdmin(admin.ModelAdmin):
         "file_type",
         "dimensions",
         "formatted_size",
+        "uploaded_by",
         "uploaded_at",
     )
     fields = (
@@ -423,6 +425,7 @@ class ManagedImageAdmin(admin.ModelAdmin):
         "file_type",
         "dimensions",
         "formatted_size",
+        "uploaded_by",
         "uploaded_at",
     )
 
@@ -483,7 +486,12 @@ class ManagedImageAdmin(admin.ModelAdmin):
             if ManagedImage.objects.filter(name__iexact=name).exists():
                 results.append({"filename": uploaded_file.name, "ok": False, "error": "An image with this name already exists."})
                 continue
-            image = ManagedImage(name=name, image=uploaded_file, original_filename=uploaded_file.name)
+            image = ManagedImage(
+                name=name,
+                image=uploaded_file,
+                original_filename=uploaded_file.name,
+                uploaded_by=request.user,
+            )
             try:
                 image.save()
             except Exception as exc:
@@ -522,6 +530,10 @@ class ManagedImageAdmin(admin.ModelAdmin):
             reverse("admin:branding_managedimage_rename", args=(obj.pk,)),
             obj.name,
         )
+
+    @admin.display(ordering="uploaded_by__nickname", description="Uploaded by", empty_value="Unknown")
+    def uploaded_by_name(self, obj):
+        return obj.uploaded_by.nickname if obj.uploaded_by else None
 
     @admin.display(description="Preview")
     def preview(self, obj):

@@ -105,6 +105,12 @@ class SiteBrandingAdminTests(TestCase):
             self.assertEqual(result["image"]["name"], "Rat Race Header")
             self.assertEqual(result["image"]["filename"], "rat-race-header.png")
             self.assertEqual(result["image"]["dimensions"], "2 x 2")
+            uploaded_image = ManagedImage.objects.get(name="Rat Race Header")
+            self.assertEqual(uploaded_image.uploaded_by, superuser)
+
+            refreshed_list = self.client.get(reverse("admin:branding_managedimage_changelist"))
+            self.assertContains(refreshed_list, "Uploaded by")
+            self.assertContains(refreshed_list, superuser.nickname)
 
     def test_media_library_rejects_invalid_image_with_clear_feedback(self):
         superuser = Participant.objects.create_superuser(
