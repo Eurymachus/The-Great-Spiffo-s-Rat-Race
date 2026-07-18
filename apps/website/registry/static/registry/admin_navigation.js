@@ -1,6 +1,11 @@
 (() => {
     "use strict";
 
+    // App index screens are the top of this administration hierarchy. The
+    // nominal /admin/ parent redirects to a model list, which would create a
+    // navigation loop if a Back button were shown here.
+    if (/^\/admin\/[^/]+\/$/.test(window.location.pathname)) return;
+
     const content = document.querySelector("main#content-start");
     const breadcrumbLinks = [...document.querySelectorAll(".breadcrumbs a")];
     const parentLink = breadcrumbLinks.at(-1);
