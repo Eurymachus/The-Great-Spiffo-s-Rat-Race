@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import FileExtensionValidator, RegexValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.db.utils import OperationalError, ProgrammingError
 from PIL import Image, UnidentifiedImageError
@@ -313,6 +313,26 @@ class WebsiteTheme(models.Model):
 class SiteBranding(models.Model):
     SINGLETON_PK = 1
 
+    IMAGE_POSITION_CHOICES = (
+        ("left top", "Top left"), ("center top", "Top centre"), ("right top", "Top right"),
+        ("left center", "Centre left"), ("center center", "Centre"), ("right center", "Centre right"),
+        ("left bottom", "Bottom left"), ("center bottom", "Bottom centre"), ("right bottom", "Bottom right"),
+    )
+    FEATURE_FIT_CHOICES = (("cover", "Fill frame (crop if needed)"), ("contain", "Show whole image"))
+    FEATURE_HEIGHT_CHOICES = (
+        ("standard", "Standard - maximum 24rem"),
+        ("natural", "Natural proportions"),
+        ("short", "Short banner - 12rem"),
+        ("tall", "Tall banner - 32rem"),
+        ("custom", "Custom height"),
+    )
+    BACKGROUND_SCALE_CHOICES = (
+        ("cover", "Fill screen"),
+        ("contain", "Fit whole image"),
+        ("auto", "Original size"),
+        ("repeat", "Tile image"),
+    )
+
     id = models.PositiveSmallIntegerField(
         primary_key=True, default=SINGLETON_PK, editable=False
     )
@@ -460,6 +480,20 @@ class SiteBranding(models.Model):
         max_length=200,
         blank=True,
     )
+    homepage_feature_fit = models.CharField(
+        "image fit", max_length=12, choices=FEATURE_FIT_CHOICES, default="cover"
+    )
+    homepage_feature_height = models.CharField(
+        "height", max_length=12, choices=FEATURE_HEIGHT_CHOICES, default="standard"
+    )
+    homepage_feature_custom_height = models.PositiveSmallIntegerField(
+        "custom height (rem)", default=24,
+        validators=(MinValueValidator(6), MaxValueValidator(60)),
+        help_text="Used only when height is set to Custom height.",
+    )
+    homepage_feature_position = models.CharField(
+        "focal position", max_length=20, choices=IMAGE_POSITION_CHOICES, default="center center"
+    )
     enable_background_image = models.BooleanField(default=False)
     background_image_asset = models.ForeignKey(
         ManagedImage, null=True, blank=True, on_delete=models.PROTECT,
@@ -470,6 +504,37 @@ class SiteBranding(models.Model):
         blank=True,
         validators=brand_image_validators,
         help_text="Decorative only. The active theme colour remains as a fallback.",
+    )
+    background_image_opacity = models.PositiveSmallIntegerField(
+        "image opacity", default=100,
+        validators=(MinValueValidator(0), MaxValueValidator(100)),
+        help_text="0% hides the image and 100% shows it fully.",
+    )
+    background_overlay_strength = models.PositiveSmallIntegerField(
+        "theme overlay", default=28,
+        validators=(MinValueValidator(0), MaxValueValidator(80)),
+        help_text="Adds the theme background colour over the image to keep text readable.",
+    )
+    background_image_saturation = models.PositiveSmallIntegerField(
+        "saturation", default=100,
+        validators=(MinValueValidator(0), MaxValueValidator(200)),
+    )
+    background_image_brightness = models.PositiveSmallIntegerField(
+        "brightness", default=100,
+        validators=(MinValueValidator(25), MaxValueValidator(200)),
+    )
+    background_image_contrast = models.PositiveSmallIntegerField(
+        "contrast", default=100,
+        validators=(MinValueValidator(25), MaxValueValidator(200)),
+    )
+    background_image_position = models.CharField(
+        "position", max_length=20, choices=IMAGE_POSITION_CHOICES, default="center top"
+    )
+    background_image_scale = models.CharField(
+        "scale", max_length=12, choices=BACKGROUND_SCALE_CHOICES, default="cover"
+    )
+    background_image_fixed = models.BooleanField(
+        "keep background fixed while scrolling", default=True
     )
     show_attribution = models.BooleanField(default=True)
     attribution_text = models.TextField(

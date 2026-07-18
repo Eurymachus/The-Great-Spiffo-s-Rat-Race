@@ -219,3 +219,9 @@ affects every editor and may alter storage, performance, or security exposure.
 The maximum individual image upload size is the first managed setting. Browser
 feedback and server-side validation both use the same stored value, with a safe
 5 MB fallback while the database is unavailable during initial setup.
+## Branding image presentation controls
+
+- Uploaded images remain reusable source assets. Visual adjustments are stored as branding configuration and do not modify the original files.
+- Background images support opacity, theme overlay, saturation, brightness, contrast, position, scale and fixed or scrolling placement.
+- Homepage feature images support crop or contain fitting, standard, natural, short, tall or custom heights, and a selectable focal position.
+- Existing sites retain the previous presentation by default: a covering fixed background, 28% theme overlay, neutral filters, and a feature image constrained to a maximum height of 24rem.

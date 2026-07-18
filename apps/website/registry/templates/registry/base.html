@@ -107,9 +107,26 @@
         }
     </style>
     {% endif %}
-    {% if site_background_image_url %}
-    <style>:root { --site-background-image: url("{{ site_background_image_url }}"); }</style>
-    {% endif %}
+    <style>
+        :root {
+            --site-feature-fit: {{ site_homepage_feature_fit }};
+            --site-feature-height: {{ site_homepage_feature_height }};
+            --site-feature-max-height: {{ site_homepage_feature_max_height }};
+            --site-feature-position: {{ site_homepage_feature_position }};
+            {% if site_background_image_url %}
+            --site-background-image: url("{{ site_background_image_url }}");
+            --site-background-image-opacity: {{ site_background_image_opacity }};
+            --site-background-overlay: {{ site_background_overlay_strength }}%;
+            --site-background-saturation: {{ site_background_image_saturation }}%;
+            --site-background-brightness: {{ site_background_image_brightness }}%;
+            --site-background-contrast: {{ site_background_image_contrast }}%;
+            --site-background-position: {{ site_background_image_position }};
+            --site-background-size: {{ site_background_image_size }};
+            --site-background-repeat: {{ site_background_image_repeat }};
+            --site-background-layer-position: {{ site_background_image_layer_position }};
+            {% endif %}
+        }
+    </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="theme-background-{{ site_theme.background_style|default:'radial' }}{% if site_background_image_url %} has-brand-background{% endif %}">

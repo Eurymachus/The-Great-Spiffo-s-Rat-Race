@@ -29,6 +29,19 @@ def site_identity(request):
     background_image = (
         selected_image("background_image")
     )
+    feature_height = "auto"
+    feature_max_height = "24rem"
+    if brand:
+        if brand.homepage_feature_height == "natural":
+            feature_max_height = "none"
+        elif brand.homepage_feature_height == "short":
+            feature_height, feature_max_height = "12rem", "none"
+        elif brand.homepage_feature_height == "tall":
+            feature_height, feature_max_height = "32rem", "none"
+        elif brand.homepage_feature_height == "custom":
+            feature_height = f"{brand.homepage_feature_custom_height}rem"
+            feature_max_height = "none"
+    background_scale = brand.background_image_scale if brand else "cover"
     return {
         "site_legal_name": settings.SITE_LEGAL_NAME,
         "site_company_number": company_number,
@@ -135,6 +148,19 @@ def site_identity(request):
             brand.homepage_feature_image_alt if homepage_feature_image else ""
         ),
         "site_background_image_url": background_image.url if background_image else "",
+        "site_homepage_feature_fit": brand.homepage_feature_fit if brand else "cover",
+        "site_homepage_feature_height": feature_height,
+        "site_homepage_feature_max_height": feature_max_height,
+        "site_homepage_feature_position": brand.homepage_feature_position if brand else "center center",
+        "site_background_image_opacity": (brand.background_image_opacity / 100) if brand else 1,
+        "site_background_overlay_strength": brand.background_overlay_strength if brand else 28,
+        "site_background_image_saturation": brand.background_image_saturation if brand else 100,
+        "site_background_image_brightness": brand.background_image_brightness if brand else 100,
+        "site_background_image_contrast": brand.background_image_contrast if brand else 100,
+        "site_background_image_position": brand.background_image_position if brand else "center top",
+        "site_background_image_size": "auto" if background_scale == "repeat" else background_scale,
+        "site_background_image_repeat": "repeat" if background_scale == "repeat" else "no-repeat",
+        "site_background_image_layer_position": "fixed" if not brand or brand.background_image_fixed else "absolute",
         "site_show_attribution": brand.show_attribution if brand else True,
         "site_attribution_text": (
             brand.attribution_text if brand else settings.SITE_ATTRIBUTION_TEXT

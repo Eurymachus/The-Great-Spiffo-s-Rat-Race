@@ -86,3 +86,19 @@
 .branding-image-extra .help { grid-column: 2; margin: 0; }
 .branding-image-extra input { width: 100%; }
 @media (max-width: 700px) { .media-upload-row { grid-template-columns: 3.5rem minmax(0, 1fr) 1.5rem; } .media-upload-row > img, .media-file-placeholder { width: 3.5rem; height: 3.5rem; } }
+.branding-image-settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1rem 1.5rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--hairline-color);
+}
+.branding-image-settings > div { min-width: 0; }
+.branding-image-settings label { display: block; margin-bottom: .4rem; font-weight: 700; }
+.branding-image-settings select,
+.branding-image-settings input[type="number"] { width: 100%; max-width: 22rem; }
+.branding-image-settings input[type="range"] { width: min(100%, 18rem); vertical-align: middle; }
+.branding-range-value { display: inline-block; min-width: 3.5rem; margin-left: .6rem; font-weight: 700; }
+.branding-image-settings .branding-image-checkbox { display: flex; align-items: center; gap: .55rem; }
+.branding-image-settings .branding-image-checkbox label { margin: 0; }

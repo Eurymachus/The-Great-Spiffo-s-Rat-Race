@@ -53,6 +53,9 @@ class SiteBrandingAdminTests(TestCase):
             "Used for link previews on Discord and social media. It is not displayed within the website page itself.",
         )
         self.assertContains(response, "branding/media_library.js")
+        self.assertContains(response, "branding/image_controls.js")
+        self.assertContains(response, "Image opacity")
+        self.assertContains(response, "Focal position")
         self.assertNotContains(response, "Header logo preview:")
         self.assertNotContains(response, "Delete")
 
@@ -62,6 +65,42 @@ class SiteBrandingAdminTests(TestCase):
             change_url,
             fetch_redirect_response=False,
         )
+
+    def test_image_presentation_settings_render_as_css_variables(self):
+        self.branding.homepage_feature_fit = "contain"
+        self.branding.homepage_feature_height = "custom"
+        self.branding.homepage_feature_custom_height = 30
+        self.branding.homepage_feature_position = "right bottom"
+        self.branding.background_image_opacity = 70
+        self.branding.background_overlay_strength = 35
+        self.branding.background_image_saturation = 80
+        self.branding.background_image_brightness = 90
+        self.branding.background_image_contrast = 110
+        self.branding.background_image_position = "left top"
+        self.branding.background_image_scale = "contain"
+        self.branding.background_image_fixed = False
+        with tempfile.TemporaryDirectory() as media_root, self.settings(
+            MEDIA_ROOT=media_root
+        ):
+            self.branding.background_image = SimpleUploadedFile(
+                "test-background.png", png_bytes(), content_type="image/png"
+            )
+            self.branding.enable_background_image = True
+            self.branding.save()
+
+            response = self.client.get(reverse("registry:home"))
+
+        self.assertContains(response, "--site-feature-fit: contain")
+        self.assertContains(response, "--site-feature-height: 30rem")
+        self.assertContains(response, "--site-feature-position: right bottom")
+        self.assertContains(response, "--site-background-image-opacity: 0.7")
+        self.assertContains(response, "--site-background-overlay: 35%")
+        self.assertContains(response, "--site-background-saturation: 80%")
+        self.assertContains(response, "--site-background-brightness: 90%")
+        self.assertContains(response, "--site-background-contrast: 110%")
+        self.assertContains(response, "--site-background-position: left top")
+        self.assertContains(response, "--site-background-size: contain")
+        self.assertContains(response, "--site-background-layer-position: absolute")
 
     def test_uploaded_header_logo_renders_only_when_enabled(self):
         one_pixel_png = png_bytes()
@@ -300,6 +339,18 @@ class SiteBrandingAdminTests(TestCase):
                 "attribution_url": settings.SITE_ATTRIBUTION_URL,
                 "attribution_new_tab": "on",
                 "active_theme": self.branding.active_theme_id,
+                "homepage_feature_fit": "cover",
+                "homepage_feature_height": "standard",
+                "homepage_feature_custom_height": 24,
+                "homepage_feature_position": "center center",
+                "background_image_opacity": 100,
+                "background_overlay_strength": 28,
+                "background_image_saturation": 100,
+                "background_image_brightness": 100,
+                "background_image_contrast": 100,
+                "background_image_position": "center top",
+                "background_image_scale": "cover",
+                "background_image_fixed": "on",
             },
         )
         self.assertEqual(saved.status_code, 302)

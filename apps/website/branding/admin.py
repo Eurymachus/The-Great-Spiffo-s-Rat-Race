@@ -13,6 +13,19 @@ from .presets import THEME_PRESETS
 from administration.models import WebsiteSettings
 
 
+class SiteBrandingAdminForm(forms.ModelForm):
+    class Meta:
+        model = SiteBranding
+        fields = "__all__"
+        widgets = {
+            "background_image_opacity": forms.NumberInput(attrs={"type": "range", "min": 0, "max": 100, "step": 1, "class": "branding-range"}),
+            "background_overlay_strength": forms.NumberInput(attrs={"type": "range", "min": 0, "max": 80, "step": 1, "class": "branding-range"}),
+            "background_image_saturation": forms.NumberInput(attrs={"type": "range", "min": 0, "max": 200, "step": 1, "class": "branding-range"}),
+            "background_image_brightness": forms.NumberInput(attrs={"type": "range", "min": 25, "max": 200, "step": 1, "class": "branding-range"}),
+            "background_image_contrast": forms.NumberInput(attrs={"type": "range", "min": 25, "max": 200, "step": 1, "class": "branding-range"}),
+        }
+
+
 def font_specimens(text):
     font_keys = (
         "system",
@@ -240,6 +253,7 @@ class WebsiteThemeAdmin(admin.ModelAdmin):
 
 @admin.register(SiteBranding)
 class SiteBrandingAdmin(admin.ModelAdmin):
+    form = SiteBrandingAdminForm
     change_form_template = "admin/branding/sitebranding/change_form.html"
     fieldsets = (
         (
@@ -287,9 +301,21 @@ class SiteBrandingAdmin(admin.ModelAdmin):
                     "enable_homepage_feature_image",
                     "homepage_feature_image_asset",
                     "homepage_feature_image_alt",
+                    "homepage_feature_fit",
+                    "homepage_feature_height",
+                    "homepage_feature_custom_height",
+                    "homepage_feature_position",
                     "homepage_feature_image_preview",
                     "enable_background_image",
                     "background_image_asset",
+                    "background_image_opacity",
+                    "background_overlay_strength",
+                    "background_image_saturation",
+                    "background_image_brightness",
+                    "background_image_contrast",
+                    "background_image_position",
+                    "background_image_scale",
+                    "background_image_fixed",
                     "background_image_preview",
                 ),
             },
@@ -391,7 +417,7 @@ class SiteBrandingAdmin(admin.ModelAdmin):
 
     class Media:
         css = {"all": ("branding/media_library.css",)}
-        js = ("branding/media_library.js",)
+        js = ("branding/media_library.js", "branding/image_controls.js")
 
 
 @admin.register(ManagedImage)

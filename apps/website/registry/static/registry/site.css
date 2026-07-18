@@ -79,12 +79,37 @@ body {
 }
 .has-brand-background {
     background-color: var(--theme-background);
-    background-image:
-        linear-gradient(color-mix(in srgb, var(--theme-background) 28%, transparent), color-mix(in srgb, var(--theme-background) 48%, transparent)),
-        var(--site-background-image);
-    background-position: center top;
-    background-size: cover;
-    background-attachment: fixed;
+    position: relative;
+    isolation: isolate;
+}
+.has-brand-background::before,
+.has-brand-background::after {
+    content: "";
+    position: var(--site-background-layer-position, fixed);
+    z-index: 0;
+    inset: 0;
+    pointer-events: none;
+}
+.has-brand-background::before {
+    background-image: var(--site-background-image);
+    background-position: var(--site-background-position, center top);
+    background-size: var(--site-background-size, cover);
+    background-repeat: var(--site-background-repeat, no-repeat);
+    opacity: var(--site-background-image-opacity, 1);
+    filter:
+        saturate(var(--site-background-saturation, 100%))
+        brightness(var(--site-background-brightness, 100%))
+        contrast(var(--site-background-contrast, 100%));
+}
+.has-brand-background::after {
+    background: linear-gradient(
+        color-mix(in srgb, var(--theme-background) var(--site-background-overlay, 28%), transparent),
+        color-mix(in srgb, var(--theme-background) calc(var(--site-background-overlay, 28%) + 20%), transparent)
+    );
+}
+.has-brand-background > .page-shell {
+    position: relative;
+    z-index: 1;
 }
 .skip-link {
     position: fixed;
@@ -326,10 +351,12 @@ button:hover { background: var(--theme-accent-hover); }
 .homepage-feature-image {
     display: block;
     width: 100%;
-    max-height: 24rem;
+    height: var(--site-feature-height, auto);
+    max-height: var(--site-feature-max-height, 24rem);
     margin: 0 0 1.5rem;
     border-radius: calc(var(--theme-radius) * .75);
-    object-fit: cover;
+    object-fit: var(--site-feature-fit, cover);
+    object-position: var(--site-feature-position, center center);
 }
 .policy-copy h3 { margin-top: 1.8rem; }
 .policy-copy li { margin: .45rem 0; }

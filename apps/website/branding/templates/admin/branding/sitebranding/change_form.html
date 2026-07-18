@@ -39,6 +39,12 @@
                     {{ adminform.form.enable_homepage_feature_image.errors }}{{ adminform.form.homepage_feature_image_asset.errors }}
                     <div class="branding-image-selection">{{ adminform.form.homepage_feature_image_asset }}</div>
                     <div class="branding-image-extra"><label for="{{ adminform.form.homepage_feature_image_alt.id_for_label }}">Alternative text</label>{{ adminform.form.homepage_feature_image_alt }}{{ adminform.form.homepage_feature_image_alt.errors }}<div class="help">Describe the image for people who cannot see it.</div></div>
+                    <div class="branding-image-settings">
+                        <div><label for="{{ adminform.form.homepage_feature_fit.id_for_label }}">Image fit</label>{{ adminform.form.homepage_feature_fit }}</div>
+                        <div><label for="{{ adminform.form.homepage_feature_height.id_for_label }}">Height</label>{{ adminform.form.homepage_feature_height }}</div>
+                        <div><label for="{{ adminform.form.homepage_feature_custom_height.id_for_label }}">Custom height</label>{{ adminform.form.homepage_feature_custom_height }}{{ adminform.form.homepage_feature_custom_height.errors }}<div class="help">6 to 60rem. Used only with Custom height.</div></div>
+                        <div><label for="{{ adminform.form.homepage_feature_position.id_for_label }}">Focal position</label>{{ adminform.form.homepage_feature_position }}</div>
+                    </div>
                 </div>
             </details>
 
@@ -47,6 +53,16 @@
                 <div class="branding-image-panel-body">
                     {{ adminform.form.enable_background_image.errors }}{{ adminform.form.background_image_asset.errors }}
                     <div class="branding-image-selection">{{ adminform.form.background_image_asset }}</div>
+                    <div class="branding-image-settings branding-image-settings-background">
+                        <div><label for="{{ adminform.form.background_image_opacity.id_for_label }}">Image opacity</label>{{ adminform.form.background_image_opacity }}</div>
+                        <div><label for="{{ adminform.form.background_overlay_strength.id_for_label }}">Theme overlay</label>{{ adminform.form.background_overlay_strength }}</div>
+                        <div><label for="{{ adminform.form.background_image_saturation.id_for_label }}">Saturation</label>{{ adminform.form.background_image_saturation }}</div>
+                        <div><label for="{{ adminform.form.background_image_brightness.id_for_label }}">Brightness</label>{{ adminform.form.background_image_brightness }}</div>
+                        <div><label for="{{ adminform.form.background_image_contrast.id_for_label }}">Contrast</label>{{ adminform.form.background_image_contrast }}</div>
+                        <div><label for="{{ adminform.form.background_image_position.id_for_label }}">Position</label>{{ adminform.form.background_image_position }}</div>
+                        <div><label for="{{ adminform.form.background_image_scale.id_for_label }}">Scale</label>{{ adminform.form.background_image_scale }}</div>
+                        <div class="branding-image-checkbox">{{ adminform.form.background_image_fixed }}<label for="{{ adminform.form.background_image_fixed.id_for_label }}">Keep fixed while scrolling</label></div>
+                    </div>
                 </div>
             </details>
         </fieldset>
