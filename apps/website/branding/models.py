@@ -13,8 +13,11 @@ hex_colour = RegexValidator(
 
 
 def validate_brand_image_size(image):
-    if image.size > 5 * 1024 * 1024:
-        raise ValidationError("Brand images must be 5 MB or smaller.")
+    from administration.models import WebsiteSettings
+
+    maximum_mb = WebsiteSettings.maximum_image_upload_size_mb()
+    if image.size > maximum_mb * 1024 * 1024:
+        raise ValidationError(f"Brand images must be {maximum_mb} MB or smaller.")
 
 
 def validate_brand_image_content(image):

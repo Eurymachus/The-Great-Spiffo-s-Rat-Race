@@ -208,3 +208,14 @@ images for Branding rather than uploading a separate copy into every image slot.
 The Branding image picker supports immediate validated multi-file upload with
 per-file previews and feedback. Assigning a selected image to Branding remains a
 normal saved form change. Images that are currently in use cannot be deleted.
+
+## 2026-07-18 - Keep operational website settings superuser-only
+
+Deployment-wide safety limits belong in a singleton Website Settings record
+rather than being duplicated in templates or JavaScript. These settings are
+available only to superusers under Website Administration because changing them
+affects every editor and may alter storage, performance, or security exposure.
+
+The maximum individual image upload size is the first managed setting. Browser
+feedback and server-side validation both use the same stored value, with a safe
+5 MB fallback while the database is unavailable during initial setup.

@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="media-library-grid" data-media-grid></div>
             </section>
             <section class="media-upload-panel">
-                <div class="media-upload-heading"><div><h3>Upload images</h3><p>PNG, JPEG, WebP or ICO, up to 5 MB each.</p></div><label class="button media-choose-files">Choose files<input type="file" accept=".png,.jpg,.jpeg,.webp,.ico,image/png,image/jpeg,image/webp,image/x-icon" multiple hidden></label></div>
+                <div class="media-upload-heading"><div><h3>Upload images</h3><p data-upload-restrictions>PNG, JPEG, WebP or ICO, up to 5 MB each.</p></div><label class="button media-choose-files">Choose files<input type="file" accept=".png,.jpg,.jpeg,.webp,.ico,image/png,image/jpeg,image/webp,image/x-icon" multiple hidden></label></div>
                 <div class="media-upload-list" data-upload-list><p class="media-empty">No files selected.</p></div>
                 <div class="media-upload-actions"><span data-upload-summary></span><button type="button" class="button media-upload-button" disabled>Upload</button></div>
             </section>
@@ -92,6 +92,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const uploadList = dialog.querySelector("[data-upload-list]");
     const uploadButton = dialog.querySelector(".media-upload-button");
     const uploadSummary = dialog.querySelector("[data-upload-summary]");
+    const uploadRestrictions = dialog.querySelector("[data-upload-restrictions]");
+    let maximumImageSizeMb = 5;
+    let maximumImageSizeBytes = 5 * 1024 * 1024;
 
     document.querySelectorAll(".managed-image-name").forEach((nameButton) => {
         nameButton.addEventListener("click", () => {
@@ -153,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const compatible = (file) => {
         const extension = file.name.split(".").pop().toLowerCase();
         if (!["png", "jpg", "jpeg", "webp", "ico"].includes(extension)) return "This file type is not supported.";
-        if (file.size > 5 * 1024 * 1024) return "This file is larger than 5 MB.";
+        if (file.size > maximumImageSizeBytes) return `This file is larger than ${maximumImageSizeMb} MB.`;
         return "";
     };
 
@@ -222,7 +225,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const loadLibrary = async () => {
         const response = await fetch(libraryUrl, {headers: {"X-Requested-With": "XMLHttpRequest"}});
         if (!response.ok) throw new Error("The image library could not be loaded.");
-        library = (await response.json()).images;
+        const payload = await response.json();
+        library = payload.images;
+        if (payload.upload_settings) {
+            maximumImageSizeMb = payload.upload_settings.maximum_image_size_mb;
+            maximumImageSizeBytes = payload.upload_settings.maximum_image_size_bytes;
+            uploadRestrictions.textContent = `PNG, JPEG, WebP or ICO, up to ${maximumImageSizeMb} MB each.`;
+        }
         refreshSelects();
         renderLibrary();
     };
@@ -293,7 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
         dialog.classList.toggle("is-upload-only", uploadOnly);
         modalTitle.textContent = uploadOnly ? "Upload images" : "Choose an image";
         modalIntroduction.textContent = uploadOnly ? "Choose one or more image files to add to the library." : "Select an existing image or upload new files.";
-        if (!uploadOnly) await loadLibrary();
+        await loadLibrary();
         dialog.showModal();
     };
 

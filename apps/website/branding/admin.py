@@ -10,6 +10,7 @@ from django.utils.html import format_html, format_html_join
 
 from .models import ManagedImage, SiteBranding, WebsiteTheme
 from .presets import THEME_PRESETS
+from administration.models import WebsiteSettings
 
 
 def font_specimens(text):
@@ -470,7 +471,14 @@ class ManagedImageAdmin(admin.ModelAdmin):
         if request.method == "GET":
             if not self.has_view_permission(request):
                 return JsonResponse({"error": "Permission denied."}, status=403)
-            return JsonResponse({"images": self._library_payload()})
+            maximum_mb = WebsiteSettings.maximum_image_upload_size_mb()
+            return JsonResponse({
+                "images": self._library_payload(),
+                "upload_settings": {
+                    "maximum_image_size_mb": maximum_mb,
+                    "maximum_image_size_bytes": maximum_mb * 1024 * 1024,
+                },
+            })
 
         if not self.has_add_permission(request):
             return JsonResponse({"error": "Permission denied."}, status=403)
