@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, RegexValidator
 from django.db import models
 from django.db.utils import OperationalError, ProgrammingError
+from PIL import Image, UnidentifiedImageError
 
 
 hex_colour = RegexValidator(
@@ -16,10 +17,79 @@ def validate_brand_image_size(image):
         raise ValidationError("Brand images must be 5 MB or smaller.")
 
 
+def validate_brand_image_content(image):
+    try:
+        image.seek(0)
+        with Image.open(image) as opened_image:
+            opened_image.verify()
+    except (OSError, SyntaxError, UnidentifiedImageError, ValueError):
+        raise ValidationError("The selected file is not a valid image.")
+    finally:
+        if getattr(image, "_committed", False):
+            image.close()
+        else:
+            image.seek(0)
+
+
 brand_image_validators = (
     FileExtensionValidator(("png", "jpg", "jpeg", "webp", "ico")),
     validate_brand_image_size,
+    validate_brand_image_content,
 )
+
+
+class ManagedImage(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+    image = models.ImageField(
+        upload_to="branding/library/",
+        validators=brand_image_validators,
+    )
+    original_filename = models.CharField(max_length=255, editable=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("name",)
+        verbose_name = "image"
+        verbose_name_plural = "images"
+
+    def clean(self):
+        self.name = self.name.strip()
+        if not self.name:
+            raise ValidationError({"name": "Enter a name for this image."})
+        duplicate = type(self).objects.filter(name__iexact=self.name).exclude(pk=self.pk)
+        if duplicate.exists():
+            raise ValidationError({"name": "An image with this name already exists."})
+
+    def save(self, *args, **kwargs):
+        if self.image and not self.original_filename:
+            self.original_filename = self.image.name.rsplit("/", 1)[-1]
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    @property
+    def file_type(self):
+        return self.original_filename.rsplit(".", 1)[-1].upper() if "." in self.original_filename else ""
+
+    @property
+    def dimensions(self):
+        if not self.image:
+            return ""
+        try:
+            return f"{self.image.width} x {self.image.height}"
+        except (FileNotFoundError, OSError):
+            return "Unavailable"
+
+    @property
+    def file_size(self):
+        if not self.image:
+            return 0
+        try:
+            return self.image.size
+        except (FileNotFoundError, OSError):
+            return 0
+
+    def __str__(self):
+        return self.name
 
 
 class WebsiteTheme(models.Model):
@@ -318,6 +388,10 @@ class SiteBranding(models.Model):
     )
     disclaimer = models.CharField(max_length=240, default=settings.SITE_DISCLAIMER)
     enable_header_logo = models.BooleanField(default=False)
+    header_logo_asset = models.ForeignKey(
+        ManagedImage, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="header_logo_branding", verbose_name="header logo image",
+    )
     header_logo = models.ImageField(
         upload_to="branding/",
         blank=True,
@@ -330,6 +404,10 @@ class SiteBranding(models.Model):
         help_text="Describe the logo for people who cannot see it.",
     )
     enable_favicon = models.BooleanField(default=False)
+    favicon_asset = models.ForeignKey(
+        ManagedImage, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="favicon_branding", verbose_name="favicon image",
+    )
     favicon = models.ImageField(
         upload_to="branding/",
         blank=True,
@@ -337,6 +415,10 @@ class SiteBranding(models.Model):
         help_text="A square PNG or ICO works best.",
     )
     enable_social_image = models.BooleanField(default=False)
+    social_image_asset = models.ForeignKey(
+        ManagedImage, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="social_image_branding", verbose_name="social sharing image",
+    )
     social_image = models.ImageField(
         "social sharing image",
         upload_to="branding/",
@@ -345,6 +427,10 @@ class SiteBranding(models.Model):
         help_text="Used when the website is shared on services such as Discord.",
     )
     enable_homepage_feature_image = models.BooleanField(default=False)
+    homepage_feature_image_asset = models.ForeignKey(
+        ManagedImage, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="homepage_feature_branding", verbose_name="homepage feature image",
+    )
     homepage_feature_image = models.ImageField(
         upload_to="branding/",
         blank=True,
@@ -356,6 +442,10 @@ class SiteBranding(models.Model):
         blank=True,
     )
     enable_background_image = models.BooleanField(default=False)
+    background_image_asset = models.ForeignKey(
+        ManagedImage, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="background_image_branding", verbose_name="background image",
+    )
     background_image = models.ImageField(
         upload_to="branding/",
         blank=True,

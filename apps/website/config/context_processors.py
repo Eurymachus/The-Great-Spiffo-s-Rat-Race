@@ -14,16 +14,20 @@ def site_identity(request):
         and request.user.has_perm("branding.change_websitetheme")
     ):
         theme = WebsiteTheme.objects.filter(pk=preview_theme_id).first() or theme
-    header_logo = brand.header_logo if brand and brand.enable_header_logo else None
-    favicon = brand.favicon if brand and brand.enable_favicon else None
-    social_image = brand.social_image if brand and brand.enable_social_image else None
+    def selected_image(field_name):
+        if not brand or not getattr(brand, f"enable_{field_name}"):
+            return None
+        asset = getattr(brand, f"{field_name}_asset", None)
+        return asset.image if asset else getattr(brand, field_name, None)
+
+    header_logo = selected_image("header_logo")
+    favicon = selected_image("favicon")
+    social_image = selected_image("social_image")
     homepage_feature_image = (
-        brand.homepage_feature_image
-        if brand and brand.enable_homepage_feature_image
-        else None
+        selected_image("homepage_feature_image")
     )
     background_image = (
-        brand.background_image if brand and brand.enable_background_image else None
+        selected_image("background_image")
     )
     return {
         "site_legal_name": settings.SITE_LEGAL_NAME,

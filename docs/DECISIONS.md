@@ -199,3 +199,12 @@ The Rat Race footer includes configurable acknowledgement text and an external
 link to The Indie Stone's terms. This is distinct from the non-affiliation
 disclaimer and may be disabled or changed through Branding if the applicable
 terms or attribution wording change.
+
+## 2026-07-18 - Manage uploaded images through a reusable media library
+
+Uploaded website images are reusable records with a friendly editable name and
+their original filename retained as metadata. Administrators choose existing
+images for Branding rather than uploading a separate copy into every image slot.
+The Branding image picker supports immediate validated multi-file upload with
+per-file previews and feedback. Assigning a selected image to Branding remains a
+normal saved form change. Images that are currently in use cannot be deleted.

@@ -1,5 +1,5 @@
-import base64
 import tempfile
+from io import BytesIO
 
 from django.conf import settings
 from django.contrib.auth.models import Group
@@ -9,12 +9,19 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
+from PIL import Image
 
 from registry.models import Participant
 from registry.verification_email import send_verification_email
 from pages.models import Page
 
-from .models import SiteBranding, WebsiteTheme
+from .models import ManagedImage, SiteBranding, WebsiteTheme
+
+
+def png_bytes(colour=(255, 128, 0, 255)):
+    output = BytesIO()
+    Image.new("RGBA", (2, 2), colour).save(output, format="PNG")
+    return output.getvalue()
 
 
 class SiteBrandingAdminTests(TestCase):
@@ -50,10 +57,7 @@ class SiteBrandingAdminTests(TestCase):
         )
 
     def test_uploaded_header_logo_renders_only_when_enabled(self):
-        one_pixel_png = base64.b64decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
-            "/x8AAusB9Y9Z4iUAAAAASUVORK5CYII="
-        )
+        one_pixel_png = png_bytes()
         with tempfile.TemporaryDirectory() as media_root, self.settings(
             MEDIA_ROOT=media_root
         ):
@@ -71,6 +75,70 @@ class SiteBrandingAdminTests(TestCase):
             enabled = self.client.get(reverse("registry:home"))
             self.assertContains(enabled, "test-logo.png")
             self.assertContains(enabled, 'alt="Test challenge logo"')
+
+    def test_media_library_upload_returns_immediate_image_metadata(self):
+        superuser = Participant.objects.create_superuser(
+            email="media-superuser@example.com",
+            nickname="Media Superuser",
+            password="test-password-only",
+        )
+        self.client.force_login(superuser)
+        image_list = self.client.get(reverse("admin:branding_managedimage_changelist"))
+        self.assertContains(image_list, "Upload images")
+        self.assertContains(image_list, "branding/media_library.js")
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            response = self.client.post(
+                reverse("admin:branding_managedimage_library"),
+                {
+                    "names": ["Rat Race Header"],
+                    "images": [SimpleUploadedFile("rat-race-header.png", png_bytes(), content_type="image/png")],
+                },
+            )
+
+            self.assertEqual(response.status_code, 200)
+            result = response.json()["results"][0]
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["image"]["name"], "Rat Race Header")
+            self.assertEqual(result["image"]["filename"], "rat-race-header.png")
+            self.assertEqual(result["image"]["dimensions"], "2 x 2")
+
+    def test_media_library_rejects_invalid_image_with_clear_feedback(self):
+        superuser = Participant.objects.create_superuser(
+            email="invalid-media@example.com",
+            nickname="Invalid Media",
+            password="test-password-only",
+        )
+        self.client.force_login(superuser)
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            response = self.client.post(
+                reverse("admin:branding_managedimage_library"),
+                {
+                    "names": ["Not Really An Image"],
+                    "images": [SimpleUploadedFile("not-an-image.png", b"not an image", content_type="image/png")],
+                },
+            )
+
+            self.assertEqual(response.status_code, 200)
+            result = response.json()["results"][0]
+            self.assertFalse(result["ok"])
+            self.assertIn("not a valid image", result["error"])
+            self.assertFalse(ManagedImage.objects.exists())
+
+    def test_selected_library_image_can_supply_header_logo(self):
+        with tempfile.TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            image = ManagedImage.objects.create(
+                name="Reusable Header",
+                image=SimpleUploadedFile("reusable.png", png_bytes(), content_type="image/png"),
+                original_filename="reusable.png",
+            )
+            self.branding.header_logo_asset = image
+            self.branding.enable_header_logo = True
+            self.branding.header_logo_alt = "Reusable challenge logo"
+            self.branding.save()
+
+            response = self.client.get(reverse("registry:home"))
+            self.assertContains(response, "reusable.png")
+            self.assertContains(response, 'alt="Reusable challenge logo"')
 
     def test_branding_administrator_has_only_scoped_admin_access(self):
         participant = Participant.objects.create_user(
@@ -90,6 +158,9 @@ class SiteBrandingAdminTests(TestCase):
         self.assertTrue(participant.has_perm("branding.add_websitetheme"))
         self.assertTrue(participant.has_perm("branding.change_websitetheme"))
         self.assertTrue(participant.has_perm("branding.delete_websitetheme"))
+        self.assertTrue(participant.has_perm("branding.add_managedimage"))
+        self.assertTrue(participant.has_perm("branding.change_managedimage"))
+        self.assertTrue(participant.has_perm("branding.delete_managedimage"))
         self.assertTrue(participant.has_perm("pages.change_page"))
         self.assertTrue(participant.has_perm("pages.change_pagesection"))
         self.assertTrue(participant.has_perm("pages.change_sectionitem"))

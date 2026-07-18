@@ -38,6 +38,8 @@ a nickname using a verified email address.
 - Optional backend-managed header logo, favicon, social sharing image, homepage
   feature image, and decorative background image. Each slot has an independent
   enable switch and retains its text or theme fallback when disabled.
+- Reusable image library with thumbnails, friendly names, original-file metadata,
+  immediate validated multi-file uploads, and image selection from Branding.
 - Configurable public attribution to The Indie Stone's terms, kept separate from
   the ordinary non-affiliation disclaimer.
 - Managed visual themes with three editable presets, private signup-page preview,
