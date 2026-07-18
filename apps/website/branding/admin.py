@@ -262,10 +262,91 @@ class SiteBrandingAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Affiliation", {"fields": ("disclaimer",)}),
+        (
+            "Images",
+            {
+                "description": (
+                    "Each image is optional. Disabling an image keeps the upload "
+                    "available for later and restores the normal text or colour fallback."
+                ),
+                "fields": (
+                    "enable_header_logo",
+                    "header_logo",
+                    "header_logo_alt",
+                    "header_logo_preview",
+                    "enable_favicon",
+                    "favicon",
+                    "favicon_preview",
+                    "enable_social_image",
+                    "social_image",
+                    "social_image_preview",
+                    "enable_homepage_feature_image",
+                    "homepage_feature_image",
+                    "homepage_feature_image_alt",
+                    "homepage_feature_image_preview",
+                    "enable_background_image",
+                    "background_image",
+                    "background_image_preview",
+                ),
+            },
+        ),
+        (
+            "Affiliation and attribution",
+            {
+                "fields": (
+                    "disclaimer",
+                    "show_attribution",
+                    "attribution_text",
+                    "attribution_url",
+                    "attribution_new_tab",
+                )
+            },
+        ),
         ("Record", {"fields": ("updated_at",)}),
     )
-    readonly_fields = ("updated_at",)
+    readonly_fields = (
+        "header_logo_preview",
+        "favicon_preview",
+        "social_image_preview",
+        "homepage_feature_image_preview",
+        "background_image_preview",
+        "updated_at",
+    )
+
+    def _image_preview(self, obj, field_name, label):
+        image = getattr(obj, field_name, None) if obj else None
+        if not image:
+            return format_html(
+                '<span style="color:var(--body-quiet-color)">No {} uploaded - fallback remains active.</span>',
+                label,
+            )
+        return format_html(
+            '<a href="{}" target="_blank" rel="noopener noreferrer">'
+            '<img src="{}" alt="" style="display:block;max-width:24rem;max-height:10rem;object-fit:contain;background:#202020;padding:.5rem;border-radius:4px">'
+            '</a>',
+            image.url,
+            image.url,
+        )
+
+    @admin.display(description="Header logo preview")
+    def header_logo_preview(self, obj):
+        return self._image_preview(obj, "header_logo", "header logo")
+
+    @admin.display(description="Favicon preview")
+    def favicon_preview(self, obj):
+        return self._image_preview(obj, "favicon", "favicon")
+
+    @admin.display(description="Social sharing preview")
+    def social_image_preview(self, obj):
+        return self._image_preview(obj, "social_image", "social image")
+
+    @admin.display(description="Homepage feature preview")
+    def homepage_feature_image_preview(self, obj):
+        return self._image_preview(obj, "homepage_feature_image", "homepage image")
+
+    @admin.display(description="Background preview")
+    def background_image_preview(self, obj):
+        return self._image_preview(obj, "background_image", "background image")
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)

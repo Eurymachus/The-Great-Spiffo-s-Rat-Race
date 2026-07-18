@@ -14,6 +14,17 @@ def site_identity(request):
         and request.user.has_perm("branding.change_websitetheme")
     ):
         theme = WebsiteTheme.objects.filter(pk=preview_theme_id).first() or theme
+    header_logo = brand.header_logo if brand and brand.enable_header_logo else None
+    favicon = brand.favicon if brand and brand.enable_favicon else None
+    social_image = brand.social_image if brand and brand.enable_social_image else None
+    homepage_feature_image = (
+        brand.homepage_feature_image
+        if brand and brand.enable_homepage_feature_image
+        else None
+    )
+    background_image = (
+        brand.background_image if brand and brand.enable_background_image else None
+    )
     return {
         "site_legal_name": settings.SITE_LEGAL_NAME,
         "site_company_number": company_number,
@@ -107,6 +118,27 @@ def site_identity(request):
             else settings.SITE_RUN_UPDATE_PLURAL_LABEL
         ),
         "site_disclaimer": brand.disclaimer if brand else settings.SITE_DISCLAIMER,
+        "site_header_logo_url": header_logo.url if header_logo else "",
+        "site_header_logo_alt": brand.header_logo_alt if header_logo else "",
+        "site_favicon_url": favicon.url if favicon else "",
+        "site_social_image_url": (
+            request.build_absolute_uri(social_image.url) if social_image else ""
+        ),
+        "site_homepage_feature_image_url": (
+            homepage_feature_image.url if homepage_feature_image else ""
+        ),
+        "site_homepage_feature_image_alt": (
+            brand.homepage_feature_image_alt if homepage_feature_image else ""
+        ),
+        "site_background_image_url": background_image.url if background_image else "",
+        "site_show_attribution": brand.show_attribution if brand else True,
+        "site_attribution_text": (
+            brand.attribution_text if brand else settings.SITE_ATTRIBUTION_TEXT
+        ),
+        "site_attribution_url": (
+            brand.attribution_url if brand else settings.SITE_ATTRIBUTION_URL
+        ),
+        "site_attribution_new_tab": brand.attribution_new_tab if brand else True,
         "site_companies_house_url": (
             "https://find-and-update.company-information.service.gov.uk/company/"
             f"{company_number}"

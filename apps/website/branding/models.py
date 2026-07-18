@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import FileExtensionValidator, RegexValidator
 from django.db import models
 from django.db.utils import OperationalError, ProgrammingError
 
@@ -8,6 +8,17 @@ from django.db.utils import OperationalError, ProgrammingError
 hex_colour = RegexValidator(
     regex=r"^#[0-9A-Fa-f]{6}$",
     message="Enter a six-digit hexadecimal colour such as #F2A33A.",
+)
+
+
+def validate_brand_image_size(image):
+    if image.size > 5 * 1024 * 1024:
+        raise ValidationError("Brand images must be 5 MB or smaller.")
+
+
+brand_image_validators = (
+    FileExtensionValidator(("png", "jpg", "jpeg", "webp", "ico")),
+    validate_brand_image_size,
 )
 
 
@@ -306,6 +317,61 @@ class SiteBranding(models.Model):
         default=settings.SITE_RUN_UPDATE_PLURAL_LABEL,
     )
     disclaimer = models.CharField(max_length=240, default=settings.SITE_DISCLAIMER)
+    enable_header_logo = models.BooleanField(default=False)
+    header_logo = models.ImageField(
+        upload_to="branding/",
+        blank=True,
+        validators=brand_image_validators,
+    )
+    header_logo_alt = models.CharField(
+        "header logo alternative text",
+        max_length=160,
+        blank=True,
+        help_text="Describe the logo for people who cannot see it.",
+    )
+    enable_favicon = models.BooleanField(default=False)
+    favicon = models.ImageField(
+        upload_to="branding/",
+        blank=True,
+        validators=brand_image_validators,
+        help_text="A square PNG or ICO works best.",
+    )
+    enable_social_image = models.BooleanField(default=False)
+    social_image = models.ImageField(
+        "social sharing image",
+        upload_to="branding/",
+        blank=True,
+        validators=brand_image_validators,
+        help_text="Used when the website is shared on services such as Discord.",
+    )
+    enable_homepage_feature_image = models.BooleanField(default=False)
+    homepage_feature_image = models.ImageField(
+        upload_to="branding/",
+        blank=True,
+        validators=brand_image_validators,
+    )
+    homepage_feature_image_alt = models.CharField(
+        "homepage feature image alternative text",
+        max_length=200,
+        blank=True,
+    )
+    enable_background_image = models.BooleanField(default=False)
+    background_image = models.ImageField(
+        upload_to="branding/",
+        blank=True,
+        validators=brand_image_validators,
+        help_text="Decorative only. The active theme colour remains as a fallback.",
+    )
+    show_attribution = models.BooleanField(default=True)
+    attribution_text = models.TextField(
+        max_length=600,
+        default=settings.SITE_ATTRIBUTION_TEXT,
+    )
+    attribution_url = models.URLField(default=settings.SITE_ATTRIBUTION_URL)
+    attribution_new_tab = models.BooleanField(
+        "open attribution link in a new tab",
+        default=True,
+    )
     active_theme = models.ForeignKey(
         WebsiteTheme,
         null=True,

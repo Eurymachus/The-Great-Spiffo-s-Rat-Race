@@ -1,6 +1,11 @@
+import base64
+import tempfile
+
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core import mail
 from django.core.management import call_command
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
@@ -43,6 +48,29 @@ class SiteBrandingAdminTests(TestCase):
             change_url,
             fetch_redirect_response=False,
         )
+
+    def test_uploaded_header_logo_renders_only_when_enabled(self):
+        one_pixel_png = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
+            "/x8AAusB9Y9Z4iUAAAAASUVORK5CYII="
+        )
+        with tempfile.TemporaryDirectory() as media_root, self.settings(
+            MEDIA_ROOT=media_root
+        ):
+            self.branding.header_logo = SimpleUploadedFile(
+                "test-logo.png", one_pixel_png, content_type="image/png"
+            )
+            self.branding.header_logo_alt = "Test challenge logo"
+            self.branding.save()
+
+            disabled = self.client.get(reverse("registry:home"))
+            self.assertNotContains(disabled, "test-logo.png")
+
+            self.branding.enable_header_logo = True
+            self.branding.save(update_fields=("enable_header_logo",))
+            enabled = self.client.get(reverse("registry:home"))
+            self.assertContains(enabled, "test-logo.png")
+            self.assertContains(enabled, 'alt="Test challenge logo"')
 
     def test_branding_administrator_has_only_scoped_admin_access(self):
         participant = Participant.objects.create_user(
@@ -94,6 +122,10 @@ class SiteBrandingAdminTests(TestCase):
                 "run_update_label": "Edited update",
                 "run_update_plural_label": "Edited updates",
                 "disclaimer": "Edited disclaimer.",
+                "show_attribution": "on",
+                "attribution_text": settings.SITE_ATTRIBUTION_TEXT,
+                "attribution_url": settings.SITE_ATTRIBUTION_URL,
+                "attribution_new_tab": "on",
                 "active_theme": self.branding.active_theme_id,
             },
         )

@@ -35,6 +35,11 @@ a nickname using a verified email address.
   company details, privacy contact, eventual public URL, and brand fallbacks.
 - Singleton Branding backend with safe environment defaults, immediate
   public rendering, and a scoped Branding Administrator role.
+- Optional backend-managed header logo, favicon, social sharing image, homepage
+  feature image, and decorative background image. Each slot has an independent
+  enable switch and retains its text or theme fallback when disabled.
+- Configurable public attribution to The Indie Stone's terms, kept separate from
+  the ordinary non-affiliation disclaimer.
 - Managed visual themes with three editable presets, private signup-page preview,
   duplication, restoration, activation, and validated design controls.
 - A protected backend-managed Homepage assembled from ordered, reusable,
@@ -47,6 +52,9 @@ a nickname using a verified email address.
 - Cache-backed request limits for signup, resend, and password recovery.
 - Administrator roles, participant promotion, status management, and CSV export.
 - Local development documentation and automated test coverage.
+
+Uploaded brand images live in deployment media storage rather than Git. A live
+deployment must persist and back up that media directory alongside the database.
 
 ## Not Now
 

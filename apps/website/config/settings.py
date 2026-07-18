@@ -107,6 +107,15 @@ SITE_RUN_UPDATE_PLURAL_LABEL = os.environ.get(
 SITE_DISCLAIMER = os.environ.get(
     "SITE_DISCLAIMER", "Not affiliated with or endorsed by The Indie Stone."
 )
+SITE_ATTRIBUTION_TEXT = os.environ.get(
+    "SITE_ATTRIBUTION_TEXT",
+    "Thanks to The Indie Stone for creating Project Zomboid, which made this "
+    "possible. This is an unofficial fan production for non-commercial purposes "
+    "made under the",
+)
+SITE_ATTRIBUTION_URL = os.environ.get(
+    "SITE_ATTRIBUTION_URL", "https://store.steampowered.com/eula/108600_eula_1"
+)
 
 
 # Application definition
@@ -206,6 +215,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Local development prints verification emails to the server console. Production
 # will override this with the Microsoft 365 email backend/configuration.

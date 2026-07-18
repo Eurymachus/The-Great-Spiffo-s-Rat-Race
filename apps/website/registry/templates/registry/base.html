@@ -5,6 +5,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ site_full_title }}{% block title_suffix %}{% endblock %}</title>
+    {% if site_favicon_url %}<link rel="icon" href="{{ site_favicon_url }}">{% endif %}
+    <meta property="og:title" content="{{ site_full_title }}">
+    <meta property="og:type" content="website">
+    {% if site_social_image_url %}<meta property="og:image" content="{{ site_social_image_url }}">{% endif %}
     <script>
         document.documentElement.classList.add("fonts-loading", "menu-enhanced");
         (() => {
@@ -70,7 +74,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260716-10">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260718-1">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
     <script src="{% static 'registry/site_menu.js' %}?v=20260716-2" defer></script>
     {% if site_theme %}
@@ -103,9 +107,12 @@
         }
     </style>
     {% endif %}
+    {% if site_background_image_url %}
+    <style>:root { --site-background-image: url("{{ site_background_image_url }}"); }</style>
+    {% endif %}
     {% block extra_head %}{% endblock %}
 </head>
-<body class="theme-background-{{ site_theme.background_style|default:'radial' }}">
+<body class="theme-background-{{ site_theme.background_style|default:'radial' }}{% if site_background_image_url %} has-brand-background{% endif %}">
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="page-shell">
         {% if site_theme_is_preview %}
@@ -115,6 +122,9 @@
         </aside>
         {% endif %}
         <header class="site-header">
+            {% if site_header_logo_url %}
+            <img class="site-header-logo" src="{{ site_header_logo_url }}" alt="{{ site_header_logo_alt }}">
+            {% endif %}
             <p class="eyebrow">{{ site_tagline }}</p>
             <h1>{{ site_full_title }}</h1>
             <button class="site-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-menu" data-site-menu-toggle>Menu</button>
@@ -141,6 +151,12 @@
             <a href="{% url 'registry:privacy' %}" data-privacy-modal>Privacy</a>
             <span>{{ site_legal_name }} · Company {{ site_company_number }}</span>
             <span>{{ site_disclaimer }}</span>
+            {% if site_show_attribution %}
+            <span class="site-attribution">
+                {{ site_attribution_text }}
+                <a href="{{ site_attribution_url }}"{% if site_attribution_new_tab %} target="_blank" rel="noopener noreferrer"{% endif %}>Indie Stone Terms</a>.
+            </span>
+            {% endif %}
         </footer>
     </div>
     <dialog class="privacy-modal" data-privacy-dialog aria-labelledby="privacy-modal-title">

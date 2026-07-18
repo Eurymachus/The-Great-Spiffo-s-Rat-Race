@@ -13,6 +13,9 @@
     {% endfor %}
 {% else %}
 <section class="card home-hero">
+    {% if site_homepage_feature_image_url %}
+    <img class="homepage-feature-image" src="{{ site_homepage_feature_image_url }}" alt="{{ site_homepage_feature_image_alt }}">
+    {% endif %}
     <p class="eyebrow">{{ site_homepage_small_heading }}</p>
     <h2>{{ site_homepage_main_heading }}</h2>
     <p class="lede">{{ site_homepage_introduction }}</p>

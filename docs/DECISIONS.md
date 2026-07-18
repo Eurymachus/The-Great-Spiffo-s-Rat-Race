@@ -181,3 +181,21 @@ structured application screens rather than editable page-builder content. The
 architecture should favour reuse by future Sentinel Tech websites, while new
 components are added only for proven Rat Race requirements rather than attempting
 to build a general-purpose WordPress replacement now.
+
+## 2026-07-18 - Keep brand images optional and deployment-specific
+
+Branding provides separate managed slots for a header logo, favicon, social
+sharing image, homepage feature image, and decorative background image. Every
+slot has its own enable switch, so an uploaded asset can be hidden without being
+deleted and the public website always retains a text or theme fallback.
+
+Uploaded files live in deployment media storage and are not committed to Git or
+silently reused by another website. This keeps the reusable website framework
+generic and makes the Rat Race operator responsible for supplying only assets it
+is entitled to use. Media storage must be persistent and included in deployment
+backups.
+
+The Rat Race footer includes configurable acknowledgement text and an external
+link to The Indie Stone's terms. This is distinct from the non-affiliation
+disclaimer and may be disabled or changed through Branding if the applicable
+terms or attribution wording change.

@@ -77,6 +77,8 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Join The Rat Race")
         self.assertContains(response, reverse("registry:register"))
         self.assertNotContains(response, 'data-registration-form')
+        self.assertContains(response, "Indie Stone Terms")
+        self.assertContains(response, 'target="_blank"')
 
     def test_homepage_editorial_content_comes_from_managed_page(self):
         page = Page.objects.get(slug="home")

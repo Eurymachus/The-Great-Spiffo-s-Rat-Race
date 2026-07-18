@@ -1,4 +1,7 @@
 <section class="card home-hero">
+    {% if site_homepage_feature_image_url %}
+    <img class="homepage-feature-image" src="{{ site_homepage_feature_image_url }}" alt="{{ site_homepage_feature_image_alt }}">
+    {% endif %}
     {% if section.small_heading %}<p class="eyebrow">{{ section.small_heading }}</p>{% endif %}
     <h2>{{ section.main_heading }}</h2>
     {% if section.introduction %}<p class="lede">{{ section.introduction }}</p>{% endif %}
