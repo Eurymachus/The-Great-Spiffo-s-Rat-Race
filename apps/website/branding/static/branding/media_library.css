@@ -102,3 +102,48 @@
 .branding-range-value { display: inline-block; min-width: 3.5rem; margin-left: .6rem; font-weight: 700; }
 .branding-image-settings .branding-image-checkbox { display: flex; align-items: center; gap: .55rem; }
 .branding-image-settings .branding-image-checkbox label { margin: 0; }
+.branding-setting-label { position: relative; display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .4rem; }
+.branding-setting-label label { margin: 0; }
+.branding-setting-tooltip {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    color: var(--body-quiet-color);
+    background: transparent;
+    border: 1px solid var(--body-quiet-color);
+    border-radius: 50%;
+    font-size: .75rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: help;
+}
+.branding-setting-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    z-index: 30;
+    left: 50%;
+    bottom: calc(100% + .55rem);
+    width: max-content;
+    max-width: min(22rem, 70vw);
+    padding: .6rem .75rem;
+    color: #f4f4f4;
+    background: #252525;
+    border: 1px solid #555;
+    border-radius: 4px;
+    box-shadow: 0 .35rem 1rem rgb(0 0 0 / 40%);
+    font-size: .8rem;
+    font-weight: 400;
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, .2rem);
+    transition: opacity .12s ease, transform .12s ease;
+}
+.branding-setting-tooltip:hover,
+.branding-setting-tooltip:focus-visible { color: var(--link-fg); border-color: var(--link-fg); outline: none; }
+.branding-setting-tooltip:hover::after,
+.branding-setting-tooltip:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
