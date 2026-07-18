@@ -16,7 +16,7 @@ Build a modular, player-facing Rat Race Challenge Tracker with:
 - A stable boundary between provisional diagnostics and final deliverables.
 - A player-facing Outpost Overview distinct from the debug Inspector.
 
-See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD_OUTPOSTS.md](MOD_OUTPOSTS.md), and [MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md](MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md).
+See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD_OUTPOSTS.md](MOD_OUTPOSTS.md), [MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md](MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md), and [MOD_DECISION_015_SOURCE_LAYOUT.md](MOD_DECISION_015_SOURCE_LAYOUT.md).
 
 ## Implemented on the development branch
 
@@ -38,7 +38,7 @@ See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD
 - Weighted per-outpost progress across all 13 deliverables, strict Complete derivation, Completed / 13 Overview count, and arithmetic-mean aggregate progress.
 - Persisted per-deliverable discovery baselines and a monotonic `In Progress` stage triggered by non-zombie improvement.
 - Live outpost evaluation on area entry/load, room changes, zombie deaths, and a one-second in-area fallback.
-- Disposable-schema `OutpostProgressStore` with normalized, change-only persistent deliverable snapshots.
+- Disposable-schema `shared/TGSRR/Outposts/ProgressStore` with normalized, change-only persistent deliverable snapshots.
 - Cached exterior-envelope geometry followed by lightweight one-second window/barricade checks.
 - Persistent room activation, floor activation, zombie clearance, window-barricade, enclosure, fitted-door, closed-door, and good-bed records.
 - Registered-room reverse lookup routes good-bed object additions/removals to one outpost and maintains a persistent fixture ledger without scanning for challenge fixtures.

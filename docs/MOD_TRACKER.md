@@ -100,25 +100,34 @@ The Inspector is developer-facing diagnostics for BuildingDefs, RoomDefs, activa
 
 ## Relevant implementation
 
-- `ChallengeTracker.lua`
-- `ChallengeTrackerWindow.lua`
-- `ChallengeTrackerState.lua`
-- `OverviewTrackerModule.lua`
-- `OverviewTrackerView.lua`
-- `KillsTrackerModule.lua`
-- `KillsTrackerData.lua`
-- `KillsTrackerView.lua`
+- `shared/TGSRR/Challenge/TrackerRegistry.lua`
+- `client/TGSRR/Tracker/Window.lua`
+- `client/TGSRR/Tracker/State.lua`
+- `client/TGSRR/Tracker/Overview/Module.lua`
+- `client/TGSRR/Tracker/Overview/View.lua`
+- `client/TGSRR/Tracker/Kills/Module.lua`
+- `client/TGSRR/Tracker/Kills/Data.lua`
+- `client/TGSRR/Tracker/Kills/View.lua`
   - Shows the authoritative kill total, million-kill progress, and the registered kill milestone ladder.
-- `ChallengeEvents.lua`, `MilestoneRegistry.lua`, and `MilestoneLedger.lua`
+- `shared/TGSRR/Core/Events.lua`, `shared/TGSRR/Milestones/Registry.lua`, and `shared/TGSRR/Milestones/Ledger.lua`
   - Provide a domain-neutral event/award pipeline with persistent dynamic claim keys.
   - Definitions can be gated by challenge mode or a future option callback without changing event producers.
-- `MilestoneNotificationPresenter.lua`
+- `client/TGSRR/Notifications/MilestonePresenter.lua`
   - Presents awarded milestones through localized player halo text.
-- `SkillsTrackerModule.lua`
-- `PendingTrackerView.lua`
-- `OutpostTrackerModule.lua`
-- `OutpostTrackerView.lua`
-- `OutpostTrackerSnapshot.lua`
+- `client/TGSRR/Tracker/Skills/Module.lua`
+- `client/TGSRR/Tracker/PendingView.lua`
+- `client/TGSRR/Tracker/Outposts/Module.lua`
+- `client/TGSRR/Tracker/Outposts/View.lua`
+- `client/TGSRR/Tracker/Outposts/Snapshot.lua`
+
+## Source organization
+
+- `shared/TGSRR/Core`, `Challenge`, `Milestones`, and `Outposts` contain reusable definitions, registries, persistence, and calculations.
+- `client/TGSRR/Tracker/<feature>` contains player-facing tracker modules and views.
+- `client/TGSRR/Outposts` contains live world evaluation independent of tracker presentation.
+- `client/TGSRR/Outposts/Checks` contains individual world inspection providers.
+- `client/TGSRR/Outposts/Debug` contains survey, editor, and Inspector tooling that is not part of the player-facing contract.
+- `client/LastStand` remains in the engine-prescribed challenge location.
 
 ## Related documents
 
