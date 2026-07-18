@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
         actions.className = "page-editor-summary-actions";
         const up = button("↑", upAction, false, `Move ${subject} up`);
         const down = button("↓", downAction, false, `Move ${subject} down`);
-        const remove = button("×", removeAction, true, `Remove ${subject}`);
+        const remove = button("", removeAction, true, `Remove ${subject}`);
         remove.classList.add("page-editor-remove-icon");
         up.disabled = index === 0;
         down.disabled = index === total - 1;
