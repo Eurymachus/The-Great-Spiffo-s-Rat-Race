@@ -48,6 +48,10 @@ class SiteBrandingAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Branding")
         self.assertContains(response, 'class="branding-image-panel"', count=5)
+        self.assertContains(
+            response,
+            "Used for link previews on Discord and social media. It is not displayed within the website page itself.",
+        )
         self.assertContains(response, "branding/media_library.js")
         self.assertNotContains(response, "Header logo preview:")
         self.assertNotContains(response, "Delete")

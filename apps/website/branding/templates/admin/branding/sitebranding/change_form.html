@@ -27,6 +27,7 @@
             <details class="branding-image-panel" data-image-panel="social-image">
                 <summary><span>Social sharing image</span><label class="branding-image-enabled" onclick="event.stopPropagation()">{{ adminform.form.enable_social_image }} Enabled</label></summary>
                 <div class="branding-image-panel-body">
+                    <p class="help">Used for link previews on Discord and social media. It is not displayed within the website page itself.</p>
                     {{ adminform.form.enable_social_image.errors }}{{ adminform.form.social_image_asset.errors }}
                     <div class="branding-image-selection">{{ adminform.form.social_image_asset }}</div>
                 </div>
