@@ -23,10 +23,12 @@ See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD
 - Generic `TGSRR.ChallengeTracker.registerModule()` registry.
 - Overview, Kills, Skills, and Outposts modules in a fixed-size `800x650` tabbed window.
 - Generic `ChallengeDeliverables` provider registry and normalized Overview record boundary.
-- Overview summaries for Outposts, Skills, and Zombie Kills; unavailable systems are labelled rather than inferred.
+- Overview summaries for Outposts, Skills, and Kills.
 - Event-driven Kills deliverable and detail tab using `OnZombieDead` and the persisted Character Info zombie-kill counter with a `1,000,000` target.
 - Generic challenge event bus, persistent milestone ledger, registry-driven awards, and localized halo notification presenter.
 - Kill milestones at 1,000, 10,000, 25,000, 50,000, 100,000, 250,000, 500,000, 750,000, and 1,000,000, shown on the Kills tab and emitted only when thresholds are crossed.
+- Dynamic all-skills level-10 deliverable grouped by vanilla skill category, with ten-segment per-skill progress, aggregate fractional progress, and event-driven refresh.
+- Generic `skill.level.reached` events containing the skill, parent category, and reached level; award policy remains intentionally undecided.
 - Rising-edge events for individual outpost deliverable completion and whole-outpost completion; initial observations do not retroactively award milestones.
 - Saved window position, selected tab, open state, and movable launcher position.
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
@@ -62,11 +64,11 @@ See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD
 ## Not implemented
 
 - Zombie count, last visited, or last-observed population in tracker snapshots.
-- Skill-set verification; its tab currently contains an explicit pending-state view.
+- Skill milestone award selection (individual skills, categories, or selected levels).
 
 ## Recommended next action
 
-Continue in-game validation of the completed outpost deliverable set, then resolve remaining pre-release rule questions or begin skill-set verification.
+Validate the Skills tab and its dynamically discovered skill/category set in game, then decide which skill-level or category events receive milestone awards.
 
 ## Related decisions
 
@@ -83,3 +85,6 @@ Continue in-game validation of the completed outpost deliverable set, then resol
 - [MOD_DECISION_011_OUTPOST_STAGES_AND_CLEARANCE_TRIGGERS.md](MOD_DECISION_011_OUTPOST_STAGES_AND_CLEARANCE_TRIGGERS.md)
 - [MOD_DECISION_012_OUTPOST_PROGRESS_PERSISTENCE.md](MOD_DECISION_012_OUTPOST_PROGRESS_PERSISTENCE.md)
 - [MOD_DECISION_013_OUTPOST_PROGRESS_WEIGHTS.md](MOD_DECISION_013_OUTPOST_PROGRESS_WEIGHTS.md)
+- [MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md](MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md)
+- [MOD_DECISION_015_SOURCE_LAYOUT.md](MOD_DECISION_015_SOURCE_LAYOUT.md)
+- [MOD_DECISION_016_SKILL_TRACKING.md](MOD_DECISION_016_SKILL_TRACKING.md)

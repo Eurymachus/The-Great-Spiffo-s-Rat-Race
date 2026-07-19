@@ -6,6 +6,7 @@ local Outposts = require "TGSRR/Outposts/Definitions"
 local L = require "TGSRR/Core/Localization"
 local Icons = require "TGSRR/Tracker/Outposts/Icons"
 local Notifications = require "TGSRR/Challenge/Notifications"
+local State = require "TGSRR/Tracker/State"
 
 local Window = ISCollapsableWindow:derive("TGSRROutpostOverviewWindow")
 Window.instance = nil
@@ -17,31 +18,26 @@ local HEADER_HEIGHT = 112
 local COLUMN_VALUE_X = 0.58
 local COLUMN_STATUS_X = 0.80
 local REFRESH_INTERVAL_MS = 1000
-local STATE_FILE = "TGSRR/OutpostOverviewWindow.ini"
-
 local function loadWindowState()
-    local reader = getFileReader(STATE_FILE, false)
-    if not reader then return nil end
-    local state = {}
-    while true do
-        local line = reader:readLine()
-        if line == nil then break end
-        local key, value = line:match("^%s*(.-)%s*=%s*(.-)%s*$")
-        if key then state[key] = tonumber(value) or value end
-    end
-    reader:close()
-    if not state.x or not state.y then return nil end
-    return state
+    local state = State.load()
+    local x = tonumber(state["outpostOverview.x"])
+    local y = tonumber(state["outpostOverview.y"])
+    if not x or not y then return nil end
+    return {
+        x = x,
+        y = y,
+        open = state["outpostOverview.open"],
+        outpostId = state["outpostOverview.outpostId"],
+    }
 end
 
 local function saveWindowState(window, open)
-    local writer = getFileWriter(STATE_FILE, true, false)
-    if not writer then return end
-    writer:write("x=" .. tostring(math.floor(window:getX())) .. "\n")
-    writer:write("y=" .. tostring(math.floor(window:getY())) .. "\n")
-    writer:write("open=" .. tostring(open == true) .. "\n")
-    writer:write("outpostId=" .. tostring(window.outpost and window.outpost.id or "") .. "\n")
-    writer:close()
+    State.setValues({
+        ["outpostOverview.x"] = math.floor(window:getX()),
+        ["outpostOverview.y"] = math.floor(window:getY()),
+        ["outpostOverview.open"] = open == true and "true" or "false",
+        ["outpostOverview.outpostId"] = window.outpost and window.outpost.id or "",
+    })
 end
 
 local function statusText(status)

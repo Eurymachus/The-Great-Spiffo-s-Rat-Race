@@ -48,9 +48,12 @@ For the outposts record, `current` is the number of currently Completed outposts
 
 - Fixed-size `800x650` prototype; final dimensions remain subject to in-game review.
 - Contiguous tab strip beneath the title bar.
-- Position, selected tab, open state, and launcher position persist in `TGSRR/ChallengeTrackerWindow.ini`.
+- Position, selected tab, open state, launcher position, and Outpost Overview state persist in `TGSRR/ChallengeTrackerWindow.ini`.
+- Window-internal layout preferences, including collapsed Skills categories, persist in the same tracker INI state.
+- Presentation actions update cached UI state and mark it dirty; they never write files directly. Dirty tracker state flushes to INI from vanilla `Events.OnSave`.
+- Scrolling tracker tables permanently reserve a content gutter for their scrollbar while row backgrounds, separators, headers, and aggregate footers retain full table width.
 - Movable rat-icon launcher opens and closes the tracker.
-- Outpost diagnostics refresh once per second and update entries in place; Kills is event-driven through `OnZombieDead`.
+- Outpost diagnostics refresh once per second and update entries in place; Kills and Skills are event-driven through `OnZombieDead`, `AddXP`, and `LevelPerk`.
 - Tracker is player-facing for `TGSRR`, `TGSRR_CDDA`, and `TGSRR_Sprinters`; it is not debug-only.
 - Player-facing tracker strings and title-case outpost names resolve through TGSRR `getTextOrNull` keys.
 
@@ -115,6 +118,8 @@ The Inspector is developer-facing diagnostics for BuildingDefs, RoomDefs, activa
 - `client/TGSRR/Notifications/MilestonePresenter.lua`
   - Presents awarded milestones through localized player halo text.
 - `client/TGSRR/Tracker/Skills/Module.lua`
+- `client/TGSRR/Tracker/Skills/Data.lua`
+- `client/TGSRR/Tracker/Skills/View.lua`
 - `client/TGSRR/Tracker/PendingView.lua`
 - `client/TGSRR/Tracker/Outposts/Module.lua`
 - `client/TGSRR/Tracker/Outposts/View.lua`

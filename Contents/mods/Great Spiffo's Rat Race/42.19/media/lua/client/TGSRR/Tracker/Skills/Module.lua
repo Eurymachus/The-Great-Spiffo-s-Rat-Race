@@ -1,20 +1,26 @@
 local Tracker = require "TGSRR/Challenge/TrackerRegistry"
 local Deliverables = require "TGSRR/Challenge/Deliverables"
-local PendingView = require "TGSRR/Tracker/PendingView"
+local SkillsData = require "TGSRR/Tracker/Skills/Data"
+local SkillsView = require "TGSRR/Tracker/Skills/View"
 local L = require "TGSRR/Core/Localization"
-
-local MESSAGE = L.text("UI_TGSRR_Tracker_SkillsPending",
-    "Accepted skill set and verification are not implemented.")
 
 Deliverables.register({
     id = "skills",
     label = L.text("UI_TGSRR_Tracker_Skills", "Skills"),
     order = 20,
-    getRecord = function()
+    refreshRecord = function(context)
+        SkillsData.refresh(context.player)
+    end,
+    getRecord = function(context)
+        local snapshot = SkillsData.getSnapshot(context.player)
         return {
-            available = false,
-            status = "not_tracked",
-            detail = MESSAGE,
+            available = snapshot.available,
+            current = snapshot.mastered,
+            target = snapshot.total,
+            percent = snapshot.percent,
+            status = snapshot.total > 0 and snapshot.mastered == snapshot.total and "complete" or "active",
+            detail = L.text("UI_TGSRR_Tracker_SkillsProgress",
+                "All registered skills must reach level 10."),
             detailTab = "skills",
         }
     end,
@@ -25,8 +31,7 @@ Tracker.registerModule({
     title = L.text("UI_TGSRR_Tracker_Tab_Skills", "Skills"),
     order = 30,
     createView = function(parent, x, y, width, height)
-        return PendingView:new(x, y, width, height,
-            L.text("UI_TGSRR_Tracker_Skills", "Skills"), MESSAGE)
+        return SkillsView:new(x, y, width, height)
     end,
 })
 

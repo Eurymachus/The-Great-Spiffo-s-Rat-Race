@@ -12,17 +12,20 @@ local HEADER_Y = 8
 local HEADER_HEIGHT = 28
 local LIST_TOP = HEADER_Y + HEADER_HEIGHT
 local ROW_HEIGHT = 27
-local MILESTONE_COLUMN_RATIO = 0.44
 local PROGRESS_COLUMN_WIDTH = 220
-local MILESTONE_ICON_SIZE = 18
+local MILESTONE_ICON_SIZE = 19
 local MILESTONE_ICON = getTexture("media/ui/LootableMaps/map_skull.png")
 
 local function milestoneRight(width)
-    return math.floor(width * MILESTONE_COLUMN_RATIO)
+    return math.min(PROGRESS_COLUMN_WIDTH, math.floor((width - 100) / 2))
 end
 
 local function progressLeft(width)
-    return math.max(milestoneRight(width) + 100, width - PROGRESS_COLUMN_WIDTH)
+    return width - milestoneRight(width)
+end
+
+local function scrollGutter(list)
+    return list and list.vscroll and list.vscroll:getWidth() or 0
 end
 
 local function commaValue(value)
@@ -110,24 +113,23 @@ function View:prerender()
     self.current = record.current or 0
     self.percent = record.percent
 
-    local scrollWidth = self.list and self.list:isVScrollBarVisible() and self.list.vscroll:getWidth() or 0
-    local width = self.width - MARGIN * 2 - scrollWidth
+    local frameWidth = self.width - MARGIN * 2
     local goalBarY = self.height - MARGIN - GOAL_BAR_HEIGHT
-    self:drawRect(MARGIN, goalBarY, width, GOAL_BAR_HEIGHT, 0.8, 0.02, 0.02, 0.02)
+    self:drawRect(MARGIN, goalBarY, frameWidth, GOAL_BAR_HEIGHT, 0.8, 0.02, 0.02, 0.02)
     if self.percent > 0 then
-        self:drawRect(MARGIN + 1, goalBarY + 1, math.floor((width - 2) * self.percent / 100),
+        self:drawRect(MARGIN + 1, goalBarY + 1, math.floor((frameWidth - 2) * self.percent / 100),
             GOAL_BAR_HEIGHT - 2, 0.76, 0.12, 0.58, 0.18)
     end
-    self:drawRectBorder(MARGIN, goalBarY, width, GOAL_BAR_HEIGHT, 0.62, 0.55, 0.55, 0.55)
+    self:drawRectBorder(MARGIN, goalBarY, frameWidth, GOAL_BAR_HEIGHT, 0.62, 0.55, 0.55, 0.55)
     local textY = goalBarY + math.floor((GOAL_BAR_HEIGHT - getTextManager():getFontHeight(UIFont.Small)) / 2)
     local progressText = self.playerAvailable and
         (commaValue(self.current) .. " " .. L.text("UI_TGSRR_Tracker_Of", "of") .. " " ..
             commaValue(TARGET_KILLS) .. " (" .. percentValue(self.percent / 100) .. "%)") or
         L.text("UI_TGSRR_Tracker_PlayerUnavailable", "Player data is unavailable.")
-    self:drawTextCentre(progressText, MARGIN + width / 2, textY, 1, 1, 1, 1, UIFont.Small)
+    self:drawTextCentre(progressText, MARGIN + frameWidth / 2, textY, 1, 1, 1, 1, UIFont.Small)
 
-    self:drawRect(MARGIN, HEADER_Y, width, HEADER_HEIGHT, 0.9, 0.12, 0.12, 0.12)
-    self:drawRectBorder(MARGIN, HEADER_Y, width, HEADER_HEIGHT, 0.7, 0.65, 0.65, 0.65)
+    self:drawRect(MARGIN, HEADER_Y, frameWidth, HEADER_HEIGHT, 0.9, 0.12, 0.12, 0.12)
+    self:drawRectBorder(MARGIN, HEADER_Y, frameWidth, HEADER_HEIGHT, 0.7, 0.65, 0.65, 0.65)
     local headerTextY = HEADER_Y + math.floor((HEADER_HEIGHT - getTextManager():getFontHeight(UIFont.Small)) / 2)
     self:drawText(L.text("UI_TGSRR_Tracker_Milestone", "Milestone"),
         MARGIN + 8, headerTextY, 1, 1, 1, 1, UIFont.Small)
@@ -135,19 +137,20 @@ function View:prerender()
         L.text("UI_TGSRR_Tracker_Status", "Status"),
         L.text("UI_TGSRR_Tracker_Progress", "Progress"),
     }
-    local statusLeft = milestoneRight(width)
-    local progressX = progressLeft(width)
+    local statusLeft = milestoneRight(frameWidth)
+    local progressX = progressLeft(frameWidth)
     self:drawTextCentre(headers[1], MARGIN + statusLeft + math.floor((progressX - statusLeft) / 2),
         headerTextY, 1, 1, 1, 1, UIFont.Small)
-    self:drawTextCentre(headers[2], MARGIN + progressX + math.floor((width - progressX) / 2),
+    self:drawTextCentre(headers[2], MARGIN + progressX + math.floor((frameWidth - progressX) / 2),
         headerTextY, 1, 1, 1, 1, UIFont.Small)
 end
 
 function View:drawMilestone(y, item, alt)
     local data = item.item
-    local width = self:getWidth() - (self:isVScrollBarVisible() and self.vscroll:getWidth() or 0)
-    if item.index % 2 == 0 then self:drawRect(0, y, width, self.itemheight - 1, 0.18, 0.12, 0.12, 0.12) end
-    self:drawRect(0, y + self.itemheight - 1, width, 1, 0.3, 0.5, 0.5, 0.5)
+    local rowWidth = self:getWidth()
+    local contentWidth = rowWidth - scrollGutter(self)
+    if item.index % 2 == 0 then self:drawRect(0, y, rowWidth, self.itemheight - 1, 0.18, 0.12, 0.12, 0.12) end
+    self:drawRect(0, y + self.itemheight - 1, rowWidth, 1, 0.3, 0.5, 0.5, 0.5)
 
     local textY = y + math.floor((self.itemheight - getTextManager():getFontHeight(UIFont.Small)) / 2)
     local status = L.text("UI_TGSRR_Tracker_MilestoneLocked", "Locked")
@@ -168,13 +171,13 @@ function View:drawMilestone(y, item, alt)
     end
     self:drawText(commaValue(data.threshold), 30, textY,
         labelColor[1], labelColor[2], labelColor[3], 1, UIFont.Small)
-    local statusLeft = milestoneRight(width)
-    local progressX = progressLeft(width)
+    local statusLeft = milestoneRight(rowWidth)
+    local progressX = progressLeft(rowWidth)
     self:drawTextCentre(status, statusLeft + math.floor((progressX - statusLeft) / 2),
         textY, r, g, b, 1, UIFont.Small)
 
     local barX, barY, barWidth, barHeight = progressX + 6,
-        y + math.floor((self.itemheight - 17) / 2), width - progressX - 12, 17
+        y + math.floor((self.itemheight - 17) / 2), contentWidth - progressX - 12, 17
     self:drawRect(barX, barY, barWidth, barHeight, 0.82, 0.02, 0.02, 0.02)
     if data.progress > 0 then
         local fillR, fillG, fillB = 0.18, 0.58, 0.12

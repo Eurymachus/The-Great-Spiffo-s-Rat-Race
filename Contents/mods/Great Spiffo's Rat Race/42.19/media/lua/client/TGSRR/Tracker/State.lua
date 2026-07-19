@@ -1,48 +1,108 @@
 local State = {}
 local FILENAME = "TGSRR/ChallengeTrackerWindow.ini"
+local KEY_ORDER = { "x", "y", "width", "height", "tab", "launcherX", "launcherY", "open" }
+local values = nil
+local dirty = false
 
 function State.load()
-    local result = {}
+    if values then return values end
+    values = {}
     local reader = getFileReader(FILENAME, false)
-    if not reader then return result end
+    if not reader then return values end
     local line = reader:readLine()
     while line do
-        local key, value = line:match("^([^=]+)=(.*)$")
-        if key then result[key] = value end
+        local key, parsedValue = line:match("^([^=]+)=(.*)$")
+        if key then values[key] = parsedValue end
         line = reader:readLine()
     end
     reader:close()
-    return result
+    return values
+end
+
+local function write(values)
+    local writer = getFileWriter(FILENAME, true, false)
+    if not writer then return false end
+    local written = {}
+    for _, key in ipairs(KEY_ORDER) do
+        writer:write(key .. "=" .. tostring(values[key] or (key == "open" and "false" or "")) .. "\n")
+        written[key] = true
+    end
+    local extraKeys = {}
+    for key in pairs(values) do
+        if not written[key] then extraKeys[#extraKeys + 1] = key end
+    end
+    table.sort(extraKeys)
+    for _, key in ipairs(extraKeys) do
+        writer:write(tostring(key) .. "=" .. tostring(values[key] or "") .. "\n")
+    end
+    writer:close()
+    return true
 end
 
 function State.save(window, launcher, isOpen)
-    local values = State.load()
+    local state = State.load()
+    local changed = false
+    local function set(key, value)
+        value = tostring(value)
+        if state[key] ~= value then
+            state[key] = value
+            changed = true
+        end
+    end
     if window then
-        values.x = math.floor(window:getX())
-        values.y = math.floor(window:getY())
-        values.width = math.floor(window:getWidth())
-        values.height = math.floor(window:getHeight())
-        values.tab = window.activeModuleId or ""
+        set("x", math.floor(window:getX()))
+        set("y", math.floor(window:getY()))
+        set("width", math.floor(window:getWidth()))
+        set("height", math.floor(window:getHeight()))
+        set("tab", window.activeModuleId or "")
     end
     if launcher then
-        values.launcherX = math.floor(launcher:getX())
-        values.launcherY = math.floor(launcher:getY())
+        set("launcherX", math.floor(launcher:getX()))
+        set("launcherY", math.floor(launcher:getY()))
     end
     if isOpen ~= nil then
-        values.open = isOpen and "true" or "false"
+        set("open", isOpen and "true" or "false")
     end
-
-    local writer = getFileWriter(FILENAME, true, false)
-    if not writer then return end
-    writer:write("x=" .. tostring(values.x or "") .. "\n")
-    writer:write("y=" .. tostring(values.y or "") .. "\n")
-    writer:write("width=" .. tostring(values.width or "") .. "\n")
-    writer:write("height=" .. tostring(values.height or "") .. "\n")
-    writer:write("tab=" .. tostring(values.tab or "") .. "\n")
-    writer:write("launcherX=" .. tostring(values.launcherX or "") .. "\n")
-    writer:write("launcherY=" .. tostring(values.launcherY or "") .. "\n")
-    writer:write("open=" .. tostring(values.open or "false") .. "\n")
-    writer:close()
+    if changed then dirty = true end
+    return changed
 end
+
+function State.getValue(key, default)
+    local value = State.load()[key]
+    if value == nil then return default end
+    return value
+end
+
+function State.setValue(key, value)
+    if not key or key == "" then return false end
+    local state = State.load()
+    value = value == nil and "" or tostring(value)
+    if state[key] == value then return false end
+    state[key] = value
+    dirty = true
+    return true
+end
+
+function State.setValues(updates)
+    if type(updates) ~= "table" then return false end
+    local changed = false
+    for key, value in pairs(updates) do
+        if key and key ~= "" then changed = State.setValue(key, value) or changed end
+    end
+    return changed
+end
+
+function State.isDirty()
+    return dirty
+end
+
+function State.flush()
+    if not dirty then return false end
+    if not write(State.load()) then return false end
+    dirty = false
+    return true
+end
+
+Events.OnSave.Add(State.flush)
 
 return State
