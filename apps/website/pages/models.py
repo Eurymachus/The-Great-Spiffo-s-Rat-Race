@@ -47,10 +47,6 @@ class Page(models.Model):
 
 
 class PageSection(models.Model):
-    class SectionType(models.TextChoices):
-        INTRODUCTION = "introduction", "Introduction and actions"
-        STEPS = "steps", "Numbered information cards"
-
     class Width(models.TextChoices):
         INHERIT = "inherit", "Use page width"
         NARROW = "narrow", "Narrow"
@@ -72,8 +68,8 @@ class PageSection(models.Model):
         ALTERNATE = "alternate", "Alternate surface"
 
     page = models.ForeignKey(Page, on_delete=models.CASCADE, related_name="sections")
-    section_type = models.CharField(max_length=24, choices=SectionType.choices)
     position = models.PositiveSmallIntegerField(default=0)
+    name = models.CharField(max_length=120, default="Section")
     is_visible = models.BooleanField(default=True)
     width = models.CharField(max_length=16, choices=Width.choices, default=Width.INHERIT)
     layout = models.CharField(max_length=16, choices=Layout.choices, default=Layout.SINGLE)
@@ -84,31 +80,69 @@ class PageSection(models.Model):
         default=False,
         help_text="Extend the section background to the viewport edges while keeping content constrained.",
     )
-    small_heading = models.CharField(max_length=160, blank=True)
-    main_heading = models.CharField(max_length=240, blank=True)
-    introduction = models.TextField(max_length=1000, blank=True)
-    visitor_primary_button = models.CharField(max_length=80, blank=True)
-    visitor_secondary_link = models.CharField(max_length=80, blank=True)
-    signed_in_button = models.CharField(max_length=80, blank=True)
 
     class Meta:
         ordering = ("position", "pk")
         verbose_name = "page section"
         verbose_name_plural = "page sections"
 
+    def __str__(self):
+        return f"{self.page}: {self.name}"
+
+
+class PageBlock(models.Model):
+    class BlockType(models.TextChoices):
+        SMALL_HEADING = "small_heading", "Small heading"
+        HEADING = "heading", "Heading"
+        TEXT = "text", "Text"
+        ACTION = "action", "Button or link"
+        CARD_GROUP = "card_group", "Card group"
+
+    class Audience(models.TextChoices):
+        EVERYONE = "everyone", "Everyone"
+        VISITORS = "visitors", "Signed-out visitors"
+        SIGNED_IN = "signed_in", "Signed-in participants"
+
+    class Destination(models.TextChoices):
+        NONE = "none", "No destination"
+        REGISTER = "register", "Sign-up page"
+        LOGIN = "login", "Login page"
+        ACCOUNT = "account", "Participant account"
+
+    class Style(models.TextChoices):
+        DEFAULT = "default", "Standard"
+        PRIMARY = "primary", "Primary button"
+        SECONDARY = "secondary", "Secondary button"
+        LINK = "link", "Text link"
+
+    section = models.ForeignKey(PageSection, on_delete=models.CASCADE, related_name="blocks")
+    position = models.PositiveSmallIntegerField(default=0)
+    column = models.PositiveSmallIntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
+    block_type = models.CharField(max_length=24, choices=BlockType.choices)
+    content = models.TextField(max_length=2000, blank=True)
+    audience = models.CharField(max_length=16, choices=Audience.choices, default=Audience.EVERYONE)
+    destination = models.CharField(max_length=16, choices=Destination.choices, default=Destination.NONE)
+    style = models.CharField(max_length=16, choices=Style.choices, default=Style.DEFAULT)
+
+    class Meta:
+        ordering = ("column", "position", "pk")
+        verbose_name = "content block"
+        verbose_name_plural = "content blocks"
+
     def clean(self):
-        if self.section_type == self.SectionType.INTRODUCTION and not self.main_heading:
-            raise ValidationError(
-                {"main_heading": "An introduction section needs a main heading."}
-            )
+        if self.block_type != self.BlockType.CARD_GROUP and not self.content.strip():
+            raise ValidationError({"content": "This block needs content."})
+        if self.column > 3:
+            raise ValidationError({"column": "A block must be in columns 1 to 4."})
 
     def __str__(self):
-        return f"{self.page}: {self.get_section_type_display()}"
+        return self.content[:80] or self.get_block_type_display()
 
 
 class SectionItem(models.Model):
-    section = models.ForeignKey(
-        PageSection, on_delete=models.CASCADE, related_name="items"
+    block = models.ForeignKey(
+        PageBlock, on_delete=models.CASCADE, related_name="items"
     )
     position = models.PositiveSmallIntegerField(default=0)
     heading = models.CharField(max_length=120)
@@ -116,8 +150,8 @@ class SectionItem(models.Model):
 
     class Meta:
         ordering = ("position", "pk")
-        verbose_name = "section item"
-        verbose_name_plural = "section items"
+        verbose_name = "card"
+        verbose_name_plural = "cards"
 
     def __str__(self):
         return self.heading

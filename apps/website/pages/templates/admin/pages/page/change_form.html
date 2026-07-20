@@ -3,12 +3,12 @@
 
 {% block extrahead %}
 {{ block.super }}
-<script src="{% static 'pages/page_editor.js' %}?v=20260719-1" defer></script>
+<script src="{% static 'pages/page_editor.js' %}?v=20260720-1" defer></script>
 {% endblock %}
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'pages/page_editor.css' %}?v=20260718-12">
+<link rel="stylesheet" href="{% static 'pages/page_editor.css' %}?v=20260719-5">
 {% endblock %}
 
 {% block after_field_sets %}
@@ -23,7 +23,7 @@
       <h2>Page sections</h2>
       <p>Build this page from approved sections. Changes are saved with the page.</p>
     </div>
-    <button type="button" class="button" data-add-section>Add section</button>
+    <button type="button" class="button page-editor-add-item" data-add-section>Add section</button>
   </div>
   <div data-section-list></div>
 </section>

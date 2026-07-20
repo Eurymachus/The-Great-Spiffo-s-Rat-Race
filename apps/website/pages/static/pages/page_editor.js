@@ -5,483 +5,315 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const list = editor.querySelector("[data-section-list]");
     const form = editor.closest("form");
-    let baselineState = null;
-    let isDirty = false;
-    let isSubmitting = false;
-    let lastSubmitter = null;
+    const stateStorageKey = `rat-race-page-editor:${window.location.pathname}`;
     let sections = [];
+    let baseline = "";
+    let submitting = false;
     try { sections = JSON.parse(payload.value || "[]"); } catch (_) { sections = []; }
 
+    const choices = {
+        width: [["inherit", "Use page width"], ["narrow", "Narrow"], ["standard", "Standard"], ["wide", "Wide"], ["full", "Full width"]],
+        layout: [["single", "Single column"], ["two", "Two equal columns"], ["wide_left", "Two columns - wide left"], ["wide_right", "Two columns - wide right"], ["three", "Three columns"], ["four", "Four columns"]],
+        background: [["default", "Page background"], ["surface", "Raised surface"], ["alternate", "Alternate surface"]],
+        block_type: [["small_heading", "Small heading"], ["heading", "Heading"], ["text", "Text"], ["action", "Button or link"], ["card_group", "Card group"]],
+        audience: [["everyone", "Everyone"], ["visitors", "Signed-out visitors"], ["signed_in", "Signed-in participants"]],
+        destination: [["none", "No destination"], ["register", "Sign-up page"], ["login", "Login page"], ["account", "Participant account"]],
+        style: [["default", "Standard"], ["primary", "Primary button"], ["secondary", "Secondary button"], ["link", "Text link"]],
+    };
+    const columnCounts = {single: 1, two: 2, wide_left: 2, wide_right: 2, three: 3, four: 4};
+    const labels = {small_heading: "Small heading", heading: "Heading", text: "Text", action: "Button or link", card_group: "Card group"};
+
+    const el = (tag, className = "", text = "") => {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text) node.textContent = text;
+        return node;
+    };
+    const button = (text, action, danger = false) => {
+        const node = el("button", `button${danger ? " page-editor-danger" : ""}`, text);
+        node.type = "button";
+        node.dataset.action = action;
+        return node;
+    };
+    const input = (key, value = "", type = "text") => {
+        const node = type === "textarea" ? el("textarea") : el("input");
+        if (type !== "textarea") node.type = type;
+        if (type === "checkbox") node.checked = value !== false;
+        else node.value = value || "";
+        node.dataset.key = key;
+        return node;
+    };
     const field = (label, key, value, type = "text", wide = false) => {
-        const wrapper = document.createElement("label");
-        wrapper.className = `page-editor-field${wide ? " page-editor-field-wide" : ""}`;
-        wrapper.append(document.createTextNode(label));
-        const input = type === "textarea" ? document.createElement("textarea") : document.createElement("input");
-        if (type !== "textarea") input.type = type;
-        input.value = value || "";
-        input.dataset.key = key;
-        wrapper.append(input);
+        const wrapper = el("label", `page-editor-field${wide ? " page-editor-field-wide" : ""}`, label);
+        wrapper.append(input(key, value, type));
         return wrapper;
     };
-
-    const button = (text, action, danger = false, label = "") => {
-        const control = document.createElement("button");
-        control.type = "button";
-        control.className = `button${danger ? " page-editor-danger" : ""}`;
-        control.textContent = text;
-        control.dataset.action = action;
-        if (label) {
-            control.setAttribute("aria-label", label);
-            control.title = label;
-        }
-        return control;
-    };
-
-    const selectField = (label, key, value, choices) => {
-        const wrapper = document.createElement("label");
-        wrapper.className = "page-editor-field";
-        wrapper.append(document.createTextNode(label));
-        const control = document.createElement("select");
-        control.dataset.key = key;
-        choices.forEach(([choiceValue, choiceLabel]) => {
-            const option = document.createElement("option");
-            option.value = choiceValue;
-            option.textContent = choiceLabel;
-            option.selected = value === choiceValue;
-            control.append(option);
+    const selectField = (label, key, value, options) => {
+        const wrapper = el("label", "page-editor-field", label);
+        const select = el("select");
+        select.dataset.key = key;
+        options.forEach(([optionValue, optionLabel]) => {
+            const option = el("option", "", optionLabel);
+            option.value = optionValue;
+            option.selected = value === optionValue;
+            select.append(option);
         });
-        wrapper.append(control);
+        wrapper.append(select);
         return wrapper;
     };
-
-    const orderButtons = (upAction, downAction, removeAction, index, total, subject) => {
-        const actions = document.createElement("span");
-        actions.className = "page-editor-summary-actions";
-        const up = button("↑", upAction, false, `Move ${subject} up`);
-        const down = button("↓", downAction, false, `Move ${subject} down`);
-        const remove = button("", removeAction, true, `Remove ${subject}`);
-        remove.classList.add("page-editor-remove-icon");
+    const checkboxField = (label, key, value) => {
+        const wrapper = el("label", "page-editor-field page-editor-checkbox");
+        wrapper.append(input(key, value, "checkbox"), el("span", "page-editor-checkbox-label", label));
+        return wrapper;
+    };
+    const actions = (kind, index, total) => {
+        const wrapper = el("span", "page-editor-summary-actions");
+        const up = button("↑", `${kind}-up`);
+        const down = button("↓", `${kind}-down`);
         up.disabled = index === 0;
         down.disabled = index === total - 1;
-        actions.append(up, down, remove);
-        return actions;
+        wrapper.append(up, down, button("×", `remove-${kind}`, true));
+        return wrapper;
     };
-
-    const dragHandle = (subject) => {
-        const handle = document.createElement("span");
-        handle.className = "page-editor-drag-handle";
+    const summary = (title, kind, index, total) => {
+        const row = el("summary");
+        const handle = el("span", "page-editor-drag-handle", "☰");
         handle.draggable = true;
-        handle.textContent = "☰";
-        handle.setAttribute("aria-hidden", "true");
-        handle.title = `Drag to reorder ${subject}`;
-        return handle;
+        row.append(handle, el("span", "page-editor-summary-title", title), actions(kind, index, total));
+        return row;
     };
 
-    const read = () => {
-        return [...list.querySelectorAll(":scope > .page-section-editor")].map((panel) => ({
-            id: panel.dataset.id ? Number(panel.dataset.id) : null,
-            section_type: panel.querySelector('[data-key="section_type"]').value,
-            is_visible: panel.querySelector('[data-key="is_visible"]').checked,
-            width: panel.querySelector('[data-key="width"]').value,
-            layout: panel.querySelector('[data-key="layout"]').value,
-            background: panel.querySelector('[data-key="background"]').value,
-            full_bleed_background: panel.querySelector('[data-key="full_bleed_background"]').checked,
-            small_heading: panel.querySelector('[data-key="small_heading"]').value,
-            main_heading: panel.querySelector('[data-key="main_heading"]').value,
-            introduction: panel.querySelector('[data-key="introduction"]').value,
-            visitor_primary_button: panel.querySelector('[data-key="visitor_primary_button"]').value,
-            visitor_secondary_link: panel.querySelector('[data-key="visitor_secondary_link"]').value,
-            signed_in_button: panel.querySelector('[data-key="signed_in_button"]').value,
-            items: [...panel.querySelectorAll(".page-card-list > .page-card-editor")].map((card) => ({
-                id: card.dataset.id ? Number(card.dataset.id) : null,
-                heading: card.querySelector('[data-key="heading"]').value,
-                description: card.querySelector('[data-key="description"]').value,
-            })),
-        }));
+    const readCards = (blockPanel) => [...blockPanel.querySelectorAll(":scope .page-card-list > .page-card-editor")].map((card) => ({
+        id: card.dataset.id ? Number(card.dataset.id) : null,
+        heading: card.querySelector('[data-key="heading"]').value,
+        description: card.querySelector('[data-key="description"]').value,
+    }));
+    const read = () => [...list.querySelectorAll(":scope > .page-section-editor")].map((sectionPanel) => ({
+        id: sectionPanel.dataset.id ? Number(sectionPanel.dataset.id) : null,
+        name: sectionPanel.querySelector(':scope > .page-section-body [data-key="name"]').value.trim() || "Section",
+        is_visible: sectionPanel.querySelector(':scope > .page-section-body [data-key="is_visible"]').checked,
+        width: sectionPanel.querySelector(':scope > .page-section-body [data-key="width"]').value,
+        layout: sectionPanel.querySelector(':scope > .page-section-body [data-key="layout"]').value,
+        background: sectionPanel.querySelector(':scope > .page-section-body [data-key="background"]').value,
+        full_bleed_background: sectionPanel.querySelector(':scope > .page-section-body [data-key="full_bleed_background"]').checked,
+        blocks: [...sectionPanel.querySelectorAll(":scope .page-block-list > .page-block-editor")].map((blockPanel) => ({
+            id: blockPanel.dataset.id ? Number(blockPanel.dataset.id) : null,
+            column: Number(blockPanel.closest(".page-column-editor").dataset.column),
+            is_visible: blockPanel.querySelector('[data-key="is_visible"]').checked,
+            block_type: blockPanel.querySelector('[data-key="block_type"]').value,
+            content: blockPanel.querySelector('[data-key="content"]').value,
+            audience: blockPanel.querySelector('[data-key="audience"]')?.value || "everyone",
+            destination: blockPanel.querySelector('[data-key="destination"]')?.value || "none",
+            style: blockPanel.querySelector('[data-key="style"]')?.value || "default",
+            items: readCards(blockPanel),
+        })),
+    }));
+    const sync = () => { sections = read(); payload.value = JSON.stringify(sections); };
+
+    const renderCard = (card, index, total) => {
+        const panel = el("details", "page-card-editor");
+        panel.dataset.id = card.id || "";
+        panel.append(summary(`${index + 1}. ${card.heading || "Untitled card"}`, "card", index, total));
+        const body = el("div", "page-card-body page-editor-grid");
+        body.append(field("Heading", "heading", card.heading), field("Description", "description", card.description, "textarea", true));
+        panel.append(body);
+        return panel;
     };
-    const captureFormState = () => {
-        const state = {};
-        new FormData(form).forEach((value, key) => {
-            if (key === "csrfmiddlewaretoken" || key.startsWith("_")) return;
-            const normalizedValue = typeof value === "string" ? value : value.name;
-            if (!(key in state)) state[key] = normalizedValue;
-            else if (Array.isArray(state[key])) state[key].push(normalizedValue);
-            else state[key] = [state[key], normalizedValue];
-        });
-        return state;
-    };
-    const updateDirtyState = () => {
-        if (baselineState !== null) {
-            isDirty = JSON.stringify(captureFormState()) !== JSON.stringify(baselineState);
+    const renderBlock = (block, index, total) => {
+        const panel = el("details", "page-block-editor");
+        panel.dataset.id = block.id || "";
+        panel.append(summary(`${index + 1}. ${labels[block.block_type] || "Content block"}`, "block", index, total));
+        const body = el("div", "page-block-body");
+        const grid = el("div", "page-editor-grid");
+        grid.append(selectField("Block type", "block_type", block.block_type || "text", choices.block_type), checkboxField("Visible publicly", "is_visible", block.is_visible));
+        const contentLabel = block.block_type === "action" ? "Button or link label" : block.block_type === "card_group" ? "Optional group heading" : "Content";
+        grid.append(field(contentLabel, "content", block.content, block.block_type === "text" ? "textarea" : "text", true));
+        if (block.block_type === "action") {
+            grid.append(selectField("Audience", "audience", block.audience || "everyone", choices.audience), selectField("Destination", "destination", block.destination || "none", choices.destination), selectField("Appearance", "style", block.style || "default", choices.style));
         }
-    };
-    const sync = () => {
-        payload.value = JSON.stringify(read());
-        updateDirtyState();
-    };
-
-    const commitRemovalToBaseline = (contentType, contentId) => {
-        if (!contentId || !baselineState?.page_builder_data) return;
-        let baselineSections = [];
-        try { baselineSections = JSON.parse(baselineState.page_builder_data); } catch (_) { return; }
-        if (contentType === "section") {
-            baselineSections = baselineSections.filter((section) => section.id !== contentId);
-        } else {
-            baselineSections.forEach((section) => {
-                section.items = section.items.filter((item) => item.id !== contentId);
-            });
+        body.append(grid);
+        if (block.block_type === "card_group") {
+            const cards = el("details", "page-cards");
+            const cardsSummary = el("summary");
+            cardsSummary.append(el("span", "", `Cards (${(block.items || []).length})`), button("Add card", "add-card"));
+            cards.append(cardsSummary);
+            const cardList = el("div", "page-card-list");
+            (block.items || []).forEach((card, cardIndex) => cardList.append(renderCard(card, cardIndex, block.items.length)));
+            cards.append(cardList);
+            body.append(cards);
         }
-        baselineState.page_builder_data = JSON.stringify(baselineSections);
+        panel.append(body);
+        return panel;
     };
-
-    const persistRemoval = async (contentType, contentId) => {
-        if (!contentId) return true;
-        const urlTemplate = editor.dataset.removeUrl;
-        const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]')?.value;
-        if (!urlTemplate || !csrfToken) return false;
-        const url = urlTemplate.replace("CONTENT_TYPE", contentType).replace(/0\/$/, `${contentId}/`);
-        const response = await fetch(url, {
-            method: "POST",
-            headers: {"X-CSRFToken": csrfToken, "X-Requested-With": "XMLHttpRequest"},
-            credentials: "same-origin",
-        });
-        return response.ok;
-    };
-
-    const refreshOrderControls = () => {
-        const sectionPanels = [...list.querySelectorAll(":scope > .page-section-editor")];
-        sectionPanels.forEach((panel, sectionIndex) => {
-            const sectionType = panel.querySelector('[data-key="section_type"]').value;
-            const isVisible = panel.querySelector('[data-key="is_visible"]').checked;
-            const summary = panel.querySelector(":scope > summary");
-            summary.querySelector(":scope > .page-editor-summary-title").textContent = `${sectionIndex + 1}. ${sectionType === "steps" ? "Numbered information cards" : "Introduction and actions"}${isVisible ? "" : " - Hidden"}`;
-            summary.querySelector('[data-action="section-up"]').disabled = sectionIndex === 0;
-            summary.querySelector('[data-action="section-down"]').disabled = sectionIndex === sectionPanels.length - 1;
-
-            const cardPanels = [...panel.querySelectorAll(".page-card-list > .page-card-editor")];
-            cardPanels.forEach((card, cardIndex) => {
-                const cardSummary = card.querySelector(":scope > summary");
-                const heading = card.querySelector('[data-key="heading"]').value;
-                cardSummary.querySelector(":scope > .page-editor-summary-title").textContent = `${cardIndex + 1}. ${heading || "Untitled card"}`;
-                cardSummary.querySelector('[data-action="card-up"]').disabled = cardIndex === 0;
-                cardSummary.querySelector('[data-action="card-down"]').disabled = cardIndex === cardPanels.length - 1;
-            });
-        });
-    };
-
     const render = () => {
         list.replaceChildren();
-        if (!sections.length) {
-            const empty = document.createElement("p");
-            empty.className = "page-editor-empty";
-            empty.textContent = "This page has no sections yet.";
-            list.append(empty);
-        }
+        if (!sections.length) list.append(el("p", "page-editor-empty", "This page has no sections yet."));
         sections.forEach((section, sectionIndex) => {
-            const panel = document.createElement("details");
-            panel.className = "page-section-editor";
+            const panel = el("details", "page-section-editor");
             panel.dataset.id = section.id || "";
-            const summary = document.createElement("summary");
-            const summaryTitle = document.createElement("span");
-            summaryTitle.className = "page-editor-summary-title";
-            summaryTitle.textContent = `${sectionIndex + 1}. ${section.section_type === "steps" ? "Numbered information cards" : "Introduction and actions"}${section.is_visible === false ? " - Hidden" : ""}`;
-            summary.append(dragHandle("section"), summaryTitle, orderButtons("section-up", "section-down", "remove-section", sectionIndex, sections.length, "section"));
-            panel.append(summary);
-            const body = document.createElement("div");
-            body.className = "page-section-body";
-            const grid = document.createElement("div");
-            grid.className = "page-editor-grid";
-
-            const typeField = document.createElement("label");
-            typeField.className = "page-editor-field";
-            typeField.append(document.createTextNode("Section type"));
-            const select = document.createElement("select");
-            select.dataset.key = "section_type";
-            [["introduction", "Introduction and actions"], ["steps", "Numbered information cards"]].forEach(([value, label]) => {
-                const option = document.createElement("option"); option.value = value; option.textContent = label; option.selected = section.section_type === value; select.append(option);
-            });
-            typeField.append(select);
-            const visible = document.createElement("label");
-            visible.className = "page-editor-field";
-            const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.dataset.key = "is_visible"; checkbox.checked = section.is_visible !== false;
-            visible.append(checkbox, document.createTextNode(" Visible publicly"));
-            grid.append(typeField, visible,
-                selectField("Content width", "width", section.width || "inherit", [
-                    ["inherit", "Use page width"], ["narrow", "Narrow"],
-                    ["standard", "Standard"], ["wide", "Wide"], ["full", "Full width"],
-                ]),
-                selectField("Content layout", "layout", section.layout || "single", [
-                    ["single", "Single column"], ["two", "Two equal columns"],
-                    ["wide_left", "Two columns - wide left"], ["wide_right", "Two columns - wide right"],
-                    ["three", "Three columns"], ["four", "Four columns"],
-                ]),
-                selectField("Background", "background", section.background || "default", [
-                    ["default", "Page background"], ["surface", "Raised surface"],
-                    ["alternate", "Alternate surface"],
-                ]),
-                (() => {
-                    const label = document.createElement("label");
-                    label.className = "page-editor-field";
-                    const input = document.createElement("input");
-                    input.type = "checkbox";
-                    input.dataset.key = "full_bleed_background";
-                    input.checked = section.full_bleed_background === true;
-                    label.append(input, document.createTextNode(" Extend background to screen edges"));
-                    return label;
-                })(),
-                field("Small heading", "small_heading", section.small_heading),
-                field("Main heading", "main_heading", section.main_heading),
-                field("Introduction", "introduction", section.introduction, "textarea", true),
-                field("Visitor primary button", "visitor_primary_button", section.visitor_primary_button),
-                field("Visitor secondary link", "visitor_secondary_link", section.visitor_secondary_link),
-                field("Signed-in button", "signed_in_button", section.signed_in_button));
-            body.append(grid);
-
-            const cards = document.createElement("details"); cards.className = "page-cards"; cards.open = true;
-            const cardsSummary = document.createElement("summary");
-            const cardsSummaryTitle = document.createElement("span"); cardsSummaryTitle.textContent = `Cards (${(section.items || []).length})`;
-            const addCard = button("Add card", "add-card"); addCard.classList.add("page-editor-add-card");
-            cardsSummary.append(cardsSummaryTitle, addCard); cards.append(cardsSummary);
-            const cardList = document.createElement("div"); cardList.className = "page-card-list";
-            (section.items || []).forEach((item, itemIndex) => {
-                const card = document.createElement("details"); card.className = "page-card-editor"; card.dataset.id = item.id || "";
-                const cardSummary = document.createElement("summary");
-                const cardSummaryTitle = document.createElement("span"); cardSummaryTitle.className = "page-editor-summary-title"; cardSummaryTitle.textContent = `${itemIndex + 1}. ${item.heading || "Untitled card"}`;
-                cardSummary.append(dragHandle("card"), cardSummaryTitle, orderButtons("card-up", "card-down", "remove-card", itemIndex, section.items.length, "card")); card.append(cardSummary);
-                const cardBody = document.createElement("div"); cardBody.className = "page-card-body page-editor-grid";
-                cardBody.append(field("Heading", "heading", item.heading), field("Description", "description", item.description, "textarea", true));
-                card.append(cardBody); cardList.append(card);
-            });
-            cards.append(cardList); body.append(cards);
-            panel.append(body); list.append(panel);
+            panel.append(summary(`${sectionIndex + 1}. ${section.name || "Section"}${section.is_visible === false ? " - Hidden" : ""}`, "section", sectionIndex, sections.length));
+            const body = el("div", "page-section-body");
+            const settings = el("div", "page-editor-grid");
+            settings.append(
+                field("Section name", "name", section.name || "Section", "text", true),
+                checkboxField("Visible publicly", "is_visible", section.is_visible),
+                selectField("Content width", "width", section.width || "inherit", choices.width),
+                selectField("Column layout", "layout", section.layout || "single", choices.layout),
+                selectField("Background", "background", section.background || "default", choices.background),
+                checkboxField("Extend background to screen edges", "full_bleed_background", section.full_bleed_background)
+            );
+            body.append(settings);
+            const columns = el("div", `page-columns-editor page-columns-${section.layout || "single"}`);
+            const columnCount = columnCounts[section.layout] || 1;
+            for (let column = 0; column < columnCount; column += 1) {
+                const blocks = (section.blocks || [])
+                    .map((block, index) => ({block, index}))
+                    .filter(({block}) => Number(block.column || 0) === column);
+                const columnPanel = el("section", "page-column-editor");
+                columnPanel.dataset.column = column;
+                const header = el("div", "page-column-header");
+                const columnActions = el("span", "page-editor-summary-actions");
+                const addBlock = button("Add block", "add-block");
+                addBlock.classList.add("page-editor-add-item");
+                columnActions.append(addBlock);
+                header.append(el("strong", "page-editor-summary-title", `Column ${column + 1} (${blocks.length} blocks)`), columnActions);
+                columnPanel.append(header);
+                const blockList = el("div", "page-block-list");
+                blocks.forEach(({block, index}, columnIndex) => {
+                    const blockPanel = renderBlock(block, columnIndex, blocks.length);
+                    blockPanel.dataset.blockIndex = index;
+                    blockList.append(blockPanel);
+                });
+                columnPanel.append(blockList);
+                columns.append(columnPanel);
+            }
+            body.append(columns);
+            panel.append(body);
+            list.append(panel);
         });
+        payload.value = JSON.stringify(sections);
     };
 
-    const panelKey = (panel, index) => panel.dataset.id ? `id:${panel.dataset.id}` : `index:${index}`;
-    const captureViewState = () => ({
-        scrollPosition: {x: window.scrollX, y: window.scrollY},
-        sections: [...list.querySelectorAll(":scope > .page-section-editor")].map((panel, sectionIndex) => {
-            const cards = panel.querySelector(":scope > .page-section-body > .page-cards");
-            return {
-                key: panelKey(panel, sectionIndex),
-                sectionOpen: panel.open,
-                cardsOpen: cards?.open ?? false,
-                cards: cards ? [...cards.querySelectorAll(".page-card-list > .page-card-editor")].map((card, cardIndex) => ({
-                    key: panelKey(card, cardIndex),
-                    open: card.open,
-                })) : [],
-            };
-        }),
-    });
-
-    const restoreViewState = (state, {openCard = null, openLastSection = false} = {}) => {
-        const sectionPanels = [...list.querySelectorAll(":scope > .page-section-editor")];
-        sectionPanels.forEach((panel, sectionIndex) => {
-            const sectionState = state.sections.find((candidate) => candidate.key === panelKey(panel, sectionIndex)) || state.sections[sectionIndex];
-            if (sectionState) panel.open = sectionState.sectionOpen;
-            const cards = panel.querySelector(":scope > .page-section-body > .page-cards");
-            if (!cards) return;
-            if (sectionState) cards.open = sectionState.cardsOpen;
-            [...cards.querySelectorAll(".page-card-list > .page-card-editor")].forEach((card, cardIndex) => {
-                const cardState = sectionState?.cards?.find((candidate) => candidate.key === panelKey(card, cardIndex));
-                card.open = cardState?.open ?? sectionState?.cardOpen?.[cardIndex] ?? false;
-            });
-        });
-
-        if (openLastSection && sectionPanels.length) sectionPanels[sectionPanels.length - 1].open = true;
-        if (openCard !== null) {
-            const sectionPanel = sectionPanels[openCard];
-            const cards = sectionPanel?.querySelector(":scope > .page-section-body > .page-cards");
-            const cardPanels = cards ? [...cards.querySelectorAll(".page-card-list > .page-card-editor")] : [];
-            if (sectionPanel) sectionPanel.open = true;
-            if (cards) cards.open = true;
-            if (cardPanels.length) cardPanels[cardPanels.length - 1].open = true;
-        }
-
-        window.scrollTo(state.scrollPosition.x, state.scrollPosition.y);
-        window.requestAnimationFrame(() => window.scrollTo(state.scrollPosition.x, state.scrollPosition.y));
-        window.setTimeout(() => window.scrollTo(state.scrollPosition.x, state.scrollPosition.y), 0);
-    };
-
-    const rerenderPreservingState = (options = {}) => {
-        const state = captureViewState();
+    const preserve = (mutate, syncBefore = true) => {
+        if (syncBefore) sync();
+        const open = [...list.querySelectorAll("details")].map((node, index) => node.open ? index : -1).filter((index) => index >= 0);
+        const scroll = window.scrollY;
+        mutate();
         render();
-        restoreViewState(state, options);
+        [...list.querySelectorAll("details")].forEach((node, index) => { node.open = open.includes(index); });
+        window.scrollTo(0, scroll);
+        sync();
+    };
+    const capturePageState = () => ({
+        openPanels: [...list.querySelectorAll("details")].map((node) => node.open),
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
+    });
+    const savePageState = () => {
+        try {
+            sessionStorage.setItem(stateStorageKey, JSON.stringify(capturePageState()));
+        } catch (_) {
+            // The editor still submits normally if browser storage is unavailable.
+        }
+    };
+    const restorePageState = () => {
+        let savedState = null;
+        try {
+            savedState = JSON.parse(sessionStorage.getItem(stateStorageKey) || "null");
+            sessionStorage.removeItem(stateStorageKey);
+        } catch (_) {
+            savedState = null;
+        }
+        if (!savedState) return;
+        [...list.querySelectorAll("details")].forEach((node, index) => {
+            node.open = savedState.openPanels?.[index] === true;
+        });
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            window.scrollTo(savedState.scrollX || 0, savedState.scrollY || 0);
+        }));
+    };
+    const persistRemoval = async (type, id) => {
+        if (!id) return true;
+        const token = form.querySelector('[name="csrfmiddlewaretoken"]')?.value;
+        const url = editor.dataset.removeUrl.replace("CONTENT_TYPE", type).replace(/0\/$/, `${id}/`);
+        return (await fetch(url, {method: "POST", headers: {"X-CSRFToken": token, "X-Requested-With": "XMLHttpRequest"}, credentials: "same-origin"})).ok;
     };
 
-    editor.addEventListener("click", async (event) => {
-        if (event.target.closest(".page-editor-drag-handle")) {
-            event.preventDefault();
-            event.stopPropagation();
-            return;
-        }
-        const action = event.target.dataset.action;
-        if (!action) return;
+    list.addEventListener("click", async (event) => {
+        const control = event.target.closest("[data-action]");
+        if (!control) return;
         event.preventDefault();
-        event.stopPropagation();
-        sections = read();
-        const sectionPanel = event.target.closest(".page-section-editor");
-        const sectionIndex = [...list.querySelectorAll(":scope > .page-section-editor")].indexOf(sectionPanel);
-        const cardPanel = event.target.closest(".page-card-editor");
-        const cardIndex = cardPanel ? [...cardPanel.parentElement.children].indexOf(cardPanel) : -1;
-        if (action === "section-up" && sectionPanel.previousElementSibling) {
-            list.insertBefore(sectionPanel, sectionPanel.previousElementSibling);
-            refreshOrderControls();
-            sync();
-            return;
-        }
-        if (action === "section-down" && sectionPanel.nextElementSibling) {
-            list.insertBefore(sectionPanel.nextElementSibling, sectionPanel);
-            refreshOrderControls();
-            sync();
-            return;
-        }
-        if (action === "card-up" && cardPanel.previousElementSibling) {
-            cardPanel.parentElement.insertBefore(cardPanel, cardPanel.previousElementSibling);
-            refreshOrderControls();
-            sync();
-            return;
-        }
-        if (action === "card-down" && cardPanel.nextElementSibling) {
-            cardPanel.parentElement.insertBefore(cardPanel.nextElementSibling, cardPanel);
-            refreshOrderControls();
-            sync();
-            return;
-        }
-        if (action === "add-card") sections[sectionIndex].items.push({});
-        if (action === "remove-card") {
-            const cardName = sections[sectionIndex].items[cardIndex].heading || "Untitled card";
-            if (!window.confirm(`Permanently remove the card "${cardName}"?\n\nThis takes effect immediately and cannot be undone.`)) return;
-            if (!await persistRemoval("card", sections[sectionIndex].items[cardIndex].id)) {
-                window.alert("The card could not be removed. Please refresh the page and try again.");
-                return;
-            }
-            commitRemovalToBaseline("card", sections[sectionIndex].items[cardIndex].id);
-            sections[sectionIndex].items.splice(cardIndex, 1);
-        }
-        if (action === "remove-section") {
-            const section = sections[sectionIndex];
-            const sectionName = section.section_type === "steps" ? "Numbered information cards" : "Introduction and actions";
-            const cardCount = section.items.length;
-            const cardWarning = cardCount ? ` This will also remove ${cardCount} nested card${cardCount === 1 ? "" : "s"}.` : "";
-            if (!window.confirm(`Permanently remove the section "${sectionName}"?${cardWarning}\n\nThis takes effect immediately and cannot be undone.`)) return;
-            if (!await persistRemoval("section", section.id)) {
-                window.alert("The section could not be removed. Please refresh the page and try again.");
-                return;
-            }
-            commitRemovalToBaseline("section", section.id);
-            sections.splice(sectionIndex, 1);
-        }
-        rerenderPreservingState({openCard: action === "add-card" ? sectionIndex : null});
         sync();
-    });
-    list.addEventListener("input", () => { refreshOrderControls(); sync(); });
-    list.addEventListener("change", () => { refreshOrderControls(); sync(); });
+        const action = control.dataset.action;
+        const sectionPanel = control.closest(".page-section-editor");
+        const sectionIndex = [...list.children].indexOf(sectionPanel);
+        const section = sections[sectionIndex];
+        const columnPanel = control.closest(".page-column-editor");
+        const blockPanel = control.closest(".page-block-editor");
+        const blockIndex = blockPanel ? Number(blockPanel.dataset.blockIndex) : -1;
+        const block = blockPanel ? section.blocks[blockIndex] : null;
+        const cardPanel = control.closest(".page-card-editor");
+        const cardIndex = cardPanel && block ? [...cardPanel.parentElement.children].indexOf(cardPanel) : -1;
 
-    let draggedPanel = null;
-    let draggedList = null;
-
-    const clearDragState = () => {
-        list.querySelectorAll(".page-editor-dragging, .page-editor-drop-before, .page-editor-drop-after").forEach((element) => {
-            element.classList.remove("page-editor-dragging", "page-editor-drop-before", "page-editor-drop-after");
-        });
-        draggedPanel = null;
-        draggedList = null;
-    };
-
-    list.addEventListener("dragstart", (event) => {
-        const handle = event.target.closest(".page-editor-drag-handle");
-        if (!handle) {
-            event.preventDefault();
-            return;
-        }
-        draggedPanel = handle.closest(".page-card-editor, .page-section-editor");
-        draggedList = draggedPanel.parentElement;
-        draggedPanel.classList.add("page-editor-dragging");
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", "page-editor-order");
-    });
-
-    list.addEventListener("dragover", (event) => {
-        if (!draggedPanel) return;
-        const selector = draggedPanel.classList.contains("page-card-editor") ? ".page-card-editor" : ".page-section-editor";
-        const hoveredPanel = event.target.closest(selector);
-        if (!hoveredPanel || hoveredPanel.parentElement !== draggedList) return;
-        event.preventDefault();
-        event.dataTransfer.dropEffect = "move";
-        draggedList.querySelectorAll(".page-editor-drop-before, .page-editor-drop-after").forEach((element) => {
-            element.classList.remove("page-editor-drop-before", "page-editor-drop-after");
-        });
-        const candidates = [...draggedList.querySelectorAll(`:scope > ${selector}`)].filter((panel) => panel !== draggedPanel);
-        const nextPanel = candidates.find((panel) => {
-            const bounds = panel.getBoundingClientRect();
-            return event.clientY < bounds.top + bounds.height / 2;
-        });
-        if (nextPanel) {
-            nextPanel.classList.add("page-editor-drop-before");
-        } else if (candidates.length) {
-            candidates[candidates.length - 1].classList.add("page-editor-drop-after");
+        if (action === "add-block") preserve(() => section.blocks.push({column: Number(columnPanel.dataset.column), is_visible: true, block_type: "text", content: "", audience: "everyone", destination: "none", style: "default", items: []}), false);
+        else if (action === "add-card") preserve(() => block.items.push({heading: "", description: ""}), false);
+        else if (action.endsWith("-up") || action.endsWith("-down")) {
+            const delta = action.endsWith("-up") ? -1 : 1;
+            preserve(() => {
+                if (action.startsWith("section")) [sections[sectionIndex], sections[sectionIndex + delta]] = [sections[sectionIndex + delta], sections[sectionIndex]];
+                else if (action.startsWith("block")) {
+                    const columnIndices = section.blocks
+                        .map((candidate, index) => ({candidate, index}))
+                        .filter(({candidate}) => Number(candidate.column || 0) === Number(block.column || 0))
+                        .map(({index}) => index);
+                    const position = columnIndices.indexOf(blockIndex);
+                    const otherIndex = columnIndices[position + delta];
+                    [section.blocks[blockIndex], section.blocks[otherIndex]] = [section.blocks[otherIndex], section.blocks[blockIndex]];
+                }
+                else [block.items[cardIndex], block.items[cardIndex + delta]] = [block.items[cardIndex + delta], block.items[cardIndex]];
+            }, false);
+        } else if (action.startsWith("remove-")) {
+            const type = action.replace("remove-", "");
+            const subject = type === "section" ? section : type === "block" ? block : block.items[cardIndex];
+            if (!window.confirm(`Permanently remove this ${type}? This takes effect immediately and cannot be undone.`)) return;
+            if (!(await persistRemoval(type, subject.id))) return window.alert(`The ${type} could not be removed.`);
+            preserve(() => {
+                if (type === "section") sections.splice(sectionIndex, 1);
+                else if (type === "block") section.blocks.splice(blockIndex, 1);
+                else block.items.splice(cardIndex, 1);
+            }, false);
+            baseline = JSON.stringify(sections);
         }
     });
-
-    list.addEventListener("drop", (event) => {
-        if (!draggedPanel) return;
-        const selector = draggedPanel.classList.contains("page-card-editor") ? ".page-card-editor" : ".page-section-editor";
-        const beforeTarget = draggedList.querySelector(":scope > .page-editor-drop-before");
-        const afterTarget = draggedList.querySelector(":scope > .page-editor-drop-after");
-        if (!beforeTarget && !afterTarget) {
-            clearDragState();
-            return;
-        }
-        event.preventDefault();
-        draggedList.insertBefore(draggedPanel, beforeTarget || afterTarget.nextElementSibling);
-        refreshOrderControls();
+    list.addEventListener("change", (event) => {
+        if (event.target.dataset.key === "block_type" || event.target.dataset.key === "layout") preserve(() => {});
+        else sync();
+    });
+    list.addEventListener("input", (event) => {
         sync();
-        clearDragState();
+        if (event.target.dataset.key === "name") {
+            const sectionPanel = event.target.closest(".page-section-editor");
+            const sectionIndex = [...list.children].indexOf(sectionPanel);
+            const title = sectionPanel.querySelector(":scope > summary .page-editor-summary-title");
+            if (title) title.textContent = `${sectionIndex + 1}. ${event.target.value.trim() || "Section"}${sections[sectionIndex].is_visible === false ? " - Hidden" : ""}`;
+        }
     });
+    editor.querySelector("[data-add-section]").addEventListener("click", () => preserve(() => sections.push({name: "Section", is_visible: true, width: "inherit", layout: "single", background: "default", full_bleed_background: false, blocks: []})));
 
-    list.addEventListener("dragend", clearDragState);
-    editor.querySelector("[data-add-section]").addEventListener("click", () => { sections = read(); sections.push({section_type: "introduction", is_visible: true, width: "inherit", layout: "single", background: "default", full_bleed_background: false, items: []}); rerenderPreservingState({openLastSection: true}); sync(); });
-    const savedViewStateKey = `page-editor-view:${window.location.pathname}`;
-    form.addEventListener("input", updateDirtyState);
-    form.addEventListener("change", updateDirtyState);
-    form.addEventListener("click", (event) => {
-        const submitter = event.target.closest('button[type="submit"], input[type="submit"]');
-        if (submitter) lastSubmitter = submitter;
-    });
     form.addEventListener("submit", (event) => {
         sync();
-        isSubmitting = true;
-        try {
-            const submitter = event.submitter || lastSubmitter;
-            if (submitter?.name === "_continue") {
-                window.sessionStorage.setItem(savedViewStateKey, JSON.stringify(captureViewState()));
-            } else {
-                window.sessionStorage.removeItem(savedViewStateKey);
-            }
-        } catch (_) {
-            // Saving must still work if browser storage is unavailable.
+        submitting = true;
+        if (event.submitter?.name === "_continue") savePageState();
+        else {
+            try { sessionStorage.removeItem(stateStorageKey); } catch (_) {}
         }
+    });
+    window.addEventListener("beforeunload", (event) => {
+        sync();
+        if (!submitting && JSON.stringify(sections) !== baseline) { event.preventDefault(); event.returnValue = ""; }
     });
     render();
-    try {
-        const savedViewState = window.sessionStorage.getItem(savedViewStateKey);
-        if (savedViewState) {
-            window.sessionStorage.removeItem(savedViewStateKey);
-            restoreViewState(JSON.parse(savedViewState));
-        }
-    } catch (_) {
-        // The editor remains usable without restoring its previous view.
-    }
+    restorePageState();
     sync();
-    baselineState = captureFormState();
-    updateDirtyState();
-    window.addEventListener("beforeunload", (event) => {
-        if (!isDirty || isSubmitting) return;
-        event.preventDefault();
-        event.returnValue = "";
-    });
-    window.addEventListener("rat-race:admin-discard-navigation", () => {
-        isSubmitting = true;
-    });
+    baseline = JSON.stringify(sections);
 });

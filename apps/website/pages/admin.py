@@ -6,7 +6,7 @@ from django.urls import path
 from django.utils import timezone
 
 from .forms import PageEditorForm
-from .models import Page, PageSection, SectionItem
+from .models import Page, PageBlock, PageSection, SectionItem
 
 
 @admin.register(Page)
@@ -42,9 +42,13 @@ class PageAdmin(admin.ModelAdmin):
 
         if content_type == "section":
             content = get_object_or_404(page.sections, pk=content_id)
+        elif content_type == "block":
+            content = get_object_or_404(
+                PageBlock.objects.filter(section__page=page), pk=content_id
+            )
         elif content_type == "card":
             content = get_object_or_404(
-                SectionItem.objects.filter(section__page=page), pk=content_id
+                SectionItem.objects.filter(block__section__page=page), pk=content_id
             )
         else:
             return JsonResponse({"removed": False}, status=400)
@@ -65,28 +69,42 @@ class PageAdmin(admin.ModelAdmin):
                 if section_data["id"]:
                     section = form.instance.sections.get(pk=section_data["id"])
                     for field in (
-                        "section_type", "position", "is_visible", "width", "layout",
-                        "background", "full_bleed_background", "small_heading",
-                        "main_heading", "introduction", "visitor_primary_button",
-                        "visitor_secondary_link", "signed_in_button",
+                        "position", "is_visible", "width", "layout",
+                        "background", "full_bleed_background",
                     ):
                         setattr(section, field, getattr(submitted_section, field))
                 section.page = form.instance
                 section.save()
                 retained_sections.append(section.pk)
 
-                retained_items = []
-                for item_data in section_data["items"]:
-                    submitted_item = item_data["model"]
-                    item = submitted_item
-                    if item_data["id"]:
-                        item = section.items.get(pk=item_data["id"])
-                        for field in ("position", "heading", "description"):
-                            setattr(item, field, getattr(submitted_item, field))
-                    item.section = section
-                    item.save()
-                    retained_items.append(item.pk)
-                section.items.exclude(pk__in=retained_items).delete()
+                retained_blocks = []
+                for block_data in section_data["blocks"]:
+                    submitted_block = block_data["model"]
+                    block = submitted_block
+                    if block_data["id"]:
+                        block = section.blocks.get(pk=block_data["id"])
+                        for field in (
+                            "position", "column", "is_visible", "block_type",
+                            "content", "audience", "destination", "style",
+                        ):
+                            setattr(block, field, getattr(submitted_block, field))
+                    block.section = section
+                    block.save()
+                    retained_blocks.append(block.pk)
+
+                    retained_items = []
+                    for item_data in block_data["items"]:
+                        submitted_item = item_data["model"]
+                        item = submitted_item
+                        if item_data["id"]:
+                            item = block.items.get(pk=item_data["id"])
+                            for field in ("position", "heading", "description"):
+                                setattr(item, field, getattr(submitted_item, field))
+                        item.block = block
+                        item.save()
+                        retained_items.append(item.pk)
+                    block.items.exclude(pk__in=retained_items).delete()
+                section.blocks.exclude(pk__in=retained_blocks).delete()
             form.instance.sections.exclude(pk__in=retained_sections).delete()
 
     def has_add_permission(self, request):

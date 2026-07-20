@@ -5,11 +5,7 @@
 <div class="managed-page managed-page-width-{{ managed_page.content_width }}">
     {% for section in managed_page.sections.all %}
         {% if section.is_visible %}
-            {% if section.section_type == "introduction" %}
-                {% include "registry/sections/introduction.html" %}
-            {% elif section.section_type == "steps" %}
-                {% include "registry/sections/numbered_cards.html" %}
-            {% endif %}
+            {% include "registry/sections/managed.html" with show_feature_image=forloop.first %}
         {% endif %}
     {% endfor %}
 </div>

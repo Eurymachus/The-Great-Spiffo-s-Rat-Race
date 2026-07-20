@@ -32,9 +32,24 @@ from .verification_email import send_password_reset_email, send_verification_ema
 def home(request):
     page = (
         Page.objects.filter(slug="home", is_published=True)
-        .prefetch_related("sections__items")
+        .prefetch_related("sections__blocks__items")
         .first()
     )
+    if page:
+        column_counts = {
+            "single": 1,
+            "two": 2,
+            "wide_left": 2,
+            "wide_right": 2,
+            "three": 3,
+            "four": 4,
+        }
+        for section in page.sections.all():
+            columns = [[] for _ in range(column_counts.get(section.layout, 1))]
+            for block in section.blocks.all():
+                if block.is_visible:
+                    columns[min(block.column, len(columns) - 1)].append(block)
+            section.render_columns = columns
     return render(request, "registry/home.html", {"managed_page": page})
 
 

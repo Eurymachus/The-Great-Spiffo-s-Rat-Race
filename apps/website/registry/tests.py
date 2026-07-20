@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from branding.models import SiteBranding
-from pages.models import Page
+from pages.models import Page, PageBlock
 from .admin import export_registrations, promote_to_role
 from .models import AccountClosureRecord, Participant
 from .tokens import create_verification_token
@@ -83,14 +83,27 @@ class RegistrationTests(TestCase):
     def test_homepage_editorial_content_comes_from_managed_page(self):
         page = Page.objects.get(slug="home")
         section = page.sections.get(position=0)
-        section.small_heading = "Custom small heading"
-        section.main_heading = "Custom main heading"
-        section.introduction = "Custom homepage introduction."
-        section.visitor_primary_button = "Custom join action"
-        section.visitor_secondary_link = "Custom returning-player action"
-        section.signed_in_button = "Custom account action"
-        section.save()
-        items = list(section.items.all())
+        blocks = section.blocks.all()
+        changes = {
+            PageBlock.BlockType.SMALL_HEADING: "Custom small heading",
+            PageBlock.BlockType.HEADING: "Custom main heading",
+            PageBlock.BlockType.TEXT: "Custom homepage introduction.",
+        }
+        for block_type, content in changes.items():
+            block = blocks.get(block_type=block_type)
+            block.content = content
+            block.save(update_fields=("content",))
+        join_action = blocks.get(destination=PageBlock.Destination.REGISTER)
+        join_action.content = "Custom join action"
+        join_action.save(update_fields=("content",))
+        login_action = blocks.get(destination=PageBlock.Destination.LOGIN)
+        login_action.content = "Custom returning-player action"
+        login_action.save(update_fields=("content",))
+        account_action = blocks.get(destination=PageBlock.Destination.ACCOUNT)
+        account_action.content = "Custom account action"
+        account_action.save(update_fields=("content",))
+        card_group = blocks.get(block_type=PageBlock.BlockType.CARD_GROUP)
+        items = list(card_group.items.all())
         items[0].heading = "Custom first step"
         items[0].save()
         items[1].description = "Custom second description."

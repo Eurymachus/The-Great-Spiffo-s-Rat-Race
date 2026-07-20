@@ -1,0 +1,30 @@
+{% if block.audience == "everyone" or block.audience == "visitors" and not request.user.is_authenticated or block.audience == "signed_in" and request.user.is_authenticated %}
+    {% if block.block_type == "small_heading" %}
+        <p class="eyebrow managed-block">{{ block.content }}</p>
+    {% elif block.block_type == "heading" %}
+        <h2 class="managed-block">{{ block.content }}</h2>
+    {% elif block.block_type == "text" %}
+        <div class="lede managed-block">{{ block.content|linebreaks }}</div>
+    {% elif block.block_type == "action" %}
+        <div class="home-actions managed-block">
+            {% if block.destination == "register" %}
+                <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:register' %}">{{ block.content }}</a>
+            {% elif block.destination == "login" %}
+                <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:login' %}">{{ block.content }}</a>
+            {% elif block.destination == "account" %}
+                <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:account' %}">{{ block.content }}</a>
+            {% else %}
+                <span>{{ block.content }}</span>
+            {% endif %}
+        </div>
+    {% elif block.block_type == "card_group" %}
+        <div class="managed-card-group managed-block">
+            {% if block.content %}<h3>{{ block.content }}</h3>{% endif %}
+            <div class="home-steps managed-block-grid">
+                {% for item in block.items.all %}
+                <article><strong>{{ forloop.counter }}. {{ item.heading }}</strong><span>{{ item.description }}</span></article>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+{% endif %}

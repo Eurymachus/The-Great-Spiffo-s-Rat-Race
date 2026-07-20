@@ -404,22 +404,33 @@ button:hover { background: var(--theme-accent-hover); }
 .managed-section-width-standard { max-width: 64rem; }
 .managed-section-width-wide { max-width: 82rem; }
 .managed-section-width-full { max-width: none; }
+.managed-section-background-default {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
 .managed-section-background-surface { background: var(--theme-surface); }
 .managed-section-background-alternate { background: var(--theme-surface-alt); }
 .managed-section-full-bleed {
     border-radius: 0;
-    box-shadow: 0 0 0 100vmax var(--theme-surface);
     clip-path: inset(0 -100vmax);
+}
+.managed-section-background-surface.managed-section-full-bleed {
+    box-shadow: 0 0 0 100vmax var(--theme-surface);
 }
 .managed-section-background-alternate.managed-section-full-bleed {
     box-shadow: 0 0 0 100vmax var(--theme-surface-alt);
 }
-.managed-section-layout-single .managed-block-grid { grid-template-columns: 1fr; }
-.managed-section-layout-two .managed-block-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.managed-section-layout-wide_left .managed-block-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
-.managed-section-layout-wide_right .managed-block-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
-.managed-section-layout-three .managed-block-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.managed-section-layout-four .managed-block-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.managed-section-columns { display: grid; gap: 1.25rem; }
+.managed-section-layout-single .managed-section-columns { grid-template-columns: 1fr; }
+.managed-section-layout-two .managed-section-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.managed-section-layout-wide_left .managed-section-columns { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.managed-section-layout-wide_right .managed-section-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.managed-section-layout-three .managed-section-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.managed-section-layout-four .managed-section-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.managed-section-column { min-width: 0; }
+.managed-section-column > .managed-block + .managed-block { margin-top: 1.25rem; }
+.managed-card-group .managed-block-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; }
 
 .signup-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .signup-step-status { flex: 0 0 auto; margin: .35rem 0 0; color: var(--theme-muted); }
@@ -445,6 +456,7 @@ button:hover { background: var(--theme-accent-hover); }
 
 @container public-page (max-width: 700px) {
     .home-steps { grid-template-columns: 1fr; }
+    .managed-section .managed-section-columns,
     .managed-section .managed-block-grid { grid-template-columns: 1fr; }
     .signup-progress { grid-template-columns: 1fr; }
     .signup-progress li { display: none; }
