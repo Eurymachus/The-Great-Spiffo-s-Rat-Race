@@ -5,9 +5,10 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
+from branding.models import ManagedImage
 from registry.models import Participant
 
-from .models import Page, PageBlock, PageSection, SectionItem
+from .models import Page, PageBlock, PageGalleryImage, PageSection, SectionItem
 
 
 class ManagedPageTests(TestCase):
@@ -19,6 +20,7 @@ class ManagedPageTests(TestCase):
         section = section or self.section
         return [{
             "id": section.pk,
+            "name": section.name,
             "is_visible": section.is_visible,
             "width": section.width,
             "layout": section.layout,
@@ -33,6 +35,24 @@ class ManagedPageTests(TestCase):
                 "audience": block.audience,
                 "destination": block.destination,
                 "style": block.style,
+                "card_columns": block.card_columns,
+                "image_asset": block.image_asset_id,
+                "image_alt": block.image_alt,
+                "image_fit": block.image_fit,
+                "image_height": block.image_height,
+                "image_custom_height": block.image_custom_height,
+                "image_position": block.image_position,
+                "gallery_auto_scroll": block.gallery_auto_scroll,
+                "gallery_scroll_speed": block.gallery_scroll_speed,
+                "gallery_loop": block.gallery_loop,
+                "gallery_show_controls": block.gallery_show_controls,
+                "gallery_show_captions": block.gallery_show_captions,
+                "gallery_expandable": block.gallery_expandable,
+                "gallery_images": [{
+                    "image": item.image_id,
+                    "alternative_text": item.alternative_text,
+                    "caption": item.caption,
+                } for item in block.gallery_images.all()],
                 "items": [{
                     "id": item.pk,
                     "heading": item.heading,
@@ -86,11 +106,93 @@ class ManagedPageTests(TestCase):
         self.assertContains(response, heading.content)
         self.assertLess(content.index("First configured item"), content.index("Second configured item"))
 
+    def test_image_block_renders_managed_image_and_presentation_settings(self):
+        image = ManagedImage.objects.bulk_create([ManagedImage(
+            name="Page feature", image="branding/library/page-feature.png",
+            original_filename="page-feature.png",
+        )])[0]
+        PageBlock.objects.create(
+            section=self.section, position=99, block_type=PageBlock.BlockType.IMAGE,
+            image_asset=image, image_alt="Spiffo at the starting line",
+            image_fit=PageBlock.ImageFit.CONTAIN,
+            image_height=PageBlock.ImageHeight.CUSTOM,
+            image_custom_height=30,
+            image_position=PageBlock.ImagePosition.BOTTOM_RIGHT,
+        )
+
+        response = self.client.get(reverse("registry:home"))
+
+        self.assertContains(response, "/media/branding/library/page-feature.png")
+        self.assertContains(response, 'alt="Spiffo at the starting line"')
+        self.assertContains(response, "managed-image-height-custom")
+        self.assertContains(response, "--managed-image-fit:contain")
+        self.assertContains(response, "--managed-image-custom-height:30rem")
+
+    def test_gallery_block_renders_images_controls_and_expand_option(self):
+        images = ManagedImage.objects.bulk_create([
+            ManagedImage(name="Race start", image="branding/library/start.png", original_filename="start.png"),
+            ManagedImage(name="Race finish", image="branding/library/finish.png", original_filename="finish.png"),
+        ])
+        gallery = PageBlock.objects.create(
+            section=self.section, position=100, block_type=PageBlock.BlockType.GALLERY,
+            gallery_auto_scroll=True, gallery_scroll_speed=7, gallery_expandable=True,
+        )
+        PageGalleryImage.objects.create(block=gallery, image=images[0], position=0, alternative_text="Start", caption="Leaving the line")
+        PageGalleryImage.objects.create(block=gallery, image=images[1], position=10, alternative_text="Finish")
+
+        response = self.client.get(reverse("registry:home"))
+
+        self.assertContains(response, 'data-auto-scroll="true"')
+        self.assertContains(response, 'data-scroll-speed="7"')
+        self.assertContains(response, "/media/branding/library/start.png")
+        self.assertContains(response, "Leaving the line")
+        self.assertContains(response, "data-gallery-expand")
+
+    def test_page_editor_saves_gallery_selection_and_options(self):
+        self.login_superuser("gallery-editor@example.com")
+        images = ManagedImage.objects.bulk_create([
+            ManagedImage(name="One", image="branding/library/one.png", original_filename="one.png"),
+            ManagedImage(name="Two", image="branding/library/two.png", original_filename="two.png"),
+        ])
+        payload = self.editor_payload()
+        payload[0]["blocks"].append({
+            "column": 0, "is_visible": True, "block_type": "gallery", "content": "",
+            "gallery_auto_scroll": True, "gallery_scroll_speed": 4, "gallery_loop": False,
+            "gallery_show_controls": True, "gallery_show_captions": True, "gallery_expandable": True,
+            "gallery_images": [
+                {"image": images[1].pk, "alternative_text": "Second", "caption": "Second caption"},
+                {"image": images[0].pk, "alternative_text": "First", "caption": "First caption"},
+            ], "items": [],
+        })
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        gallery = self.section.blocks.get(block_type=PageBlock.BlockType.GALLERY)
+        self.assertTrue(gallery.gallery_auto_scroll)
+        self.assertFalse(gallery.gallery_loop)
+        self.assertEqual(gallery.gallery_scroll_speed, 4)
+        self.assertEqual(list(gallery.gallery_images.values_list("image_id", flat=True)), [images[1].pk, images[0].pk])
+
     def test_hidden_section_is_not_rendered(self):
         hidden_text = self.section.blocks.first().content
         self.section.is_visible = False
         self.section.save(update_fields=("is_visible",))
         self.assertNotContains(self.client.get(reverse("registry:home")), hidden_text)
+
+    def test_block_can_be_hidden_after_participant_logs_in(self):
+        block = PageBlock.objects.create(
+            section=self.section, position=101, block_type=PageBlock.BlockType.TEXT,
+            content="Visitor-only invitation", audience=PageBlock.Audience.VISITORS,
+        )
+        self.assertContains(self.client.get(reverse("registry:home")), block.content)
+        participant = Participant.objects.create_user(
+            email="signed-in@example.com", nickname="Signed In Racer",
+            password="test-password-only", is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+        self.assertNotContains(self.client.get(reverse("registry:home")), block.content)
 
     def test_branding_administrator_can_edit_pages_but_not_participants(self):
         call_command("bootstrap_roles", verbosity=0)
@@ -115,6 +217,7 @@ class ManagedPageTests(TestCase):
         card_group = next(block for block in payload[0]["blocks"] if block["block_type"] == "card_group")
         card_group["items"][0]["heading"] = "Edited existing card"
         card_group["items"].append({"heading": "New nested card", "description": "Created here."})
+        card_group["card_columns"] = "2"
         response = self.post_payload(payload)
         self.assertEqual(response.status_code, 302)
         self.assertTrue(PageBlock.objects.filter(section=self.section, content="Edited main heading").exists())
@@ -122,6 +225,19 @@ class ManagedPageTests(TestCase):
             list(self.section.blocks.get(block_type="card_group").items.values_list("heading", flat=True))[-1],
             "New nested card",
         )
+        self.assertEqual(self.section.blocks.get(block_type="card_group").card_columns, "2")
+        self.assertContains(self.client.get(reverse("registry:home")), "managed-card-columns-2")
+
+    def test_page_editor_saves_existing_section_name(self):
+        self.login_superuser("section-name-editor@example.com")
+        payload = self.editor_payload()
+        payload[0]["name"] = "Main introduction"
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.section.refresh_from_db()
+        self.assertEqual(self.section.name, "Main introduction")
 
     def test_page_editor_saves_responsive_layout(self):
         self.login_superuser("layout-editor@example.com")

@@ -298,14 +298,6 @@ class SiteBrandingAdmin(admin.ModelAdmin):
                     "enable_social_image",
                     "social_image_asset",
                     "social_image_preview",
-                    "enable_homepage_feature_image",
-                    "homepage_feature_image_asset",
-                    "homepage_feature_image_alt",
-                    "homepage_feature_fit",
-                    "homepage_feature_height",
-                    "homepage_feature_custom_height",
-                    "homepage_feature_position",
-                    "homepage_feature_image_preview",
                     "enable_background_image",
                     "background_image_asset",
                     "background_image_opacity",
@@ -338,7 +330,6 @@ class SiteBrandingAdmin(admin.ModelAdmin):
         "header_logo_preview",
         "favicon_preview",
         "social_image_preview",
-        "homepage_feature_image_preview",
         "background_image_preview",
         "updated_at",
     )
@@ -371,10 +362,6 @@ class SiteBrandingAdmin(admin.ModelAdmin):
     def social_image_preview(self, obj):
         return self._image_preview(obj, "social_image", "social image")
 
-    @admin.display(description="Homepage feature preview")
-    def homepage_feature_image_preview(self, obj):
-        return self._image_preview(obj, "homepage_feature_image", "homepage image")
-
     @admin.display(description="Background preview")
     def background_image_preview(self, obj):
         return self._image_preview(obj, "background_image", "background image")
@@ -387,7 +374,6 @@ class SiteBrandingAdmin(admin.ModelAdmin):
             "header_logo_asset",
             "favicon_asset",
             "social_image_asset",
-            "homepage_feature_image_asset",
             "background_image_asset",
         ):
             widget = form.base_fields[field_name].widget
@@ -607,6 +593,8 @@ class ManagedImageAdmin(admin.ModelAdmin):
                 "favicon_branding",
                 "social_image_branding",
                 "homepage_feature_branding",
+                "page_blocks",
+                "page_galleries",
                 "background_image_branding",
             )
         )

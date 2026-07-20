@@ -47,7 +47,7 @@ class SiteBrandingAdminTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Branding")
-        self.assertContains(response, 'class="branding-image-panel"', count=5)
+        self.assertContains(response, 'class="branding-image-panel"', count=4)
         self.assertContains(
             response,
             "Used for link previews on Discord and social media. It is not displayed within the website page itself.",
@@ -55,15 +55,11 @@ class SiteBrandingAdminTests(TestCase):
         self.assertContains(response, "branding/media_library.js")
         self.assertContains(response, "branding/image_controls.js")
         self.assertContains(response, "Image opacity")
-        self.assertContains(response, "Focal position")
-        self.assertContains(response, 'class="branding-setting-tooltip"', count=12)
+        self.assertContains(response, "Position")
+        self.assertContains(response, 'class="branding-setting-tooltip"', count=8)
         self.assertContains(
             response,
             "Controls how strongly the background image is shown.",
-        )
-        self.assertContains(
-            response,
-            "Chooses which part of the image remains visible when the image is cropped.",
         )
         self.assertNotContains(response, "Header logo preview:")
         self.assertNotContains(response, "Delete")
@@ -75,11 +71,7 @@ class SiteBrandingAdminTests(TestCase):
             fetch_redirect_response=False,
         )
 
-    def test_image_presentation_settings_render_as_css_variables(self):
-        self.branding.homepage_feature_fit = "contain"
-        self.branding.homepage_feature_height = "custom"
-        self.branding.homepage_feature_custom_height = 30
-        self.branding.homepage_feature_position = "right bottom"
+    def test_background_image_presentation_settings_render_as_css_variables(self):
         self.branding.background_image_opacity = 70
         self.branding.background_overlay_strength = 35
         self.branding.background_image_saturation = 80
@@ -99,9 +91,6 @@ class SiteBrandingAdminTests(TestCase):
 
             response = self.client.get(reverse("registry:home"))
 
-        self.assertContains(response, "--site-feature-fit: contain")
-        self.assertContains(response, "--site-feature-height: 30rem")
-        self.assertContains(response, "--site-feature-position: right bottom")
         self.assertContains(response, "--site-background-image-opacity: 0.7")
         self.assertContains(response, "--site-background-overlay: 35%")
         self.assertContains(response, "--site-background-saturation: 80%")

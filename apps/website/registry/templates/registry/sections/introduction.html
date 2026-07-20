@@ -1,7 +1,4 @@
 <section class="card home-hero managed-section managed-section-width-{{ section.width }} managed-section-layout-{{ section.layout }} managed-section-background-{{ section.background }}{% if section.full_bleed_background %} managed-section-full-bleed{% endif %}">
-    {% if site_homepage_feature_image_url %}
-    <img class="homepage-feature-image" src="{{ site_homepage_feature_image_url }}" alt="{{ site_homepage_feature_image_alt }}">
-    {% endif %}
     {% if section.small_heading %}<p class="eyebrow">{{ section.small_heading }}</p>{% endif %}
     <h2>{{ section.main_heading }}</h2>
     {% if section.introduction %}<p class="lede">{{ section.introduction }}</p>{% endif %}

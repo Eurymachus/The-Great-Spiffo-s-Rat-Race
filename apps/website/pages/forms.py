@@ -3,7 +3,7 @@ import json
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Page, PageBlock, PageSection, SectionItem
+from .models import Page, PageBlock, PageGalleryImage, PageSection, SectionItem
 
 
 LAYOUT_COLUMNS = {
@@ -43,6 +43,23 @@ class PageEditorForm(forms.ModelForm):
                             "block_type": block.block_type, "content": block.content,
                             "audience": block.audience, "destination": block.destination,
                             "style": block.style,
+                            "card_columns": block.card_columns,
+                            "image_asset": block.image_asset_id,
+                            "image_alt": block.image_alt, "image_fit": block.image_fit,
+                            "image_height": block.image_height,
+                            "image_custom_height": block.image_custom_height,
+                            "image_position": block.image_position,
+                            "gallery_auto_scroll": block.gallery_auto_scroll,
+                            "gallery_scroll_speed": block.gallery_scroll_speed,
+                            "gallery_loop": block.gallery_loop,
+                            "gallery_show_controls": block.gallery_show_controls,
+                            "gallery_show_captions": block.gallery_show_captions,
+                            "gallery_expandable": block.gallery_expandable,
+                            "gallery_images": [
+                                {"id": item.pk, "image": item.image_id,
+                                 "alternative_text": item.alternative_text, "caption": item.caption}
+                                for item in block.gallery_images.all()
+                            ],
                             "items": [
                                 {"id": item.pk, "position": item.position,
                                  "heading": item.heading, "description": item.description}
@@ -52,7 +69,7 @@ class PageEditorForm(forms.ModelForm):
                         for block in section.blocks.all()
                     ],
                 }
-                for section in self.instance.sections.prefetch_related("blocks__items")
+                for section in self.instance.sections.prefetch_related("blocks__items", "blocks__gallery_images")
             ])
 
     def clean_page_builder_data(self):
@@ -101,6 +118,19 @@ class PageEditorForm(forms.ModelForm):
                     audience=raw_block.get("audience", PageBlock.Audience.EVERYONE),
                     destination=raw_block.get("destination", PageBlock.Destination.NONE),
                     style=raw_block.get("style", PageBlock.Style.DEFAULT),
+                    card_columns=raw_block.get("card_columns", PageBlock.CardColumns.AUTO),
+                    image_asset_id=raw_block.get("image_asset") or None,
+                    image_alt=str(raw_block.get("image_alt", "")),
+                    image_fit=raw_block.get("image_fit", PageBlock.ImageFit.COVER),
+                    image_height=raw_block.get("image_height", PageBlock.ImageHeight.STANDARD),
+                    image_custom_height=int(raw_block.get("image_custom_height") or 24),
+                    image_position=raw_block.get("image_position", PageBlock.ImagePosition.CENTRE),
+                    gallery_auto_scroll=bool(raw_block.get("gallery_auto_scroll", False)),
+                    gallery_scroll_speed=int(raw_block.get("gallery_scroll_speed") or 5),
+                    gallery_loop=bool(raw_block.get("gallery_loop", True)),
+                    gallery_show_controls=bool(raw_block.get("gallery_show_controls", True)),
+                    gallery_show_captions=bool(raw_block.get("gallery_show_captions", True)),
+                    gallery_expandable=bool(raw_block.get("gallery_expandable", True)),
                 )
                 block.full_clean(exclude=("section",))
                 item_ids = set(SectionItem.objects.filter(block_id=block_id).values_list("pk", flat=True)) if block_id else set()
@@ -123,6 +153,27 @@ class PageEditorForm(forms.ModelForm):
                     )
                     item.full_clean(exclude=("block",))
                     items.append({"id": item_id, "model": item})
-                blocks.append({"id": block_id, "model": block, "items": items})
+                gallery_images = []
+                raw_gallery_images = raw_block.get("gallery_images", [])
+                if not isinstance(raw_gallery_images, list):
+                    raise ValidationError("Gallery images must be a list.")
+                if block.block_type != PageBlock.BlockType.GALLERY and raw_gallery_images:
+                    raise ValidationError("Only gallery blocks can contain gallery images.")
+                if block.block_type == PageBlock.BlockType.GALLERY and not raw_gallery_images:
+                    raise ValidationError("Choose at least one gallery image.")
+                seen_images = set()
+                for gallery_index, raw_image in enumerate(raw_gallery_images):
+                    image_id = int(raw_image.get("image") or 0)
+                    if not image_id or image_id in seen_images:
+                        raise ValidationError("Each gallery image must be selected once.")
+                    seen_images.add(image_id)
+                    gallery_image = PageGalleryImage(
+                        position=gallery_index * 10, image_id=image_id,
+                        alternative_text=str(raw_image.get("alternative_text", "")),
+                        caption=str(raw_image.get("caption", "")),
+                    )
+                    gallery_image.full_clean(exclude=("block",))
+                    gallery_images.append(gallery_image)
+                blocks.append({"id": block_id, "model": block, "items": items, "gallery_images": gallery_images})
             cleaned.append({"id": section_id, "model": section, "blocks": blocks})
         return cleaned

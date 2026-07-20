@@ -5,15 +5,12 @@
 <div class="managed-page managed-page-width-{{ managed_page.content_width }}">
     {% for section in managed_page.sections.all %}
         {% if section.is_visible %}
-            {% include "registry/sections/managed.html" with show_feature_image=forloop.first %}
+            {% include "registry/sections/managed.html" %}
         {% endif %}
     {% endfor %}
 </div>
 {% else %}
 <section class="card home-hero">
-    {% if site_homepage_feature_image_url %}
-    <img class="homepage-feature-image" src="{{ site_homepage_feature_image_url }}" alt="{{ site_homepage_feature_image_alt }}">
-    {% endif %}
     <p class="eyebrow">{{ site_homepage_small_heading }}</p>
     <h2>{{ site_homepage_main_heading }}</h2>
     <p class="lede">{{ site_homepage_introduction }}</p>

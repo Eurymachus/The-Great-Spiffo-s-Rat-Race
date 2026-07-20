@@ -69,7 +69,7 @@ class PageAdmin(admin.ModelAdmin):
                 if section_data["id"]:
                     section = form.instance.sections.get(pk=section_data["id"])
                     for field in (
-                        "position", "is_visible", "width", "layout",
+                        "position", "name", "is_visible", "width", "layout",
                         "background", "full_bleed_background",
                     ):
                         setattr(section, field, getattr(submitted_section, field))
@@ -86,6 +86,11 @@ class PageAdmin(admin.ModelAdmin):
                         for field in (
                             "position", "column", "is_visible", "block_type",
                             "content", "audience", "destination", "style",
+                            "card_columns",
+                            "image_asset", "image_alt", "image_fit", "image_height",
+                            "image_custom_height", "image_position",
+                            "gallery_auto_scroll", "gallery_scroll_speed", "gallery_loop",
+                            "gallery_show_controls", "gallery_show_captions", "gallery_expandable",
                         ):
                             setattr(block, field, getattr(submitted_block, field))
                     block.section = section
@@ -104,6 +109,10 @@ class PageAdmin(admin.ModelAdmin):
                         item.save()
                         retained_items.append(item.pk)
                     block.items.exclude(pk__in=retained_items).delete()
+                    block.gallery_images.all().delete()
+                    for gallery_image in block_data["gallery_images"]:
+                        gallery_image.block = block
+                        gallery_image.save()
                 section.blocks.exclude(pk__in=retained_blocks).delete()
             form.instance.sections.exclude(pk__in=retained_sections).delete()
 

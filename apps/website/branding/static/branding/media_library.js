@@ -360,6 +360,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 openPanels: panels.filter((panel) => panel.open).map((panel) => panel.dataset.imagePanel),
             }));
         });
+        form?.addEventListener("rat-race:admin-save-success", () => {
+            sessionStorage.removeItem(viewStateKey);
+        });
         try {
             const saved = sessionStorage.getItem(viewStateKey);
             if (saved) {

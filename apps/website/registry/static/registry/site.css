@@ -358,6 +358,36 @@ button:hover { background: var(--theme-accent-hover); }
     object-fit: var(--site-feature-fit, cover);
     object-position: var(--site-feature-position, center center);
 }
+
+.managed-image-block { margin: 0; }
+.managed-image-block img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 24rem;
+    border-radius: var(--theme-radius);
+    object-fit: var(--managed-image-fit, cover);
+    object-position: var(--managed-image-position, center center);
+}
+.managed-image-height-natural img { max-height: none; }
+.managed-image-height-short img { height: 12rem; max-height: none; }
+.managed-image-height-tall img { height: 32rem; max-height: none; }
+.managed-image-height-custom img { height: var(--managed-image-custom-height, 24rem); max-height: none; }
+.managed-gallery { position: relative; margin: 0; overflow: hidden; border: 1px solid var(--theme-border); border-radius: var(--theme-radius); background: var(--theme-surface-alt); }
+.managed-gallery-stage { position: relative; min-height: 12rem; background: color-mix(in srgb, var(--theme-background) 85%, #000); }
+.managed-gallery-slide { margin: 0; }
+.managed-gallery-slide img { display: block; width: 100%; height: clamp(16rem, 48vw, 36rem); object-fit: contain; }
+.managed-gallery-slide figcaption { padding: .75rem 1rem; color: var(--theme-muted); text-align: center; }
+.managed-gallery-toolbar { display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .65rem; border-top: 1px solid var(--theme-border); }
+.managed-gallery-toolbar button { width: auto; padding: .45rem .8rem; }
+.managed-gallery-control { min-width: 2.5rem; font-size: 1.4rem; line-height: 1; }
+.managed-gallery-expand { margin-left: auto; background: transparent; color: var(--theme-text); border: 1px solid var(--theme-border); }
+.managed-gallery-dialog { width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 2rem; overflow: hidden; color: #fff; background: rgb(7 9 8 / 97%); border: 0; }
+.managed-gallery-dialog::backdrop { background: rgb(0 0 0 / 88%); }
+.managed-gallery-dialog > button { position: absolute; z-index: 2; top: 1rem; right: 1rem; width: 3rem; height: 3rem; padding: 0; border-radius: 50%; font-size: 2rem; }
+.managed-gallery-dialog figure { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 1rem; place-items: center; width: 100%; height: 100%; margin: 0; }
+.managed-gallery-dialog img { display: block; max-width: 100%; max-height: calc(100vh - 7rem); object-fit: contain; }
+.managed-gallery-dialog figcaption { color: #c9ceca; text-align: center; }
 .policy-copy h3 { margin-top: 1.8rem; }
 .policy-copy li { margin: .45rem 0; }
 .site-footer {
@@ -431,6 +461,10 @@ button:hover { background: var(--theme-accent-hover); }
 .managed-section-column { min-width: 0; }
 .managed-section-column > .managed-block + .managed-block { margin-top: 1.25rem; }
 .managed-card-group .managed-block-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; }
+.managed-card-group .managed-card-columns-1 { grid-template-columns: 1fr; }
+.managed-card-group .managed-card-columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.managed-card-group .managed-card-columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.managed-card-group .managed-card-columns-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .signup-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .signup-step-status { flex: 0 0 auto; margin: .35rem 0 0; color: var(--theme-muted); }

@@ -23,24 +23,9 @@ def site_identity(request):
     header_logo = selected_image("header_logo")
     favicon = selected_image("favicon")
     social_image = selected_image("social_image")
-    homepage_feature_image = (
-        selected_image("homepage_feature_image")
-    )
     background_image = (
         selected_image("background_image")
     )
-    feature_height = "auto"
-    feature_max_height = "24rem"
-    if brand:
-        if brand.homepage_feature_height == "natural":
-            feature_max_height = "none"
-        elif brand.homepage_feature_height == "short":
-            feature_height, feature_max_height = "12rem", "none"
-        elif brand.homepage_feature_height == "tall":
-            feature_height, feature_max_height = "32rem", "none"
-        elif brand.homepage_feature_height == "custom":
-            feature_height = f"{brand.homepage_feature_custom_height}rem"
-            feature_max_height = "none"
     background_scale = brand.background_image_scale if brand else "cover"
     return {
         "site_legal_name": settings.SITE_LEGAL_NAME,
@@ -141,17 +126,7 @@ def site_identity(request):
         "site_social_image_url": (
             request.build_absolute_uri(social_image.url) if social_image else ""
         ),
-        "site_homepage_feature_image_url": (
-            homepage_feature_image.url if homepage_feature_image else ""
-        ),
-        "site_homepage_feature_image_alt": (
-            brand.homepage_feature_image_alt if homepage_feature_image else ""
-        ),
         "site_background_image_url": background_image.url if background_image else "",
-        "site_homepage_feature_fit": brand.homepage_feature_fit if brand else "cover",
-        "site_homepage_feature_height": feature_height,
-        "site_homepage_feature_max_height": feature_max_height,
-        "site_homepage_feature_position": brand.homepage_feature_position if brand else "center center",
         "site_background_image_opacity": (brand.background_image_opacity / 100) if brand else 1,
         "site_background_overlay_strength": brand.background_overlay_strength if brand else 28,
         "site_background_image_saturation": brand.background_image_saturation if brand else 100,

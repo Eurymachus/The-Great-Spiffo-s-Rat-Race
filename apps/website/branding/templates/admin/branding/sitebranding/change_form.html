@@ -33,21 +33,6 @@
                 </div>
             </details>
 
-            <details class="branding-image-panel" data-image-panel="homepage-feature">
-                <summary><span>Homepage feature image</span><label class="branding-image-enabled" onclick="event.stopPropagation()">{{ adminform.form.enable_homepage_feature_image }} Enabled</label></summary>
-                <div class="branding-image-panel-body">
-                    {{ adminform.form.enable_homepage_feature_image.errors }}{{ adminform.form.homepage_feature_image_asset.errors }}
-                    <div class="branding-image-selection">{{ adminform.form.homepage_feature_image_asset }}</div>
-                    <div class="branding-image-extra"><label for="{{ adminform.form.homepage_feature_image_alt.id_for_label }}">Alternative text</label>{{ adminform.form.homepage_feature_image_alt }}{{ adminform.form.homepage_feature_image_alt.errors }}<div class="help">Describe the image for people who cannot see it.</div></div>
-                    <div class="branding-image-settings">
-                        <div><span class="branding-setting-label"><label for="{{ adminform.form.homepage_feature_fit.id_for_label }}">Image fit</label><span class="branding-setting-tooltip" tabindex="0" aria-label="Help: Crop fills the feature area. Contain shows the whole image and may leave empty space." data-tooltip="Crop fills the feature area. Contain shows the whole image and may leave empty space.">?</span></span>{{ adminform.form.homepage_feature_fit }}</div>
-                        <div><span class="branding-setting-label"><label for="{{ adminform.form.homepage_feature_height.id_for_label }}">Height</label><span class="branding-setting-tooltip" tabindex="0" aria-label="Help: Sets the height of the feature image area. Natural follows the image's own proportions." data-tooltip="Sets the height of the feature image area. Natural follows the image's own proportions.">?</span></span>{{ adminform.form.homepage_feature_height }}</div>
-                        <div><span class="branding-setting-label"><label for="{{ adminform.form.homepage_feature_custom_height.id_for_label }}">Custom height</label><span class="branding-setting-tooltip" tabindex="0" aria-label="Help: Used only when Height is Custom. Larger values make the feature image area taller." data-tooltip="Used only when Height is Custom. Larger values make the feature image area taller.">?</span></span>{{ adminform.form.homepage_feature_custom_height }}{{ adminform.form.homepage_feature_custom_height.errors }}<div class="help">6 to 60rem. Used only with Custom height.</div></div>
-                        <div><span class="branding-setting-label"><label for="{{ adminform.form.homepage_feature_position.id_for_label }}">Focal position</label><span class="branding-setting-tooltip" tabindex="0" aria-label="Help: Chooses which part of the image remains visible when the image is cropped." data-tooltip="Chooses which part of the image remains visible when the image is cropped.">?</span></span>{{ adminform.form.homepage_feature_position }}</div>
-                    </div>
-                </div>
-            </details>
-
             <details class="branding-image-panel" data-image-panel="background-image">
                 <summary><span>Background image</span><label class="branding-image-enabled" onclick="event.stopPropagation()">{{ adminform.form.enable_background_image }} Enabled</label></summary>
                 <div class="branding-image-panel-body">

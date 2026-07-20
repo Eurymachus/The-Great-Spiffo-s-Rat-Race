@@ -11,9 +11,12 @@
     };
     form.addEventListener("input", markDirty);
     form.addEventListener("change", markDirty);
-    form.addEventListener("submit", () => {
-        dirty = false;
+    form.addEventListener("submit", (event) => {
+        queueMicrotask(() => {
+            if (!event.defaultPrevented) dirty = false;
+        });
     });
+    form.addEventListener("rat-race:admin-save-success", () => { dirty = false; });
 
     const closeButton = document.createElement("button");
     closeButton.type = "button";

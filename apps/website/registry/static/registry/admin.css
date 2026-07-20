@@ -145,6 +145,54 @@ body.add-form .submit-row a.deletelink {
     color: var(--button-fg, #fff);
 }
 
+.admin-save-toast-region {
+    position: fixed;
+    z-index: 100001;
+    top: 1rem;
+    left: 50%;
+    width: min(90vw, 26rem);
+    pointer-events: none;
+    transform: translateX(-50%);
+}
+
+.admin-save-toast {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .85rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--admin-save-accent) 62%, var(--hairline-color));
+    border-radius: .55rem;
+    background: color-mix(in srgb, var(--body-bg) 94%, var(--admin-save-accent));
+    color: var(--body-fg);
+    box-shadow: 0 .8rem 2.2rem rgba(0, 0, 0, .38);
+    opacity: 0;
+    transform: translateY(-1.5rem);
+    visibility: hidden;
+    transition: opacity .2s ease, transform .25s ease, visibility 0s linear .25s;
+}
+
+.admin-save-toast::before {
+    content: "\2713";
+    display: inline-grid;
+    flex: 0 0 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--admin-save-accent);
+    color: #fff;
+    font-weight: 700;
+}
+
+.admin-save-toast.is-visible { opacity: 1; transform: translateY(0); visibility: visible; transition-delay: 0s; }
+.admin-save-toast.is-success { --admin-save-accent: var(--message-success-bg, #2e7d32); }
+.admin-save-toast.is-error { --admin-save-accent: var(--error-fg, #ba2121); }
+.admin-save-toast.is-error::before { content: "!"; }
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-save-toast { transition: opacity .01ms linear; }
+}
+
 @media (max-width: 900px) {
     body.change-form .submit-row,
     body.add-form .submit-row {

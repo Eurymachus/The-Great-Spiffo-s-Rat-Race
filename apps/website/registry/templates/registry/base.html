@@ -74,9 +74,10 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260719-1">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260720-3">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
     <script src="{% static 'registry/site_menu.js' %}?v=20260716-2" defer></script>
+    <script src="{% static 'registry/gallery.js' %}?v=20260720-1" defer></script>
     {% if site_theme %}
     <style>
         :root {
@@ -109,10 +110,6 @@
     {% endif %}
     <style>
         :root {
-            --site-feature-fit: {{ site_homepage_feature_fit }};
-            --site-feature-height: {{ site_homepage_feature_height }};
-            --site-feature-max-height: {{ site_homepage_feature_max_height }};
-            --site-feature-position: {{ site_homepage_feature_position }};
             {% if site_background_image_url %}
             --site-background-image: url("{{ site_background_image_url }}");
             --site-background-image-opacity: {{ site_background_image_opacity }};

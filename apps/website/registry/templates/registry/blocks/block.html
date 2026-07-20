@@ -20,11 +20,34 @@
     {% elif block.block_type == "card_group" %}
         <div class="managed-card-group managed-block">
             {% if block.content %}<h3>{{ block.content }}</h3>{% endif %}
-            <div class="home-steps managed-block-grid">
+            <div class="home-steps managed-block-grid managed-card-columns-{{ block.card_columns }}">
                 {% for item in block.items.all %}
                 <article><strong>{{ forloop.counter }}. {{ item.heading }}</strong><span>{{ item.description }}</span></article>
                 {% endfor %}
             </div>
         </div>
+    {% elif block.block_type == "image" and block.image_asset %}
+        <figure class="managed-image-block managed-block managed-image-height-{{ block.image_height }}" style="--managed-image-fit:{{ block.image_fit }};--managed-image-position:{{ block.image_position }};--managed-image-custom-height:{{ block.image_custom_height }}rem">
+            <img src="{{ block.image_asset.image.url }}" alt="{{ block.image_alt }}">
+        </figure>
+    {% elif block.block_type == "gallery" and block.gallery_images.exists %}
+        <section class="managed-gallery managed-block" data-gallery data-auto-scroll="{{ block.gallery_auto_scroll|yesno:'true,false' }}" data-scroll-speed="{{ block.gallery_scroll_speed }}" data-loop="{{ block.gallery_loop|yesno:'true,false' }}" data-expandable="{{ block.gallery_expandable|yesno:'true,false' }}" aria-label="Image gallery">
+            <div class="managed-gallery-stage">
+                {% for item in block.gallery_images.all %}
+                <figure class="managed-gallery-slide{% if forloop.first %} is-active{% endif %}" data-gallery-slide{% if not forloop.first %} hidden{% endif %}>
+                    <img src="{{ item.image.image.url }}" alt="{{ item.alternative_text }}">
+                    {% if block.gallery_show_captions and item.caption %}<figcaption>{{ item.caption }}</figcaption>{% endif %}
+                </figure>
+                {% endfor %}
+            </div>
+            <div class="managed-gallery-toolbar">
+                {% if block.gallery_show_controls and block.gallery_images.count > 1 %}
+                <button type="button" class="managed-gallery-control" data-gallery-previous aria-label="Previous image">&#8249;</button>
+                <output data-gallery-count aria-live="polite">1 of {{ block.gallery_images.count }}</output>
+                <button type="button" class="managed-gallery-control" data-gallery-next aria-label="Next image">&#8250;</button>
+                {% endif %}
+                {% if block.gallery_expandable %}<button type="button" class="managed-gallery-expand" data-gallery-expand>Expand image</button>{% endif %}
+            </div>
+        </section>
     {% endif %}
 {% endif %}

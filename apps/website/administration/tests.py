@@ -33,6 +33,14 @@ class WebsiteSettingsAdminTests(TestCase):
         library = self.client.get(reverse("admin:branding_managedimage_library"))
         self.assertEqual(library.json()["upload_settings"]["maximum_image_size_mb"], 12)
 
+    def test_admin_change_forms_load_background_save_support(self):
+        settings = WebsiteSettings.current()
+        response = self.client.get(
+            reverse("admin:administration_websitesettings_change", args=(settings.pk,))
+        )
+
+        self.assertContains(response, "registry/admin_save.js")
+
     def test_image_validator_uses_configured_limit(self):
         settings = WebsiteSettings.current()
         settings.maximum_image_upload_size = 1
