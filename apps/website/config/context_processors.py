@@ -1,5 +1,31 @@
 from django.conf import settings
 from branding.models import SiteBranding, WebsiteTheme
+from pages.models import NavigationItem
+
+
+def navigation_tree():
+    items = list(
+        NavigationItem.objects.filter(is_visible=True)
+        .select_related("page", "parent")
+        .order_by("parent_id", "position", "label")
+    )
+    nodes = {}
+    for item in items:
+        if item.page_id and not item.page.is_published:
+            continue
+        nodes[item.pk] = {
+            "item": item,
+            "url": item.page.get_absolute_url() if item.page_id else "",
+            "children": [],
+        }
+    roots = []
+    for node in nodes.values():
+        parent_id = node["item"].parent_id
+        if parent_id in nodes:
+            nodes[parent_id]["children"].append(node)
+        elif parent_id is None:
+            roots.append(node)
+    return roots
 
 
 def site_identity(request):
@@ -28,6 +54,7 @@ def site_identity(request):
     )
     background_scale = brand.background_image_scale if brand else "cover"
     return {
+        "site_navigation_items": navigation_tree(),
         "site_legal_name": settings.SITE_LEGAL_NAME,
         "site_company_number": company_number,
         "site_registered_office": settings.SITE_REGISTERED_OFFICE,

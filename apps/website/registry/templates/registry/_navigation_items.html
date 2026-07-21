@@ -1,0 +1,23 @@
+{% for node in nodes %}
+<li class="site-nav-item{% if node.children %} has-children{% endif %}">
+    <span class="site-nav-entry">
+        {% if node.url %}
+        <a href="{{ node.url }}"{% if managed_page.pk == node.item.page_id %} aria-current="page"{% endif %}>{{ node.item.label }}</a>
+        {% elif node.children %}
+        <button class="site-nav-group-toggle" type="button" aria-expanded="false" aria-label="Show {{ node.item.label }} menu" data-nav-submenu-toggle>
+            <span>{{ node.item.label }}</span><span class="site-nav-arrow" aria-hidden="true">▾</span>
+        </button>
+        {% else %}
+        <span class="site-nav-label">{{ node.item.label }}</span>
+        {% endif %}
+        {% if node.children and node.url %}
+        <button class="site-nav-submenu-toggle" type="button" aria-expanded="false" aria-label="Show {{ node.item.label }} menu" data-nav-submenu-toggle><span class="site-nav-arrow" aria-hidden="true">▾</span></button>
+        {% endif %}
+    </span>
+    {% if node.children %}
+    <ul class="site-nav-submenu">
+        {% include "registry/_navigation_items.html" with nodes=node.children %}
+    </ul>
+    {% endif %}
+</li>
+{% endfor %}

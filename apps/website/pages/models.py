@@ -1,6 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.urls import reverse
+from django.utils.text import slugify
 
 from branding.models import ManagedImage
 
@@ -19,7 +21,16 @@ class Page(models.Model):
     slug = models.SlugField(
         max_length=120,
         unique=True,
-        help_text="The page address. The homepage uses 'home'.",
+        blank=True,
+        editable=False,
+        help_text="A stable internal identifier retained for legacy links.",
+    )
+    public_path = models.CharField(
+        "public address",
+        max_length=240,
+        unique=True,
+        blank=True,
+        help_text="A root or nested address such as 'gallery' or 'media/gallery'.",
     )
     is_published = models.BooleanField(
         default=True,
@@ -31,15 +42,6 @@ class Page(models.Model):
         default=ContentWidth.STANDARD,
         help_text="The default maximum width used by sections on this page.",
     )
-    navigation_label = models.CharField(
-        max_length=80,
-        blank=True,
-        help_text="Optional shorter wording for navigation menus.",
-    )
-    show_in_navigation = models.BooleanField(
-        default=False,
-        help_text="Make this page eligible for the public navigation menu.",
-    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -47,6 +49,76 @@ class Page(models.Model):
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        super().clean()
+        self.public_path = self.public_path.strip().strip("/").lower()
+        if self.slug == "home":
+            if self.public_path:
+                raise ValidationError({"public_path": "The homepage always uses the site root."})
+            return
+        if not self.public_path:
+            raise ValidationError({"public_path": "Enter a public address for this page."})
+        segments = self.public_path.split("/")
+        if any(not segment or slugify(segment) != segment for segment in segments):
+            raise ValidationError({"public_path": "Use lowercase letters, numbers and hyphens separated by single slashes."})
+        reserved = {
+            "account", "admin", "login", "logout", "pages", "password-change",
+            "password-reset", "privacy", "resend", "signup", "thanks", "verify",
+        }
+        if segments[0] in reserved:
+            raise ValidationError({"public_path": f"'{segments[0]}' is reserved for website functionality."})
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.title)[:110] or "page"
+            candidate = base
+            suffix = 2
+            while Page.objects.exclude(pk=self.pk).filter(slug=candidate).exists():
+                candidate = f"{base[:110 - len(str(suffix))]}-{suffix}"
+                suffix += 1
+            self.slug = candidate
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        if self.slug == "home":
+            return reverse("registry:home")
+        return reverse("registry:page", kwargs={"page_path": self.public_path})
+
+
+class NavigationItem(models.Model):
+    label = models.CharField(max_length=80)
+    page = models.ForeignKey(
+        Page, on_delete=models.CASCADE, related_name="navigation_items",
+        blank=True, null=True,
+        help_text="Optional. Leave empty to create a non-clickable menu heading.",
+    )
+    parent = models.ForeignKey(
+        "self", on_delete=models.CASCADE, related_name="children",
+        blank=True, null=True,
+    )
+    position = models.PositiveIntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("parent_id", "position", "label")
+
+    def __str__(self):
+        return self.label
+
+    def clean(self):
+        super().clean()
+        ancestor = self.parent
+        depth = 1
+        seen = {self.pk} if self.pk else set()
+        while ancestor:
+            if ancestor.pk in seen:
+                raise ValidationError({"parent": "Navigation items cannot contain themselves."})
+            seen.add(ancestor.pk)
+            depth += 1
+            if depth > 3:
+                raise ValidationError({"parent": "Navigation supports at most three visible levels."})
+            ancestor = ancestor.parent
 
 
 class PageSection(models.Model):
@@ -95,13 +167,34 @@ class PageSection(models.Model):
 
 class PageBlock(models.Model):
     class BlockType(models.TextChoices):
-        SMALL_HEADING = "small_heading", "Small heading"
-        HEADING = "heading", "Heading"
         TEXT = "text", "Text"
         ACTION = "action", "Button or link"
         CARD_GROUP = "card_group", "Card group"
         IMAGE = "image", "Image"
         GALLERY = "gallery", "Gallery"
+
+    class TextRole(models.TextChoices):
+        EYEBROW = "eyebrow", "Eyebrow"
+        HEADING = "heading", "Heading"
+        SUBHEADING = "subheading", "Subheading"
+        PARAGRAPH = "paragraph", "Paragraph"
+
+    class TextFont(models.TextChoices):
+        THEME = "theme", "Theme default"
+        DISPLAY = "display", "Theme display font"
+        HEADING = "heading", "Theme heading font"
+        BODY = "body", "Theme body font"
+
+    class TextSize(models.TextChoices):
+        SMALL = "small", "Small"
+        STANDARD = "standard", "Standard"
+        LARGE = "large", "Large"
+        EXTRA_LARGE = "extra_large", "Extra large"
+
+    class TextWeight(models.TextChoices):
+        THEME = "theme", "Theme default"
+        REGULAR = "regular", "Regular"
+        BOLD = "bold", "Bold"
 
     class ImageFit(models.TextChoices):
         COVER = "cover", "Crop to fill"
@@ -137,6 +230,11 @@ class PageBlock(models.Model):
         VISITORS = "visitors", "Signed-out visitors"
         SIGNED_IN = "signed_in", "Signed-in participants"
 
+    class Alignment(models.TextChoices):
+        LEFT = "left", "Left"
+        CENTRE = "centre", "Centre"
+        RIGHT = "right", "Right"
+
     class Destination(models.TextChoices):
         NONE = "none", "No destination"
         REGISTER = "register", "Sign-up page"
@@ -155,7 +253,12 @@ class PageBlock(models.Model):
     is_visible = models.BooleanField(default=True)
     block_type = models.CharField(max_length=24, choices=BlockType.choices)
     content = models.TextField(max_length=2000, blank=True)
+    text_role = models.CharField(max_length=12, choices=TextRole.choices, default=TextRole.PARAGRAPH)
+    text_font = models.CharField(max_length=8, choices=TextFont.choices, default=TextFont.THEME)
+    text_size = models.CharField(max_length=12, choices=TextSize.choices, default=TextSize.STANDARD)
+    text_weight = models.CharField(max_length=8, choices=TextWeight.choices, default=TextWeight.THEME)
     audience = models.CharField(max_length=16, choices=Audience.choices, default=Audience.EVERYONE)
+    alignment = models.CharField(max_length=8, choices=Alignment.choices, default=Alignment.LEFT)
     destination = models.CharField(max_length=16, choices=Destination.choices, default=Destination.NONE)
     style = models.CharField(max_length=16, choices=Style.choices, default=Style.DEFAULT)
     card_columns = models.CharField(

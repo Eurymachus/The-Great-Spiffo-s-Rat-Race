@@ -35,6 +35,22 @@
         });
     };
 
+    const adoptSavedLocation = (savedDocument, responseUrl) => {
+        const savedForm = savedDocument.querySelector("body.change-form form[id$='_form']");
+        const savedEditor = savedDocument.querySelector("[data-page-editor]");
+        const currentEditor = document.querySelector("[data-page-editor]");
+        const savedAction = savedForm?.getAttribute("action");
+        form.action = savedAction ? new URL(savedAction, responseUrl).href : responseUrl;
+        if (savedEditor && currentEditor) {
+            if (savedEditor.dataset.removeUrl) {
+                currentEditor.dataset.removeUrl = savedEditor.dataset.removeUrl;
+            }
+        }
+        if (responseUrl && responseUrl !== window.location.href) {
+            window.history.replaceState(window.history.state, "", responseUrl);
+        }
+    };
+
     form.addEventListener("submit", async (event) => {
         const submitter = event.submitter;
         if (form.dataset.adminSaveBypass === "true" || submitter?.name !== "_continue") return;
@@ -56,21 +72,20 @@
                 credentials: "same-origin",
             });
 
-            if (response.ok && response.redirected) {
+            if (response.ok) {
                 const savedDocument = new DOMParser().parseFromString(await response.text(), "text/html");
-                if (!savedDocument.querySelector("body.change-form form[id$='_form']")) {
-                    throw new Error("The saved form was not returned.");
-                }
+                const savedForm = savedDocument.querySelector("body.change-form form[id$='_form']");
+                const hasErrors = savedDocument.querySelector(".errornote, .errorlist");
+                if (savedForm && !hasErrors) {
                 updateReadonlyFields(savedDocument);
+                adoptSavedLocation(savedDocument, response.url);
                 form.querySelectorAll('input[type="file"]').forEach((input) => { input.value = ""; });
                 form.dispatchEvent(new CustomEvent("rat-race:admin-save-success", {
                     detail: {document: savedDocument, responseUrl: response.url},
                 }));
                 showToast("Changes saved");
                 return;
-            }
-
-            if (response.ok) {
+                }
                 form.dataset.adminSaveBypass = "true";
                 continueButton.disabled = false;
                 form.dispatchEvent(new CustomEvent("rat-race:admin-save-fallback"));

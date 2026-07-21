@@ -29,28 +29,52 @@ from .turnstile import validate_turnstile
 from .verification_email import send_password_reset_email, send_verification_email
 
 
-def home(request):
-    page = (
-        Page.objects.filter(slug="home", is_published=True)
-        .prefetch_related("sections__blocks__items")
-        .first()
+def managed_page_queryset():
+    return Page.objects.prefetch_related(
+        "sections__blocks__items",
+        "sections__blocks__gallery_images__image",
     )
-    if page:
-        column_counts = {
-            "single": 1,
-            "two": 2,
-            "wide_left": 2,
-            "wide_right": 2,
-            "three": 3,
-            "four": 4,
-        }
-        for section in page.sections.all():
-            columns = [[] for _ in range(column_counts.get(section.layout, 1))]
-            for block in section.blocks.all():
-                if block.is_visible:
-                    columns[min(block.column, len(columns) - 1)].append(block)
-            section.render_columns = columns
+
+
+def prepare_managed_page(page):
+    if not page:
+        return page
+    column_counts = {
+        "single": 1,
+        "two": 2,
+        "wide_left": 2,
+        "wide_right": 2,
+        "three": 3,
+        "four": 4,
+    }
+    for section in page.sections.all():
+        columns = [[] for _ in range(column_counts.get(section.layout, 1))]
+        for block in section.blocks.all():
+            if block.is_visible:
+                columns[min(block.column, len(columns) - 1)].append(block)
+        section.render_columns = columns
+    return page
+
+
+def home(request):
+    page = managed_page_queryset().filter(slug="home", is_published=True).first()
+    prepare_managed_page(page)
     return render(request, "registry/home.html", {"managed_page": page})
+
+
+def page_detail(request, page_path):
+    page = get_object_or_404(
+        managed_page_queryset(), public_path=page_path.strip("/"), is_published=True
+    )
+    if page.slug == "home":
+        return redirect("registry:home")
+    prepare_managed_page(page)
+    return render(request, "registry/page.html", {"managed_page": page})
+
+
+def legacy_page(request, slug):
+    page = get_object_or_404(Page, slug=slug, is_published=True)
+    return redirect(page.get_absolute_url(), permanent=True)
 
 
 def registration_start_step(form):

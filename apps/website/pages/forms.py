@@ -22,12 +22,16 @@ class PageEditorForm(forms.ModelForm):
     class Meta:
         model = Page
         fields = (
-            "title", "slug", "is_published", "content_width",
-            "navigation_label", "show_in_navigation", "page_builder_data",
+            "title", "public_path", "is_published", "content_width",
+            "page_builder_data",
         )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance.slug == "home":
+            self.fields["public_path"].disabled = True
+        else:
+            self.fields["public_path"].required = True
         if not self.is_bound and self.instance.pk:
             self.initial["page_builder_data"] = json.dumps([
                 {
@@ -41,6 +45,9 @@ class PageEditorForm(forms.ModelForm):
                             "id": block.pk, "position": block.position,
                             "column": block.column, "is_visible": block.is_visible,
                             "block_type": block.block_type, "content": block.content,
+                            "alignment": block.alignment,
+                            "text_role": block.text_role, "text_font": block.text_font,
+                            "text_size": block.text_size, "text_weight": block.text_weight,
                             "audience": block.audience, "destination": block.destination,
                             "style": block.style,
                             "card_columns": block.card_columns,
@@ -115,6 +122,11 @@ class PageEditorForm(forms.ModelForm):
                     is_visible=bool(raw_block.get("is_visible", True)),
                     block_type=raw_block.get("block_type", ""),
                     content=str(raw_block.get("content", "")),
+                    alignment=raw_block.get("alignment", PageBlock.Alignment.LEFT),
+                    text_role=raw_block.get("text_role", PageBlock.TextRole.PARAGRAPH),
+                    text_font=raw_block.get("text_font", PageBlock.TextFont.THEME),
+                    text_size=raw_block.get("text_size", PageBlock.TextSize.STANDARD),
+                    text_weight=raw_block.get("text_weight", PageBlock.TextWeight.THEME),
                     audience=raw_block.get("audience", PageBlock.Audience.EVERYONE),
                     destination=raw_block.get("destination", PageBlock.Destination.NONE),
                     style=raw_block.get("style", PageBlock.Style.DEFAULT),

@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from branding.models import SiteBranding
-from pages.models import Page, PageBlock
+from pages.models import NavigationItem, Page, PageBlock, PageSection
 from .admin import export_registrations, promote_to_role
 from .models import AccountClosureRecord, Participant
 from .tokens import create_verification_token
@@ -80,17 +80,80 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Indie Stone Terms")
         self.assertContains(response, 'target="_blank"')
 
+    def test_published_managed_pages_render_and_join_navigation_in_order(self):
+        later = Page.objects.create(
+            title="Challenge rules", public_path="media/rules", is_published=True,
+        )
+        earlier = Page.objects.create(
+            title="About the challenge", public_path="about", is_published=True,
+        )
+        media = NavigationItem.objects.create(label="Media", position=20)
+        NavigationItem.objects.create(label="Rules", page=later, parent=media, position=10)
+        NavigationItem.objects.create(label="About", page=earlier, position=10)
+        section = PageSection.objects.create(page=later, name="Rules", position=0)
+        PageBlock.objects.create(
+            section=section, position=0, block_type=PageBlock.BlockType.TEXT,
+            text_role=PageBlock.TextRole.HEADING,
+            content="How the challenge works",
+        )
+
+        response = self.client.get(later.get_absolute_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "How the challenge works")
+        self.assertContains(response, "| Challenge rules")
+        self.assertContains(
+            response,
+            f'href="{later.get_absolute_url()}" aria-current="page"',
+        )
+        menu = response.content.decode().split('<nav class="site-nav"', 1)[1].split("</nav>", 1)[0]
+        earlier_url = earlier.get_absolute_url()
+        later_url = later.get_absolute_url()
+        self.assertLess(menu.index(earlier_url), menu.index(later_url))
+        self.assertContains(response, "Media")
+        self.assertContains(response, "site-nav-submenu")
+        self.assertContains(response, 'class="site-nav-group-toggle"')
+        self.assertContains(response, 'aria-label="Show Media menu"')
+
+    def test_unpublished_and_non_navigation_pages_are_not_public_navigation(self):
+        unpublished = Page.objects.create(
+            title="Draft", public_path="draft", is_published=False,
+        )
+        hidden = Page.objects.create(
+            title="Direct link", public_path="direct", is_published=True,
+        )
+        NavigationItem.objects.create(label="Draft", page=unpublished)
+
+        response = self.client.get(reverse("registry:home"))
+
+        self.assertNotContains(
+            response, unpublished.get_absolute_url()
+        )
+        self.assertNotContains(response, hidden.get_absolute_url())
+        self.assertEqual(
+            self.client.get(unpublished.get_absolute_url()).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.get(hidden.get_absolute_url()).status_code,
+            200,
+        )
+
+    def test_home_managed_page_address_redirects_to_site_root(self):
+        response = self.client.get(reverse("registry:legacy_page", args=("home",)))
+        self.assertRedirects(response, reverse("registry:home"), status_code=301)
+
     def test_homepage_editorial_content_comes_from_managed_page(self):
         page = Page.objects.get(slug="home")
         section = page.sections.get(position=0)
         blocks = section.blocks.all()
         changes = {
-            PageBlock.BlockType.SMALL_HEADING: "Custom small heading",
-            PageBlock.BlockType.HEADING: "Custom main heading",
-            PageBlock.BlockType.TEXT: "Custom homepage introduction.",
+            PageBlock.TextRole.EYEBROW: "Custom small heading",
+            PageBlock.TextRole.HEADING: "Custom main heading",
+            PageBlock.TextRole.PARAGRAPH: "Custom homepage introduction.",
         }
-        for block_type, content in changes.items():
-            block = blocks.get(block_type=block_type)
+        for text_role, content in changes.items():
+            block = blocks.get(block_type=PageBlock.BlockType.TEXT, text_role=text_role)
             block.content = content
             block.save(update_fields=("content",))
         join_action = blocks.get(destination=PageBlock.Destination.REGISTER)

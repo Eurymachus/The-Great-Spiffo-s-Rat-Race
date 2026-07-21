@@ -246,3 +246,22 @@ The existing Section Item records are the first reusable block type and remain
 compatible with the seeded homepage. Future block types should be added only
 when a real content need is identified and must provide safe validation,
 responsive rendering and accessible markup in version-controlled templates.
+
+## 2026-07-21 - Pages own managed public navigation
+
+Public editorial navigation is configured with the Page records it represents:
+each published page may supply a navigation label, visibility, and order. Managed
+pages use `/pages/<slug>/`, protecting code-controlled application routes from
+editable slug collisions. Home remains at `/` and cannot be deleted or renamed.
+Sign-up, authentication, and participant-account controls remain code-controlled.
+
+Superseded by the hierarchical navigation decision below.
+
+## 2026-07-21 - Separate page addresses from hierarchical navigation
+
+Page content, canonical public addresses, and menu placement are separate
+concerns. Pages use editable root or nested paths, while Navigation Items form
+an ordered tree of links and non-clickable headings with a maximum depth of
+three. The public menu provides desktop dropdowns and explicit mobile expansion.
+Application routes are reserved and always take precedence over managed paths.
+Legacy `/pages/<slug>/` links permanently redirect to canonical Page addresses.

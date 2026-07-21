@@ -8,6 +8,7 @@ app_name = "registry"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("pages/<slug:slug>/", views.legacy_page, name="legacy_page"),
     path("signup/", views.register, name="register"),
     path("thanks/", views.thanks, name="thanks"),
     path("resend/", views.resend_verification, name="resend"),
@@ -60,4 +61,6 @@ urlpatterns = [
         views.account_closure_received,
         name="account_closure_received",
     ),
+    # Managed page addresses are deliberately last so application routes win.
+    path("<path:page_path>/", views.page_detail, name="page"),
 ]

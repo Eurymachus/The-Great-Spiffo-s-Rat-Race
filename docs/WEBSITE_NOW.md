@@ -46,6 +46,8 @@ a nickname using a verified email address.
   duplication, restoration, activation, and validated design controls.
 - A protected backend-managed Homepage assembled from ordered, reusable,
   responsive sections without administrator-authored HTML or JavaScript.
+- Flat backend-managed public pages at protected `/pages/<slug>/` addresses,
+  with page-owned navigation labels, visibility, and ordering.
 - Consistent primary navigation, authenticated-route redirects, accessible form
   metadata, keyboard focus treatment, and responsive local journey checks.
 - Privileged, confirmation-protected closure processing with non-personal
@@ -89,11 +91,24 @@ requirement:
 - Final public domain name. `spiffosratrace.com` is available and has been
   suggested, but registration is on hold until the team agrees.
 
+## Hierarchical managed navigation
+
+Pages now own canonical root or nested public addresses such as `/gallery/` and
+`/media/gallery/`. Navigation placement is managed separately through ordered
+Navigation Item records. An item may link to a Page or act as a non-clickable
+heading, and may be nested to three visible levels. The public header renders
+desktop dropdowns and expandable mobile submenus. Code-controlled routes remain
+reserved, and provisional `/pages/<slug>/` addresses permanently redirect to a
+Page's canonical address.
+
 ## Recommended next action
 
-Extend the structured content system only when the Rat Race needs another real
-section type. Add managed brand assets and navigation next, while the team chooses
-the final participant-facing visual direction.
+Exercise the navigation editor with representative real content, including a
+root Gallery link and a Media heading with nested pages, then refine the admin
+ordering experience based on that test.
+
+Afterwards, extend the structured content system only when the Rat Race needs
+another proven section or block type.
 Run/report ingestion remains deferred until Project Zomboid B42 Stable and the
 challenge rules are finalised. Retention automation and a final pre-launch
 privacy review still remain required.

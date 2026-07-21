@@ -1,12 +1,19 @@
+{% load page_content %}
 {% if block.audience == "everyone" or block.audience == "visitors" and not request.user.is_authenticated or block.audience == "signed_in" and request.user.is_authenticated %}
-    {% if block.block_type == "small_heading" %}
-        <p class="eyebrow managed-block">{{ block.content }}</p>
-    {% elif block.block_type == "heading" %}
-        <h2 class="managed-block">{{ block.content }}</h2>
-    {% elif block.block_type == "text" %}
-        <div class="lede managed-block">{{ block.content|linebreaks }}</div>
+    {% if block.block_type == "text" %}
+        {% with typography_classes="managed-block managed-text managed-text-role-"|add:block.text_role|add:" managed-text-font-"|add:block.text_font|add:" managed-text-size-"|add:block.text_size|add:" managed-text-weight-"|add:block.text_weight|add:" managed-block-align-"|add:block.alignment %}
+            {% if block.text_role == "eyebrow" %}
+                <p class="eyebrow {{ typography_classes }}">{{ block.content }}</p>
+            {% elif block.text_role == "heading" %}
+                <h2 class="{{ typography_classes }}">{{ block.content }}</h2>
+            {% elif block.text_role == "subheading" %}
+                <h3 class="{{ typography_classes }}">{{ block.content }}</h3>
+            {% else %}
+                <div class="lede {{ typography_classes }}">{{ block.content|safe_text }}</div>
+            {% endif %}
+        {% endwith %}
     {% elif block.block_type == "action" %}
-        <div class="home-actions managed-block">
+        <div class="home-actions managed-block managed-block-align-{{ block.alignment }}">
             {% if block.destination == "register" %}
                 <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:register' %}">{{ block.content }}</a>
             {% elif block.destination == "login" %}
@@ -18,7 +25,7 @@
             {% endif %}
         </div>
     {% elif block.block_type == "card_group" %}
-        <div class="managed-card-group managed-block">
+        <div class="managed-card-group managed-block managed-block-align-{{ block.alignment }}">
             {% if block.content %}<h3>{{ block.content }}</h3>{% endif %}
             <div class="home-steps managed-block-grid managed-card-columns-{{ block.card_columns }}">
                 {% for item in block.items.all %}
@@ -27,11 +34,11 @@
             </div>
         </div>
     {% elif block.block_type == "image" and block.image_asset %}
-        <figure class="managed-image-block managed-block managed-image-height-{{ block.image_height }}" style="--managed-image-fit:{{ block.image_fit }};--managed-image-position:{{ block.image_position }};--managed-image-custom-height:{{ block.image_custom_height }}rem">
+        <figure class="managed-image-block managed-block managed-block-align-{{ block.alignment }} managed-image-height-{{ block.image_height }}" style="--managed-image-fit:{{ block.image_fit }};--managed-image-position:{{ block.image_position }};--managed-image-custom-height:{{ block.image_custom_height }}rem">
             <img src="{{ block.image_asset.image.url }}" alt="{{ block.image_alt }}">
         </figure>
     {% elif block.block_type == "gallery" and block.gallery_images.exists %}
-        <section class="managed-gallery managed-block" data-gallery data-auto-scroll="{{ block.gallery_auto_scroll|yesno:'true,false' }}" data-scroll-speed="{{ block.gallery_scroll_speed }}" data-loop="{{ block.gallery_loop|yesno:'true,false' }}" data-expandable="{{ block.gallery_expandable|yesno:'true,false' }}" aria-label="Image gallery">
+        <section class="managed-gallery managed-block managed-block-align-{{ block.alignment }}" data-gallery data-auto-scroll="{{ block.gallery_auto_scroll|yesno:'true,false' }}" data-scroll-speed="{{ block.gallery_scroll_speed }}" data-loop="{{ block.gallery_loop|yesno:'true,false' }}" data-expandable="{{ block.gallery_expandable|yesno:'true,false' }}" aria-label="Image gallery">
             <div class="managed-gallery-stage">
                 {% for item in block.gallery_images.all %}
                 <figure class="managed-gallery-slide{% if forloop.first %} is-active{% endif %}" data-gallery-slide{% if not forloop.first %} hidden{% endif %}>
@@ -39,14 +46,18 @@
                     {% if block.gallery_show_captions and item.caption %}<figcaption>{{ item.caption }}</figcaption>{% endif %}
                 </figure>
                 {% endfor %}
-            </div>
-            <div class="managed-gallery-toolbar">
+                <div class="managed-gallery-overlay">
                 {% if block.gallery_show_controls and block.gallery_images.count > 1 %}
-                <button type="button" class="managed-gallery-control" data-gallery-previous aria-label="Previous image">&#8249;</button>
-                <output data-gallery-count aria-live="polite">1 of {{ block.gallery_images.count }}</output>
-                <button type="button" class="managed-gallery-control" data-gallery-next aria-label="Next image">&#8250;</button>
+                    <button type="button" class="managed-gallery-control is-previous" data-gallery-previous aria-label="Previous image">&#8249;</button>
+                    <button type="button" class="managed-gallery-control is-next" data-gallery-next aria-label="Next image">&#8250;</button>
                 {% endif %}
-                {% if block.gallery_expandable %}<button type="button" class="managed-gallery-expand" data-gallery-expand>Expand image</button>{% endif %}
+                {% if block.gallery_expandable %}
+                    <button type="button" class="managed-gallery-expand" data-gallery-expand aria-label="Open expanded gallery">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7.5v6M7.5 10.5h6"/></svg>
+                    </button>
+                {% endif %}
+                {% if block.gallery_images.count > 1 %}<output data-gallery-count aria-live="polite">1 of {{ block.gallery_images.count }}</output>{% endif %}
+                </div>
             </div>
         </section>
     {% endif %}

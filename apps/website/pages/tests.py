@@ -1,6 +1,7 @@
 import json
 
 from django.contrib.auth.models import Group
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
@@ -8,7 +9,7 @@ from django.urls import reverse
 from branding.models import ManagedImage
 from registry.models import Participant
 
-from .models import Page, PageBlock, PageGalleryImage, PageSection, SectionItem
+from .models import NavigationItem, Page, PageBlock, PageGalleryImage, PageSection, SectionItem
 
 
 class ManagedPageTests(TestCase):
@@ -32,6 +33,11 @@ class ManagedPageTests(TestCase):
                 "is_visible": block.is_visible,
                 "block_type": block.block_type,
                 "content": block.content,
+                "alignment": block.alignment,
+                "text_role": block.text_role,
+                "text_font": block.text_font,
+                "text_size": block.text_size,
+                "text_weight": block.text_weight,
                 "audience": block.audience,
                 "destination": block.destination,
                 "style": block.style,
@@ -70,8 +76,8 @@ class ManagedPageTests(TestCase):
     def post_payload(self, payload, **page_overrides):
         data = {
             "title": self.page.title,
+            "public_path": self.page.public_path,
             "content_width": self.page.content_width,
-            "navigation_label": self.page.navigation_label,
             "is_published": "on",
             "page_builder_data": json.dumps(payload),
             "_save": "Save",
@@ -93,7 +99,8 @@ class ManagedPageTests(TestCase):
     def test_sections_blocks_and_cards_render_in_order(self):
         second = PageSection.objects.create(page=self.page, position=20)
         heading = PageBlock.objects.create(
-            section=second, position=0, block_type=PageBlock.BlockType.HEADING,
+            section=second, position=0, block_type=PageBlock.BlockType.TEXT,
+            text_role=PageBlock.TextRole.HEADING,
             content="What happens next",
         )
         cards = PageBlock.objects.create(
@@ -194,6 +201,25 @@ class ManagedPageTests(TestCase):
         self.client.force_login(participant)
         self.assertNotContains(self.client.get(reverse("registry:home")), block.content)
 
+    def test_text_blocks_render_safe_inline_links_without_allowing_html(self):
+        PageBlock.objects.create(
+            section=self.section,
+            position=102,
+            block_type=PageBlock.BlockType.TEXT,
+            content=(
+                'Join us in [Discord](https://discord.gg/example). '
+                '<strong>Not HTML</strong> '
+                '[Unsafe](javascript:alert(1))'
+            ),
+        )
+
+        response = self.client.get(reverse("registry:home"))
+
+        self.assertContains(response, '<a href="https://discord.gg/example">Discord</a>', html=True)
+        self.assertContains(response, '&lt;strong&gt;Not HTML&lt;/strong&gt;')
+        self.assertNotContains(response, 'href="javascript:')
+        self.assertContains(response, '[Unsafe](javascript:alert(1))')
+
     def test_branding_administrator_can_edit_pages_but_not_participants(self):
         call_command("bootstrap_roles", verbosity=0)
         editor = Participant.objects.create_user(
@@ -212,7 +238,7 @@ class ManagedPageTests(TestCase):
     def test_page_editor_saves_nested_blocks_and_cards(self):
         self.login_superuser("nested-editor@example.com")
         payload = self.editor_payload()
-        heading = next(block for block in payload[0]["blocks"] if block["block_type"] == "heading")
+        heading = next(block for block in payload[0]["blocks"] if block["text_role"] == "heading")
         heading["content"] = "Edited main heading"
         card_group = next(block for block in payload[0]["blocks"] if block["block_type"] == "card_group")
         card_group["items"][0]["heading"] = "Edited existing card"
@@ -239,6 +265,24 @@ class ManagedPageTests(TestCase):
         self.section.refresh_from_db()
         self.assertEqual(self.section.name, "Main introduction")
 
+    def test_page_editor_saves_and_renders_block_alignment(self):
+        self.login_superuser("alignment-editor@example.com")
+        payload = self.editor_payload()
+        heading = next(block for block in payload[0]["blocks"] if block["text_role"] == "heading")
+        heading["alignment"] = PageBlock.Alignment.CENTRE
+        heading["text_font"] = PageBlock.TextFont.DISPLAY
+        heading["text_size"] = PageBlock.TextSize.EXTRA_LARGE
+        heading["text_weight"] = PageBlock.TextWeight.BOLD
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        public_response = self.client.get(reverse("registry:home"))
+        self.assertContains(public_response, "managed-block-align-centre")
+        self.assertContains(public_response, "managed-text-font-display")
+        self.assertContains(public_response, "managed-text-size-extra_large")
+        self.assertContains(public_response, "managed-text-weight-bold")
+
     def test_page_editor_saves_responsive_layout(self):
         self.login_superuser("layout-editor@example.com")
         payload = self.editor_payload()
@@ -247,7 +291,6 @@ class ManagedPageTests(TestCase):
             block["column"] = index % 2
         response = self.post_payload(
             payload, content_width=Page.ContentWidth.WIDE,
-            navigation_label="Start", show_in_navigation="on",
         )
         self.assertEqual(response.status_code, 302)
         self.section.refresh_from_db()
@@ -260,8 +303,35 @@ class ManagedPageTests(TestCase):
         self.login_superuser("page-admin@example.com")
         response = self.client.get(reverse("admin:pages_page_change", args=(self.page.pk,)))
         self.assertNotContains(response, 'class="deletelink"')
-        self.assertContains(response, "field-slug")
-        self.assertNotContains(response, 'name="slug"')
+        self.assertContains(response, "field-public_path")
+        self.assertContains(response, 'name="public_path"')
+        self.assertContains(response, 'name="public_path" class="vTextField" maxlength="240" disabled')
+
+    def test_navigation_items_are_managed_separately_from_page_content(self):
+        self.login_superuser("navigation-order-editor@example.com")
+        second_page = Page.objects.create(
+            title="Rules", public_path="rules", is_published=True,
+        )
+        item = NavigationItem.objects.create(label="Rules", page=second_page, position=5)
+        response = self.client.get(reverse("admin:pages_navigationitem_change", args=(item.pk,)))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Rules")
+
+    def test_page_addresses_reject_application_routes(self):
+        page = Page(title="Not an account page", public_path="account/help")
+        with self.assertRaises(ValidationError):
+            page.full_clean()
+
+    def test_navigation_is_limited_to_three_levels_and_rejects_cycles(self):
+        root = NavigationItem.objects.create(label="Media")
+        child = NavigationItem.objects.create(label="Images", parent=root)
+        grandchild = NavigationItem.objects.create(label="Screenshots", parent=child)
+        too_deep = NavigationItem(label="Archive", parent=grandchild)
+        with self.assertRaises(ValidationError):
+            too_deep.full_clean()
+        root.parent = grandchild
+        with self.assertRaises(ValidationError):
+            root.full_clean()
 
     def test_destructive_removal_cascades_within_builder(self):
         self.login_superuser("destructive-editor@example.com")

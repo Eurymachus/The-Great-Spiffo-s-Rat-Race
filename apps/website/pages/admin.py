@@ -6,21 +6,24 @@ from django.urls import path
 from django.utils import timezone
 
 from .forms import PageEditorForm
-from .models import Page, PageBlock, PageSection, SectionItem
+from .models import NavigationItem, Page, PageBlock, PageSection, SectionItem
 
 
 @admin.register(Page)
 class PageAdmin(admin.ModelAdmin):
     form = PageEditorForm
     change_form_template = "admin/pages/page/change_form.html"
-    list_display = ("title", "slug", "content_width", "show_in_navigation", "is_published", "updated_at")
+    list_display = (
+        "title", "public_address", "content_width", "is_published", "updated_at",
+    )
+    list_editable = ("is_published",)
     list_filter = ("is_published",)
-    search_fields = ("title", "slug")
+    search_fields = ("title", "public_path")
     readonly_fields = ("updated_at",)
     fieldsets = (
         ("Page", {"fields": (
-            "title", "slug", "is_published", "content_width",
-            "navigation_label", "show_in_navigation", "page_builder_data",
+            "title", "public_path", "is_published", "content_width",
+            "page_builder_data",
         )}),
         ("Record", {"fields": ("updated_at",)}),
     )
@@ -60,7 +63,9 @@ class PageAdmin(admin.ModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
-        sections = form.cleaned_data["page_builder_data"]
+        sections = form.cleaned_data.get("page_builder_data")
+        if sections is None:
+            return
         with transaction.atomic():
             retained_sections = []
             for section_data in sections:
@@ -85,7 +90,8 @@ class PageAdmin(admin.ModelAdmin):
                         block = section.blocks.get(pk=block_data["id"])
                         for field in (
                             "position", "column", "is_visible", "block_type",
-                            "content", "audience", "destination", "style",
+                            "content", "audience", "alignment", "text_role", "text_font",
+                            "text_size", "text_weight", "destination", "style",
                             "card_columns",
                             "image_asset", "image_alt", "image_fit", "image_height",
                             "image_custom_height", "image_position",
@@ -117,19 +123,46 @@ class PageAdmin(admin.ModelAdmin):
             form.instance.sections.exclude(pk__in=retained_sections).delete()
 
     def has_add_permission(self, request):
-        return not Page.objects.exists() and super().has_add_permission(request)
+        return super().has_add_permission(request)
 
     def has_delete_permission(self, request, obj=None):
         permitted = super().has_delete_permission(request, obj)
         return permitted and (obj is None or obj.slug != "home")
 
     def get_readonly_fields(self, request, obj=None):
-        fields = list(self.readonly_fields)
-        if obj and obj.slug == "home":
-            fields.append("slug")
-        return fields
+        return list(self.readonly_fields)
 
     def get_actions(self, request):
         actions = super().get_actions(request)
         actions.pop("delete_selected", None)
         return actions
+
+    @admin.display(description="Public address", ordering="public_path")
+    def public_address(self, obj):
+        return "/" if obj.slug == "home" else f"/{obj.public_path}/"
+
+
+@admin.register(NavigationItem)
+class NavigationItemAdmin(admin.ModelAdmin):
+    list_display = ("menu_location", "page", "position", "is_visible")
+    list_editable = ("position", "is_visible")
+    list_filter = ("is_visible", "parent")
+    search_fields = ("label", "page__title", "page__public_path")
+    autocomplete_fields = ("page", "parent")
+    ordering = ("parent_id", "position", "label")
+    fieldsets = (
+        ("Menu entry", {"fields": ("label", "page", "parent")}),
+        ("Presentation", {"fields": ("position", "is_visible")}),
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("parent", "page")
+
+    @admin.display(description="Menu location", ordering="label")
+    def menu_location(self, obj):
+        labels = [obj.label]
+        ancestor = obj.parent
+        while ancestor:
+            labels.append(ancestor.label)
+            ancestor = ancestor.parent
+        return " › ".join(reversed(labels))

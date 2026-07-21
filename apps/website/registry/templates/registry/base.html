@@ -74,10 +74,10 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260720-3">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260721-18">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
-    <script src="{% static 'registry/site_menu.js' %}?v=20260716-2" defer></script>
-    <script src="{% static 'registry/gallery.js' %}?v=20260720-1" defer></script>
+    <script src="{% static 'registry/site_menu.js' %}?v=20260721-2" defer></script>
+    <script src="{% static 'registry/gallery.js' %}?v=20260721-4" defer></script>
     {% if site_theme %}
     <style>
         :root {
@@ -143,18 +143,30 @@
             <h1>{{ site_full_title }}</h1>
             <button class="site-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-menu" data-site-menu-toggle>Menu</button>
             <nav class="site-nav" id="primary-menu" aria-label="Primary navigation" data-site-menu>
-                {% if request.user.is_authenticated %}
+                <ul class="site-nav-list">
+                    <li class="site-nav-item">
                     <a href="{% url 'registry:home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a>
+                    </li>
+                    {% include "registry/_navigation_items.html" with nodes=site_navigation_items %}
+                {% if request.user.is_authenticated %}
+                    <li class="site-nav-item">
                     <a href="{% url 'registry:account' %}"{% if request.resolver_match.url_name == 'account' %} aria-current="page"{% endif %}>Your account</a>
+                    </li>
+                    <li class="site-nav-item">
                     <form method="post" action="{% url 'registry:logout' %}">
                         {% csrf_token %}
                         <button type="submit">Log out</button>
                     </form>
+                    </li>
                 {% else %}
-                    <a href="{% url 'registry:home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a>
+                    <li class="site-nav-item">
                     <a href="{% url 'registry:register' %}"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign up</a>
+                    </li>
+                    <li class="site-nav-item">
                     <a href="{% url 'registry:login' %}"{% if request.resolver_match.url_name == 'login' %} aria-current="page"{% endif %}>Log in</a>
+                    </li>
                 {% endif %}
+                </ul>
             </nav>
         </header>
         <main id="main-content">

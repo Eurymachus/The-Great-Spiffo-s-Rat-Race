@@ -17,6 +17,7 @@
         });
     });
     form.addEventListener("rat-race:admin-save-success", () => { dirty = false; });
+    form.addEventListener("rat-race:admin-editor-ready", () => { dirty = false; });
 
     const closeButton = document.createElement("button");
     closeButton.type = "button";

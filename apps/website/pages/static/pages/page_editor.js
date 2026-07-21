@@ -5,18 +5,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const list = editor.querySelector("[data-section-list]");
     const form = editor.closest("form");
-    const stateStorageKey = `rat-race-page-editor:${window.location.pathname}`;
+    let stateStorageKey = `rat-race-page-editor:${window.location.pathname}`;
     let sections = [];
     let baseline = "";
     let submitting = false;
+    const contentFingerprint = () => JSON.stringify(sections, (key, value) => (
+        key === "id" || key.startsWith("_") ? undefined : value
+    ));
     try { sections = JSON.parse(payload.value || "[]"); } catch (_) { sections = []; }
 
     const choices = {
         width: [["inherit", "Use page width"], ["narrow", "Narrow"], ["standard", "Standard"], ["wide", "Wide"], ["full", "Full width"]],
         layout: [["single", "Single column"], ["two", "Two equal columns"], ["wide_left", "Two columns - wide left"], ["wide_right", "Two columns - wide right"], ["three", "Three columns"], ["four", "Four columns"]],
         background: [["default", "Page background"], ["surface", "Raised surface"], ["alternate", "Alternate surface"]],
-        block_type: [["small_heading", "Small heading"], ["heading", "Heading"], ["text", "Text"], ["action", "Button or link"], ["card_group", "Card group"], ["image", "Image"], ["gallery", "Gallery"]],
+        block_type: [["text", "Text"], ["action", "Button or link"], ["card_group", "Card group"], ["image", "Image"], ["gallery", "Gallery"]],
         audience: [["everyone", "Everyone"], ["visitors", "Signed-out visitors"], ["signed_in", "Signed-in participants"], ["hidden", "Hidden"]],
+        alignment: [["left", "Left"], ["centre", "Centre"], ["right", "Right"]],
+        text_role: [["eyebrow", "Eyebrow"], ["heading", "Heading"], ["subheading", "Subheading"], ["paragraph", "Paragraph"]],
+        text_font: [["theme", "Theme default"], ["display", "Theme display font"], ["heading", "Theme heading font"], ["body", "Theme body font"]],
+        text_size: [["small", "Small"], ["standard", "Standard"], ["large", "Large"], ["extra_large", "Extra large"]],
+        text_weight: [["theme", "Theme default"], ["regular", "Regular"], ["bold", "Bold"]],
         destination: [["none", "No destination"], ["register", "Sign-up page"], ["login", "Login page"], ["account", "Participant account"]],
         style: [["default", "Standard"], ["primary", "Primary button"], ["secondary", "Secondary button"], ["link", "Text link"]],
         image_fit: [["cover", "Crop to fill"], ["contain", "Show whole image"]],
@@ -25,8 +33,10 @@ document.addEventListener("DOMContentLoaded", () => {
         card_columns: [["auto", "Automatic wrapping"], ["1", "1 card per row"], ["2", "2 cards per row"], ["3", "3 cards per row"], ["4", "4 cards per row"]],
     };
     let imageLibrary = [];
+    let maximumImageSizeMb = 5;
+    let maximumImageSizeBytes = 5 * 1024 * 1024;
     const columnCounts = {single: 1, two: 2, wide_left: 2, wide_right: 2, three: 3, four: 4};
-    const labels = {small_heading: "Small heading", heading: "Heading", text: "Text", action: "Button or link", card_group: "Card group", image: "Image", gallery: "Gallery"};
+    const labels = {text: "Text", action: "Button or link", card_group: "Card group", image: "Image", gallery: "Gallery"};
 
     const el = (tag, className = "", text = "") => {
         const node = document.createElement(tag);
@@ -174,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const wrapper = el("div", "page-editor-field page-editor-field-wide page-image-picker-field");
         wrapper.append(el("span", "page-image-picker-label", label));
         const hidden = input(key, multiple ? JSON.stringify(value || []) : (value || ""), "hidden");
-        const preview = el("div", "page-image-picker-preview");
+        const preview = el("div", `page-image-picker-preview${multiple ? " is-gallery" : ""}`);
         const renderPreview = () => {
             preview.replaceChildren();
             const ids = multiple ? (JSON.parse(hidden.value || "[]")) : (hidden.value ? [hidden.value] : []);
@@ -182,20 +192,39 @@ document.addEventListener("DOMContentLoaded", () => {
             ids.forEach((entry) => {
                 const id = multiple ? entry.image : entry;
                 const image = imageLibrary.find((candidate) => String(candidate.id) === String(id));
-                const item = el("span", "page-image-picker-item");
+                const item = el(multiple ? "div" : "span", `page-image-picker-item${multiple ? " page-gallery-tile" : ""}`);
+                if (multiple) {
+                    item.dataset.image = id;
+                    item.dataset.alternativeText = entry.alternative_text || "";
+                    item.dataset.caption = entry.caption || "";
+                    const editCue = el("button", "page-gallery-edit-cue page-gallery-edit-button");
+                    editCue.type = "button";
+                    editCue.dataset.action = "edit-gallery-image";
+                    editCue.setAttribute("aria-label", `Edit ${image?.name || imageName(id)}`);
+                    editCue.innerHTML = '<svg viewBox="0 0 16 16"><path d="m3 11.5-.5 2 2-.5 7.8-7.8-1.5-1.5L3 11.5Z"/><path d="m9.8 4.7 1.5 1.5"/></svg>';
+                    item.append(editCue);
+                }
                 if (image) { const thumbnail = el("img"); thumbnail.src = image.url; thumbnail.alt = ""; item.append(thumbnail); }
                 item.append(el("strong", "", image?.name || imageName(id)));
                 preview.append(item);
             });
         };
-        const choose = button(multiple ? "Choose gallery images" : "Select image", "choose-images");
+        const choose = button(multiple ? "Choose images" : "Select image", "choose-images");
+        choose.classList.add("page-image-picker-button");
         choose.dataset.multiple = multiple ? "true" : "false";
         wrapper.append(hidden, preview, choose);
-        requestAnimationFrame(renderPreview);
+        renderPreview();
         return wrapper;
     };
     const actions = (kind, index, total) => {
         const wrapper = el("span", "page-editor-summary-actions");
+        if (kind === "section" || kind === "block") {
+            const duplicate = button("", `duplicate-${kind}`);
+            duplicate.classList.add("page-editor-duplicate-icon");
+            duplicate.setAttribute("aria-label", `Duplicate ${kind} below`);
+            duplicate.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.25" y="5.25" width="8" height="8" rx="1"/><path d="M3.25 10.75h-.5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v.5"/></svg>';
+            wrapper.append(duplicate);
+        }
         const up = button("", `${kind}-up`);
         const down = button("", `${kind}-down`);
         up.classList.add("page-editor-move-icon", "is-up");
@@ -252,10 +281,10 @@ document.addEventListener("DOMContentLoaded", () => {
         heading: card.querySelector('[data-key="heading"]').value,
         description: card.querySelector('[data-key="description"]').value,
     }));
-    const readGallery = (blockPanel) => [...blockPanel.querySelectorAll(":scope .page-gallery-image")].map((row) => ({
-        image: Number(row.dataset.image),
-        alternative_text: row.querySelector('[data-key="gallery_alt"]').value,
-        caption: row.querySelector('[data-key="gallery_caption"]').value,
+    const readGallery = (blockPanel) => [...blockPanel.querySelectorAll(":scope .page-gallery-tile")].map((tile) => ({
+        image: Number(tile.dataset.image),
+        alternative_text: tile.dataset.alternativeText || "",
+        caption: tile.dataset.caption || "",
     }));
     const read = () => [...list.querySelectorAll(":scope > .page-section-editor")].map((sectionPanel) => ({
         id: sectionPanel.dataset.id ? Number(sectionPanel.dataset.id) : null,
@@ -272,6 +301,11 @@ document.addEventListener("DOMContentLoaded", () => {
             is_visible: blockPanel.querySelector('[data-key="audience"]').value !== "hidden",
             block_type: blockPanel.querySelector('[data-key="block_type"]').value,
             content: blockPanel.querySelector('[data-key="content"]')?.value || "",
+            alignment: blockPanel.querySelector('[data-key="alignment"]')?.value || "left",
+            text_role: blockPanel.querySelector('[data-key="text_role"]')?.value || "paragraph",
+            text_font: blockPanel.querySelector('[data-key="text_font"]')?.value || "theme",
+            text_size: blockPanel.querySelector('[data-key="text_size"]')?.value || "standard",
+            text_weight: blockPanel.querySelector('[data-key="text_weight"]')?.value || "theme",
             audience: blockPanel.querySelector('[data-key="audience"]').value === "hidden" ? "everyone" : blockPanel.querySelector('[data-key="audience"]').value,
             destination: blockPanel.querySelector('[data-key="destination"]')?.value || "none",
             style: blockPanel.querySelector('[data-key="style"]')?.value || "default",
@@ -304,13 +338,29 @@ document.addEventListener("DOMContentLoaded", () => {
         return panel;
     };
     const newBlock = (blockType, column) => ({
-        column, is_visible: true, block_type: blockType, content: "", audience: "everyone",
+        column, is_visible: true, block_type: blockType, content: "", audience: "everyone", alignment: "left",
+        text_role: "paragraph", text_font: "theme", text_size: "standard", text_weight: "theme",
         destination: "none", style: "default", card_columns: "auto", image_asset: null,
         image_alt: "", image_fit: "cover", image_height: "standard", image_custom_height: 24,
         image_position: "center center", gallery_auto_scroll: false, gallery_scroll_speed: 5,
         gallery_loop: true, gallery_show_controls: true, gallery_show_captions: true,
         gallery_expandable: true, gallery_images: [], items: [],
     });
+    const duplicateBlock = (source) => {
+        const copy = JSON.parse(JSON.stringify(source));
+        copy.id = null;
+        (copy.items || []).forEach((item) => { item.id = null; });
+        (copy.gallery_images || []).forEach((item) => { item.id = null; });
+        return copy;
+    };
+    const duplicateSection = (source) => {
+        const copy = JSON.parse(JSON.stringify(source));
+        copy.id = null;
+        delete copy._saved_name;
+        copy.name = `${copy.name || "Section"} copy`;
+        copy.blocks = (copy.blocks || []).map(duplicateBlock);
+        return copy;
+    };
     const newSection = (layout = "single") => ({
         name: "Section", is_visible: true, width: "inherit", layout,
         background: "default", full_bleed_background: false, blocks: [],
@@ -323,7 +373,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const grid = el("div", "page-editor-grid");
         grid.append(
             selectField("Block type", "block_type", block.block_type || "text", choices.block_type),
-            selectField("Audience", "audience", block.is_visible === false ? "hidden" : block.audience || "everyone", choices.audience)
+            selectField("Audience", "audience", block.is_visible === false ? "hidden" : block.audience || "everyone", choices.audience),
+            selectField("Alignment", "alignment", block.alignment || "left", choices.alignment)
         );
         if (block.block_type === "image") {
             grid.append(
@@ -336,7 +387,6 @@ document.addEventListener("DOMContentLoaded", () => {
             );
         } else if (block.block_type === "gallery") {
             grid.append(
-                imagePickerField("Gallery images", "gallery_selection", block.gallery_images || [], true),
                 checkboxField("Scroll automatically", "gallery_auto_scroll", block.gallery_auto_scroll),
                 field("Scroll interval (seconds)", "gallery_scroll_speed", block.gallery_scroll_speed || 5, "number"),
                 checkboxField("Loop continuously", "gallery_loop", block.gallery_loop),
@@ -346,24 +396,27 @@ document.addEventListener("DOMContentLoaded", () => {
             );
         } else {
             const contentLabel = block.block_type === "action" ? "Button or link label" : block.block_type === "card_group" ? "Optional group heading" : "Content";
-            grid.append(field(contentLabel, "content", block.content, block.block_type === "text" ? "textarea" : "text", true));
+            const contentField = field(contentLabel, "content", block.content, block.block_type === "text" ? "textarea" : "text", true);
+            if (block.block_type === "text") {
+                contentField.append(el("span", "page-editor-field-help", "Add a link with [link text](https://example.com). Raw HTML is displayed as text."));
+            }
+            grid.append(contentField);
             if (block.block_type === "card_group") grid.append(selectField("Cards per row", "card_columns", block.card_columns || "auto", choices.card_columns));
+        }
+        if (block.block_type === "text") {
+            grid.append(
+                selectField("Text role", "text_role", block.text_role || "paragraph", choices.text_role),
+                selectField("Theme font", "text_font", block.text_font || "theme", choices.text_font),
+                selectField("Size", "text_size", block.text_size || "standard", choices.text_size),
+                selectField("Weight", "text_weight", block.text_weight || "theme", choices.text_weight)
+            );
         }
         if (block.block_type === "action") {
             grid.append(selectField("Destination", "destination", block.destination || "none", choices.destination), selectField("Appearance", "style", block.style || "default", choices.style));
         }
         body.append(grid);
         if (block.block_type === "gallery") {
-            const galleryList = el("div", "page-gallery-list");
-            (block.gallery_images || []).forEach((item, galleryIndex) => {
-                const row = el("div", "page-gallery-image page-editor-grid");
-                row.dataset.image = item.image;
-                const heading = el("div", "page-gallery-image-heading page-editor-field-wide");
-                heading.append(el("strong", "", `${galleryIndex + 1}. ${imageName(item.image)}`));
-                row.append(heading, field("Alternative text", "gallery_alt", item.alternative_text || ""), field("Caption", "gallery_caption", item.caption || ""));
-                galleryList.append(row);
-            });
-            body.append(galleryList);
+            body.append(imagePickerField("Images", "gallery_selection", block.gallery_images || [], true));
         }
         if (block.block_type === "card_group") {
             const cards = el("details", "page-cards");
@@ -486,16 +539,63 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const libraryDialog = el("dialog", "page-image-library-dialog");
-    libraryDialog.innerHTML = '<div class="page-image-library-modal"><header><div><h2>Choose images</h2><p>Select from the shared image library.</p></div><button type="button" class="page-image-library-close" aria-label="Close">&times;</button></header><div class="page-image-library-grid"></div><footer><button type="button" class="button page-image-library-apply">Use selected images</button></footer></div>';
+    libraryDialog.innerHTML = `<div class="page-image-library-modal">
+        <header><div><h2>Choose images</h2><p>Select existing images or upload new files.</p></div><button type="button" class="page-image-library-close" aria-label="Close">&times;</button></header>
+        <div class="page-image-library-grid"></div>
+        <section class="page-image-upload-panel">
+            <div class="page-image-upload-heading"><div><h3>Upload images</h3><p data-upload-restrictions>PNG, JPEG, WebP or ICO, up to 5 MB each.</p></div><label class="button page-image-choose-files">Choose files<input type="file" accept=".png,.jpg,.jpeg,.webp,.ico,image/png,image/jpeg,image/webp,image/x-icon" multiple hidden></label></div>
+            <div class="page-image-upload-list"><p class="page-image-upload-empty">No files selected.</p></div>
+            <div class="page-image-upload-actions"><span data-upload-summary></span><button type="button" class="button page-image-upload-button" disabled>Upload</button></div>
+        </section>
+        <footer><button type="button" class="button page-image-library-apply">Use selected images</button></footer>
+    </div>`;
     document.body.append(libraryDialog);
     const libraryGrid = libraryDialog.querySelector(".page-image-library-grid");
     const libraryApply = libraryDialog.querySelector(".page-image-library-apply");
     let activePicker = null;
     let activePickerMultiple = false;
+    let pendingUploads = [];
+    const fileInput = libraryDialog.querySelector('input[type="file"]');
+    const uploadList = libraryDialog.querySelector(".page-image-upload-list");
+    const uploadButton = libraryDialog.querySelector(".page-image-upload-button");
+    const uploadSummary = libraryDialog.querySelector("[data-upload-summary]");
+    const uploadRestrictions = libraryDialog.querySelector("[data-upload-restrictions]");
+    const formatSize = (bytes) => bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    const deriveName = (filename) => filename.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (letter) => letter.toUpperCase());
+    const uploadError = (file) => {
+        const extension = file.name.split(".").pop().toLowerCase();
+        if (!["png", "jpg", "jpeg", "webp", "ico"].includes(extension)) return "This file type is not supported.";
+        if (file.size > maximumImageSizeBytes) return `This file is larger than ${maximumImageSizeMb} MB.`;
+        return "";
+    };
+    const renderPendingUploads = () => {
+        uploadList.replaceChildren();
+        if (!pendingUploads.length) uploadList.innerHTML = '<p class="page-image-upload-empty">No files selected.</p>';
+        pendingUploads.forEach((entry) => {
+            const row = el("div", `page-image-upload-row ${entry.error ? "is-invalid" : "is-valid"}`);
+            if (entry.preview) { const preview = el("img"); preview.src = entry.preview; preview.alt = ""; row.append(preview); }
+            const details = el("div", "page-image-upload-details");
+            details.append(el("strong", "", entry.file.name), el("small", "", formatSize(entry.file.size)));
+            if (entry.error) details.append(el("p", "page-image-upload-error", entry.error));
+            else {
+                const label = el("label", "", "Name");
+                const name = el("input"); name.type = "text"; name.maxLength = 120; name.value = entry.name;
+                name.addEventListener("input", () => { entry.name = name.value; uploadButton.disabled = !pendingUploads.some((item) => !item.error && item.name.trim()); });
+                label.append(name); details.append(label);
+            }
+            row.append(details); uploadList.append(row);
+        });
+        const valid = pendingUploads.filter((entry) => !entry.error && entry.name.trim());
+        uploadButton.disabled = !valid.length;
+        uploadButton.textContent = valid.length ? `Upload ${valid.length} image${valid.length === 1 ? "" : "s"}` : "Upload";
+    };
     const openImagePicker = (picker, multiple) => {
         activePicker = picker;
         activePickerMultiple = multiple;
         const hidden = picker.querySelector('[data-key]');
+        if (multiple) {
+            hidden.value = JSON.stringify(readGallery(picker.closest(".page-block-editor")));
+        }
         const selected = new Set(multiple
             ? JSON.parse(hidden.value || "[]").map((entry) => String(entry.image))
             : (hidden.value ? [String(hidden.value)] : []));
@@ -511,8 +611,50 @@ document.addEventListener("DOMContentLoaded", () => {
             libraryGrid.append(item);
         });
         libraryApply.textContent = multiple ? "Use selected images" : "Use selected image";
+        pendingUploads.forEach((entry) => { if (entry.preview) URL.revokeObjectURL(entry.preview); });
+        pendingUploads = [];
+        fileInput.value = "";
+        uploadSummary.textContent = "";
+        renderPendingUploads();
         libraryDialog.showModal();
     };
+    fileInput.addEventListener("change", () => {
+        pendingUploads.forEach((entry) => { if (entry.preview) URL.revokeObjectURL(entry.preview); });
+        pendingUploads = [...fileInput.files].map((file) => ({file, name: deriveName(file.name), error: uploadError(file), preview: ""}));
+        pendingUploads.forEach((entry) => { if (!entry.error) entry.preview = URL.createObjectURL(entry.file); });
+        renderPendingUploads();
+    });
+    uploadButton.addEventListener("click", async () => {
+        const valid = pendingUploads.filter((entry) => !entry.error && entry.name.trim());
+        const data = new FormData();
+        valid.forEach((entry) => { data.append("images", entry.file); data.append("names", entry.name.trim()); });
+        const previouslySelected = new Set([...libraryGrid.querySelectorAll("input:checked")].map((choice) => String(choice.value)));
+        uploadButton.disabled = true;
+        uploadButton.textContent = "Uploading...";
+        try {
+            const response = await fetch(editor.dataset.imageLibraryUrl, {method: "POST", headers: {"X-CSRFToken": form.querySelector('[name="csrfmiddlewaretoken"]').value, "X-Requested-With": "XMLHttpRequest"}, credentials: "same-origin", body: data});
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || "Upload failed.");
+            result.results.filter((item) => item.ok).forEach((item) => previouslySelected.add(String(item.image.id)));
+            imageLibrary = result.images || imageLibrary;
+            libraryGrid.replaceChildren();
+            imageLibrary.forEach((image) => {
+                const item = el("label", "page-image-library-item");
+                const choice = input("", previouslySelected.has(String(image.id)), activePickerMultiple ? "checkbox" : "radio");
+                choice.removeAttribute("data-key"); choice.name = "page-image-library-choice"; choice.value = image.id;
+                const thumbnail = el("img"); thumbnail.src = image.url; thumbnail.alt = "";
+                item.append(choice, thumbnail, el("strong", "", image.name), el("small", "", `${image.type} · ${image.dimensions}`));
+                libraryGrid.append(item);
+            });
+            const failures = result.results.filter((item) => !item.ok);
+            pendingUploads = failures.map((item) => ({file: {name: item.filename, size: 0}, name: "", error: item.error, preview: ""}));
+            renderPendingUploads();
+            uploadSummary.textContent = failures.length ? "Some files could not be uploaded." : "Upload complete. New images are selected.";
+        } catch (error) {
+            uploadSummary.textContent = error.message;
+            renderPendingUploads();
+        }
+    });
     libraryApply.addEventListener("click", () => {
         const chosen = [...libraryGrid.querySelectorAll("input:checked")].map((choice) => Number(choice.value));
         if (!chosen.length) return;
@@ -532,12 +674,44 @@ document.addEventListener("DOMContentLoaded", () => {
     libraryDialog.querySelector(".page-image-library-close").addEventListener("click", () => libraryDialog.close());
     libraryDialog.addEventListener("click", (event) => { if (event.target === libraryDialog) libraryDialog.close(); });
 
+    const metadataDialog = el("dialog", "page-gallery-metadata-dialog");
+    metadataDialog.innerHTML = `<form method="dialog">
+        <header><div><h2>Edit image</h2><p data-gallery-image-name></p></div><button type="button" class="page-gallery-metadata-close" aria-label="Close">&times;</button></header>
+        <label>Alternative text<input type="text" data-gallery-alternative-text></label>
+        <label>Caption<input type="text" data-gallery-caption></label>
+        <footer><button type="button" class="button page-gallery-metadata-cancel">Cancel</button><button type="button" class="button page-gallery-metadata-save">Apply</button></footer>
+    </form>`;
+    document.body.append(metadataDialog);
+    let activeGalleryTile = null;
+    const closeMetadata = () => metadataDialog.close();
+    metadataDialog.querySelector(".page-gallery-metadata-close").addEventListener("click", closeMetadata);
+    metadataDialog.querySelector(".page-gallery-metadata-cancel").addEventListener("click", closeMetadata);
+    metadataDialog.addEventListener("click", (event) => { if (event.target === metadataDialog) closeMetadata(); });
+    metadataDialog.querySelector(".page-gallery-metadata-save").addEventListener("click", () => {
+        if (!activeGalleryTile) return closeMetadata();
+        activeGalleryTile.dataset.alternativeText = metadataDialog.querySelector("[data-gallery-alternative-text]").value.trim();
+        activeGalleryTile.dataset.caption = metadataDialog.querySelector("[data-gallery-caption]").value.trim();
+        const blockPanel = activeGalleryTile.closest(".page-block-editor");
+        blockPanel.querySelector('[data-key="gallery_selection"]').value = JSON.stringify(readGallery(blockPanel));
+        sync();
+        closeMetadata();
+    });
+
     list.addEventListener("click", async (event) => {
         const control = event.target.closest("[data-action]");
         if (!control) return;
         event.preventDefault();
         sync();
         const action = control.dataset.action;
+        if (action === "edit-gallery-image") {
+            activeGalleryTile = control.closest(".page-gallery-tile");
+            metadataDialog.querySelector("[data-gallery-image-name]").textContent = imageName(activeGalleryTile.dataset.image);
+            metadataDialog.querySelector("[data-gallery-alternative-text]").value = activeGalleryTile.dataset.alternativeText || "";
+            metadataDialog.querySelector("[data-gallery-caption]").value = activeGalleryTile.dataset.caption || "";
+            metadataDialog.showModal();
+            metadataDialog.querySelector("[data-gallery-alternative-text]").focus();
+            return;
+        }
         if (action === "choose-images") {
             openImagePicker(control.closest(".page-image-picker-field"), control.dataset.multiple === "true");
             return;
@@ -554,6 +728,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (action === "add-block") preserve(() => section.blocks.push(newBlock("text", Number(columnPanel.dataset.column))), false);
         else if (action === "add-card") preserve(() => block.items.push({heading: "", description: ""}), false);
+        else if (action === "duplicate-section") preserve(() => sections.splice(sectionIndex + 1, 0, duplicateSection(section)), false);
+        else if (action === "duplicate-block") preserve(() => section.blocks.splice(blockIndex + 1, 0, duplicateBlock(block)), false);
         else if (action.endsWith("-up") || action.endsWith("-down")) {
             const delta = action.endsWith("-up") ? -1 : 1;
             preserve(() => {
@@ -579,7 +755,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 else if (type === "block") section.blocks.splice(blockIndex, 1);
                 else block.items.splice(cardIndex, 1);
             }, false);
-            baseline = JSON.stringify(sections);
+            baseline = contentFingerprint();
         }
     });
     list.addEventListener("change", (event) => {
@@ -654,13 +830,16 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     };
-    const beginPickup = (summary, event) => {
+    const beginPickup = (pickupTarget, event) => {
         sync();
-        const sectionPanel = summary.closest(".page-section-editor");
+        const sectionPanel = pickupTarget.closest(".page-section-editor");
         const sectionIndex = [...list.children].indexOf(sectionPanel);
-        const blockPanel = summary.closest(".page-block-editor");
-        const cardPanel = summary.closest(".page-card-editor");
-        if (cardPanel) {
+        const blockPanel = pickupTarget.closest(".page-block-editor");
+        const cardPanel = pickupTarget.closest(".page-card-editor");
+        const galleryPanel = pickupTarget.closest(".page-gallery-tile");
+        if (galleryPanel && !event.target.closest(".page-gallery-edit-button")) {
+            dragged = {kind: "gallery", panel: galleryPanel};
+        } else if (cardPanel) {
             const blockIndex = Number(blockPanel.dataset.blockIndex);
             const cardIndex = [...cardPanel.parentElement.children].indexOf(cardPanel);
             dragged = {kind: "card", item: sections[sectionIndex].blocks[blockIndex].items[cardIndex], block: sections[sectionIndex].blocks[blockIndex], panel: cardPanel};
@@ -672,10 +851,13 @@ document.addEventListener("DOMContentLoaded", () => {
         dragged.originalParent = dragged.panel.parentElement;
         dragged.originalNext = dragged.panel.nextElementSibling;
         dragged.dropped = false;
-        const title = dragged.panel.querySelector(":scope > summary .page-editor-summary-title")?.textContent?.trim() || "Move item";
+        const title = dragged.panel.querySelector(":scope > summary .page-editor-summary-title, :scope > strong")?.textContent?.trim() || "Move item";
         const placeholder = el("div", "page-editor-drag-placeholder");
         const panelHeight = dragged.panel.getBoundingClientRect().height;
         placeholder.style.height = `${Math.max(48, panelHeight)}px`;
+        if (dragged.kind === "gallery") {
+            placeholder.style.width = `${dragged.panel.getBoundingClientRect().width}px`;
+        }
         placeholder.append(el("strong", "", title));
         dragged.panel.after(placeholder);
         dragged.placeholder = placeholder;
@@ -702,26 +884,31 @@ document.addEventListener("DOMContentLoaded", () => {
             container = event.target.closest(".page-column-editor")?.querySelector(":scope > .page-block-list");
             panelSelector = ".page-block-editor";
             if (container) candidates = [...container.querySelectorAll(":scope > .page-block-editor")];
-        } else {
+        } else if (dragged.kind === "card") {
             container = event.target.closest(".page-card-list");
             panelSelector = ".page-card-editor";
             if (container !== dragged.panel.closest(".page-card-list")) return null;
             if (container) candidates = [...container.querySelectorAll(":scope > .page-card-editor")];
+        } else {
+            container = event.target.closest(".page-image-picker-preview.is-gallery");
+            panelSelector = ".page-gallery-tile";
+            if (container !== dragged.panel.closest(".page-image-picker-preview.is-gallery")) return null;
+            if (container) candidates = [...container.querySelectorAll(":scope > .page-gallery-tile")];
         }
         if (!container) return null;
         candidates = candidates.filter((panel) => panel !== dragged.panel);
         const measured = candidates.map((panel) => {
             const header = panel.querySelector(":scope > summary") || panel;
             const rect = header.getBoundingClientRect();
-            return {panel, centre: rect.top + rect.height / 2};
+            return {panel, centre: dragged.kind === "gallery" ? rect.left + rect.width / 2 : rect.top + rect.height / 2};
         });
         const directTarget = event.target.closest(panelSelector);
         const directEntry = measured.find((entry) => entry.panel === directTarget);
         const targetEntry = directEntry || measured.reduce((closest, entry) => (
-            !closest || Math.abs(event.clientY - entry.centre) < Math.abs(event.clientY - closest.centre) ? entry : closest
+            !closest || Math.abs((dragged.kind === "gallery" ? event.clientX : event.clientY) - entry.centre) < Math.abs((dragged.kind === "gallery" ? event.clientX : event.clientY) - closest.centre) ? entry : closest
         ), null);
         const targetIndex = targetEntry ? measured.indexOf(targetEntry) : -1;
-        const beforeTarget = targetEntry && event.clientY < targetEntry.centre;
+        const beforeTarget = targetEntry && (dragged.kind === "gallery" ? event.clientX : event.clientY) < targetEntry.centre;
         const next = beforeTarget ? targetEntry.panel : measured[targetIndex + 1]?.panel || null;
         return {container, next, target: targetEntry?.panel || null};
     };
@@ -734,7 +921,8 @@ document.addEventListener("DOMContentLoaded", () => {
             && dragged.placeholder.nextElementSibling === destination.next;
         const animatedPanels = [...list.querySelectorAll(
             dragged.kind === "section" ? ":scope > .page-section-editor"
-                : dragged.kind === "block" ? ".page-block-editor" : ".page-card-editor"
+                : dragged.kind === "block" ? ".page-block-editor"
+                    : dragged.kind === "card" ? ".page-card-editor" : ".page-gallery-tile"
         )];
         const positions = new Map(animatedPanels.map((panel) => [panel, panel.getBoundingClientRect().top]));
         destination.container.insertBefore(dragged.placeholder, destination.next);
@@ -743,7 +931,8 @@ document.addEventListener("DOMContentLoaded", () => {
         destination.target?.classList.add("page-editor-drop-target");
         const zone = dragged.kind === "block"
             ? destination.container.closest(".page-column-editor")
-            : dragged.kind === "card" ? destination.container.closest(".page-cards") : dragged.panel;
+            : dragged.kind === "card" ? destination.container.closest(".page-cards")
+                : dragged.kind === "gallery" ? destination.container : dragged.panel;
         zone?.classList.add("page-editor-drop-zone");
         return true;
     };
@@ -775,6 +964,14 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     list.addEventListener("pointerdown", (event) => {
         if (event.button !== 0 || dragged || pendingPickup) return;
+        const galleryPanel = event.target.closest(".page-gallery-tile");
+        if (galleryPanel) {
+            pendingPickup = {
+                summary: galleryPanel, pointerId: event.pointerId,
+                startX: event.clientX, startY: event.clientY,
+            };
+            return;
+        }
         const summary = event.target.closest("summary");
         if (!summary || !summary.querySelector(":scope > .page-editor-drag-handle")) return;
         if (event.target.closest("input, textarea, select, button")) return;
@@ -803,7 +1000,7 @@ document.addEventListener("DOMContentLoaded", () => {
         event.preventDefault();
         dragged.preview.style.transform = `translate(${event.clientX + 18}px, ${event.clientY + 18}px)`;
         const target = document.elementFromPoint(event.clientX, event.clientY);
-        if (target) movePickup({target, clientY: event.clientY});
+        if (target) movePickup({target, clientX: event.clientX, clientY: event.clientY});
         const edge = 56;
         if (event.clientY < edge) window.scrollBy(0, -12);
         else if (event.clientY > window.innerHeight - edge) window.scrollBy(0, 12);
@@ -872,24 +1069,36 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
         payload.value = JSON.stringify(sections);
-        baseline = JSON.stringify(sections);
+        baseline = contentFingerprint();
         submitting = false;
+        const nextStateStorageKey = `rat-race-page-editor:${new URL(event.detail.responseUrl).pathname}`;
+        if (nextStateStorageKey !== stateStorageKey) {
+            try { sessionStorage.removeItem(stateStorageKey); } catch (_) {}
+            stateStorageKey = nextStateStorageKey;
+        }
     });
     window.addEventListener("beforeunload", (event) => {
         sync();
-        if (!submitting && JSON.stringify(sections) !== baseline) { event.preventDefault(); event.returnValue = ""; }
+        if (!submitting && contentFingerprint() !== baseline) { event.preventDefault(); event.returnValue = ""; }
     });
     render();
     restorePageState();
     sync();
-    baseline = JSON.stringify(sections);
+    baseline = contentFingerprint();
+    form.dispatchEvent(new CustomEvent("rat-race:admin-editor-ready"));
     if (editor.dataset.imageLibraryUrl) {
         fetch(editor.dataset.imageLibraryUrl, {headers: {"X-Requested-With": "XMLHttpRequest"}, credentials: "same-origin"})
             .then((response) => response.ok ? response.json() : Promise.reject())
             .then((data) => {
                 imageLibrary = data.images || [];
+                if (data.upload_settings) {
+                    maximumImageSizeMb = data.upload_settings.maximum_image_size_mb;
+                    maximumImageSizeBytes = data.upload_settings.maximum_image_size_bytes;
+                    uploadRestrictions.textContent = `PNG, JPEG, WebP or ICO, up to ${maximumImageSizeMb} MB each.`;
+                }
                 preserve(() => {});
-                baseline = JSON.stringify(sections);
+                baseline = contentFingerprint();
+                form.dispatchEvent(new CustomEvent("rat-race:admin-editor-ready"));
             })
             .catch(() => {});
     }
