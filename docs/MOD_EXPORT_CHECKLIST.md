@@ -32,10 +32,10 @@ The `Contract` scope contains the agreed export contract. `Team request` contain
 | Contract | Towns visited and when | 🟡 Planned | Requires canonical town IDs and boundaries. |
 | Contract | Books and magazines read and when | 🟡 Planned | Requires the authoritative literature-completion path. |
 | Contract | Progress for every outpost | 🟢 Implemented | Latest deliverable state and observation time are persisted. |
-| Contract | Completed outposts and completion order | 🟢 Implemented&nbsp;foundation | Whole-outpost completion rising-edge events and world-age timestamps exist; the final export projection will order them chronologically. |
-| Contract | Kill milestones and elapsed days | 🟢 Implemented&nbsp;foundation | Persistent claims include world age; the final export projection remains to be written. |
+| Contract | Completed outposts and completion order | 🟢 Implemented | Whole-outpost completion rising-edge events and world-age timestamps exist; the final export projection will order them chronologically. |
+| Contract | Kill milestones and elapsed days | 🟢 Implemented | Persistent claims include world age; the final export projection remains to be written. |
 | Contract | Skill milestones, including level 10 and elapsed days | 🟡 Planned | Generic level-reached events exist; milestone policy and persistent records remain unfinished. |
-| Contract | Outpost milestones and elapsed days | 🟢 Implemented&nbsp;foundation | Deliverable and whole-outpost completion claims retain world age; the final export projection remains to be written. |
+| Contract | Outpost milestones and elapsed days | 🟢 Implemented | Deliverable and whole-outpost completion claims retain world age; the final export projection remains to be written. |
 | Contract | Overall challenge progress | 🟢 Implemented | The Tracker calculates kills, skills, and outpost progress. |
 | Contract | Whether the run remains official | 🟡 Planned | The classification foundation exists; final policy and transitions remain. |
 | Contract | Save rollbacks, recovery decisions, and continuation as an unofficial run | 🟡 Planned | The ledger and recovery model are designed but not implemented. |
@@ -67,4 +67,4 @@ The `Contract` scope contains the agreed export contract. `Team request` contain
 
 ## Export implementation reminder
 
-Items marked **Implemented** or **Implemented foundation** indicate that their underlying canonical data exists. A separate export implementation pass must still verify that every accepted item is serialized, schema-versioned, integrity-checked, and covered by a representative test run.
+Items marked **Implemented** indicate that their underlying canonical data exists. A separate export implementation pass must still verify that every accepted item is serialized, schema-versioned, integrity-checked, and covered by a representative test run.
