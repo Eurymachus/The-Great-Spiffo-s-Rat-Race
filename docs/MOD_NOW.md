@@ -18,6 +18,8 @@ Build a modular, player-facing Rat Race Challenge Tracker with:
 
 See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD_OUTPOSTS.md](MOD_OUTPOSTS.md), [MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md](MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md), and [MOD_DECISION_015_SOURCE_LAYOUT.md](MOD_DECISION_015_SOURCE_LAYOUT.md).
 
+Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md](MOD_RUN_DATA.md), with implementation status maintained in [MOD_EXPORT_CHECKLIST.md](MOD_EXPORT_CHECKLIST.md). Techniques audited from unrelated mods are retained strictly as implementation research in [MOD_REFERENCE_DATA_COLLECTORS.md](MOD_REFERENCE_DATA_COLLECTORS.md).
+
 ## Implemented on the development branch
 
 - Generic `TGSRR.ChallengeTracker.registerModule()` registry.
@@ -28,6 +30,7 @@ See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD
 - Generic challenge event bus, persistent milestone ledger, registry-driven awards, and localized halo notification presenter.
 - Kill milestones at 1,000, 10,000, 25,000, 50,000, 100,000, 250,000, 500,000, 750,000, and 1,000,000, shown on the Kills tab and emitted only when thresholds are crossed.
 - Dynamic all-skills level-10 deliverable grouped by vanilla skill category, with ten-segment per-skill progress, aggregate fractional progress, and event-driven refresh.
+- World-scoped Rat Race run identity foundation with immutable `runId`, starting-character metadata, versioned `run.meta`, and timestamped session/mod-list history.
 - Generic `skill.level.reached` events containing the skill, parent category, and reached level; award policy remains intentionally undecided.
 - Rising-edge events for individual outpost deliverable completion and whole-outpost completion; initial observations do not retroactively award milestones.
 - Saved window position, selected tab, open state, and movable launcher position.
@@ -68,7 +71,7 @@ See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD
 
 ## Recommended next action
 
-Validate the Skills tab and its dynamically discovered skill/category set in game, then decide which skill-level or category events receive milestone awards.
+Validate run bootstrap and session reload in game, then specify and implement the canonical hash-chained record codec before adding the remaining history collectors.
 
 ## Related decisions
 
@@ -88,3 +91,4 @@ Validate the Skills tab and its dynamically discovered skill/category set in gam
 - [MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md](MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md)
 - [MOD_DECISION_015_SOURCE_LAYOUT.md](MOD_DECISION_015_SOURCE_LAYOUT.md)
 - [MOD_DECISION_016_SKILL_TRACKING.md](MOD_DECISION_016_SKILL_TRACKING.md)
+- [MOD_DECISION_017_RUN_IDENTITY_AND_LIFECYCLE.md](MOD_DECISION_017_RUN_IDENTITY_AND_LIFECYCLE.md)
