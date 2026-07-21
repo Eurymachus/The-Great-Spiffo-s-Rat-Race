@@ -57,6 +57,14 @@ For the outposts record, `current` is the number of currently Completed outposts
 - Tracker is player-facing for `TGSRR`, `TGSRR_CDDA`, and `TGSRR_Sprinters`; it is not debug-only.
 - Player-facing tracker strings and title-case outpost names resolve through TGSRR `getTextOrNull` keys.
 
+## Planned danger auto-close
+
+- Add a default-enabled Mod Option that automatically closes all player-facing tracker windows when a zombie enters the same danger proximity used by vanilla Foraging/Search Mode.
+- The scope includes the main Challenge Tracker and the player-facing Outpost Overview.
+- Reuse the authoritative vanilla proximity rule rather than inventing a separate TGSRR radius.
+- Closing for danger changes only current visibility; it must not erase saved window position, selected tab, selected outpost, or other layout preferences.
+- Developer-facing Outpost survey and Inspector windows are not included unless explicitly added later.
+
 ## Outposts tab intent
 
 The Outposts tab compares all 13 outposts. Earlier design intent included:

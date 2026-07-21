@@ -68,6 +68,7 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 
 - Zombie count, last visited, or last-observed population in tracker snapshots.
 - Skill milestone award selection (individual skills, categories, or selected levels).
+- Default-enabled danger auto-close for the Challenge Tracker and Outpost Overview using vanilla Foraging/Search Mode zombie proximity.
 
 ## Recommended next action
 
