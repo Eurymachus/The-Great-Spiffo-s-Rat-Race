@@ -1,8 +1,10 @@
 from django.contrib import admin
 from django.db import transaction
+import json
+
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.urls import path
+from django.urls import path, reverse
 from django.utils import timezone
 
 from .forms import PageEditorForm
@@ -144,6 +146,7 @@ class PageAdmin(admin.ModelAdmin):
 
 @admin.register(NavigationItem)
 class NavigationItemAdmin(admin.ModelAdmin):
+    change_list_template = "admin/pages/navigationitem/change_list.html"
     list_display = ("menu_location", "page", "position", "is_visible")
     list_editable = ("position", "is_visible")
     list_filter = ("is_visible", "parent")
@@ -157,6 +160,86 @@ class NavigationItemAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("parent", "page")
+
+    def get_urls(self):
+        return [
+            path(
+                "reorder/",
+                self.admin_site.admin_view(self.reorder_view),
+                name="pages_navigationitem_reorder",
+            ),
+        ] + super().get_urls()
+
+    def changelist_view(self, request, extra_context=None):
+        items = list(self.get_queryset(request).order_by("parent_id", "position", "label"))
+        nodes = {item.pk: {"item": item, "children": []} for item in items}
+        roots = []
+        for node in nodes.values():
+            parent = nodes.get(node["item"].parent_id)
+            if parent:
+                parent["children"].append(node)
+            else:
+                roots.append(node)
+        extra_context = {
+            **(extra_context or {}),
+            "navigation_tree": roots,
+            "navigation_pages": Page.objects.order_by("title", "public_path"),
+            "navigation_reorder_url": reverse("admin:pages_navigationitem_reorder"),
+        }
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def reorder_view(self, request):
+        if request.method != "POST" or not self.has_change_permission(request):
+            return JsonResponse({"saved": False}, status=403)
+        try:
+            submitted = json.loads(request.body)
+            rows = submitted["items"]
+            updates = {
+                int(row["id"]): {
+                    "parent_id": int(row["parent_id"]) if row.get("parent_id") is not None else None,
+                    "position": int(row["position"]),
+                    "label": str(row["label"]).strip(),
+                    "page_id": int(row["page_id"]) if row.get("page_id") is not None else None,
+                    "is_visible": bool(row["is_visible"]),
+                }
+                for row in rows
+            }
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            return JsonResponse({"saved": False, "error": "The navigation order could not be read."}, status=400)
+
+        items = list(NavigationItem.objects.all())
+        item_ids = {item.pk for item in items}
+        page_ids = set(Page.objects.values_list("pk", flat=True))
+        if set(updates) != item_ids:
+            return JsonResponse({"saved": False, "error": "Navigation changed while it was being edited. Reload and try again."}, status=409)
+        for item_id, update in updates.items():
+            parent_id = update["parent_id"]
+            if not update["label"] or len(update["label"]) > 80:
+                return JsonResponse({"saved": False, "error": "Every navigation item needs a label of 80 characters or fewer."}, status=400)
+            if update["page_id"] is not None and update["page_id"] not in page_ids:
+                return JsonResponse({"saved": False, "error": "A selected page no longer exists."}, status=400)
+            if parent_id is not None and parent_id not in item_ids:
+                return JsonResponse({"saved": False, "error": "A parent menu item no longer exists."}, status=400)
+            seen = {item_id}
+            depth = 1
+            while parent_id is not None:
+                if parent_id in seen:
+                    return JsonResponse({"saved": False, "error": "Navigation items cannot contain themselves."}, status=400)
+                seen.add(parent_id)
+                depth += 1
+                if depth > 3:
+                    return JsonResponse({"saved": False, "error": "Navigation supports at most three levels."}, status=400)
+                parent_id = updates[parent_id]["parent_id"]
+
+        for item in items:
+            item.parent_id = updates[item.pk]["parent_id"]
+            item.position = updates[item.pk]["position"]
+            item.label = updates[item.pk]["label"]
+            item.page_id = updates[item.pk]["page_id"]
+            item.is_visible = updates[item.pk]["is_visible"]
+        with transaction.atomic():
+            NavigationItem.objects.bulk_update(items, ("parent", "position", "label", "page", "is_visible"))
+        return JsonResponse({"saved": True})
 
     @admin.display(description="Menu location", ordering="label")
     def menu_location(self, obj):

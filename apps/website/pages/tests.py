@@ -317,6 +317,69 @@ class ManagedPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Rules")
 
+    def test_navigation_changelist_uses_the_tree_editor(self):
+        self.login_superuser("navigation-tree-editor@example.com")
+        NavigationItem.objects.all().delete()
+        root = NavigationItem.objects.create(label="Media", position=0)
+        NavigationItem.objects.create(label="Gallery", parent=root, position=0)
+
+        response = self.client.get(reverse("admin:pages_navigationitem_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Navigation structure")
+        self.assertContains(response, 'data-navigation-tree')
+        self.assertContains(response, 'data-navigation-item', count=2)
+        self.assertContains(response, 'data-navigation-label')
+        self.assertContains(response, 'data-navigation-page')
+        self.assertContains(response, 'data-navigation-save')
+        self.assertContains(response, "Gallery")
+
+    def test_navigation_tree_order_can_be_saved_together(self):
+        self.login_superuser("navigation-tree-save@example.com")
+        NavigationItem.objects.all().delete()
+        media = NavigationItem.objects.create(label="Media", position=0)
+        gallery = NavigationItem.objects.create(label="Gallery", position=10)
+        rules = NavigationItem.objects.create(label="Rules", position=20)
+
+        response = self.client.post(
+            reverse("admin:pages_navigationitem_reorder"),
+            data=json.dumps({"items": [
+                {"id": media.pk, "parent_id": None, "position": 0, "label": "Media centre", "page_id": None, "is_visible": True},
+                {"id": gallery.pk, "parent_id": media.pk, "position": 0, "label": "Gallery", "page_id": None, "is_visible": False},
+                {"id": rules.pk, "parent_id": None, "position": 10, "label": "Rules", "page_id": None, "is_visible": True},
+            ]}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        gallery.refresh_from_db()
+        rules.refresh_from_db()
+        self.assertEqual(gallery.parent, media)
+        self.assertEqual(gallery.position, 0)
+        self.assertFalse(gallery.is_visible)
+        media.refresh_from_db()
+        self.assertEqual(media.label, "Media centre")
+        self.assertEqual(rules.position, 10)
+
+    def test_navigation_tree_save_rejects_cycles(self):
+        self.login_superuser("navigation-tree-cycle@example.com")
+        NavigationItem.objects.all().delete()
+        media = NavigationItem.objects.create(label="Media", position=0)
+        gallery = NavigationItem.objects.create(label="Gallery", parent=media, position=0)
+
+        response = self.client.post(
+            reverse("admin:pages_navigationitem_reorder"),
+            data=json.dumps({"items": [
+                {"id": media.pk, "parent_id": gallery.pk, "position": 0, "label": "Media", "page_id": None, "is_visible": True},
+                {"id": gallery.pk, "parent_id": media.pk, "position": 0, "label": "Gallery", "page_id": None, "is_visible": True},
+            ]}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        media.refresh_from_db()
+        self.assertIsNone(media.parent)
+
     def test_page_addresses_reject_application_routes(self):
         page = Page(title="Not an account page", public_path="account/help")
         with self.assertRaises(ValidationError):

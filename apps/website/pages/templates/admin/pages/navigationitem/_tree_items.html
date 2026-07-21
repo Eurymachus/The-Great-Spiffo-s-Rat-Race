@@ -1,0 +1,36 @@
+{% for node in nodes %}
+<li class="navigation-tree-item" data-navigation-item data-id="{{ node.item.pk }}" draggable="false">
+    <div class="navigation-tree-row" data-navigation-row>
+        <button type="button" class="navigation-tree-toggle" data-navigation-toggle aria-expanded="false" aria-label="Edit {{ node.item.label }}">&#8250;</button>
+        <button type="button" class="navigation-tree-handle" data-navigation-handle aria-label="Move {{ node.item.label }}">☰</button>
+        <button type="button" class="navigation-tree-edit-icon" data-navigation-name-trigger aria-label="Edit {{ node.item.label }}">&#9998;</button>
+        <strong class="navigation-tree-label" data-navigation-summary-label data-navigation-name-trigger>{{ node.item.label }}</strong>
+        <input class="navigation-tree-name-input" type="text" maxlength="80" value="{{ node.item.label }}" data-navigation-label hidden aria-label="Navigation label">
+        {% if node.item.page %}
+        <span class="navigation-tree-badge" data-navigation-destination>Page · {% if node.item.page.slug == "home" %}/{% else %}/{{ node.item.page.public_path }}/{% endif %}</span>
+        {% if not node.item.page.is_published %}<span class="navigation-tree-badge is-warning" data-navigation-draft>Draft page</span>{% endif %}
+        {% else %}
+        <span class="navigation-tree-badge" data-navigation-destination>Menu group</span>
+        {% endif %}
+        {% if not node.item.is_visible %}<span class="navigation-tree-badge is-warning" data-navigation-hidden>Hidden</span>{% endif %}
+    </div>
+    <div class="navigation-tree-fields" data-navigation-fields hidden>
+        <div class="navigation-tree-field">
+            <label for="navigation-page-{{ node.item.pk }}">Destination</label>
+            <select id="navigation-page-{{ node.item.pk }}" data-navigation-page>
+                <option value="">Menu group (no destination)</option>
+                {% for page in navigation_pages %}
+                <option value="{{ page.pk }}" data-address="{% if page.slug == 'home' %}/{% else %}/{{ page.public_path }}/{% endif %}" data-published="{{ page.is_published|yesno:'true,false' }}"{% if node.item.page_id == page.pk %} selected{% endif %}>{{ page.title }} — {% if page.slug == "home" %}/{% else %}/{{ page.public_path }}/{% endif %}{% if not page.is_published %} (draft){% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <label class="navigation-tree-visible">
+            <input type="checkbox" data-navigation-visible{% if node.item.is_visible %} checked{% endif %}>
+            Visible publicly
+        </label>
+    </div>
+    <ol class="navigation-tree-children" data-navigation-children>
+        {% include "admin/pages/navigationitem/_tree_items.html" with nodes=node.children %}
+    </ol>
+</li>
+{% endfor %}

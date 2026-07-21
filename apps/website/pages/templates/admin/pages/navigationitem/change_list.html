@@ -1,0 +1,34 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'pages/navigation_tree.js' %}?v=20260721-6" defer></script>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'pages/navigation_tree.css' %}?v=20260721-6">
+{% endblock %}
+
+{% block result_list %}
+<section class="navigation-tree-editor" data-navigation-tree data-save-url="{{ navigation_reorder_url }}">
+    <div class="navigation-tree-heading">
+        <div>
+            <h2>Navigation structure</h2>
+            <p>Drag a row above or below another item to reorder it. Drop onto the middle of a row to place it inside that menu. Navigation supports three levels.</p>
+        </div>
+    </div>
+    <form hidden>{% csrf_token %}</form>
+    <ol class="navigation-tree-root" data-navigation-children>
+        {% include "admin/pages/navigationitem/_tree_items.html" with nodes=navigation_tree %}
+    </ol>
+    {% if not navigation_tree %}<p class="navigation-tree-empty">No navigation items yet. Use “Add navigation item” to create the first one.</p>{% endif %}
+</section>
+<div class="submit-row navigation-submit-row">
+    <a href="{% url 'admin:index' %}" class="admin-close-button">Close</a>
+    <button type="button" class="button default" data-navigation-save disabled>Save navigation</button>
+</div>
+{% endblock %}
+
+{% block pagination %}{% endblock %}
