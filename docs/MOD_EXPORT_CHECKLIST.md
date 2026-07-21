@@ -42,18 +42,18 @@ The `Contract` scope contains the agreed export contract. `Team request` contain
 | Contract | Mods used when the run began | 🟢 Implemented | Captures Mod IDs, Workshop IDs, and their mapping. |
 | Contract | Mods added or removed during later sessions | 🟢 Implemented | Session-start deltas are recorded. |
 | Team request | Distance travelled | 🟡 Planned | Use compact accumulated distance rather than raw position telemetry; final rules should reject teleport/discontinuity artefacts. |
-| Team request | Animals slaughtered | 🔴 Needs&nbsp;investigation | Establish authoritative action/event and species attribution. |
-| Team request | Animals trapped | 🔴 Needs&nbsp;investigation | Establish the completed-trap/claim event and animal identity. |
-| Team request | Animal births | 🔴 Needs&nbsp;investigation | Establish an authoritative birth event and ownership/world context. |
-| Team request | XP gained through skill-book boosts | 🔴 Needs&nbsp;investigation | Define attribution when multiple XP modifiers are active and identify the authoritative multiplier state. |
-| Team request | Days survived before generator knowledge is learned | 🔴 Needs&nbsp;investigation | Identify the stable knowledge/recipe ID and reliable acquisition edge. |
-| Team request | Injuries sustained | 🔴 Needs&nbsp;investigation | Define injury categories and whether repeated state changes form one injury or several. |
-| Team request | Zombie-caused injuries | 🔴 Needs&nbsp;investigation | Confirm reliable attacker/source attribution. |
-| Team request | Milk collected | 🔴 Needs&nbsp;investigation | Trace animal/resource action completion and quantify partial collections. |
-| Team request | Butter produced | 🔴 Needs&nbsp;investigation | Trace the authoritative crafting/production completion path. |
-| Team request | Weapons broken | 🔴 Needs&nbsp;investigation | Confirm the reliable condition-to-broken transition and full item ID attribution. |
-| Team request | Real time spent in nimble stance | 🔴 Needs&nbsp;investigation | Define stance detection, pause handling, and valid active-play accumulation. |
-| Team request | Real time spent in the run/stream | 🔴 Needs&nbsp;investigation | Define active play versus pause, loading, menus, crashes, and off-stream continuation. |
+| Team request | Animals slaughtered | 🔴&nbsp;Needs&nbsp;investigation | Establish authoritative action/event and species attribution. |
+| Team request | Animals trapped | 🔴&nbsp;Needs&nbsp;investigation | Establish the completed-trap/claim event and animal identity. |
+| Team request | Animal births | 🔴&nbsp;Needs&nbsp;investigation | Establish an authoritative birth event and ownership/world context. |
+| Team request | XP gained through skill-book boosts | 🔴&nbsp;Needs&nbsp;investigation | Define attribution when multiple XP modifiers are active and identify the authoritative multiplier state. |
+| Team request | Days survived before generator knowledge is learned | 🔴&nbsp;Needs&nbsp;investigation | Identify the stable knowledge/recipe ID and reliable acquisition edge. |
+| Team request | Injuries sustained | 🔴&nbsp;Needs&nbsp;investigation | Define injury categories and whether repeated state changes form one injury or several. |
+| Team request | Zombie-caused injuries | 🔴&nbsp;Needs&nbsp;investigation | Confirm reliable attacker/source attribution. |
+| Team request | Milk collected | 🔴&nbsp;Needs&nbsp;investigation | Trace animal/resource action completion and quantify partial collections. |
+| Team request | Butter produced | 🔴&nbsp;Needs&nbsp;investigation | Trace the authoritative crafting/production completion path. |
+| Team request | Weapons broken | 🔴&nbsp;Needs&nbsp;investigation | Confirm the reliable condition-to-broken transition and full item ID attribution. |
+| Team request | Real time spent in nimble stance | 🔴&nbsp;Needs&nbsp;investigation | Define stance detection, pause handling, and valid active-play accumulation. |
+| Team request | Real time spent in the run/stream | 🔴&nbsp;Needs&nbsp;investigation | Define active play versus pause, loading, menus, crashes, and off-stream continuation. |
 
 ## Collection principles
 
