@@ -15,7 +15,7 @@ The Great Spiffo's Rat Race is an extreme, long-form Project Zomboid ironman cha
 
 ## Accepted win condition
 
-- Reach level 10 in every player skill.
+- Reach level 10 in every registered child skill discovered from `PerkFactory.PerkList`, including mod-added skills.
 - Clear and complete every listed outpost and its requirements.
 - Record 1,000,000 total zombie kills in the character information tab.
 
@@ -24,7 +24,8 @@ The Great Spiffo's Rat Race is an extreme, long-form Project Zomboid ironman cha
 - Official, unofficial CDDA, and unofficial Sprinters challenge variants exist.
 - Character respawn is removed for all three variants.
 - Sandbox configuration is supplied by the challenge scripts/configuration.
-- The tracker reads the Character Info zombie-kill counter and exposes provisional outpost activation data.
+- The tracker reads the Character Info zombie-kill counter and exposes normalized outpost progress.
+- The Skills tracker dynamically discovers every perk whose parent is not `Perks.None` and verifies mastery from that perk's live level reaching 10.
 
 ## Historical intent
 
@@ -36,8 +37,6 @@ These communication and submission details are product history. Their final in-g
 
 ## Open questions
 
-- Which skills count as "all player skills" in Build 42.19, including modded or newly added skills?
-- How should the tracker verify level 10 across the accepted skill set?
 - Should official and unofficial variants display different submission/bounty messaging?
 - Where should the approved mod list, settings file, and current organizer links be presented?
 
@@ -48,3 +47,4 @@ These communication and submission details are product history. Their final in-g
 - [MOD_OUTPOSTS.md](MOD_OUTPOSTS.md)
 - [MOD_DECISION_003_CHALLENGE_CONTRACT.md](MOD_DECISION_003_CHALLENGE_CONTRACT.md)
 - [MOD_DECISION_010_ZOMBIE_KILL_AUTHORITY.md](MOD_DECISION_010_ZOMBIE_KILL_AUTHORITY.md)
+- [MOD_DECISION_016_SKILL_TRACKING.md](MOD_DECISION_016_SKILL_TRACKING.md)
