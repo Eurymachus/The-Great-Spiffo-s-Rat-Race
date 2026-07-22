@@ -3,6 +3,7 @@ local FileStore = require "TGSRR/Run/FileStore"
 local EventCodec = require "TGSRR/Run/EventCodec"
 local Ledger = require "TGSRR/Run/Ledger"
 local Recorder = require "TGSRR/Run/Recorder"
+local EventBridge = require "TGSRR/Run/EventBridge"
 
 local initialized = false
 
@@ -86,6 +87,7 @@ local function initialize()
         return
     end
     Recorder.activate(run)
+    EventBridge.install()
 
     if not created then
         local fileSequence, sequenceError = FileStore.sessionHead(run.runId)

@@ -146,6 +146,12 @@ timestamps, updates the world-scoped chain cursor immediately after verified
 write-back, rejects recursive writes, and latches integrity failures so callers
 cannot silently continue an invalid chain.
 
+The first gameplay bridge records the tracker events already treated as rising
+edges: kill milestones, skill levels, completed outpost deliverables, and whole
+outpost completion. Ledger payloads contain stable internal IDs and primitive
+measurements only; localized labels, player objects, complete live records, and
+other presentation/runtime structures are intentionally excluded.
+
 Completed segments are never rewritten. Periodic state snapshots contain the accepted ledger cursor/head hash and can be cross-anchored into compact global ModData. Export verifies framing, record checks, the complete hash chain, snapshot agreement, sequence continuity, and branch selection before producing a submission. Any failure is exported as an explicit integrity condition rather than silently repaired away.
 
 This raises the effort needed to fabricate a consistent history and gives stream/VOD review useful evidence, but a determined participant who modifies the Lua implementation can still regenerate locally valid files. No encryption or HMAC key embedded in the mod is considered secret.
