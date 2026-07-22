@@ -1,7 +1,7 @@
 local Identity = {}
 
 local MOD_DATA_KEY = "TGSRR_Run"
-local SCHEMA_VERSION = 2
+local SCHEMA_VERSION = 3
 
 local CHALLENGE_MODES = {
     TGSRR = "standard",
@@ -28,6 +28,8 @@ local function root()
     data.sessionSequence = tonumber(data.sessionSequence) or 0
     data.lastModIds = type(data.lastModIds) == "table" and data.lastModIds or {}
     data.lastWorkshopIds = type(data.lastWorkshopIds) == "table" and data.lastWorkshopIds or {}
+    data.eventSequence = tonumber(data.eventSequence) or 0
+    data.eventHash = nonEmpty(data.eventHash) or string.rep("0", 64)
     data.providerIds = nil -- discard obsolete pre-release integration state
     return data
 end
@@ -89,6 +91,8 @@ function Identity.ensure(player)
         data.sessionSequence = 0
         data.lastModIds = {}
         data.lastWorkshopIds = {}
+        data.eventSequence = 0
+        data.eventHash = string.rep("0", 64)
         data.integrityStatus = "unverified"
         created = true
     end

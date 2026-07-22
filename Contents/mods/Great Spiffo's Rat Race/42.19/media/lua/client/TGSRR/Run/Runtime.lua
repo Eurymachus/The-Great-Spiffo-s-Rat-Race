@@ -1,6 +1,7 @@
 local Identity = require "TGSRR/Run/Identity"
 local FileStore = require "TGSRR/Run/FileStore"
 local EventCodec = require "TGSRR/Run/EventCodec"
+local Ledger = require "TGSRR/Run/Ledger"
 
 local initialized = false
 
@@ -77,6 +78,13 @@ local function initialize()
         return
     end
 
+    local ledgerOk, ledgerError = Ledger.initialize(run)
+    if not ledgerOk then
+        run.integrityStatus = ledgerError
+        print("[TGSRR Run] Initialization halted: " .. tostring(ledgerError))
+        return
+    end
+
     if not created then
         local fileSequence, sequenceError = FileStore.sessionHead(run.runId)
         if fileSequence == nil or fileSequence ~= tonumber(run.sessionSequence) then
@@ -115,6 +123,26 @@ local function initialize()
         removedWorkshopIds = hasPreviousSession and difference(previousWorkshopIds, currentWorkshopSet) or {},
     }
 
+    local ledgerAppended, ledgerResult = Ledger.append(run, {
+        utc = session.utc,
+        worldAgeHours = session.worldAgeHours,
+        eventType = "session.started",
+        payload = {
+            sessionSequence = session.sequence,
+            character = session.character,
+            mods = session.mods,
+            addedModIds = session.addedModIds,
+            removedModIds = session.removedModIds,
+            addedWorkshopIds = session.addedWorkshopIds,
+            removedWorkshopIds = session.removedWorkshopIds,
+        },
+    })
+    if not ledgerAppended then
+        run.integrityStatus = ledgerResult
+        print("[TGSRR Run] Ledger append failed: " .. tostring(ledgerResult))
+        return
+    end
+
     local appended, appendError = FileStore.appendSession(run, session)
     if not appended then
         run.integrityStatus = appendError
@@ -123,6 +151,8 @@ local function initialize()
     end
 
     run.sessionSequence = nextSequence
+    run.eventSequence = ledgerResult.sequence
+    run.eventHash = ledgerResult.hash
     run.lastModIds = copyList(currentMods)
     run.lastWorkshopIds = copyList(currentWorkshopIds)
     run.integrityStatus = "ok"

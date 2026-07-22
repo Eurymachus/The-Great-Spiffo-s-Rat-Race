@@ -131,6 +131,14 @@ Suggested run artifacts:
 - `recovery-NNNN.bin`: immutable recovery evidence/authorization segments where needed.
 - `run.export`: generated submission envelope containing the data and integrity manifest.
 
+The first ledger file format uses one canonical event per immutable
+`events-NNNNNN.bin` segment. This deliberately matches the restricted client
+file API: accepted event files are never reopened or rewritten. On every run
+load TGSRR verifies the complete chain, requires its final hash to match the
+world-scoped saved cursor, and refuses to append if disk is missing, corrupt,
+tampered, or ahead of the save. Segment packing and checkpoint acceleration can
+be introduced later without changing canonical event hashes.
+
 Completed segments are never rewritten. Periodic state snapshots contain the accepted ledger cursor/head hash and can be cross-anchored into compact global ModData. Export verifies framing, record checks, the complete hash chain, snapshot agreement, sequence continuity, and branch selection before producing a submission. Any failure is exported as an explicit integrity condition rather than silently repaired away.
 
 This raises the effort needed to fabricate a consistent history and gives stream/VOD review useful evidence, but a determined participant who modifies the Lua implementation can still regenerate locally valid files. No encryption or HMAC key embedded in the mod is considered secret.
