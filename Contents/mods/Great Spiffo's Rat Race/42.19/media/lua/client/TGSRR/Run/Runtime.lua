@@ -4,6 +4,7 @@ local EventCodec = require "TGSRR/Run/EventCodec"
 local Ledger = require "TGSRR/Run/Ledger"
 local Recorder = require "TGSRR/Run/Recorder"
 local EventBridge = require "TGSRR/Run/EventBridge"
+local DayTracker = require "TGSRR/Run/DayTracker"
 
 local initialized = false
 
@@ -157,6 +158,12 @@ local function initialize()
     run.lastModIds = copyList(currentMods)
     run.lastWorkshopIds = copyList(currentWorkshopIds)
     run.integrityStatus = "ok"
+    local dayReady, dayError = DayTracker.initialize(run, player)
+    if not dayReady then
+        run.integrityStatus = dayError
+        print("[TGSRR Run] Daily tracking initialization failed: " .. tostring(dayError))
+        return
+    end
     print("[TGSRR Run] " .. (created and "Created" or "Loaded") .. " run " .. tostring(run.runId)
         .. ", session " .. tostring(nextSequence) .. (run.bootstrapped and " (bootstrapped)" or ""))
 end

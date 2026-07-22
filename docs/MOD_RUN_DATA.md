@@ -152,6 +152,14 @@ outpost completion. Ledger payloads contain stable internal IDs and primitive
 measurements only; localized labels, player objects, complete live records, and
 other presentation/runtime structures are intentionally excluded.
 
+Daily history uses one atomic `day.started` event at each `Events.EveryDays`
+transition. It timestamps the new day in UTC and world age while carrying the
+just-completed day's kill delta and non-zero XP deltas keyed by the same internal
+perk IDs used by the Skills tracker. The first event establishes absolute kill
+and per-skill XP baselines and is marked partial when TGSRR was introduced to an
+already-running challenge. Baselines live in world-scoped run state; the ledger
+remains the authoritative exported history.
+
 Completed segments are never rewritten. Periodic state snapshots contain the accepted ledger cursor/head hash and can be cross-anchored into compact global ModData. Export verifies framing, record checks, the complete hash chain, snapshot agreement, sequence continuity, and branch selection before producing a submission. Any failure is exported as an explicit integrity condition rather than silently repaired away.
 
 This raises the effort needed to fabricate a consistent history and gives stream/VOD review useful evidence, but a determined participant who modifies the Lua implementation can still regenerate locally valid files. No encryption or HMAC key embedded in the mod is considered secret.

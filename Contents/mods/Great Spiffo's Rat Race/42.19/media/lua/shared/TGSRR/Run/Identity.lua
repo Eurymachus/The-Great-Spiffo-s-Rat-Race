@@ -30,6 +30,7 @@ local function root()
     data.lastWorkshopIds = type(data.lastWorkshopIds) == "table" and data.lastWorkshopIds or {}
     data.eventSequence = tonumber(data.eventSequence) or 0
     data.eventHash = nonEmpty(data.eventHash) or string.rep("0", 64)
+    data.dailyState = type(data.dailyState) == "table" and data.dailyState or nil
     data.providerIds = nil -- discard obsolete pre-release integration state
     return data
 end
@@ -93,6 +94,7 @@ function Identity.ensure(player)
         data.lastWorkshopIds = {}
         data.eventSequence = 0
         data.eventHash = string.rep("0", 64)
+        data.dailyState = nil
         data.integrityStatus = "unverified"
         created = true
     end
