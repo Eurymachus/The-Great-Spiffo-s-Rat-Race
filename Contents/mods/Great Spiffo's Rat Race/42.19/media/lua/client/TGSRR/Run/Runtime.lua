@@ -92,19 +92,20 @@ local function initialize()
     local character = Identity.observeCharacter(player)
     local gameTime = getGameTime()
     local nextSequence = (tonumber(run.sessionSequence) or 0) + 1
+    local hasPreviousSession = (tonumber(run.sessionSequence) or 0) > 0
 
     local session = {
         sequence = nextSequence,
-        utc = os.time(),
+        utc = Identity.utcSeconds(),
         worldAgeHours = gameTime and gameTime:getWorldAgeHours() or 0,
         character = character,
         mods = current.mods,
         modIds = currentMods,
-        addedModIds = difference(currentMods, previousSet),
-        removedModIds = difference(previousMods, currentSet),
+        addedModIds = hasPreviousSession and difference(currentMods, previousSet) or {},
+        removedModIds = hasPreviousSession and difference(previousMods, currentSet) or {},
         workshopIds = currentWorkshopIds,
-        addedWorkshopIds = difference(currentWorkshopIds, previousWorkshopSet),
-        removedWorkshopIds = difference(previousWorkshopIds, currentWorkshopSet),
+        addedWorkshopIds = hasPreviousSession and difference(currentWorkshopIds, previousWorkshopSet) or {},
+        removedWorkshopIds = hasPreviousSession and difference(previousWorkshopIds, currentWorkshopSet) or {},
     }
 
     local appended, appendError = FileStore.appendSession(run, session)

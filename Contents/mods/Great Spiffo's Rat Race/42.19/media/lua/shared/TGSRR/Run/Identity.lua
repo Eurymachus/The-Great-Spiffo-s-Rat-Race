@@ -16,6 +16,10 @@ local function nonEmpty(value)
     return value
 end
 
+local function utcSeconds()
+    return math.floor(tonumber(os.time()) or 0)
+end
+
 local function root()
     local data = ModData.getOrCreate(MOD_DATA_KEY)
     if data.schemaVersion ~= SCHEMA_VERSION then
@@ -52,7 +56,7 @@ local function characterName(player)
 end
 
 local function newRunId()
-    local utc = os.time()
+    local utc = utcSeconds()
     local millis = getTimestampMs and getTimestampMs() or (utc * 1000)
     local millisText = string.format("%.0f", tonumber(millis) or (utc * 1000))
     local randomA = ZombRand(100000, 999999)
@@ -72,7 +76,7 @@ function Identity.ensure(player)
         local name = characterName(player)
 
         data.runId = newRunId()
-        data.createdUtc = os.time()
+        data.createdUtc = utcSeconds()
         data.createdWorldAgeHours = gameTime and gameTime:getWorldAgeHours() or 0
         data.bootstrapped = player.getHoursSurvived and player:getHoursSurvived() > 0 or false
         data.lifecycle = "active"
@@ -104,6 +108,10 @@ end
 
 function Identity.getChallengeMode(id)
     return CHALLENGE_MODES[id]
+end
+
+function Identity.utcSeconds()
+    return utcSeconds()
 end
 
 return Identity
