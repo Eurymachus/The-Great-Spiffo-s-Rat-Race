@@ -1,5 +1,6 @@
 local Identity = require "TGSRR/Run/Identity"
 local FileStore = require "TGSRR/Run/FileStore"
+local EventCodec = require "TGSRR/Run/EventCodec"
 
 local initialized = false
 
@@ -59,6 +60,12 @@ local function initialize()
     local player = getSpecificPlayer(0)
     if not player then return end
     initialized = true
+
+    local codecOk, codecError = EventCodec.selfTest()
+    if not codecOk then
+        print("[TGSRR Run] Initialization halted: " .. tostring(codecError))
+        return
+    end
 
     local run, created = Identity.ensure(player)
     if not run then return end

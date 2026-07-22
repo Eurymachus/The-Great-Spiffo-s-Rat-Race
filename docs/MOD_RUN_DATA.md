@@ -112,6 +112,15 @@ Use a versioned binary record format rather than editable text. Each event recor
 - The preceding accepted record hash.
 - A SHA-256 hash of the preceding hash plus the canonical current record.
 
+The canonical event codec is now implemented as schema 1. Values are explicitly
+type-tagged and length-framed, map keys are sorted, arrays retain their order,
+and non-finite numbers or unsupported value types are rejected. SHA-256 is
+implemented within TGSRR so it works in Build 42's restricted client Lua
+environment, and is verified against known vectors when run tracking
+initializes. This codec is the
+canonical content layer for the binary ledger; the existing `sessions.log`
+remains the temporary session diagnostic until ledger migration is complete.
+
 IDs may be interned and numeric values delta encoded. Optional compression is permitted after canonical encoding. Base64 or XOR alone are not integrity measures and must not be presented as security.
 
 Suggested run artifacts:
