@@ -2,6 +2,7 @@ local Identity = require "TGSRR/Run/Identity"
 local FileStore = require "TGSRR/Run/FileStore"
 local EventCodec = require "TGSRR/Run/EventCodec"
 local Ledger = require "TGSRR/Run/Ledger"
+local Recorder = require "TGSRR/Run/Recorder"
 
 local initialized = false
 
@@ -84,6 +85,7 @@ local function initialize()
         print("[TGSRR Run] Initialization halted: " .. tostring(ledgerError))
         return
     end
+    Recorder.activate(run)
 
     if not created then
         local fileSequence, sequenceError = FileStore.sessionHead(run.runId)
@@ -123,19 +125,17 @@ local function initialize()
         removedWorkshopIds = hasPreviousSession and difference(previousWorkshopIds, currentWorkshopSet) or {},
     }
 
-    local ledgerAppended, ledgerResult = Ledger.append(run, {
+    local ledgerAppended, ledgerResult = Recorder.record("session.started", {
+        sessionSequence = session.sequence,
+        character = session.character,
+        mods = session.mods,
+        addedModIds = session.addedModIds,
+        removedModIds = session.removedModIds,
+        addedWorkshopIds = session.addedWorkshopIds,
+        removedWorkshopIds = session.removedWorkshopIds,
+    }, {
         utc = session.utc,
         worldAgeHours = session.worldAgeHours,
-        eventType = "session.started",
-        payload = {
-            sessionSequence = session.sequence,
-            character = session.character,
-            mods = session.mods,
-            addedModIds = session.addedModIds,
-            removedModIds = session.removedModIds,
-            addedWorkshopIds = session.addedWorkshopIds,
-            removedWorkshopIds = session.removedWorkshopIds,
-        },
     })
     if not ledgerAppended then
         run.integrityStatus = ledgerResult
@@ -145,14 +145,13 @@ local function initialize()
 
     local appended, appendError = FileStore.appendSession(run, session)
     if not appended then
+        Recorder.deactivate()
         run.integrityStatus = appendError
         print("[TGSRR Run] Session append failed: " .. tostring(appendError))
         return
     end
 
     run.sessionSequence = nextSequence
-    run.eventSequence = ledgerResult.sequence
-    run.eventHash = ledgerResult.hash
     run.lastModIds = copyList(currentMods)
     run.lastWorkshopIds = copyList(currentWorkshopIds)
     run.integrityStatus = "ok"
