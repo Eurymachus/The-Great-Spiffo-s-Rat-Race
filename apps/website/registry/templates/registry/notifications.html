@@ -1,0 +1,38 @@
+{% extends "registry/base.html" %}
+{% block title_suffix %} | Notifications{% endblock %}
+{% block content %}
+<section class="card notifications-page">
+    <header class="notifications-page-heading">
+        <div><p class="eyebrow">Your Account</p><h2>Notifications</h2></div>
+        {% if header_unread_notification_count %}
+        <form method="post" action="{% url 'registry:mark_notifications_read' %}">
+            {% csrf_token %}<button class="secondary-action" type="submit">Mark all as read</button>
+        </form>
+        {% endif %}
+    </header>
+    <div class="notification-history">
+        {% for notification in notifications %}
+        <a class="notification-history-item{% if not notification.is_read %} is-unread{% endif %}" href="{% url 'registry:open_notification' notification.pk %}">
+            <span class="notification-state" aria-hidden="true"></span>
+            <span class="notification-history-copy">
+                <strong>{{ notification.title }}</strong>
+                <span>{{ notification.message }}</span>
+            </span>
+            <span class="notification-history-meta">
+                <span>{{ notification.get_category_display }}</span>
+                <time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|date:"j M Y, H:i" }}</time>
+            </span>
+        </a>
+        {% empty %}
+        <div class="notifications-empty"><h3>You have no notifications</h3><p>Important account and participation updates will appear here.</p></div>
+        {% endfor %}
+    </div>
+    {% if notification_page.paginator.num_pages > 1 %}
+    <nav class="notification-pagination" aria-label="Notification pages">
+        {% if notification_page.has_previous %}<a href="?page={{ notification_page.previous_page_number }}">Newer</a>{% endif %}
+        <span>Page {{ notification_page.number }} of {{ notification_page.paginator.num_pages }}</span>
+        {% if notification_page.has_next %}<a href="?page={{ notification_page.next_page_number }}">Older</a>{% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

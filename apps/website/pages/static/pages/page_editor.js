@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
         text_font: [["theme", "Theme default"], ["display", "Theme display font"], ["heading", "Theme heading font"], ["body", "Theme body font"]],
         text_size: [["small", "Small"], ["standard", "Standard"], ["large", "Large"], ["extra_large", "Extra large"]],
         text_weight: [["theme", "Theme default"], ["regular", "Regular"], ["bold", "Bold"]],
-        destination: [["none", "No destination"], ["register", "Sign-up page"], ["login", "Login page"], ["account", "Participant account"]],
+        destination: [["none", "No destination"], ["register", "Sign Up page"], ["login", "Sign In page"], ["account", "Participant account"]],
         style: [["default", "Standard"], ["primary", "Primary button"], ["secondary", "Secondary button"], ["link", "Text link"]],
         image_fit: [["cover", "Crop to fill"], ["contain", "Show whole image"]],
         image_height: [["standard", "Standard - maximum 24rem"], ["natural", "Natural proportions"], ["short", "Short banner - 12rem"], ["tall", "Tall banner - 32rem"], ["custom", "Custom height"]],

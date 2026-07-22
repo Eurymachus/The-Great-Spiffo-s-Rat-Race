@@ -13,14 +13,7 @@ urlpatterns = [
     path("thanks/", views.thanks, name="thanks"),
     path("resend/", views.resend_verification, name="resend"),
     path("verify/<str:token>/", views.verify, name="verify"),
-    path(
-        "login/",
-        auth_views.LoginView.as_view(
-            template_name="registry/login.html",
-            redirect_authenticated_user=True,
-        ),
-        name="login",
-    ),
+    path("login/", views.sign_in, name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path(
         "password-change/",
@@ -49,6 +42,17 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("account/", views.account, name="account"),
+    path("account/notifications/", views.notifications, name="notifications"),
+    path(
+        "account/notifications/read/",
+        views.mark_notifications_read,
+        name="mark_notifications_read",
+    ),
+    path(
+        "account/notifications/<uuid:notification_id>/",
+        views.open_notification,
+        name="open_notification",
+    ),
     path("privacy/", views.privacy_notice, name="privacy"),
     path("account/data/", views.download_my_data, name="download_my_data"),
     path(

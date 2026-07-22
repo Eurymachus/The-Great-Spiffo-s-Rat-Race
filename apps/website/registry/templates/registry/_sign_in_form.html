@@ -1,0 +1,25 @@
+<div class="sign-in-component{% if compact %} is-compact{% endif %}" data-sign-in-component>
+    <div class="sign-in-heading">
+        <h2>Sign In</h2>
+        <p>Don&rsquo;t have an account? <a href="{% url 'registry:register' %}">Sign Up</a></p>
+    </div>
+    <form method="post" action="{% url 'registry:login' %}" data-sign-in-form{% if compact %} data-compact-sign-in{% endif %}>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        {% for field in form %}
+        <div class="field{% if field.errors %} field-error{% endif %}">
+            <label for="{% if compact %}header-{% endif %}{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if compact %}
+                <input type="{% if field.name == 'password' %}password{% else %}email{% endif %}" name="{{ field.html_name }}" id="header-{{ field.id_for_label }}" autocomplete="{% if field.name == 'password' %}current-password{% else %}email{% endif %}" required>
+            {% else %}
+                {{ field }}
+            {% endif %}
+            {% if not compact %}{% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}{% endif %}
+        </div>
+        {% endfor %}
+        <p class="error form-error sign-in-error" role="alert" data-sign-in-error{% if not form.non_field_errors %} hidden{% endif %}>{% if form.non_field_errors %}The email or password was not recognised, or this account is not yet active.{% endif %}</p>
+        <button type="submit">Sign In</button>
+    </form>
+    <p class="card-link"><a href="{% url 'registry:password_reset' %}">Forgot your password?</a></p>
+    {% if not compact %}<p class="card-link small-link">Still waiting for verification? <a href="{% url 'registry:resend' %}">Resend the email</a></p>{% endif %}
+</div>

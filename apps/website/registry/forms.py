@@ -1,9 +1,65 @@
 from django import forms
 from django.conf import settings
+from datetime import date
+
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.forms import AuthenticationForm
 
 from branding.models import SiteBranding
 from .models import Participant
+
+
+class SignInForm(AuthenticationForm):
+    username = forms.EmailField(
+        label="Email address",
+        widget=forms.EmailInput(attrs={"autocomplete": "email"}),
+    )
+    password = forms.CharField(
+        label="Password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
+
+    error_messages = {
+        "invalid_login": "The email or password was not recognised, or this account is not yet active.",
+        "inactive": "The email or password was not recognised, or this account is not yet active.",
+    }
+
+
+class AgeEligibilityForm(forms.Form):
+    date_of_birth = forms.DateField(
+        label="Date of birth",
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "autocomplete": "bday",
+                "aria-label": "Date of birth",
+            },
+            format="%Y-%m-%d",
+        ),
+        input_formats=("%Y-%m-%d",),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["date_of_birth"].widget.attrs["max"] = date.today().isoformat()
+
+    def clean_date_of_birth(self):
+        date_of_birth = self.cleaned_data["date_of_birth"]
+        try:
+            eligible_from = date_of_birth.replace(
+                year=date_of_birth.year + settings.PARTICIPANT_MINIMUM_AGE
+            )
+        except ValueError:
+            eligible_from = date_of_birth.replace(
+                year=date_of_birth.year + settings.PARTICIPANT_MINIMUM_AGE,
+                day=28,
+            )
+        if eligible_from > date.today():
+            raise forms.ValidationError(
+                f"You must be aged {settings.PARTICIPANT_MINIMUM_AGE} or over to create an account."
+            )
+        return date_of_birth
 
 
 class RegistrationForm(forms.Form):
@@ -36,16 +92,6 @@ class RegistrationForm(forms.Form):
         label="I have read the draft privacy notice.",
         error_messages={"required": "You must confirm that you have read the privacy notice."},
     )
-    confirm_age_eligibility = forms.BooleanField(
-        label=f"I confirm that I am aged {settings.PARTICIPANT_MINIMUM_AGE} or over.",
-        error_messages={
-            "required": (
-                f"You must confirm that you are aged "
-                f"{settings.PARTICIPANT_MINIMUM_AGE} or over to participate."
-            )
-        },
-    )
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         brand = SiteBranding.current()

@@ -281,6 +281,10 @@ class SiteBrandingAdmin(admin.ModelAdmin):
             },
         ),
         (
+            "Account navigation",
+            {"fields": ("sign_in_prompt",)},
+        ),
+        (
             "Images",
             {
                 "description": (

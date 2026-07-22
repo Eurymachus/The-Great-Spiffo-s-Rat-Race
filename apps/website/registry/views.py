@@ -3,9 +3,11 @@ import uuid
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
+from django.contrib.auth import login as auth_login
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -13,16 +15,20 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from pages.models import Page
 
 from .forms import (
     AccountClosureRequestForm,
+    AgeEligibilityForm,
     PasswordResetRequestForm,
     RegistrationForm,
     ResendVerificationForm,
+    SignInForm,
 )
-from .models import Participant
+from .models import Notification, Participant
+from .notifications import notify
 from .rate_limit import exceeded, request_ip
 from .tokens import create_verification_token, read_verification_token
 from .turnstile import validate_turnstile
@@ -77,14 +83,56 @@ def legacy_page(request, slug):
     return redirect(page.get_absolute_url(), permanent=True)
 
 
-def registration_start_step(form):
-    if not form.is_bound:
-        return 1
-    if form.errors.keys() & {"nickname", "email"}:
-        return 1
-    if form.errors.keys() & {"password", "password_confirmation"}:
-        return 2
-    return 3
+@require_http_methods(["GET", "POST"])
+def sign_in(request):
+    if request.user.is_authenticated:
+        return redirect("registry:account")
+    form = SignInForm(request=request, data=request.POST or None)
+    next_url = request.POST.get("next") or request.GET.get("next") or reverse("registry:account")
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        next_url = reverse("registry:account")
+    if request.method == "POST" and form.is_valid():
+        auth_login(request, form.get_user())
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"signed_in": True, "redirect": next_url})
+        return redirect(next_url)
+    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse(
+            {
+                "signed_in": False,
+                "error": "The email or password was not recognised, or this account is not yet active.",
+            },
+            status=400,
+        )
+    return render(request, "registry/login.html", {"form": form, "next": next_url})
+
+
+AGE_ELIGIBILITY_SESSION_KEY = "registration_age_eligibility"
+AGE_ELIGIBILITY_HANDOFF_KEY = "registration_age_eligibility_handoff"
+AGE_ELIGIBILITY_SESSION_SECONDS = 60 * 60
+
+
+def has_current_age_eligibility(request):
+    eligibility = request.session.get(AGE_ELIGIBILITY_SESSION_KEY, {})
+    checked_at = eligibility.get("checked_at")
+    if (
+        eligibility.get("policy_version") != settings.AGE_ELIGIBILITY_POLICY_VERSION
+        or not isinstance(checked_at, (int, float))
+    ):
+        return False
+    return timezone.now().timestamp() - checked_at <= AGE_ELIGIBILITY_SESSION_SECONDS
+
+
+def is_hard_refresh(request):
+    cache_control = request.headers.get("Cache-Control", "").casefold()
+    pragma = request.headers.get("Pragma", "").casefold()
+    return (
+        "no-cache" in cache_control
+        or "max-age=0" in cache_control
+        or "no-cache" in pragma
+    )
 
 
 def issue_verification(participant, request):
@@ -110,6 +158,36 @@ def register(request):
     )
     if request.user.is_authenticated and not is_staff_theme_preview:
         return redirect("registry:account")
+    if request.method == "GET":
+        is_age_gate_handoff = request.session.pop(AGE_ELIGIBILITY_HANDOFF_KEY, False)
+        if is_hard_refresh(request) and not is_age_gate_handoff:
+            request.session.pop(AGE_ELIGIBILITY_SESSION_KEY, None)
+    if request.method == "POST" and "age_gate_submission" in request.POST:
+        age_form = AgeEligibilityForm(request.POST)
+        if age_form.is_valid():
+            request.session[AGE_ELIGIBILITY_SESSION_KEY] = {
+                "checked_at": timezone.now().timestamp(),
+                "policy_version": settings.AGE_ELIGIBILITY_POLICY_VERSION,
+            }
+            request.session[AGE_ELIGIBILITY_HANDOFF_KEY] = True
+            return redirect("registry:register")
+        return render(
+            request,
+            "registry/register.html",
+            {"age_form": age_form, "show_age_gate": True},
+            status=400,
+        )
+
+    age_eligible = has_current_age_eligibility(request) or bool(is_staff_theme_preview)
+    if not age_eligible:
+        if request.method == "POST":
+            return redirect("registry:register")
+        return render(
+            request,
+            "registry/register.html",
+            {"age_form": AgeEligibilityForm(), "show_age_gate": True},
+        )
+
     form = RegistrationForm(request.POST or None)
     status = 200
     if request.method == "POST" and exceeded(
@@ -131,7 +209,6 @@ def register(request):
                 {
                     "form": form,
                     "turnstile_site_key": settings.TURNSTILE_SITE_KEY,
-                    "registration_start_step": 3,
                 },
                 status=400,
             )
@@ -146,8 +223,16 @@ def register(request):
             age_policy_version=settings.AGE_ELIGIBILITY_POLICY_VERSION,
         )
         participant.groups.add(Group.objects.get_or_create(name="Participant")[0])
+        notify(
+            participant,
+            title="Registration received",
+            message="Your registration has been received. Verify your email address to activate your account.",
+            destination=reverse("registry:account"),
+        )
         verification_url = issue_verification(participant, request)
         request.session["registered_nickname"] = participant.nickname
+        request.session.pop(AGE_ELIGIBILITY_SESSION_KEY, None)
+        request.session.pop(AGE_ELIGIBILITY_HANDOFF_KEY, None)
         if settings.DEBUG:
             request.session["development_verification_url"] = verification_url
         return redirect("registry:thanks")
@@ -157,7 +242,6 @@ def register(request):
         {
             "form": form,
             "turnstile_site_key": settings.TURNSTILE_SITE_KEY,
-            "registration_start_step": registration_start_step(form),
         },
         status=status,
     )
@@ -271,6 +355,12 @@ def verify(request, token):
         participant.verified_at = timezone.now()
         participant.is_active = True
         participant.save(update_fields=("status", "verified_at", "is_active"))
+        notify(
+            participant,
+            title="Account verified",
+            message="Your email address has been verified and your participant account is ready.",
+            destination=reverse("registry:account"),
+        )
 
     return render(
         request,
@@ -282,6 +372,38 @@ def verify(request, token):
 @login_required
 def account(request):
     return render(request, "registry/account.html")
+
+
+@login_required
+def notifications(request):
+    page = Paginator(request.user.notifications.all(), 25).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "registry/notifications.html",
+        {"notifications": page, "notification_page": page},
+    )
+
+
+@login_required
+@require_http_methods(["GET"])
+def open_notification(request, notification_id):
+    notification = get_object_or_404(
+        Notification, pk=notification_id, recipient=request.user
+    )
+    if notification.read_at is None:
+        notification.read_at = timezone.now()
+        notification.save(update_fields=("read_at",))
+    destination = notification.destination or reverse("registry:notifications")
+    if not destination.startswith("/") or destination.startswith("//"):
+        destination = reverse("registry:notifications")
+    return redirect(destination)
+
+
+@login_required
+@require_http_methods(["POST"])
+def mark_notifications_read(request):
+    request.user.notifications.filter(read_at__isnull=True).update(read_at=timezone.now())
+    return redirect("registry:notifications")
 
 
 def privacy_notice(request):
@@ -325,6 +447,18 @@ def download_my_data(request):
                 if participant.deletion_requested_at
                 else None
             ),
+            "notifications": [
+                {
+                    "id": str(notification.id),
+                    "category": notification.category,
+                    "title": notification.title,
+                    "message": notification.message,
+                    "destination": notification.destination,
+                    "created_at": notification.created_at.isoformat(),
+                    "read_at": notification.read_at.isoformat() if notification.read_at else None,
+                }
+                for notification in participant.notifications.all()
+            ],
         },
     }
     response = JsonResponse(payload, json_dumps_params={"indent": 2})

@@ -24,7 +24,8 @@
             event.stopPropagation();
             const desktopHoverNavigation = window.matchMedia("(hover: hover) and (pointer: fine)").matches
                 && getComputedStyle(toggle).display === "none";
-            if (desktopHoverNavigation && event.detail !== 0) {
+            const utilityItem = submenuToggle.closest(".site-utility-item");
+            if (desktopHoverNavigation && !utilityItem && event.detail !== 0) {
                 submenuToggle.blur();
                 return;
             }

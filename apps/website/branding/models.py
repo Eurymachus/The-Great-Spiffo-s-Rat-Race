@@ -372,6 +372,12 @@ class SiteBranding(models.Model):
         max_length=80,
         default=settings.SITE_HOMEPAGE_ACCOUNT_BUTTON,
     )
+    sign_in_prompt = models.CharField(
+        "sign-in prompt",
+        max_length=80,
+        default=settings.SITE_SIGN_IN_PROMPT,
+        help_text="Short text shown before Sign In in the public navigation.",
+    )
     join_step_1_heading = models.CharField(
         "step 1 heading",
         max_length=100,

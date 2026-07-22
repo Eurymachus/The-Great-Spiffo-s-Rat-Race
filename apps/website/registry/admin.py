@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
 
-from .models import AccountClosureRecord, Participant
+from .models import AccountClosureRecord, Notification, Participant
 from .tokens import create_verification_token
 from .verification_email import send_verification_email
 
@@ -213,3 +213,13 @@ class AccountClosureRecordAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("title", "recipient", "category", "created_at", "read_at")
+    list_filter = ("category", "created_at", "read_at")
+    search_fields = ("title", "message", "recipient__nickname", "recipient__email")
+    autocomplete_fields = ("recipient",)
+    readonly_fields = ("created_at", "read_at")
+    ordering = ("-created_at",)

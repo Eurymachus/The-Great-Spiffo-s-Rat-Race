@@ -237,8 +237,8 @@ class PageBlock(models.Model):
 
     class Destination(models.TextChoices):
         NONE = "none", "No destination"
-        REGISTER = "register", "Sign-up page"
-        LOGIN = "login", "Login page"
+        REGISTER = "register", "Sign Up page"
+        LOGIN = "login", "Sign In page"
         ACCOUNT = "account", "Participant account"
 
     class Style(models.TextChoices):

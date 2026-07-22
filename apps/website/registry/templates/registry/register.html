@@ -1,79 +1,70 @@
 {% extends "registry/base.html" %}
-{% load static %}
 
-{% block title_suffix %} | {{ site_homepage_primary_button }}{% endblock %}
-{% block extra_head %}
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<script src="{% static 'registry/registration_steps.js' %}?v=20260715-2" defer></script>
-{% endblock %}
+{% block title_suffix %} | Sign Up{% endblock %}
+{% block extra_head %}{% if not show_age_gate %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endif %}{% endblock %}
 
 {% block content %}
-<section class="card signup-card" data-registration-form data-start-step="{{ registration_start_step|default:1 }}">
-    <div class="signup-heading">
-        <div>
-            <h2>{{ site_homepage_primary_button }}</h2>
-            <p class="lede">Create your participant account in three short steps.</p>
-        </div>
-        <p class="signup-step-status" aria-live="polite">Step <span data-current-step>1</span> of 3</p>
+{% if show_age_gate %}
+<section class="card signup-card age-gate-card">
+    <div class="signup-intro">
+        <h2>Sign Up</h2>
+        <p>Already have an account? <a href="{% url 'registry:login' %}">Sign In</a></p>
     </div>
-    <ol class="signup-progress" aria-label="Registration progress">
-        <li data-step-marker="1"><span>1</span> Your identity</li>
-        <li data-step-marker="2"><span>2</span> Secure account</li>
-        <li data-step-marker="3"><span>3</span> Confirm and join</li>
-    </ol>
-
-    <form method="post">
+    <form method="post" class="age-gate-form">
         {% csrf_token %}
+        <input type="hidden" name="age_gate_submission" value="1">
+        <div>
+            <h3>Please enter your date of birth</h3>
+            <p class="help">This is used only to confirm eligibility. Your date of birth is not stored.</p>
+        </div>
+        <div class="age-gate-controls">
+            <div class="field{% if age_form.date_of_birth.errors %} field-error{% endif %}">
+                {{ age_form.date_of_birth }}
+                {% for error in age_form.date_of_birth.errors %}<p class="error">{{ error }}</p>{% endfor %}
+            </div>
+            <button type="submit">Continue</button>
+        </div>
+        <p class="age-gate-privacy"><a href="{% url 'registry:privacy' %}">Privacy notice</a></p>
+    </form>
+</section>
+{% else %}
+<section class="card signup-card">
+    <div class="signup-intro">
+        <h2>Sign Up</h2>
+        <p>Already have an account? <a href="{% url 'registry:login' %}">Sign In</a></p>
+    </div>
+
+    <form method="post" class="signup-form">
+        {% csrf_token %}
+        <input type="hidden" name="registration_submission" value="1">
         {% for error in form.non_field_errors %}<p class="error form-error" role="alert">{{ error }}</p>{% endfor %}
 
-        <fieldset class="signup-panel" data-registration-step="1">
-            <legend>Your identity</legend>
-            <p class="help">This is how you will be recognised throughout the challenge.</p>
-            {% for field in form %}{% if field.name == "nickname" or field.name == "email" %}
-                <div class="field{% if field.errors %} field-error{% endif %}">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
-                    {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
-                    {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
-                </div>
-            {% endif %}{% endfor %}
-            {% if form.email_already_registered %}
-                <div class="recovery-prompt"><p>If your registration is still pending, request a new verification link.</p><a class="secondary-button" href="{% url 'registry:resend' %}">Resend verification</a></div>
-            {% endif %}
-        </fieldset>
-
-        <fieldset class="signup-panel" data-registration-step="2">
-            <legend>Secure your account</legend>
-            <p class="help">Use a unique password that you do not use anywhere else.</p>
-            {% for field in form %}{% if field.name == "password" or field.name == "password_confirmation" %}
-                <div class="field{% if field.errors %} field-error{% endif %}">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
-                    {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
-                    {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
-                </div>
-            {% endif %}{% endfor %}
-        </fieldset>
-
-        <fieldset class="signup-panel" data-registration-step="3">
-            <legend>Confirm and join</legend>
-            <p class="help">One final check, then your verification email can be sent.</p>
-            {% for field in form %}{% if field.name == "acknowledge_privacy" or field.name == "confirm_age_eligibility" %}
-                <div class="field{% if field.errors %} field-error{% endif %}">
+        {% for field in form %}
+            {% if field.name == "acknowledge_privacy" %}
+                <div class="field signup-consent{% if field.errors %} field-error{% endif %}">
                     <label class="checkbox">{{ field }} <span>{{ field.label }}</span></label>
-                    {% if field.name == "acknowledge_privacy" %}<p class="help"><a href="{% url 'registry:privacy' %}" data-privacy-modal>Read the draft privacy notice</a></p>{% endif %}
+                    <p class="help"><a href="{% url 'registry:privacy' %}" data-privacy-modal>Read the draft privacy notice</a></p>
                     {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
                 </div>
-            {% endif %}{% endfor %}
-            <div class="human-check"><div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="dark"></div></div>
-        </fieldset>
+            {% else %}
+                <div class="field{% if field.errors %} field-error{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                    {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
 
-        <div class="signup-controls">
-            <button class="signup-back secondary-action" type="button" data-step-back>Back</button>
-            <button type="button" data-step-next>Continue</button>
-            <button type="submit" data-step-submit>Reserve nickname</button>
-        </div>
+        {% if form.email_already_registered %}
+            <div class="recovery-prompt"><p>If your registration is still pending, request a new verification link.</p><a class="secondary-button" href="{% url 'registry:resend' %}">Resend verification</a></div>
+        {% endif %}
+
+        <div class="human-check"><div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="dark"></div></div>
+        <button type="submit">Create account</button>
     </form>
 
-    <div class="existing-account"><span>Already signed up?</span><a class="secondary-button" href="{% url 'registry:login' %}">Log in</a></div>
     <p class="development-note">Local development preview: verification email is shown as a testing shortcut after signup.</p>
 </section>
+{% endif %}
 {% endblock %}

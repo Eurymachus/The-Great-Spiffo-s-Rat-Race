@@ -1,6 +1,7 @@
 from django.conf import settings
 from branding.models import SiteBranding, WebsiteTheme
 from pages.models import NavigationItem
+from registry.forms import SignInForm
 
 
 def navigation_tree():
@@ -53,7 +54,22 @@ def site_identity(request):
         selected_image("background_image")
     )
     background_scale = brand.background_image_scale if brand else "cover"
+    account_context = {
+        "header_sign_in_form": None,
+        "header_notifications": (),
+        "header_unread_notification_count": 0,
+    }
+    if request.user.is_authenticated:
+        notifications = request.user.notifications.all()
+        account_context.update({
+            "header_notifications": notifications[:5],
+            "header_unread_notification_count": notifications.filter(read_at__isnull=True).count(),
+        })
+    else:
+        account_context["header_sign_in_form"] = SignInForm(request=request)
+
     return {
+        **account_context,
         "site_navigation_items": navigation_tree(),
         "site_legal_name": settings.SITE_LEGAL_NAME,
         "site_company_number": company_number,
@@ -95,6 +111,9 @@ def site_identity(request):
             brand.homepage_account_button
             if brand
             else settings.SITE_HOMEPAGE_ACCOUNT_BUTTON
+        ),
+        "site_sign_in_prompt": (
+            brand.sign_in_prompt if brand else settings.SITE_SIGN_IN_PROMPT
         ),
         "site_join_steps": (
             (

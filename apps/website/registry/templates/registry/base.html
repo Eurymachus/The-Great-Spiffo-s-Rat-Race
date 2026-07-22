@@ -74,9 +74,10 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260721-18">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260722-8">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
-    <script src="{% static 'registry/site_menu.js' %}?v=20260721-2" defer></script>
+    <script src="{% static 'registry/site_menu.js' %}?v=20260722-1" defer></script>
+    <script src="{% static 'registry/account_menu.js' %}?v=20260722-1" defer></script>
     <script src="{% static 'registry/gallery.js' %}?v=20260721-4" defer></script>
     {% if site_theme %}
     <style>
@@ -149,21 +150,55 @@
                     </li>
                     {% include "registry/_navigation_items.html" with nodes=site_navigation_items %}
                 {% if request.user.is_authenticated %}
-                    <li class="site-nav-item">
-                    <a href="{% url 'registry:account' %}"{% if request.resolver_match.url_name == 'account' %} aria-current="page"{% endif %}>Your account</a>
+                    <li class="site-nav-item site-utility-item site-account-item has-children">
+                        <span class="site-nav-entry">
+                            <button class="site-nav-group-toggle account-menu-toggle" type="button" aria-expanded="false" data-nav-submenu-toggle>
+                                <span class="account-avatar" aria-hidden="true">{{ request.user.nickname|first|upper }}</span>
+                                <span>{{ request.user.nickname }}</span><span class="site-nav-arrow" aria-hidden="true">▾</span>
+                            </button>
+                        </span>
+                        <ul class="site-nav-submenu account-dropdown">
+                            <li><a href="{% url 'registry:account' %}"{% if request.resolver_match.url_name == 'account' %} aria-current="page"{% endif %}>Your Account</a></li>
+                            <li><a href="{% url 'registry:password_change' %}">Account Settings</a></li>
+                            <li class="account-sign-out">
+                                <form method="post" action="{% url 'registry:logout' %}">{% csrf_token %}<button type="submit">Sign Out</button></form>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="site-nav-item">
-                    <form method="post" action="{% url 'registry:logout' %}">
-                        {% csrf_token %}
-                        <button type="submit">Log out</button>
-                    </form>
+                    <li class="site-nav-item site-utility-item site-notification-item has-children">
+                        <span class="site-nav-entry">
+                            <button class="notification-menu-toggle" type="button" aria-expanded="false" aria-label="Notifications{% if header_unread_notification_count %}, {{ header_unread_notification_count }} unread{% endif %}" data-nav-submenu-toggle>
+                                <span class="notification-bell" aria-hidden="true">&#128276;</span>
+                                {% if header_unread_notification_count %}<span class="notification-count">{{ header_unread_notification_count }}</span>{% endif %}
+                            </button>
+                        </span>
+                        <div class="site-nav-submenu notification-dropdown">
+                            <div class="utility-panel-heading"><strong>Notifications</strong><a href="{% url 'registry:notifications' %}">View all</a></div>
+                            <div class="notification-preview-list">
+                                {% for notification in header_notifications %}
+                                <a class="notification-preview{% if not notification.is_read %} is-unread{% endif %}" href="{% url 'registry:open_notification' notification.pk %}">
+                                    <strong>{{ notification.title }}</strong>
+                                    <span>{{ notification.message }}</span>
+                                    <time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|timesince }} ago</time>
+                                </a>
+                                {% empty %}<p class="utility-empty-state">You have no notifications.</p>{% endfor %}
+                            </div>
+                            <a class="utility-panel-footer" href="{% url 'registry:notifications' %}">View all notifications</a>
+                        </div>
                     </li>
                 {% else %}
-                    <li class="site-nav-item">
-                    <a href="{% url 'registry:register' %}"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign up</a>
+                    <li class="site-nav-item site-utility-item site-sign-in-item has-children">
+                        <span class="site-nav-entry">
+                            <button class="site-nav-group-toggle sign-in-menu-toggle" type="button" aria-expanded="false" data-nav-submenu-toggle>
+                                <span class="sign-in-prompt">{{ site_sign_in_prompt }}</span><strong>Sign In</strong>
+                            </button>
+                        </span>
+                        <div class="site-nav-submenu site-sign-in-dropdown">
+                            {% include "registry/_sign_in_form.html" with form=header_sign_in_form compact=True %}
+                        </div>
                     </li>
-                    <li class="site-nav-item">
-                    <a href="{% url 'registry:login' %}"{% if request.resolver_match.url_name == 'login' %} aria-current="page"{% endif %}>Log in</a>
+                    <li class="site-nav-item site-utility-item site-sign-up-item">
+                    <a href="{% url 'registry:register' %}"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign Up</a>
                     </li>
                 {% endif %}
                 </ul>

@@ -4,6 +4,7 @@ from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core import mail
 from django.core.cache import cache
 from django.core.management import call_command
@@ -16,7 +17,7 @@ from django.utils import timezone
 from branding.models import SiteBranding
 from pages.models import NavigationItem, Page, PageBlock, PageSection
 from .admin import export_registrations, promote_to_role
-from .models import AccountClosureRecord, Participant
+from .models import AccountClosureRecord, Notification, Participant
 from .tokens import create_verification_token
 
 
@@ -30,13 +31,19 @@ class RegistrationTests(TestCase):
         self.addCleanup(turnstile_patcher.stop)
 
     def registration_data(self, **overrides):
+        session = self.client.session
+        session["registration_age_eligibility"] = {
+            "checked_at": timezone.now().timestamp(),
+            "policy_version": settings.AGE_ELIGIBILITY_POLICY_VERSION,
+        }
+        session.save()
         data = {
             "nickname": "Spiffo Fan",
             "email": "player@example.com",
             "password": "Local-test-password-482!",
             "password_confirmation": "Local-test-password-482!",
             "acknowledge_privacy": True,
-            "confirm_age_eligibility": True,
+            "registration_submission": "1",
         }
         data.update(overrides)
         return data
@@ -44,30 +51,83 @@ class RegistrationTests(TestCase):
     def test_registration_page_loads(self):
         response = self.client.get(reverse("registry:register"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Join The Rat Race")
+        self.assertContains(response, "Sign Up")
         self.assertContains(
             response,
-            "<title>The Great Spiffo&#x27;s Rat Race | Join The Rat Race</title>",
+            "<title>The Great Spiffo&#x27;s Rat Race | Sign Up</title>",
             html=True,
         )
-        self.assertContains(response, "Step <span data-current-step>1</span> of 3")
-        self.assertContains(response, 'data-registration-step="1"')
-        self.assertContains(response, 'data-registration-step="2"')
-        self.assertContains(response, 'data-registration-step="3"')
-        self.assertContains(response, "cf-turnstile")
-        self.assertContains(response, "Already signed up?")
+        self.assertContains(response, "Please enter your date of birth")
+        self.assertContains(response, "Your date of birth is not stored")
+        self.assertContains(response, 'type="date"')
+        self.assertNotContains(response, "cf-turnstile")
+        self.assertContains(response, "Already have an account?")
         self.assertContains(response, reverse("registry:login"))
         self.assertContains(response, reverse("registry:privacy"))
         self.assertContains(response, 'aria-label="Primary navigation"')
         self.assertContains(response, 'data-site-menu-toggle')
         self.assertContains(response, 'aria-controls="primary-menu"')
         self.assertContains(response, 'href="#main-content"')
-        self.assertContains(response, 'autocomplete="email"')
-        self.assertContains(response, 'autocomplete="new-password"', count=2)
-        self.assertContains(response, "I confirm that I am aged 18 or over")
-        self.assertContains(response, "data-privacy-modal")
+        self.assertContains(response, 'autocomplete="bday"')
         self.assertContains(response, "data-privacy-dialog")
         self.assertContains(response, "Participant privacy notice")
+
+    def test_eligible_date_of_birth_unlocks_single_registration_form(self):
+        response = self.client.post(
+            reverse("registry:register"),
+            {"age_gate_submission": "1", "date_of_birth": "1984-04-25"},
+        )
+
+        self.assertRedirects(response, reverse("registry:register"))
+        form_page = self.client.get(reverse("registry:register"))
+        self.assertContains(form_page, 'autocomplete="email"')
+        self.assertContains(form_page, 'autocomplete="new-password"', count=2)
+        self.assertContains(form_page, "cf-turnstile")
+        self.assertContains(form_page, "Create account")
+        self.assertNotContains(form_page, "I confirm that I am aged 18 or over")
+
+    def test_age_gate_redirect_survives_inherited_refresh_header(self):
+        response = self.client.post(
+            reverse("registry:register"),
+            {"age_gate_submission": "1", "date_of_birth": "1984-04-25"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("registry:register"))
+
+        form_page = self.client.get(
+            reverse("registry:register"), HTTP_CACHE_CONTROL="max-age=0"
+        )
+
+        self.assertContains(form_page, "Create account")
+        self.assertNotContains(form_page, "Please enter your date of birth")
+
+    def test_hard_refresh_clears_temporary_age_eligibility(self):
+        self.registration_data()
+
+        response = self.client.get(
+            reverse("registry:register"), HTTP_CACHE_CONTROL="no-cache"
+        )
+
+        self.assertContains(response, "Please enter your date of birth")
+        self.assertNotIn("registration_age_eligibility", self.client.session)
+
+    def test_control_refresh_header_clears_temporary_age_eligibility(self):
+        self.registration_data()
+
+        response = self.client.get(
+            reverse("registry:register"), HTTP_CACHE_CONTROL="max-age=0"
+        )
+
+        self.assertContains(response, "Please enter your date of birth")
+        self.assertNotIn("registration_age_eligibility", self.client.session)
+
+    def test_ordinary_refresh_preserves_temporary_age_eligibility(self):
+        self.registration_data()
+
+        response = self.client.get(reverse("registry:register"))
+
+        self.assertContains(response, "Create account")
+        self.assertIn("registration_age_eligibility", self.client.session)
 
     def test_home_introduces_challenge_and_links_to_signup(self):
         response = self.client.get(reverse("registry:home"))
@@ -76,6 +136,16 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "A survival challenge measured in stories")
         self.assertContains(response, "Join The Rat Race")
         self.assertContains(response, reverse("registry:register"))
+
+    def test_branding_controls_public_sign_in_prompt(self):
+        branding = SiteBranding.current()
+        branding.sign_in_prompt = "Returning Survivor?"
+        branding.save(update_fields=("sign_in_prompt",))
+
+        response = self.client.get(reverse("registry:home"))
+
+        self.assertContains(response, "Returning Survivor?")
+        self.assertContains(response, "Sign In")
         self.assertNotContains(response, 'data-registration-form')
         self.assertContains(response, "Indie Stone Terms")
         self.assertContains(response, 'target="_blank"')
@@ -507,8 +577,84 @@ class RegistrationTests(TestCase):
     def test_login_page_links_to_password_reset(self):
         response = self.client.get(reverse("registry:login"))
 
+        self.assertContains(response, "Sign In")
+        self.assertContains(response, "Don&rsquo;t have an account?")
         self.assertContains(response, "Forgot your password?")
         self.assertContains(response, reverse("registry:password_reset"))
+
+    def test_compact_sign_in_returns_json_and_preserves_safe_destination(self):
+        participant = Participant.objects.create_user(
+            email="compact@example.com", nickname="Compact User",
+            password="Local-test-password-482!", is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        response = self.client.post(
+            reverse("registry:login"),
+            {"username": participant.email, "password": "Local-test-password-482!", "next": "/account/"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"signed_in": True, "redirect": "/account/"})
+
+    def test_compact_sign_in_rejects_invalid_credentials_without_account_disclosure(self):
+        response = self.client.post(
+            reverse("registry:login"),
+            {"username": "unknown@example.com", "password": "incorrect"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["signed_in"])
+        self.assertIn("not recognised", response.json()["error"])
+
+    def test_registration_and_verification_create_durable_notifications(self):
+        self.client.post(reverse("registry:register"), self.registration_data())
+        participant = Participant.objects.get()
+        self.assertTrue(participant.notifications.filter(title="Registration received").exists())
+
+        self.client.get(reverse("registry:verify", kwargs={"token": create_verification_token(participant)}))
+
+        self.assertTrue(participant.notifications.filter(title="Account verified").exists())
+
+    def test_notification_panel_history_and_read_tracking(self):
+        participant = Participant.objects.create_user(
+            email="notify@example.com", nickname="Notify User",
+            password="Local-test-password-482!", is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        notification = Notification.objects.create(
+            recipient=participant,
+            category=Notification.Category.SUBMISSION,
+            title="Submission received",
+            message="Your submission has been received.",
+            destination=reverse("registry:account"),
+        )
+        self.client.force_login(participant)
+
+        account_response = self.client.get(reverse("registry:account"))
+        self.assertContains(account_response, "Submission received")
+        self.assertContains(account_response, 'class="notification-count">1</span>')
+        history_response = self.client.get(reverse("registry:notifications"))
+        self.assertContains(history_response, "Your submission has been received.")
+
+        opened = self.client.get(reverse("registry:open_notification", args=(notification.pk,)))
+        self.assertRedirects(opened, reverse("registry:account"))
+        notification.refresh_from_db()
+        self.assertIsNotNone(notification.read_at)
+
+    def test_participant_can_mark_all_notifications_read(self):
+        participant = Participant.objects.create_user(
+            email="read-all@example.com", nickname="Read All",
+            password="Local-test-password-482!", is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        Notification.objects.create(recipient=participant, title="First", message="First message")
+        Notification.objects.create(recipient=participant, title="Second", message="Second message")
+        self.client.force_login(participant)
+
+        response = self.client.post(reverse("registry:mark_notifications_read"))
+
+        self.assertRedirects(response, reverse("registry:notifications"))
+        self.assertFalse(participant.notifications.filter(read_at__isnull=True).exists())
 
     def test_authenticated_participant_is_redirected_away_from_auth_forms(self):
         participant = Participant.objects.create_user(
@@ -692,7 +838,6 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "email address is already registered")
         self.assertContains(response, "Resend verification")
         self.assertContains(response, reverse("registry:resend"))
-        self.assertContains(response, 'data-start-step="1"')
 
     def test_password_error_reopens_security_step(self):
         response = self.client.post(
@@ -701,7 +846,6 @@ class RegistrationTests(TestCase):
         )
 
         self.assertContains(response, "The passwords do not match.")
-        self.assertContains(response, 'data-start-step="2"')
 
     def test_privacy_notice_acknowledgement_is_required(self):
         response = self.client.post(
@@ -710,16 +854,30 @@ class RegistrationTests(TestCase):
         )
         self.assertEqual(Participant.objects.count(), 0)
         self.assertContains(response, "confirm that you have read the privacy notice")
-        self.assertContains(response, 'data-start-step="3"')
 
-    def test_age_eligibility_confirmation_is_required(self):
+    def test_registration_submission_requires_completed_age_gate(self):
+        data = self.registration_data()
+        session = self.client.session
+        session.pop("registration_age_eligibility", None)
+        session.save()
+
         response = self.client.post(
             reverse("registry:register"),
-            self.registration_data(confirm_age_eligibility=False),
+            data,
         )
 
         self.assertEqual(Participant.objects.count(), 0)
-        self.assertContains(response, "aged 18 or over to participate")
+        self.assertRedirects(response, reverse("registry:register"))
+
+    def test_underage_date_of_birth_does_not_unlock_registration(self):
+        response = self.client.post(
+            reverse("registry:register"),
+            {"age_gate_submission": "1", "date_of_birth": timezone.now().date().isoformat()},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "aged 18 or over", status_code=400)
+        self.assertNotIn("registration_age_eligibility", self.client.session)
 
     def test_resend_reactivates_expired_registration(self):
         self.client.post(reverse("registry:register"), self.registration_data())

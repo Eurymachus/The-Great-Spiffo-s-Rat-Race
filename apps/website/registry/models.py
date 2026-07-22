@@ -85,3 +85,36 @@ class AccountClosureRecord(models.Model):
 
     def __str__(self):
         return f"Closure {self.reference}"
+
+
+class Notification(models.Model):
+    class Category(models.TextChoices):
+        ACCOUNT = "account", "Account"
+        SUBMISSION = "submission", "Submission"
+        EVENT = "event", "Event"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient = models.ForeignKey(
+        Participant, on_delete=models.CASCADE, related_name="notifications"
+    )
+    category = models.CharField(
+        max_length=16, choices=Category.choices, default=Category.ACCOUNT
+    )
+    title = models.CharField(max_length=120)
+    message = models.CharField(max_length=300)
+    destination = models.CharField(
+        max_length=500, blank=True,
+        help_text="Optional local path opened when the notification is selected.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+
+    def __str__(self):
+        return f"{self.recipient}: {self.title}"
+
+    @property
+    def is_read(self):
+        return self.read_at is not None

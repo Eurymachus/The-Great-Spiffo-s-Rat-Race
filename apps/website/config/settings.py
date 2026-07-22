@@ -72,6 +72,7 @@ SITE_HOMEPAGE_SECONDARY_LINK = os.environ.get(
 SITE_HOMEPAGE_ACCOUNT_BUTTON = os.environ.get(
     "SITE_HOMEPAGE_ACCOUNT_BUTTON", "Go to your account"
 )
+SITE_SIGN_IN_PROMPT = os.environ.get("SITE_SIGN_IN_PROMPT", "Existing Racer?")
 SITE_JOIN_STEP_1_HEADING = os.environ.get(
     "SITE_JOIN_STEP_1_HEADING", "Reserve your name"
 )

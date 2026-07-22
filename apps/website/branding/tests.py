@@ -331,6 +331,7 @@ class SiteBrandingAdminTests(TestCase):
                 "former_participant_label": "Edited Former Racer",
                 "run_update_label": "Edited update",
                 "run_update_plural_label": "Edited updates",
+                "sign_in_prompt": "Existing Racer?",
                 "disclaimer": "Edited disclaimer.",
                 "show_attribution": "on",
                 "attribution_text": settings.SITE_ATTRIBUTION_TEXT,
@@ -361,6 +362,10 @@ class SiteBrandingAdminTests(TestCase):
         self.assertContains(page_admin, Page.objects.get(slug="home").title)
 
         self.client.logout()
+        self.client.post(
+            reverse("registry:register"),
+            {"age_gate_submission": "1", "date_of_birth": "1984-04-25"},
+        )
         registration = self.client.get(reverse("registry:register"))
         self.assertContains(registration, "Edited Racer nickname")
 
