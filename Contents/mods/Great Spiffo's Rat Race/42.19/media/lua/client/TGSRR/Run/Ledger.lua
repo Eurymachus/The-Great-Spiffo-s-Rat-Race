@@ -55,7 +55,7 @@ local function sealLine(count, sequence, hash)
     return table.concat({ "S", tostring(count), tostring(sequence), hash }, "|") .. "\n"
 end
 
-local function readSegment(runId, index, expectedPreviousHash, verifyHashes)
+local function readSegment(runId, index, expectedPreviousHash, verifyHashes, collectRecords, work)
     local reader = getFileReader(segmentPath(runId, index), false)
     if not reader then return nil, "missing_event_segment:" .. tostring(index) end
 
@@ -78,6 +78,7 @@ local function readSegment(runId, index, expectedPreviousHash, verifyHashes)
     local previousHash = startHash
     local finalSequence = tonumber(startSequence) - 1
     local sealed = false
+    local records = collectRecords and {} or nil
     line = reader:readLine()
     while line do
         if sealed then reader:close(); return nil, "frame_after_segment_seal" end
@@ -97,9 +98,10 @@ local function readSegment(runId, index, expectedPreviousHash, verifyHashes)
             if #body ~= tonumber(lengthText) then reader:close(); return nil, "record_length_mismatch" end
             local record = { previousHash = recordPrevious, hash = hash, body = body }
             if verifyHashes ~= false then
-                local verified, verifyError = EventCodec.verify(record, previousHash)
+                local verified, verifyError = EventCodec.verify(record, previousHash, work)
                 if not verified then reader:close(); return nil, verifyError .. ":" .. tostring(sequence) end
             end
+            if records then records[#records + 1] = record end
             count = count + 1
             finalSequence = sequence
             previousHash = hash
@@ -130,6 +132,7 @@ local function readSegment(runId, index, expectedPreviousHash, verifyHashes)
         finalSequence = finalSequence,
         finalHash = previousHash,
         sealed = sealed,
+        records = records,
     }
 end
 
@@ -225,7 +228,7 @@ local function appendRecord(runId, sequence, record)
     return true
 end
 
-function Ledger.initialize(run)
+function Ledger.initialize(run, work)
     local sequence = tonumber(run.eventSequence) or 0
     local expectedHash = tostring(run.eventHash or EventCodec.GENESIS_HASH):lower()
     if sequence < 0 or sequence % 1 ~= 0 then return false, "invalid_event_cursor" end
@@ -242,7 +245,7 @@ function Ledger.initialize(run)
     local consumed = 0
     local segmentCount = math.ceil(sequence / EVENTS_PER_SEGMENT)
     for index = 1, segmentCount do
-        local segment, readError = readSegment(run.runId, index, previousHash)
+        local segment, readError = readSegment(run.runId, index, previousHash, nil, nil, work)
         if not segment then return false, readError end
         consumed = consumed + segment.count
         previousHash = segment.finalHash
@@ -265,6 +268,29 @@ function Ledger.append(run, event)
     local written, writeError = appendRecord(run.runId, sequence, record)
     if not written then return false, writeError end
     return true, { sequence = sequence, hash = record.hash }
+end
+
+function Ledger.readAll(run, work)
+    local initialized, initializeError = Ledger.initialize(run, work)
+    if not initialized then return nil, initializeError end
+
+    local sequence = tonumber(run.eventSequence) or 0
+    local previousHash = EventCodec.GENESIS_HASH
+    local records = {}
+    local segmentCount = math.ceil(sequence / EVENTS_PER_SEGMENT)
+    for index = 1, segmentCount do
+        local segment, readError = readSegment(run.runId, index, previousHash, true, true, work)
+        if not segment then return nil, readError end
+        for _, record in ipairs(segment.records) do records[#records + 1] = record end
+        previousHash = segment.finalHash
+    end
+    if #records ~= sequence then return nil, "export_event_count_mismatch" end
+    return {
+        runId = tostring(run.runId),
+        eventSequence = sequence,
+        eventHash = previousHash,
+        records = records,
+    }
 end
 
 Ledger.eventsPerSegment = EVENTS_PER_SEGMENT

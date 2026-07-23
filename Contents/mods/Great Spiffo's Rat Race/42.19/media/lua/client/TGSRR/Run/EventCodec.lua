@@ -10,6 +10,19 @@ local function frame(tag, value)
     return tag .. tostring(#value) .. ":" .. value
 end
 
+local function readFrame(value, cursor)
+    local tag = value:sub(cursor, cursor)
+    if tag == "" then return nil, nil, nil, "missing_canonical_frame" end
+    local colon = value:find(":", cursor + 1, true)
+    if not colon then return nil, nil, nil, "missing_canonical_frame" end
+    local lengthText = value:sub(cursor + 1, colon - 1)
+    if not lengthText:match("^%d+$") then return nil, nil, nil, "invalid_canonical_frame_length" end
+    local first = colon + 1
+    local last = first + tonumber(lengthText) - 1
+    if last > #value then return nil, nil, nil, "truncated_canonical_frame" end
+    return tag, value:sub(first, last), last + 1
+end
+
 local function canonicalNumber(value)
     if value ~= value or value == math.huge or value == -math.huge then
         error("non_finite_number")
@@ -96,14 +109,14 @@ function EventCodec.canonicalBody(event)
     return body
 end
 
-function EventCodec.encode(event, previousHash)
+function EventCodec.encode(event, previousHash, work)
     previousHash = tostring(previousHash or EventCodec.GENESIS_HASH):lower()
     if not previousHash:match("^[0-9a-f]+$") or #previousHash ~= 64 then
         return nil, "invalid_previous_hash"
     end
     local body, bodyError = EventCodec.canonicalBody(event)
     if not body then return nil, bodyError end
-    local hash, hashError = Hash.sha256(previousHash .. body)
+    local hash, hashError = Hash.sha256(previousHash .. body, work)
     if not hash then return nil, hashError end
     return {
         schema = EventCodec.SCHEMA,
@@ -113,16 +126,49 @@ function EventCodec.encode(event, previousHash)
     }
 end
 
-function EventCodec.verify(record, expectedPreviousHash)
+function EventCodec.verify(record, expectedPreviousHash, work)
     if type(record) ~= "table" then return false, "invalid_record" end
     local previousHash = tostring(record.previousHash or ""):lower()
     if expectedPreviousHash and previousHash ~= tostring(expectedPreviousHash):lower() then
         return false, "chain_discontinuity"
     end
-    local actual, err = Hash.sha256(previousHash .. tostring(record.body or ""))
+    local actual, err = Hash.sha256(previousHash .. tostring(record.body or ""), work)
     if not actual then return false, err end
     if actual ~= tostring(record.hash or ""):lower() then return false, "hash_mismatch" end
     return true
+end
+
+function EventCodec.inspectBody(body)
+    body = tostring(body or "")
+    local expected = { "v", "r", "e", "q", "t", "w", "y", "p" }
+    local values = {}
+    local cursor = 1
+    for index, expectedTag in ipairs(expected) do
+        local tag, value, nextCursor, readError = readFrame(body, cursor)
+        if not tag then return nil, readError end
+        if tag ~= expectedTag then return nil, "unexpected_canonical_frame:" .. tostring(tag) end
+        values[expectedTag], cursor = value, nextCursor
+    end
+    if cursor ~= #body + 1 then return nil, "trailing_canonical_body_data" end
+    if tonumber(values.v) ~= EventCodec.SCHEMA then return nil, "unsupported_event_schema" end
+    local sequence = tonumber(values.q)
+    local utc = tonumber(values.t)
+    local epoch = tonumber(values.e)
+    local worldAgeHours = tonumber(values.w)
+    if not sequence or sequence < 1 or sequence % 1 ~= 0 then return nil, "invalid_sequence" end
+    if not utc or utc < 0 or utc % 1 ~= 0 then return nil, "invalid_utc" end
+    if not epoch or epoch < 1 or epoch % 1 ~= 0 then return nil, "invalid_epoch" end
+    if not worldAgeHours then return nil, "invalid_world_age" end
+    return {
+        schema = tonumber(values.v),
+        runId = values.r,
+        epoch = epoch,
+        sequence = sequence,
+        utc = utc,
+        worldAgeHours = worldAgeHours,
+        eventType = values.y,
+        canonicalPayload = values.p,
+    }
 end
 
 function EventCodec.selfTest()
@@ -150,6 +196,11 @@ function EventCodec.selfTest()
     })
     if not second or first.hash ~= second.hash or first.body ~= second.body then
         return false, "canonical_order_self_test_failed"
+    end
+    local inspected, inspectError = EventCodec.inspectBody(first.body)
+    if not inspected then return false, inspectError end
+    if inspected.runId ~= "rr-test" or inspected.sequence ~= 1 or inspected.eventType ~= "test" then
+        return false, "canonical_inspection_self_test_failed"
     end
     return EventCodec.verify(first, EventCodec.GENESIS_HASH)
 end

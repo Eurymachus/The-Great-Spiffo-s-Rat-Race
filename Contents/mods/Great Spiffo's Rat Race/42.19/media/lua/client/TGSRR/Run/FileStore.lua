@@ -2,7 +2,7 @@ local FileStore = {}
 
 local ROOT = "TGSRR/Runs"
 local META_FORMAT = 1
-local SESSION_FORMAT = 3
+local SESSION_FORMAT = 4
 
 local function encode(value)
     value = tostring(value == nil and "" or value)
@@ -100,6 +100,44 @@ local function modReferenceFields(mods)
     return table.concat(values, ",")
 end
 
+local function changedModReferenceFields(mods)
+    local values = {}
+    for _, mod in ipairs(mods or {}) do
+        values[#values + 1] = table.concat({
+            encode(mod.modId),
+            encode(mod.previousWorkshopId),
+            encode(mod.workshopId),
+        }, "=")
+    end
+    return table.concat(values, ",")
+end
+
+function FileStore.lastModReferences(runId)
+    local reader = getFileReader(path(runId, "sessions.log"), false)
+    if not reader then return nil end
+    local encodedReferences = nil
+    local line = reader:readLine()
+    while line do
+        local value = line:match("|modRefs=([^|]*)")
+        if value and value ~= "" then encodedReferences = value end
+        line = reader:readLine()
+    end
+    reader:close()
+    if not encodedReferences then return nil end
+
+    local references = {}
+    for encodedReference in encodedReferences:gmatch("[^,]+") do
+        local encodedModId, encodedWorkshopId = encodedReference:match("^([^=]*)=(.*)$")
+        if not encodedModId then return nil end
+        references[#references + 1] = {
+            modId = decode(encodedModId),
+            workshopId = decode(encodedWorkshopId),
+        }
+    end
+    table.sort(references, function(a, b) return a.modId < b.modId end)
+    return references
+end
+
 function FileStore.appendSession(run, session)
     local writer = getFileWriter(path(run.runId, "sessions.log"), true, true)
     if not writer then return false, "unable_to_open_sessions" end
@@ -113,13 +151,11 @@ function FileStore.appendSession(run, session)
         "forename=" .. encode(session.character.forename),
         "surname=" .. encode(session.character.surname),
         "displayName=" .. encode(session.character.displayName),
+        "modState=" .. encode(session.modState),
         "modRefs=" .. modReferenceFields(session.mods),
-        "mods=" .. encodeList(session.modIds),
-        "added=" .. encodeList(session.addedModIds),
-        "removed=" .. encodeList(session.removedModIds),
-        "workshopIds=" .. encodeList(session.workshopIds),
-        "workshopAdded=" .. encodeList(session.addedWorkshopIds),
-        "workshopRemoved=" .. encodeList(session.removedWorkshopIds),
+        "modAddedRefs=" .. modReferenceFields(session.addedMods),
+        "modRemovedRefs=" .. modReferenceFields(session.removedMods),
+        "modChangedRefs=" .. changedModReferenceFields(session.changedMods),
     }
     writer:write(table.concat(fields, "|") .. "\n")
     writer:close()

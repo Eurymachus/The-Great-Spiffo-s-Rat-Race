@@ -66,9 +66,12 @@ local function appendWord(bytes, value)
     bytes[#bytes + 1] = value % 256
 end
 
-function Hash.sha256(value)
+function Hash.sha256(value, work)
     value = tostring(value or "")
-    local bytes = { string.byte(value, 1, #value) }
+    local bytes = {}
+    -- Avoid returning every byte from string.byte in one call. Large exports
+    -- otherwise exhaust Lua's result stack before hashing even begins.
+    for index = 1, #value do bytes[index] = string.byte(value, index) end
     local bitLength = #bytes * 8
     bytes[#bytes + 1] = 128
     while (#bytes % 64) ~= 56 do bytes[#bytes + 1] = 0 end
@@ -110,6 +113,7 @@ function Hash.sha256(value)
         state[6] = normalize(state[6] + f)
         state[7] = normalize(state[7] + g)
         state[8] = normalize(state[8] + h)
+        if work then work("hash", block, #bytes) end
     end
 
     local parts = {}

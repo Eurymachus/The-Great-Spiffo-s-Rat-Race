@@ -5,6 +5,21 @@ local Ledger = require "TGSRR/Run/Ledger"
 local Recorder = require "TGSRR/Run/Recorder"
 local EventBridge = require "TGSRR/Run/EventBridge"
 local DayTracker = require "TGSRR/Run/DayTracker"
+local Exporter = require "TGSRR/Run/Exporter"
+require "TGSRR/Run/ExportMenu"
+
+TGSRR = TGSRR or {}
+TGSRR.Run = TGSRR.Run or {}
+TGSRR.Run.export = function()
+    local ok, result = Exporter.generate()
+    if ok then
+        print("[TGSRR Run] Exported " .. tostring(result.eventSequence) .. " events to "
+            .. tostring(result.filename) .. " (" .. tostring(result.encodedCharacters) .. " characters)")
+    else
+        print("[TGSRR Run] Export failed: " .. tostring(result))
+    end
+    return ok, result
+end
 
 local initialized = false
 
@@ -39,24 +54,52 @@ local function activeMods()
     return result
 end
 
-local function asSet(values)
-    local result = {}
-    for _, value in ipairs(values or {}) do result[tostring(value)] = true end
-    return result
-end
-
-local function difference(values, previousSet)
-    local result = {}
-    for _, value in ipairs(values) do
-        if not previousSet[value] then result[#result + 1] = value end
-    end
-    return result
-end
-
 local function copyList(values)
     local result = {}
     for i = 1, #values do result[i] = values[i] end
     return result
+end
+
+local function copyModReferences(values)
+    local result = {}
+    for _, value in ipairs(values or {}) do
+        result[#result + 1] = {
+            modId = tostring(value.modId or ""),
+            workshopId = tostring(value.workshopId or ""),
+        }
+    end
+    table.sort(result, function(a, b) return a.modId < b.modId end)
+    return result
+end
+
+local function modReferenceMap(values)
+    local result = {}
+    for _, value in ipairs(values or {}) do
+        result[tostring(value.modId or "")] = tostring(value.workshopId or "")
+    end
+    return result
+end
+
+local function modReferenceDelta(previous, current)
+    local previousMap = modReferenceMap(previous)
+    local currentMap = modReferenceMap(current)
+    local added, removed, changed = {}, {}, {}
+    for _, reference in ipairs(current) do
+        local previousWorkshopId = previousMap[reference.modId]
+        if previousWorkshopId == nil then
+            added[#added + 1] = reference
+        elseif previousWorkshopId ~= reference.workshopId then
+            changed[#changed + 1] = {
+                modId = reference.modId,
+                previousWorkshopId = previousWorkshopId,
+                workshopId = reference.workshopId,
+            }
+        end
+    end
+    for _, reference in ipairs(previous) do
+        if currentMap[reference.modId] == nil then removed[#removed + 1] = reference end
+    end
+    return added, removed, changed
 end
 
 local function initialize()
@@ -103,39 +146,38 @@ local function initialize()
     local current = activeMods()
     local currentMods = current.modIds
     local currentWorkshopIds = current.workshopIds
-    local previousMods = copyList(run.lastModIds or {})
-    local previousWorkshopIds = copyList(run.lastWorkshopIds or {})
-    local previousSet = asSet(previousMods)
-    local currentSet = asSet(currentMods)
-    local previousWorkshopSet = asSet(previousWorkshopIds)
-    local currentWorkshopSet = asSet(currentWorkshopIds)
     local character = Identity.observeCharacter(player)
     local gameTime = getGameTime()
     local nextSequence = (tonumber(run.sessionSequence) or 0) + 1
     local hasPreviousSession = (tonumber(run.sessionSequence) or 0) > 0
+    local previousModReferences = run.lastModRefs
+    if hasPreviousSession and type(previousModReferences) ~= "table" then
+        previousModReferences = FileStore.lastModReferences(run.runId)
+    end
+    previousModReferences = copyModReferences(previousModReferences or {})
+    local addedMods, removedMods, changedMods =
+        modReferenceDelta(previousModReferences, current.mods)
 
     local session = {
         sequence = nextSequence,
         utc = Identity.utcSeconds(),
         worldAgeHours = gameTime and gameTime:getWorldAgeHours() or 0,
         character = character,
-        mods = current.mods,
-        modIds = currentMods,
-        addedModIds = hasPreviousSession and difference(currentMods, previousSet) or {},
-        removedModIds = hasPreviousSession and difference(previousMods, currentSet) or {},
-        workshopIds = currentWorkshopIds,
-        addedWorkshopIds = hasPreviousSession and difference(currentWorkshopIds, previousWorkshopSet) or {},
-        removedWorkshopIds = hasPreviousSession and difference(previousWorkshopIds, currentWorkshopSet) or {},
+        modState = hasPreviousSession and "delta" or "baseline",
+        mods = hasPreviousSession and {} or current.mods,
+        addedMods = hasPreviousSession and addedMods or {},
+        removedMods = hasPreviousSession and removedMods or {},
+        changedMods = hasPreviousSession and changedMods or {},
     }
 
     local ledgerAppended, ledgerResult = Recorder.record("session.started", {
         sessionSequence = session.sequence,
         character = session.character,
+        modState = session.modState,
         mods = session.mods,
-        addedModIds = session.addedModIds,
-        removedModIds = session.removedModIds,
-        addedWorkshopIds = session.addedWorkshopIds,
-        removedWorkshopIds = session.removedWorkshopIds,
+        addedMods = session.addedMods,
+        removedMods = session.removedMods,
+        changedMods = session.changedMods,
     }, {
         utc = session.utc,
         worldAgeHours = session.worldAgeHours,
@@ -157,6 +199,7 @@ local function initialize()
     run.sessionSequence = nextSequence
     run.lastModIds = copyList(currentMods)
     run.lastWorkshopIds = copyList(currentWorkshopIds)
+    run.lastModRefs = copyModReferences(current.mods)
     run.integrityStatus = "ok"
     local dayReady, dayError = DayTracker.initialize(run, player)
     if not dayReady then

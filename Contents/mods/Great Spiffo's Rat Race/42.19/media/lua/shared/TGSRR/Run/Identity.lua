@@ -28,6 +28,7 @@ local function root()
     data.sessionSequence = tonumber(data.sessionSequence) or 0
     data.lastModIds = type(data.lastModIds) == "table" and data.lastModIds or {}
     data.lastWorkshopIds = type(data.lastWorkshopIds) == "table" and data.lastWorkshopIds or {}
+    data.lastModRefs = type(data.lastModRefs) == "table" and data.lastModRefs or nil
     data.eventSequence = tonumber(data.eventSequence) or 0
     data.eventHash = nonEmpty(data.eventHash) or string.rep("0", 64)
     data.dailyState = type(data.dailyState) == "table" and data.dailyState or nil
@@ -92,6 +93,7 @@ function Identity.ensure(player)
         data.sessionSequence = 0
         data.lastModIds = {}
         data.lastWorkshopIds = {}
+        data.lastModRefs = {}
         data.eventSequence = 0
         data.eventHash = string.rep("0", 64)
         data.dailyState = nil

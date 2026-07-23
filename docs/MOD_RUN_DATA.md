@@ -117,19 +117,27 @@ type-tagged and length-framed, map keys are sorted, arrays retain their order,
 and non-finite numbers or unsupported value types are rejected. SHA-256 is
 implemented within TGSRR so it works in Build 42's restricted client Lua
 environment, and is verified against known vectors when run tracking
-initializes. This codec is the
-canonical content layer for the binary ledger; the existing `sessions.log`
-remains the temporary session diagnostic until ledger migration is complete.
+initializes. This codec is the canonical content layer for the binary ledger.
 
 IDs may be interned and numeric values delta encoded. Optional compression is permitted after canonical encoding. Base64 or XOR alone are not integrity measures and must not be presented as security.
 
 Suggested run artifacts:
 
 - `run.meta`: versioned run identity and format metadata.
+- `sessions.log`: compact session-start diagnostics; the first entry contains
+  the complete Mod ID/Workshop ID baseline and later entries contain only
+  additions, removals, and changed Mod ID-to-Workshop ID associations.
 - `segments/events-NNNNNN.bin`: immutable completed event segments and one appendable current segment.
 - `state-current.bin`: atomically replaced canonical current-state snapshot.
 - `recovery-NNNN.bin`: immutable recovery evidence/authorization segments where needed.
 - `run.export`: generated submission envelope containing the data and integrity manifest.
+
+Export format 2 serializes the complete verified ledger history and a small
+live-state projection, compresses it with TGSRR's deterministic LZSS codec,
+encodes it as Base64URL, and includes a SHA-256 checksum. The current live kill
+total is included so an export does not need to wait for the next daily seal.
+The exporter reads its generated envelope back before presenting it to the
+player. Format 1 envelopes remain decodable for pre-release test runs.
 
 Ledger segment format 1 stores up to 256 canonical events per
 `segments/events-NNNNNN.bin` file. Records are byte-length framed and hex encoded
@@ -205,17 +213,23 @@ Exports distinguish at least:
 
 ## Loaded-mod session history
 
-At run creation, write sorted full sets of active mod IDs and unique Workshop IDs, plus their mapping. At every later game load, compare the newly sorted sets against the last committed sets and append a timestamped session record containing:
+At run creation, write sorted full sets of active mod IDs and unique Workshop
+IDs, plus their mapping. At every later game load, compare the newly sorted
+mapping against the last committed mapping and append a timestamped session
+record containing:
 
 - Session sequence.
 - Time record.
 - Added and removed mod IDs.
 - Added and removed Workshop IDs.
-- Complete mod ID to Workshop ID mapping for the session, preserving entries with no Workshop ID.
+- Changed Mod ID associations, including the previous and current Workshop ID.
 - Optional current-set hash.
 - Game version and TGSRR version.
 
-An unchanged session may still need a timestamped session-start record because the requirement is to show which mod set was active for each session. The record may omit repeated IDs and refer to the previous set through its sequence/hash.
+Every load retains a timestamped session-start record, but unchanged sessions
+do not repeat the complete identifier sets. The latest complete mapping is kept
+in world-scoped run state and reconstructed from legacy full session records
+when migrating a pre-release test run.
 
 Global ModData should retain only the run ID, latest session sequence, latest mod set or hash, and file cursor needed to recover an interrupted append. The full session history belongs in the file stream.
 
@@ -227,7 +241,8 @@ Website database mappings are presentation/integration metadata. A missing websi
 
 ## Open decisions
 
-- Exact binary field layout, segment rollover thresholds, compression, and corruption-check algorithm.
+- Final segment rollover threshold and whether the append-safe on-disk
+  representation should change after Build 42.
 - Snapshot cadence, flush policy, and which compact integrity anchors are duplicated into global ModData.
 - Offline recovery-authorization signature algorithm and import/user-interface flow.
 - Definition and granularity of a location visit.
