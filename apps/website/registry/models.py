@@ -1,5 +1,7 @@
 import uuid
+from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -37,6 +39,12 @@ class Participant(AbstractUser):
         DISABLED = "disabled", "Disabled"
         REMOVED = "removed", "Removed"
 
+    class AvatarStatus(models.TextChoices):
+        NONE = "none", "No avatar"
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Declined"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = None
     nickname = models.CharField(max_length=40)
@@ -55,6 +63,13 @@ class Participant(AbstractUser):
     deletion_request_reference = models.UUIDField(null=True, blank=True, editable=False)
     deletion_request_note = models.TextField(blank=True)
     admin_notes = models.TextField(blank=True)
+    avatar = models.ImageField(upload_to="participant_avatars/", blank=True)
+    avatar_status = models.CharField(
+        max_length=16, choices=AvatarStatus.choices, default=AvatarStatus.NONE
+    )
+    avatar_review_path = models.CharField(max_length=255, blank=True, editable=False)
+    avatar_moderation_note = models.CharField(max_length=255, blank=True, editable=False)
+    avatar_submitted_at = models.DateTimeField(null=True, blank=True)
 
     objects = ParticipantManager()
 
@@ -70,6 +85,13 @@ class Participant(AbstractUser):
         self.normalized_nickname = self.nickname.casefold()
         self.normalized_email = self.email.casefold()
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.avatar:
+            self.avatar.delete(save=False)
+        if self.avatar_review_path:
+            (Path(settings.AVATAR_QUARANTINE_ROOT) / self.avatar_review_path).unlink(missing_ok=True)
+        return super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.nickname

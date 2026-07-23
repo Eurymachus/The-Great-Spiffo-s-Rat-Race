@@ -1,0 +1,58 @@
+{% extends "registry/base.html" %}
+{% block title_suffix %} | Account settings{% endblock %}
+{% block content %}
+<section class="card card-wide settings-hub">
+  <header class="account-dashboard-header settings-hub-header">
+    <div class="account-dashboard-identity">
+      <button class="account-dashboard-avatar avatar-trigger" type="button" data-avatar-open aria-label="Change avatar">
+        {% if request.user.avatar %}<img src="{{ request.user.avatar.url }}" alt="">{% else %}{{ request.user.nickname|first|upper }}{% endif %}
+        <span class="avatar-camera" aria-hidden="true">&#128247;</span>
+      </button>
+      <small>Joined <strong>{{ request.user.registered_at|date:"j M Y" }}</strong></small>
+    </div>
+    <div class="account-dashboard-welcome">
+      <p class="account-dashboard-kicker">Account settings</p>
+      <h2>Signed in as {{ request.user.email }}</h2>
+      <p>Manage your security, notifications, privacy and participant data.</p>
+    </div>
+    <a class="dashboard-header-action" href="{% url 'registry:account' %}">Dashboard</a>
+  </header>
+
+  <div class="settings-hub-grid">
+    <section class="dashboard-panel settings-group">
+      <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Security</p><h3>Sign-in and password</h3></div></div>
+      <a class="settings-row" href="{% url 'registry:password_change' %}">
+        <span><strong>Change password</strong><small>Update the password used to sign in to your participant account.</small></span><span aria-hidden="true">›</span>
+      </a>
+    </section>
+
+    <section class="dashboard-panel settings-group">
+      <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Updates</p><h3>Notifications</h3></div></div>
+      <a class="settings-row" href="{% url 'registry:notifications' %}">
+        <span><strong>View notifications</strong><small>Review account, submission and challenge updates.</small></span><span aria-hidden="true">›</span>
+      </a>
+    </section>
+
+    <section class="dashboard-panel settings-group">
+      <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Privacy</p><h3>Your information</h3></div></div>
+      <a class="settings-row" href="{% url 'registry:download_my_data' %}">
+        <span><strong>Download my data</strong><small>Receive a JSON copy of your participant information.</small></span><span aria-hidden="true">›</span>
+      </a>
+      <a class="settings-row" href="{% url 'registry:privacy' %}">
+        <span><strong>Privacy notice</strong><small>Read how participant information is collected and used.</small></span><span aria-hidden="true">›</span>
+      </a>
+    </section>
+
+    <section class="dashboard-panel settings-group settings-danger-zone">
+      <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Account closure</p><h3>Close your account</h3></div></div>
+      {% if request.user.deletion_requested_at %}
+        <div class="settings-pending"><strong>Account-closure request pending</strong><small>Requested {{ request.user.deletion_requested_at|date:"j F Y, H:i" }}.</small></div>
+      {% else %}
+        <a class="settings-row" href="{% url 'registry:account_closure' %}">
+          <span><strong>Request account closure and deletion</strong><small>Start the process of closing your participant account.</small></span><span aria-hidden="true">›</span>
+        </a>
+      {% endif %}
+    </section>
+  </div>
+</section>
+{% endblock %}

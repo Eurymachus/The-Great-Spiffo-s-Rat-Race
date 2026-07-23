@@ -1,47 +1,68 @@
 {% extends "registry/base.html" %}
 {% block title_suffix %} | Your account{% endblock %}
 {% block content %}
-<section class="card">
-  <h2>{{ site_welcome_message }}</h2>
-  <p class="lede">Your participant account is ready.</p>
-
-  <dl class="account-summary">
-    <div><dt>{{ site_participant_label }} nickname</dt><dd>{{ request.user.nickname }}</dd></div>
-    <div><dt>Email address</dt><dd>{{ request.user.email }}</dd></div>
-    <div><dt>Account status</dt><dd><span class="status-pill status-{{ request.user.status }}">{{ request.user.get_status_display }}</span></dd></div>
-    <div><dt>Registered</dt><dd>{{ request.user.registered_at|date:"j F Y" }}</dd></div>
-  </dl>
-
-  <div class="account-actions">
-    <a class="panel-link" href="{% url 'registry:password_change' %}">
-      <strong>Change password</strong>
-      <span>Update your participant login password.</span>
-    </a>
-    <a class="panel-link" href="{% url 'registry:download_my_data' %}">
-      <strong>Download my participant data</strong>
-      <span>Receive a JSON copy of the participant information currently held for you.</span>
-    </a>
-    {% if request.user.is_staff %}
-      <a class="panel-link" href="{% url 'admin:index' %}">
-        <strong>Challenge administration</strong>
-        <span>Open the moderator and administrator area.</span>
-      </a>
-    {% endif %}
-  </div>
-
-  {% if request.user.deletion_requested_at %}
-    <div class="request-pending">
-      <strong>Account-closure request pending</strong>
-      <p>Requested {{ request.user.deletion_requested_at|date:"j F Y, H:i" }}. An administrator must review the request before data is removed.</p>
+<section class="card card-wide account-dashboard">
+  <header class="account-dashboard-header">
+    <div class="account-dashboard-identity">
+      <button class="account-dashboard-avatar avatar-trigger" type="button" data-avatar-open aria-label="Change avatar">
+        {% if request.user.avatar %}<img src="{{ request.user.avatar.url }}" alt="">{% else %}{{ request.user.nickname|first|upper }}{% endif %}
+        <span class="avatar-camera" aria-hidden="true">&#128247;</span>
+      </button>
+      <small>Joined <strong>{{ request.user.registered_at|date:"j M Y" }}</strong></small>
     </div>
-  {% else %}
-    <p class="account-closure-link"><a href="{% url 'registry:account_closure' %}">Request account closure and deletion</a></p>
-  {% endif %}
+    <div class="account-dashboard-welcome">
+      <p class="account-dashboard-kicker">{{ site_participant_label }} dashboard</p>
+      <h2>{{ site_welcome_message }}</h2>
+      <p>Your participant account is ready, <strong>{{ request.user.nickname }}</strong>.</p>
+    </div>
+    <a class="dashboard-header-action" href="{% url 'registry:account_settings' %}">Settings</a>
+  </header>
 
-  <div class="future-feature">
-    <strong>{{ site_run_update_plural_label }}</strong>
-    <p>{{ site_run_update_label }} submissions will appear here when mod integration opens.</p>
+  <div class="account-dashboard-grid">
+    <div class="account-dashboard-main">
+      <section class="dashboard-panel personal-best-panel">
+        <div class="dashboard-panel-heading">
+          <div>
+            <p class="dashboard-panel-kicker">Your record</p>
+            <h3>Personal Best</h3>
+          </div>
+          <span class="dashboard-coming-soon">No result yet</span>
+        </div>
+        <div class="dashboard-empty-state dashboard-challenge-state">
+          <span class="dashboard-state-icon" aria-hidden="true">—</span>
+          <div>
+            <strong>Your best verified run will appear here</strong>
+            <p>Once a completed run has been approved, this panel will show your strongest result.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="dashboard-panel">
+        <div class="dashboard-panel-heading">
+          <div>
+            <p class="dashboard-panel-kicker">In progress</p>
+            <h3>Active Runs</h3>
+          </div>
+        </div>
+        <div class="dashboard-empty-state compact">
+          <strong>No active runs</strong>
+          <p>Runs currently being tracked will appear here.</p>
+        </div>
+      </section>
+
+      <section class="dashboard-panel">
+        <div class="dashboard-panel-heading">
+          <div>
+            <p class="dashboard-panel-kicker">Previous entries</p>
+            <h3>Submission History</h3>
+          </div>
+        </div>
+        <div class="dashboard-empty-state compact">
+          <strong>No submissions yet</strong>
+          <p>Your submitted runs and their review status will appear here.</p>
+        </div>
+      </section>
+    </div>
   </div>
-
 </section>
 {% endblock %}

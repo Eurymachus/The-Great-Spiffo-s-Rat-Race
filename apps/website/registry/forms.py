@@ -190,3 +190,23 @@ class AccountClosureRequestForm(forms.Form):
         if not self.user.check_password(password):
             raise forms.ValidationError("The current password is incorrect.")
         return password
+
+
+class AvatarUploadForm(forms.Form):
+    avatar = forms.ImageField(
+        label="Choose an avatar",
+        help_text="JPEG, PNG or WebP, up to 5 MB. The image will be cropped to a square.",
+        widget=forms.ClearableFileInput(attrs={
+            "accept": "image/jpeg,image/png,image/webp",
+            "class": "avatar-file-input",
+            "data-avatar-input": "",
+        }),
+    )
+
+    def clean_avatar(self):
+        avatar = self.cleaned_data["avatar"]
+        if avatar.size > settings.AVATAR_UPLOAD_MAX_BYTES:
+            raise forms.ValidationError("The avatar must be no larger than 5 MB.")
+        if avatar.content_type not in {"image/jpeg", "image/png", "image/webp"}:
+            raise forms.ValidationError("Upload a JPEG, PNG or WebP image.")
+        return avatar

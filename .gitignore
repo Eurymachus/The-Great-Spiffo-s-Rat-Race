@@ -8,6 +8,7 @@ __pycache__/
 db.sqlite3
 staticfiles/
 apps/website/media/
+apps/website/private_uploads/
 
 # Editors and operating systems
 .idea/

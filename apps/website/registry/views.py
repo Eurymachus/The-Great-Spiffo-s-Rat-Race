@@ -22,11 +22,13 @@ from pages.models import Page
 from .forms import (
     AccountClosureRequestForm,
     AgeEligibilityForm,
+    AvatarUploadForm,
     PasswordResetRequestForm,
     RegistrationForm,
     ResendVerificationForm,
     SignInForm,
 )
+from .avatar_moderation import InvalidAvatar, remove_avatar, submit_avatar
 from .models import Notification, Participant
 from .notifications import notify
 from .rate_limit import exceeded, request_ip
@@ -372,6 +374,47 @@ def verify(request, token):
 @login_required
 def account(request):
     return render(request, "registry/account.html")
+
+
+@login_required
+def account_settings(request):
+    return render(request, "registry/account_settings.html")
+
+
+def avatar_return_url(request):
+    candidate = request.META.get("HTTP_REFERER", "")
+    if candidate and url_has_allowed_host_and_scheme(candidate, {request.get_host()}, request.is_secure()):
+        return candidate
+    return reverse("registry:account")
+
+
+@login_required
+@require_http_methods(["POST"])
+def upload_avatar(request):
+    form = AvatarUploadForm(request.POST, request.FILES)
+    if not form.is_valid():
+        notify(request.user, title="Avatar not accepted", message=" ".join(form.errors.get("avatar", ["Choose a valid image."])))
+        return redirect(avatar_return_url(request))
+    try:
+        outcome = submit_avatar(request.user, form.cleaned_data["avatar"])
+    except InvalidAvatar as exc:
+        form.add_error("avatar", str(exc))
+        notify(request.user, title="Avatar not accepted", message=str(exc))
+        return redirect(avatar_return_url(request))
+    if outcome == "approved":
+        notify(request.user, title="Avatar updated", message="Your new avatar has been approved and published.")
+    elif outcome == "pending":
+        notify(request.user, title="Avatar awaiting review", message="Your avatar is private while it waits for moderation review.")
+    else:
+        notify(request.user, title="Avatar not accepted", message="Your current avatar has not changed. Please choose another image.")
+    return redirect(avatar_return_url(request))
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_avatar(request):
+    remove_avatar(request.user)
+    return redirect(avatar_return_url(request))
 
 
 @login_required

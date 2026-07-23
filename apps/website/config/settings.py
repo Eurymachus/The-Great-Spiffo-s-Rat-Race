@@ -219,6 +219,10 @@ USE_TZ = True
 STATIC_URL = 'static/'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+AVATAR_QUARANTINE_ROOT = BASE_DIR / 'private_uploads' / 'avatars'
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_MODERATION_URL = "https://api.openai.com/v1/moderations"
+AVATAR_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
 
 # Local development prints verification emails to the server console. Production
 # will override this with the Microsoft 365 email backend/configuration.

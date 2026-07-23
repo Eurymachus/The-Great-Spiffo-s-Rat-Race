@@ -1,7 +1,7 @@
 from django.conf import settings
 from branding.models import SiteBranding, WebsiteTheme
 from pages.models import NavigationItem
-from registry.forms import SignInForm
+from registry.forms import AvatarUploadForm, SignInForm
 
 
 def navigation_tree():
@@ -26,7 +26,19 @@ def navigation_tree():
             nodes[parent_id]["children"].append(node)
         elif parent_id is None:
             roots.append(node)
-    return roots
+
+    # Destinationless groups with no public descendants have no useful public
+    # interaction. Keep their records in the editor, but prune empty branches
+    # from the rendered navigation from the bottom upwards.
+    def prune_empty_groups(branches):
+        visible = []
+        for node in branches:
+            node["children"] = prune_empty_groups(node["children"])
+            if node["url"] or node["children"]:
+                visible.append(node)
+        return visible
+
+    return prune_empty_groups(roots)
 
 
 def site_identity(request):
@@ -55,6 +67,7 @@ def site_identity(request):
     )
     background_scale = brand.background_image_scale if brand else "cover"
     account_context = {
+        "avatar_form": None,
         "header_sign_in_form": None,
         "header_notifications": (),
         "header_unread_notification_count": 0,
@@ -62,6 +75,7 @@ def site_identity(request):
     if request.user.is_authenticated:
         notifications = request.user.notifications.all()
         account_context.update({
+            "avatar_form": AvatarUploadForm(),
             "header_notifications": notifications[:5],
             "header_unread_notification_count": notifications.filter(read_at__isnull=True).count(),
         })

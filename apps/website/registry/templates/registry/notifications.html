@@ -4,11 +4,14 @@
 <section class="card notifications-page">
     <header class="notifications-page-heading">
         <div><p class="eyebrow">Your Account</p><h2>Notifications</h2></div>
-        {% if header_unread_notification_count %}
-        <form method="post" action="{% url 'registry:mark_notifications_read' %}">
-            {% csrf_token %}<button class="secondary-action" type="submit">Mark all as read</button>
-        </form>
-        {% endif %}
+        <div class="notifications-page-actions">
+            {% if header_unread_notification_count %}
+            <form method="post" action="{% url 'registry:mark_notifications_read' %}">
+                {% csrf_token %}<button class="secondary-action" type="submit">Mark all as read</button>
+            </form>
+            {% endif %}
+            <a class="dashboard-header-action" href="{% url 'registry:account' %}">Dashboard</a>
+        </div>
     </header>
     <div class="notification-history">
         {% for notification in notifications %}

@@ -1,12 +1,17 @@
 import csv
 import uuid
+from pathlib import Path
 
 from django.contrib import admin, messages
+from django import forms
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed
+from django.shortcuts import redirect
+from django.urls import path
+from django.utils.html import format_html
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils import timezone
@@ -15,12 +20,30 @@ from django.conf import settings
 from .models import AccountClosureRecord, Notification, Participant
 from .tokens import create_verification_token
 from .verification_email import send_verification_email
+from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
+from .notifications import notify
 
 admin.site.site_header = f"{settings.SITE_SHORT_TITLE} administration"
 admin.site.site_title = f"{settings.SITE_SHORT_TITLE} admin"
 admin.site.index_title = "Challenge administration"
 admin.site.index_template = "admin/rat_race_index.html"
 admin.site.app_index_template = "admin/rat_race_app_index.html"
+
+
+class ParticipantAdminForm(forms.ModelForm):
+    avatar_status = forms.CharField(label="Avatar status", disabled=True, required=False)
+
+    class Meta:
+        model = Participant
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.initial["avatar_status"] = self.instance.get_avatar_status_display()
+
+    def clean_avatar_status(self):
+        return self.instance.avatar_status
 
 def can_process_closures(user):
     return user.is_superuser or user.groups.filter(
@@ -44,6 +67,21 @@ def export_registrations(modeladmin, request, queryset):
             )
         )
     return response
+
+
+@admin.action(description="Approve selected pending avatars")
+def approve_avatars(modeladmin, request, queryset):
+    approved = sum(approve_pending_avatar(participant) for participant in queryset)
+    modeladmin.message_user(request, f"Approved {approved} avatar(s).", level=messages.SUCCESS)
+
+
+@admin.action(description="Reject selected pending avatars")
+def reject_avatars(modeladmin, request, queryset):
+    rejected = 0
+    for participant in queryset.filter(avatar_status=Participant.AvatarStatus.PENDING):
+        reject_pending_avatar(participant)
+        rejected += 1
+    modeladmin.message_user(request, f"Rejected {rejected} avatar(s).", level=messages.SUCCESS)
 
 
 @admin.action(description="Resend verification to selected registrations")
@@ -155,15 +193,17 @@ def process_account_closures(modeladmin, request, queryset):
 
 @admin.register(Participant)
 class ParticipantAdmin(UserAdmin):
+    form = ParticipantAdminForm
     list_display = (
         "nickname",
         "email",
         "status",
+        "avatar_status",
         "registered_at",
         "verified_at",
         "deletion_requested_at",
     )
-    list_filter = ("status", "registered_at", "deletion_requested_at")
+    list_filter = ("status", "avatar_status", "registered_at", "deletion_requested_at")
     search_fields = ("nickname", "email")
     readonly_fields = (
         "id",
@@ -174,11 +214,16 @@ class ParticipantAdmin(UserAdmin):
         "age_eligibility_confirmed_at",
         "verification_sent_at",
         "deletion_requested_at",
+        "avatar_review_path",
+        "avatar_moderation_note",
+        "avatar_submitted_at",
+        "avatar_review_preview",
     )
     ordering = ("email",)
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         ("Participant", {"fields": ("nickname", "status", "verified_at", "admin_notes")}),
+        ("Avatar", {"fields": ("avatar", "avatar_status", "avatar_submitted_at", "avatar_review_preview", "avatar_review_path", "avatar_moderation_note")}),
         ("Account closure request", {"fields": ("deletion_requested_at", "deletion_request_note")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
         ("Registration record", {"fields": ("id", "normalized_nickname", "normalized_email", "registered_at", "privacy_notice_acknowledged_at", "privacy_notice_version", "age_eligibility_confirmed_at", "age_policy_version", "verification_sent_at")}),
@@ -186,8 +231,82 @@ class ParticipantAdmin(UserAdmin):
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("email", "nickname", "password1", "password2", "is_active", "is_staff", "groups")}),
     )
-    actions = (resend_verifications, promote_to_approver, promote_to_moderator, promote_to_challenge_admin, promote_to_branding_admin, process_account_closures, export_registrations)
+    actions = (approve_avatars, reject_avatars, resend_verifications, promote_to_approver, promote_to_moderator, promote_to_challenge_admin, promote_to_branding_admin, process_account_closures, export_registrations)
     date_hierarchy = "registered_at"
+
+    @admin.display(description="Pending avatar preview")
+    def avatar_review_preview(self, obj):
+        if not obj or not obj.avatar_review_path:
+            return "No avatar is awaiting review."
+        url = reverse("admin:registry_participant_avatar_review", args=(obj.pk,))
+        approve_url = reverse("admin:registry_participant_avatar_approve", args=(obj.pk,))
+        decline_url = reverse("admin:registry_participant_avatar_decline", args=(obj.pk,))
+        return format_html(
+            '<div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;">'
+            '<img src="{}" alt="Pending avatar" style="width:160px;height:160px;object-fit:cover;border-radius:50%;">'
+            '<div class="avatar-review-actions">'
+            '<button type="button" class="button avatar-review-approve" data-avatar-review-action="{}">Approve</button>'
+            '<button type="button" class="button avatar-review-decline" data-avatar-review-action="{}">Decline</button>'
+            '</div></div>',
+            url, approve_url, decline_url,
+        )
+
+    def get_urls(self):
+        return [
+            path(
+                "<path:object_id>/avatar-review/approve/",
+                self.admin_site.admin_view(self.approve_avatar_view),
+                name="registry_participant_avatar_approve",
+            ),
+            path(
+                "<path:object_id>/avatar-review/decline/",
+                self.admin_site.admin_view(self.decline_avatar_view),
+                name="registry_participant_avatar_decline",
+            ),
+            path(
+                "<path:object_id>/avatar-review/",
+                self.admin_site.admin_view(self.avatar_review_image),
+                name="registry_participant_avatar_review",
+            ),
+        ] + super().get_urls()
+
+    def avatar_review_participant(self, request, object_id):
+        participant = self.get_object(request, object_id)
+        if not participant or not self.has_change_permission(request, participant):
+            raise Http404
+        return participant
+
+    def approve_avatar_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        participant = self.avatar_review_participant(request, object_id)
+        if approve_pending_avatar(participant):
+            notify(participant, title="Avatar approved", message="Your new avatar has been approved and published.")
+            self.message_user(request, "The avatar was approved and published.", level=messages.SUCCESS)
+        else:
+            self.message_user(request, "There was no pending avatar to approve.", level=messages.WARNING)
+        return redirect("admin:registry_participant_change", participant.pk)
+
+    def decline_avatar_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        participant = self.avatar_review_participant(request, object_id)
+        if participant.avatar_status == Participant.AvatarStatus.PENDING:
+            reject_pending_avatar(participant)
+            notify(participant, title="Avatar declined", message="Your avatar was not accepted. Your previous avatar has not changed.")
+            self.message_user(request, "The pending avatar was declined and removed.", level=messages.SUCCESS)
+        else:
+            self.message_user(request, "There was no pending avatar to decline.", level=messages.WARNING)
+        return redirect("admin:registry_participant_change", participant.pk)
+
+    def avatar_review_image(self, request, object_id):
+        participant = self.get_object(request, object_id)
+        if not participant or not self.has_view_or_change_permission(request, participant):
+            raise Http404
+        avatar_path = Path(settings.AVATAR_QUARANTINE_ROOT) / participant.avatar_review_path
+        if not participant.avatar_review_path or not avatar_path.is_file():
+            raise Http404
+        return FileResponse(avatar_path.open("rb"), content_type="image/webp")
 
     def has_delete_permission(self, request, obj=None):
         return False
@@ -197,6 +316,10 @@ class ParticipantAdmin(UserAdmin):
         if not can_process_closures(request.user):
             actions.pop("process_account_closures", None)
         return actions
+
+    class Media:
+        css = {"all": ("registry/admin_avatar_review.css",)}
+        js = ("registry/admin_avatar_review.js",)
 
 
 @admin.register(AccountClosureRecord)

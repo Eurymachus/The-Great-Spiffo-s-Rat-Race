@@ -7,6 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from branding.models import ManagedImage
+from config.context_processors import navigation_tree
 from registry.models import Participant
 
 from .models import NavigationItem, Page, PageBlock, PageGalleryImage, PageSection, SectionItem
@@ -332,7 +333,65 @@ class ManagedPageTests(TestCase):
         self.assertContains(response, 'data-navigation-label')
         self.assertContains(response, 'data-navigation-page')
         self.assertContains(response, 'data-navigation-save')
+        self.assertContains(response, 'data-navigation-destination')
+        self.assertContains(response, 'data-tooltip="Menu group')
+        self.assertContains(response, 'data-navigation-remove', count=2)
         self.assertContains(response, "Gallery")
+
+    def test_navigation_item_and_its_nested_branch_can_be_removed(self):
+        self.login_superuser("navigation-tree-remove@example.com")
+        NavigationItem.objects.all().delete()
+        root = NavigationItem.objects.create(label="Media", position=0)
+        child = NavigationItem.objects.create(label="Gallery", parent=root, position=0)
+        NavigationItem.objects.create(label="Screenshots", parent=child, position=0)
+        survivor = NavigationItem.objects.create(label="Rules", position=10)
+
+        response = self.client.post(
+            reverse("admin:pages_navigationitem_remove", args=(root.pk,)),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"removed": True})
+        self.assertFalse(NavigationItem.objects.filter(pk=root.pk).exists())
+        self.assertFalse(NavigationItem.objects.filter(pk=child.pk).exists())
+        self.assertTrue(NavigationItem.objects.filter(pk=survivor.pk).exists())
+
+    def test_child_navigation_item_can_be_added_up_to_three_levels(self):
+        self.login_superuser("navigation-tree-child@example.com")
+        NavigationItem.objects.all().delete()
+        root = NavigationItem.objects.create(label="Media", position=0)
+        child = NavigationItem.objects.create(label="Gallery", parent=root, position=0)
+        grandchild = NavigationItem.objects.create(label="Screenshots", parent=child, position=0)
+
+        page = self.client.get(reverse("admin:pages_navigationitem_changelist"))
+        self.assertContains(page, 'data-navigation-add-child', count=2)
+
+        response = self.client.post(reverse("admin:pages_navigationitem_add_child", args=(root.pk,)))
+        self.assertEqual(response.status_code, 200)
+        result = response.json()
+        self.assertTrue(result["created"])
+        created = NavigationItem.objects.get(pk=result["id"])
+        self.assertEqual(created.parent, root)
+        self.assertEqual(created.label, "New item")
+        self.assertIn("data-navigation-item", result["html"])
+
+        response = self.client.post(reverse("admin:pages_navigationitem_add_child", args=(grandchild.pk,)))
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["created"])
+
+    def test_empty_menu_groups_are_omitted_from_public_navigation(self):
+        NavigationItem.objects.all().delete()
+        empty_root = NavigationItem.objects.create(label="Empty menu", position=0)
+        empty_child = NavigationItem.objects.create(label="Empty child", parent=empty_root, position=0)
+        useful_root = NavigationItem.objects.create(label="Useful menu", position=10)
+        NavigationItem.objects.create(label="Home link", page=self.page, parent=useful_root, position=0)
+
+        tree = navigation_tree()
+
+        self.assertEqual([node["item"].label for node in tree], ["Useful menu"])
+        self.assertEqual([node["item"].label for node in tree[0]["children"]], ["Home link"])
+        self.assertTrue(NavigationItem.objects.filter(pk=empty_root.pk).exists())
+        self.assertTrue(NavigationItem.objects.filter(pk=empty_child.pk).exists())
 
     def test_navigation_tree_order_can_be_saved_together(self):
         self.login_superuser("navigation-tree-save@example.com")

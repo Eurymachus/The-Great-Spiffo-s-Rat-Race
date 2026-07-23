@@ -27,6 +27,63 @@ document.addEventListener("DOMContentLoaded", () => {
         toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), type === "error" ? 5000 : 2600);
     };
 
+    const removeConfirmation = document.createElement("div");
+    removeConfirmation.className = "navigation-tree-remove-confirmation";
+    removeConfirmation.hidden = true;
+    removeConfirmation.setAttribute("role", "dialog");
+    document.body.append(removeConfirmation);
+    let resolveRemoveConfirmation = null;
+    const closeRemoveConfirmation = (confirmed = false) => {
+        if (removeConfirmation.hidden) return;
+        removeConfirmation.hidden = true;
+        removeConfirmation.replaceChildren();
+        const resolve = resolveRemoveConfirmation;
+        resolveRemoveConfirmation = null;
+        resolve?.(confirmed);
+    };
+    const confirmRemoval = (trigger, item) => new Promise((resolve) => {
+        closeRemoveConfirmation(false);
+        resolveRemoveConfirmation = resolve;
+        const label = item.querySelector("[data-navigation-summary-label]")?.textContent.trim() || "navigation item";
+        const hasChildren = item.querySelector(":scope > [data-navigation-children] > [data-navigation-item]");
+        const message = document.createElement("strong");
+        message.textContent = `Remove “${label}”?`;
+        const detail = document.createElement("span");
+        detail.textContent = hasChildren
+            ? "This also removes every item inside this menu. It takes effect immediately and cannot be undone."
+            : "This takes effect immediately and cannot be undone.";
+        const controls = document.createElement("span");
+        controls.className = "navigation-tree-remove-confirmation-actions";
+        const cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.className = "button";
+        cancel.textContent = "Cancel";
+        const confirm = document.createElement("button");
+        confirm.type = "button";
+        confirm.className = "button navigation-tree-confirm-remove";
+        confirm.textContent = "Remove";
+        cancel.addEventListener("click", () => closeRemoveConfirmation(false));
+        confirm.addEventListener("click", () => closeRemoveConfirmation(true));
+        controls.append(cancel, confirm);
+        removeConfirmation.append(message, detail, controls);
+        removeConfirmation.hidden = false;
+        const rect = trigger.getBoundingClientRect();
+        const popup = removeConfirmation.getBoundingClientRect();
+        const below = rect.bottom + 6;
+        removeConfirmation.style.top = `${below + popup.height <= window.innerHeight - 8 ? below : Math.max(8, rect.top - popup.height - 6)}px`;
+        removeConfirmation.style.left = `${Math.max(8, Math.min(window.innerWidth - popup.width - 8, rect.right - popup.width))}px`;
+        cancel.focus();
+    });
+    document.addEventListener("pointerdown", (event) => {
+        if (!removeConfirmation.hidden && !removeConfirmation.contains(event.target) && !event.target.closest("[data-navigation-remove]")) closeRemoveConfirmation(false);
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !removeConfirmation.hidden) {
+            event.preventDefault();
+            closeRemoveConfirmation(false);
+        }
+    });
+
     const directItems = (container) => [...container.children].filter((child) => child.matches("[data-navigation-item]"));
     const childContainer = (item) => item.querySelector(":scope > [data-navigation-children]");
     const itemDepth = (item) => {
@@ -90,6 +147,53 @@ document.addEventListener("DOMContentLoaded", () => {
             suppressNextClick = false;
             event.preventDefault();
             event.stopImmediatePropagation();
+            return;
+        }
+        const addChildTrigger = event.target.closest("[data-navigation-add-child]");
+        if (addChildTrigger) {
+            event.preventDefault();
+            const parentItem = addChildTrigger.closest("[data-navigation-item]");
+            addChildTrigger.disabled = true;
+            fetch(addChildTrigger.dataset.addChildUrl, {
+                method: "POST",
+                headers: {"X-CSRFToken": csrf},
+            }).then(async (response) => {
+                const result = await response.json();
+                if (!response.ok || !result.created) throw new Error(result.error || "The child navigation item could not be added.");
+                const fragment = document.createRange().createContextualFragment(result.html);
+                const child = fragment.querySelector("[data-navigation-item]");
+                childContainer(parentItem).append(fragment);
+                toggleItem(parentItem, true);
+                editName(child);
+                showToast("Child navigation item added");
+            }).catch((error) => {
+                showToast(error.message || "The child navigation item could not be added.", "error");
+            }).finally(() => {
+                addChildTrigger.disabled = false;
+            });
+            return;
+        }
+        const removeTrigger = event.target.closest("[data-navigation-remove]");
+        if (removeTrigger) {
+            event.preventDefault();
+            const item = removeTrigger.closest("[data-navigation-item]");
+            confirmRemoval(removeTrigger, item).then(async (confirmed) => {
+                if (!confirmed) return;
+                removeTrigger.disabled = true;
+                try {
+                    const response = await fetch(removeTrigger.dataset.removeUrl, {
+                        method: "POST",
+                        headers: {"X-CSRFToken": csrf},
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.removed) throw new Error(result.error || "The navigation item could not be removed.");
+                    item.remove();
+                    showToast("Navigation item removed");
+                } catch (error) {
+                    removeTrigger.disabled = false;
+                    showToast(error.message || "The navigation item could not be removed.", "error");
+                }
+            });
             return;
         }
         const nameTrigger = event.target.closest("[data-navigation-name-trigger]");
@@ -253,7 +357,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 const visible = item.querySelector("[data-navigation-visible]").checked;
                 item.querySelector("[data-navigation-summary-label]").textContent = label;
                 const destination = item.querySelector("[data-navigation-destination]");
-                destination.textContent = page.value ? `Page · ${selected.dataset.address}` : "Menu group";
+                const destinationDescription = page.value ? `Page · ${selected.dataset.address}` : "Menu group · no page destination";
+                destination.dataset.tooltip = destinationDescription;
+                destination.setAttribute("aria-label", `Destination: ${destinationDescription}`);
                 let draft = item.querySelector("[data-navigation-draft]");
                 const isDraft = page.value && selected.dataset.published === "false";
                 if (isDraft && !draft) {

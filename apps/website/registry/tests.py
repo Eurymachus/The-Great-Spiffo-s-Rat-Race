@@ -1,12 +1,17 @@
 import re
+import tempfile
 import uuid
 from datetime import timedelta
-from io import StringIO
+from io import BytesIO, StringIO
+from pathlib import Path
 from unittest.mock import patch
+
+from PIL import Image
 
 from django.conf import settings
 from django.core import mail
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -17,6 +22,7 @@ from django.utils import timezone
 from branding.models import SiteBranding
 from pages.models import NavigationItem, Page, PageBlock, PageSection
 from .admin import export_registrations, promote_to_role
+from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
 from .models import AccountClosureRecord, Notification, Participant
 from .tokens import create_verification_token
 
@@ -499,13 +505,15 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Welcome to the Rat Race!")
         self.assertContains(response, "Spiffo Fan")
-        self.assertContains(response, "player@example.com")
-        self.assertContains(response, "Verified")
-        self.assertContains(response, reverse("registry:password_change"))
-        self.assertContains(response, "Run update submissions will appear here")
+        self.assertContains(response, reverse("registry:account_settings"))
+        self.assertNotContains(response, reverse("registry:password_change"))
+        self.assertContains(response, "Personal Best")
+        self.assertContains(response, "Active Runs")
+        self.assertContains(response, "Submission History")
         self.assertContains(response, reverse("registry:logout"))
         self.assertContains(response, 'aria-current="page"')
         self.assertNotContains(response, ">Administration<")
+        self.assertNotContains(response, ">Admin Dashboard</a>")
 
     def test_staff_account_omits_administration_from_public_navigation(self):
         self.client.post(reverse("registry:register"), self.registration_data())
@@ -525,7 +533,210 @@ class RegistrationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, ">Administration<")
-        self.assertContains(response, "Challenge administration")
+        self.assertNotContains(response, "Challenge administration")
+        self.assertContains(response, reverse("admin:index"))
+        self.assertContains(response, ">Admin Dashboard</a>")
+        self.assertContains(response, 'target="_blank"')
+        self.assertContains(response, 'rel="noopener"')
+
+    def test_account_settings_hub_contains_security_privacy_and_closure_actions(self):
+        self.client.post(reverse("registry:register"), self.registration_data())
+        participant = Participant.objects.get()
+        self.client.get(
+            reverse(
+                "registry:verify",
+                kwargs={"token": create_verification_token(participant)},
+            )
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:account_settings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Account settings")
+        self.assertContains(response, "player@example.com")
+        self.assertContains(response, reverse("registry:password_change"))
+        self.assertContains(response, reverse("registry:notifications"))
+        self.assertContains(response, reverse("registry:download_my_data"))
+        self.assertContains(response, reverse("registry:privacy"))
+        self.assertContains(response, reverse("registry:account_closure"))
+        self.assertContains(response, 'aria-current="page"')
+
+    def test_avatar_upload_is_quarantined_when_moderation_is_not_configured(self):
+        participant = Participant.objects.create_user(
+            email="avatar@example.com", nickname="Avatar User",
+            password="Local-test-password-482!", is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+        image_buffer = BytesIO()
+        Image.new("RGB", (300, 200), "orange").save(image_buffer, "PNG")
+        upload = SimpleUploadedFile("avatar.png", image_buffer.getvalue(), content_type="image/png")
+
+        with tempfile.TemporaryDirectory() as media_root, tempfile.TemporaryDirectory() as quarantine_root:
+            with self.settings(
+                MEDIA_ROOT=media_root,
+                AVATAR_QUARANTINE_ROOT=quarantine_root,
+                OPENAI_API_KEY="",
+            ):
+                response = self.client.post(reverse("registry:upload_avatar"), {"avatar": upload})
+                self.assertRedirects(response, reverse("registry:account"))
+                participant.refresh_from_db()
+                self.assertEqual(participant.avatar_status, Participant.AvatarStatus.PENDING)
+                self.assertFalse(participant.avatar)
+                self.assertTrue((Path(quarantine_root) / participant.avatar_review_path).is_file())
+
+    def test_pending_replacement_keeps_approved_avatar_visible_until_approval(self):
+        old_image = BytesIO()
+        Image.new("RGB", (512, 512), "green").save(old_image, "WEBP")
+        replacement = BytesIO()
+        Image.new("RGB", (300, 300), "blue").save(replacement, "PNG")
+
+        with tempfile.TemporaryDirectory() as media_root, tempfile.TemporaryDirectory() as quarantine_root:
+            with self.settings(
+                MEDIA_ROOT=media_root,
+                AVATAR_QUARANTINE_ROOT=quarantine_root,
+                OPENAI_API_KEY="",
+            ):
+                participant = Participant.objects.create_user(
+                    email="replacement-avatar@example.com", nickname="Replacement Avatar",
+                    password="Local-test-password-482!", is_active=True,
+                    status=Participant.Status.VERIFIED,
+                    avatar_status=Participant.AvatarStatus.APPROVED,
+                )
+                participant.avatar.save(
+                    "existing.webp",
+                    SimpleUploadedFile("existing.webp", old_image.getvalue(), content_type="image/webp"),
+                )
+                original_name = participant.avatar.name
+                original_url = participant.avatar.url
+                self.client.force_login(participant)
+
+                response = self.client.post(
+                    reverse("registry:upload_avatar"),
+                    {"avatar": SimpleUploadedFile("replacement.png", replacement.getvalue(), content_type="image/png")},
+                )
+                self.assertRedirects(response, reverse("registry:account"))
+                participant.refresh_from_db()
+                self.assertEqual(participant.avatar_status, Participant.AvatarStatus.PENDING)
+                self.assertEqual(participant.avatar.name, original_name)
+                self.assertTrue((Path(media_root) / original_name).is_file())
+                self.assertContains(self.client.get(reverse("registry:account")), original_url)
+
+                reject_pending_avatar(participant)
+                participant.refresh_from_db()
+                self.assertEqual(participant.avatar_status, Participant.AvatarStatus.REJECTED)
+                self.assertEqual(participant.avatar.name, original_name)
+                self.assertContains(self.client.get(reverse("registry:account")), original_url)
+
+                replacement.seek(0)
+                self.client.post(
+                    reverse("registry:upload_avatar"),
+                    {"avatar": SimpleUploadedFile("replacement.png", replacement.getvalue(), content_type="image/png")},
+                )
+                participant.refresh_from_db()
+                self.assertTrue(approve_pending_avatar(participant))
+                participant.refresh_from_db()
+                self.assertEqual(participant.avatar_status, Participant.AvatarStatus.APPROVED)
+                self.assertNotEqual(participant.avatar.name, original_name)
+                self.assertFalse((Path(media_root) / original_name).exists())
+
+    @patch("registry.avatar_moderation.moderate_avatar", return_value=("approved", "Passed automatic moderation."))
+    def test_approved_avatar_is_reencoded_and_published(self, moderate):
+        participant = Participant.objects.create_user(
+            email="approved-avatar@example.com", nickname="Approved Avatar",
+            password="Local-test-password-482!", is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+        image_buffer = BytesIO()
+        Image.new("RGB", (200, 300), "green").save(image_buffer, "JPEG")
+        upload = SimpleUploadedFile("avatar.jpg", image_buffer.getvalue(), content_type="image/jpeg")
+
+        with tempfile.TemporaryDirectory() as media_root:
+            with self.settings(MEDIA_ROOT=media_root):
+                response = self.client.post(reverse("registry:upload_avatar"), {"avatar": upload})
+                self.assertRedirects(response, reverse("registry:account"))
+                participant.refresh_from_db()
+                self.assertEqual(participant.avatar_status, Participant.AvatarStatus.APPROVED)
+                self.assertTrue(participant.avatar.name.endswith(".webp"))
+                with Image.open(Path(media_root) / participant.avatar.name) as saved:
+                    self.assertEqual(saved.size, (512, 512))
+        moderate.assert_called_once()
+
+    def test_admin_can_approve_or_decline_avatar_beside_preview(self):
+        administrator = Participant.objects.create_superuser(
+            email="avatar-admin@example.com", nickname="Avatar Admin",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+        image_buffer = BytesIO()
+        Image.new("RGB", (512, 512), "purple").save(image_buffer, "WEBP")
+        image_bytes = image_buffer.getvalue()
+
+        with tempfile.TemporaryDirectory() as media_root, tempfile.TemporaryDirectory() as quarantine_root:
+            with self.settings(MEDIA_ROOT=media_root, AVATAR_QUARANTINE_ROOT=quarantine_root):
+                participant = Participant.objects.create_user(
+                    email="approve-me@example.com", nickname="Approve Me",
+                    password="Local-test-password-482!", is_active=True,
+                    status=Participant.Status.VERIFIED,
+                    avatar_status=Participant.AvatarStatus.PENDING,
+                    avatar_review_path="approve.webp",
+                )
+                (Path(quarantine_root) / "approve.webp").write_bytes(image_bytes)
+                change_url = reverse("admin:registry_participant_change", args=(participant.pk,))
+                page = self.client.get(change_url)
+                self.assertContains(page, "Pending review")
+                self.assertContains(page, "Approve")
+                self.assertContains(page, "Decline")
+                self.assertContains(page, 'name="avatar_status"')
+                self.assertNotContains(page, '<select name="avatar_status"')
+
+                response = self.client.post(reverse("admin:registry_participant_avatar_approve", args=(participant.pk,)))
+                self.assertRedirects(response, change_url)
+                participant.refresh_from_db()
+                self.assertEqual(participant.avatar_status, Participant.AvatarStatus.APPROVED)
+                self.assertTrue(participant.avatar)
+
+                declined = Participant.objects.create_user(
+                    email="decline-me@example.com", nickname="Decline Me",
+                    password="Local-test-password-482!", is_active=True,
+                    status=Participant.Status.VERIFIED,
+                    avatar_status=Participant.AvatarStatus.PENDING,
+                    avatar_review_path="decline.webp",
+                )
+                (Path(quarantine_root) / "decline.webp").write_bytes(image_bytes)
+                response = self.client.post(reverse("admin:registry_participant_avatar_decline", args=(declined.pk,)))
+                self.assertRedirects(response, reverse("admin:registry_participant_change", args=(declined.pk,)))
+                declined.refresh_from_db()
+                self.assertEqual(declined.avatar_status, Participant.AvatarStatus.REJECTED)
+                self.assertFalse((Path(quarantine_root) / "decline.webp").exists())
+
+    def test_account_dashboard_leaves_notifications_to_notification_menu(self):
+        self.client.post(reverse("registry:register"), self.registration_data())
+        participant = Participant.objects.get()
+        self.client.get(
+            reverse(
+                "registry:verify",
+                kwargs={"token": create_verification_token(participant)},
+            )
+        )
+        Notification.objects.create(
+            recipient=participant,
+            title="Submission received",
+            message="Your first run update is waiting for review.",
+            category=Notification.Category.SUBMISSION,
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:account"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "<h3>Notifications</h3>", html=True)
+        self.assertContains(response, "Personal Best")
+        self.assertContains(response, "Active Runs")
+        self.assertContains(response, "Submission History")
+        self.assertNotContains(response, "Unread notifications")
 
     def test_participant_can_change_password_and_remains_logged_in(self):
         self.client.post(reverse("registry:register"), self.registration_data())
@@ -631,7 +842,7 @@ class RegistrationTests(TestCase):
         self.client.force_login(participant)
 
         account_response = self.client.get(reverse("registry:account"))
-        self.assertContains(account_response, "Submission received")
+        self.assertNotContains(account_response, "<h3>Notifications</h3>", html=True)
         self.assertContains(account_response, 'class="notification-count">1</span>')
         history_response = self.client.get(reverse("registry:notifications"))
         self.assertContains(history_response, "Your submission has been received.")

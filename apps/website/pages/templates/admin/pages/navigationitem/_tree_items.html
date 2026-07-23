@@ -7,12 +7,14 @@
         <strong class="navigation-tree-label" data-navigation-summary-label data-navigation-name-trigger>{{ node.item.label }}</strong>
         <input class="navigation-tree-name-input" type="text" maxlength="80" value="{{ node.item.label }}" data-navigation-label hidden aria-label="Navigation label">
         {% if node.item.page %}
-        <span class="navigation-tree-badge" data-navigation-destination>Page · {% if node.item.page.slug == "home" %}/{% else %}/{{ node.item.page.public_path }}/{% endif %}</span>
+        <span class="navigation-tree-destination-info" data-navigation-destination tabindex="0" aria-label="Destination: Page, {% if node.item.page.slug == 'home' %}/{% else %}/{{ node.item.page.public_path }}/{% endif %}" data-tooltip="Page · {% if node.item.page.slug == 'home' %}/{% else %}/{{ node.item.page.public_path }}/{% endif %}">i</span>
         {% if not node.item.page.is_published %}<span class="navigation-tree-badge is-warning" data-navigation-draft>Draft page</span>{% endif %}
         {% else %}
-        <span class="navigation-tree-badge" data-navigation-destination>Menu group</span>
+        <span class="navigation-tree-destination-info" data-navigation-destination tabindex="0" aria-label="Destination: Menu group" data-tooltip="Menu group · no page destination">i</span>
         {% endif %}
         {% if not node.item.is_visible %}<span class="navigation-tree-badge is-warning" data-navigation-hidden>Hidden</span>{% endif %}
+        {% if node.depth < 3 %}<button type="button" class="navigation-tree-add-child" data-navigation-add-child data-add-child-url="{% url 'admin:pages_navigationitem_add_child' node.item.pk %}" aria-label="Add child navigation item inside {{ node.item.label }}" title="Add child navigation item">+</button>{% endif %}
+        <button type="button" class="navigation-tree-remove" data-navigation-remove data-remove-url="{% url 'admin:pages_navigationitem_remove' node.item.pk %}" aria-label="Remove {{ node.item.label }}">&#215;</button>
     </div>
     <div class="navigation-tree-fields" data-navigation-fields hidden>
         <div class="navigation-tree-field">

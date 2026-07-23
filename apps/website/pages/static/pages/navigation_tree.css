@@ -15,9 +15,24 @@
 .navigation-tree-label { cursor: text; font-weight: 700; }
 .navigation-tree-name-input { width: min(28rem, 45vw); margin: 0; }
 .navigation-tree-name-input[hidden], .navigation-tree-label[hidden] { display: none; }
+.navigation-tree-destination-info { position: relative; display: grid; flex: 0 0 1.55rem; width: 1.55rem; height: 1.55rem; margin-left: auto; place-items: center; border: 1px solid var(--hairline-color); border-radius: 50%; color: var(--body-quiet-color); cursor: help; font-size: .75rem; font-weight: 700; }
+.navigation-tree-destination-info::after { position: absolute; z-index: 20; right: 0; bottom: calc(100% + .45rem); width: max-content; max-width: min(22rem, 75vw); padding: .45rem .6rem; border: 1px solid var(--hairline-color); border-radius: 4px; background: var(--darkened-bg); box-shadow: 0 .45rem 1.2rem rgb(0 0 0 / 35%); color: var(--body-fg); content: attr(data-tooltip); font-size: .78rem; font-weight: 400; line-height: 1.3; opacity: 0; pointer-events: none; transform: translateY(.2rem); transition: opacity 120ms ease, transform 120ms ease; white-space: nowrap; }
+.navigation-tree-destination-info:hover::after, .navigation-tree-destination-info:focus-visible::after { opacity: 1; transform: translateY(0); }
 .navigation-tree-badge { margin-left: auto; padding: .2rem .45rem; border: 1px solid var(--hairline-color); border-radius: 999px; color: var(--body-quiet-color); font-size: .78rem; }
 .navigation-tree-badge + .navigation-tree-badge { margin-left: 0; }
 .navigation-tree-badge.is-warning { border-color: #a97018; color: #d9a441; }
+.navigation-tree-destination-info + .navigation-tree-badge { margin-left: 0; }
+.navigation-tree-add-child { display: grid; flex: 0 0 2rem; width: 2rem; height: 2rem; margin: 0; padding: 0; place-items: center; border: 0; border-radius: 4px; background: var(--button-bg); color: var(--button-fg); cursor: pointer; font-size: 1.25rem; line-height: 1; }
+.navigation-tree-add-child:hover, .navigation-tree-add-child:focus-visible { background: var(--button-hover-bg); }
+.navigation-tree-remove { display: grid; flex: 0 0 2rem; width: 2rem; height: 2rem; margin: 0; padding: 0; place-items: center; border: 0; border-radius: 4px; background: #9f4b4f; color: #fff; cursor: pointer; font-size: 1.15rem; line-height: 1; }
+.navigation-tree-remove:hover, .navigation-tree-remove:focus-visible { background: #7f3438; }
+.navigation-tree-remove-confirmation { position: fixed; z-index: 10030; display: grid; gap: .45rem; width: min(20rem, calc(100vw - 1rem)); padding: .85rem; border: 1px solid #8f4545; border-radius: 5px; background: var(--body-bg); color: var(--body-fg); box-shadow: 0 .75rem 2rem rgb(0 0 0 / 42%); box-sizing: border-box; }
+.navigation-tree-remove-confirmation[hidden] { display: none; }
+.navigation-tree-remove-confirmation > span:not(.navigation-tree-remove-confirmation-actions) { color: var(--body-quiet-color); line-height: 1.4; }
+.navigation-tree-remove-confirmation-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .35rem; }
+.navigation-tree-remove-confirmation-actions .button { width: auto; margin: 0; }
+.navigation-tree-confirm-remove { border-color: #8f4545 !important; background: #8f4545 !important; color: #fff !important; }
+.navigation-tree-confirm-remove:hover, .navigation-tree-confirm-remove:focus { border-color: #562a2a !important; background: #562a2a !important; }
 .navigation-tree-fields { display: grid; grid-template-columns: 1fr; align-items: end; gap: 1rem; padding: 1rem 1.25rem; border: 1px solid var(--hairline-color); border-top: 0; background: color-mix(in srgb, var(--body-bg) 96%, var(--link-fg)); }
 .navigation-tree-fields[hidden] { display: none; }
 .navigation-tree-field { display: grid; gap: .35rem; }
@@ -37,7 +52,7 @@
     .navigation-tree-heading .button { width: 100%; }
     .navigation-tree-children { margin-left: 1rem; }
     .navigation-tree-row { flex-wrap: wrap; }
-    .navigation-tree-badge { margin-left: 2.75rem; }
+    .navigation-tree-destination-info { margin-left: auto; }
     .navigation-tree-fields { grid-template-columns: 1fr; }
     .navigation-tree-visible { grid-column: auto; }
 }

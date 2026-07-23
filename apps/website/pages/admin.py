@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.db import transaction
+from django.db.models import Max
 import json
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
 from django.urls import path, reverse
 from django.utils import timezone
 
@@ -164,11 +166,51 @@ class NavigationItemAdmin(admin.ModelAdmin):
     def get_urls(self):
         return [
             path(
+                "<int:object_id>/add-child/",
+                self.admin_site.admin_view(self.add_child_view),
+                name="pages_navigationitem_add_child",
+            ),
+            path(
+                "<int:object_id>/remove/",
+                self.admin_site.admin_view(self.remove_item_view),
+                name="pages_navigationitem_remove",
+            ),
+            path(
                 "reorder/",
                 self.admin_site.admin_view(self.reorder_view),
                 name="pages_navigationitem_reorder",
             ),
         ] + super().get_urls()
+
+    def add_child_view(self, request, object_id):
+        parent = get_object_or_404(NavigationItem, pk=object_id)
+        if request.method != "POST" or not self.has_add_permission(request):
+            return JsonResponse({"created": False}, status=403)
+        depth = 1
+        ancestor = parent
+        while ancestor.parent_id:
+            depth += 1
+            ancestor = ancestor.parent
+        if depth >= 3:
+            return JsonResponse({"created": False, "error": "Navigation supports at most three levels."}, status=400)
+        position = (parent.children.aggregate(highest=Max("position"))["highest"] or 0) + 10
+        child = NavigationItem.objects.create(label="New item", parent=parent, position=position)
+        node = {"item": child, "children": [], "depth": depth + 1}
+        html = render_to_string(
+            "admin/pages/navigationitem/_tree_items.html",
+            {"nodes": [node], "navigation_pages": Page.objects.order_by("title", "public_path")},
+            request=request,
+        )
+        return JsonResponse({"created": True, "html": html, "id": child.pk})
+
+    def remove_item_view(self, request, object_id):
+        item = get_object_or_404(NavigationItem, pk=object_id)
+        if request.method != "POST" or not self.has_delete_permission(request, item):
+            return JsonResponse({"removed": False}, status=403)
+        # Deleting a menu removes its complete nested branch through the model's
+        # cascading parent relationship.
+        item.delete()
+        return JsonResponse({"removed": True})
 
     def changelist_view(self, request, extra_context=None):
         items = list(self.get_queryset(request).order_by("parent_id", "position", "label"))
@@ -180,6 +222,11 @@ class NavigationItemAdmin(admin.ModelAdmin):
                 parent["children"].append(node)
             else:
                 roots.append(node)
+        def assign_depth(branches, depth=1):
+            for node in branches:
+                node["depth"] = depth
+                assign_depth(node["children"], depth + 1)
+        assign_depth(roots)
         extra_context = {
             **(extra_context or {}),
             "navigation_tree": roots,

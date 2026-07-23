@@ -42,6 +42,9 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("account/", views.account, name="account"),
+    path("account/settings/", views.account_settings, name="account_settings"),
+    path("account/settings/avatar/", views.upload_avatar, name="upload_avatar"),
+    path("account/settings/avatar/remove/", views.delete_avatar, name="delete_avatar"),
     path("account/notifications/", views.notifications, name="notifications"),
     path(
         "account/notifications/read/",

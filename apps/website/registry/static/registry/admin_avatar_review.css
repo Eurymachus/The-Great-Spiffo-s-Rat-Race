@@ -1,0 +1,39 @@
+.avatar-review-actions {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+}
+
+.avatar-review-actions .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.25rem;
+    margin: 0;
+    padding: .55rem .9rem;
+    border: 0;
+    border-radius: 4px;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.avatar-review-actions .avatar-review-approve {
+    background: var(--button-bg, #417690);
+}
+
+.avatar-review-actions .avatar-review-approve:hover,
+.avatar-review-actions .avatar-review-approve:focus-visible {
+    background: var(--button-hover-bg, #205067);
+}
+
+.avatar-review-actions .avatar-review-decline {
+    background: #9f4b4f;
+}
+
+.avatar-review-actions .avatar-review-decline:hover,
+.avatar-review-actions .avatar-review-decline:focus-visible {
+    background: #7f3438;
+}

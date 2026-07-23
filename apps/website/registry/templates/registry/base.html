@@ -74,10 +74,11 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260722-8">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260723-3">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
     <script src="{% static 'registry/site_menu.js' %}?v=20260722-1" defer></script>
     <script src="{% static 'registry/account_menu.js' %}?v=20260722-1" defer></script>
+    <script src="{% static 'registry/avatar_modal.js' %}?v=20260723-2" defer></script>
     <script src="{% static 'registry/gallery.js' %}?v=20260721-4" defer></script>
     {% if site_theme %}
     <style>
@@ -153,13 +154,14 @@
                     <li class="site-nav-item site-utility-item site-account-item has-children">
                         <span class="site-nav-entry">
                             <button class="site-nav-group-toggle account-menu-toggle" type="button" aria-expanded="false" data-nav-submenu-toggle>
-                                <span class="account-avatar" aria-hidden="true">{{ request.user.nickname|first|upper }}</span>
+                                <span class="account-avatar" aria-hidden="true">{% if request.user.avatar %}<img src="{{ request.user.avatar.url }}" alt="">{% else %}{{ request.user.nickname|first|upper }}{% endif %}</span>
                                 <span>{{ request.user.nickname }}</span><span class="site-nav-arrow" aria-hidden="true">▾</span>
                             </button>
                         </span>
                         <ul class="site-nav-submenu account-dropdown">
                             <li><a href="{% url 'registry:account' %}"{% if request.resolver_match.url_name == 'account' %} aria-current="page"{% endif %}>Your Account</a></li>
-                            <li><a href="{% url 'registry:password_change' %}">Account Settings</a></li>
+                            <li><a href="{% url 'registry:account_settings' %}"{% if request.resolver_match.url_name == 'account_settings' %} aria-current="page"{% endif %}>Account Settings</a></li>
+                            {% if request.user.is_staff %}<li><a href="{% url 'admin:index' %}" target="_blank" rel="noopener">Admin Dashboard</a></li>{% endif %}
                             <li class="account-sign-out">
                                 <form method="post" action="{% url 'registry:logout' %}">{% csrf_token %}<button type="submit">Sign Out</button></form>
                             </li>
@@ -228,5 +230,32 @@
             {% include "registry/_privacy_content.html" %}
         </div>
     </dialog>
+    {% if request.user.is_authenticated %}
+    <dialog class="avatar-modal" data-avatar-dialog aria-labelledby="avatar-modal-title">
+        <div class="avatar-modal-header">
+            <div><p class="dashboard-panel-kicker">Your profile</p><strong id="avatar-modal-title">Change avatar</strong></div>
+            <button type="button" class="avatar-modal-close" data-avatar-close aria-label="Close avatar dialog">Close</button>
+        </div>
+        <div class="avatar-modal-content">
+            <span class="account-dashboard-avatar avatar-modal-preview" aria-hidden="true">{% if request.user.avatar %}<img src="{{ request.user.avatar.url }}" alt="">{% else %}{{ request.user.nickname|first|upper }}{% endif %}</span>
+            {% if request.user.avatar_status == 'pending' %}<p class="avatar-status is-pending">Your new avatar is awaiting review. Your current avatar remains visible.</p>{% elif request.user.avatar_status == 'rejected' %}<p class="avatar-status is-rejected">The previous image could not be accepted. Your current avatar has not changed.</p>{% endif %}
+            <form method="post" action="{% url 'registry:upload_avatar' %}" enctype="multipart/form-data" class="avatar-upload-form">
+                {% csrf_token %}
+                <span class="avatar-field-label">Choose an avatar</span>
+                <div class="avatar-file-picker">
+                    {{ avatar_form.avatar }}
+                    <label class="avatar-file-button" for="{{ avatar_form.avatar.id_for_label }}">Choose image</label>
+                    <span class="avatar-file-name" data-avatar-filename>No image selected</span>
+                </div>
+                {% if avatar_form.avatar.help_text %}<small>{{ avatar_form.avatar.help_text }}</small>{% endif %}
+                <p class="avatar-file-error" data-avatar-error role="alert" hidden></p>
+                <button type="submit" data-avatar-submit disabled>{% if request.user.avatar %}Change avatar{% else %}Upload avatar{% endif %}</button>
+            </form>
+            {% if request.user.avatar or request.user.avatar_status != 'none' %}
+            <form method="post" action="{% url 'registry:delete_avatar' %}" class="avatar-remove-form">{% csrf_token %}<button type="submit" class="button-secondary">Remove avatar</button></form>
+            {% endif %}
+        </div>
+    </dialog>
+    {% endif %}
 </body>
 </html>
