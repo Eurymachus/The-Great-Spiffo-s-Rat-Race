@@ -225,6 +225,12 @@ body {
     color: var(--theme-muted);
     font-weight: 750;
 }
+.site-nav-entry > a {
+    display: flex;
+    min-height: 2.65rem;
+    align-items: center;
+    box-sizing: border-box;
+}
 .site-nav .site-nav-submenu-toggle {
     margin: 0;
     padding: .7rem .75rem .7rem .45rem;
@@ -240,7 +246,13 @@ body {
     padding: .7rem .75rem .7rem .9rem;
     text-align: left;
 }
-.site-nav [data-nav-submenu-toggle] .site-nav-arrow { transition: transform 140ms ease; }
+.site-nav [data-nav-submenu-toggle] .site-nav-arrow {
+    position: relative;
+    top: 1px;
+    display: inline-block;
+    line-height: 1;
+    transition: transform 140ms ease;
+}
 .site-nav-item.is-open > .site-nav-entry [data-nav-submenu-toggle] .site-nav-arrow { transform: rotate(180deg); }
 .site-nav-submenu {
     position: absolute;
