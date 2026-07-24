@@ -240,9 +240,8 @@ class StreamingMedia(models.Model):
 
 class ChallengeRun(models.Model):
     class Status(models.TextChoices):
-        UNDER_REVIEW = "under_review", "Under review"
-        APPROVED = "approved", "Approved"
-        DECLINED = "declined", "Declined"
+        PENDING = "pending", "Pending first approval"
+        OFFICIAL = "official", "Official"
 
     class Lifecycle(models.TextChoices):
         ACTIVE = "active", "Active"
@@ -261,7 +260,14 @@ class ChallengeRun(models.Model):
     )
     run_id = models.CharField(max_length=160, unique=True)
     status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.UNDER_REVIEW
+        max_length=20, choices=Status.choices, default=Status.PENDING
+    )
+    approved_submission = models.ForeignKey(
+        "RunSubmission",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
     )
     lifecycle_status = models.CharField(
         max_length=16, choices=Lifecycle.choices, default=Lifecycle.ACTIVE
@@ -277,8 +283,6 @@ class ChallengeRun(models.Model):
     latest_events = models.JSONField(default=list, blank=True)
     first_submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    reviewed_at = models.DateTimeField(null=True, blank=True)
-    review_reason = models.TextField(blank=True)
 
     class Meta:
         ordering = ("-updated_at",)
@@ -286,17 +290,48 @@ class ChallengeRun(models.Model):
     def __str__(self):
         return self.character_name or self.run_id
 
+    @property
+    def in_game_day(self):
+        events = self.latest_events or []
+        if not events and self.approved_submission_id:
+            from .run_exports import InvalidRunExport, decode_run_export
+
+            try:
+                events = decode_run_export(self.approved_submission.raw_export).events
+            except InvalidRunExport:
+                events = []
+        world_ages = [
+            event.get("world_age_hours")
+            for event in events
+            if isinstance(event, dict)
+            and isinstance(event.get("world_age_hours"), (int, float))
+        ]
+        return max(1, int(max(world_ages) // 24) + 1) if world_ages else None
+
+    @property
+    def approved_submission_count(self):
+        return sum(
+            submission.status == RunSubmission.Status.APPROVED
+            for submission in self.submissions.all()
+        )
+
 
 class RunSubmission(models.Model):
     class Status(models.TextChoices):
         RECEIVED = "received", "Received"
         APPROVED = "approved", "Approved"
         DECLINED = "declined", "Declined"
-        SUPERSEDED = "superseded", "Superseded"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     run = models.ForeignKey(
         ChallengeRun, on_delete=models.CASCADE, related_name="submissions"
+    )
+    baseline_submission = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="successor_submissions",
     )
     submitter = models.ForeignKey(
         Participant,

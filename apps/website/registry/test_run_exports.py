@@ -246,6 +246,12 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "Deceased")
         self.assertContains(dashboard, "active-run")
         self.assertContains(dashboard, "past-run")
+        self.assertContains(dashboard, 'class="dashboard-run-entry"', count=4)
+        self.assertContains(dashboard, "Run details", count=2)
+        self.assertContains(dashboard, "Approved submissions", count=2)
+        self.assertContains(dashboard, "Submission history", count=2)
+        self.assertContains(dashboard, "Awaiting Review")
+        self.assertContains(dashboard, "Awaiting review")
 
     def test_duplicate_export_is_rejected(self):
         value = make_export()
@@ -262,6 +268,7 @@ class RunSubmissionTests(TestCase):
             reverse("registry:submit_run"), {"run_export": make_export()}
         )
         run = ChallengeRun.objects.get()
+        submission = RunSubmission.objects.get()
         administrator = Participant.objects.create_superuser(
             email="reviewer@example.com",
             nickname="Reviewer",
@@ -269,19 +276,18 @@ class RunSubmissionTests(TestCase):
         )
         self.client.force_login(administrator)
         response = self.client.post(
-            reverse("admin:registry_challengerun_approve", args=(run.pk,))
+            reverse("admin:registry_runsubmission_approve", args=(submission.pk,))
         )
         self.assertRedirects(
             response,
-            reverse("admin:registry_challengerun_change", args=(run.pk,)),
+            reverse("admin:registry_runsubmission_change", args=(submission.pk,)),
         )
         run.refresh_from_db()
-        submission = RunSubmission.objects.get()
-        self.assertEqual(run.status, ChallengeRun.Status.APPROVED)
-        self.assertIsNotNone(run.reviewed_at)
-        self.assertEqual(run.review_reason, "")
+        submission.refresh_from_db()
+        self.assertEqual(run.status, ChallengeRun.Status.OFFICIAL)
+        self.assertEqual(run.approved_submission, submission)
         self.assertEqual(submission.status, RunSubmission.Status.APPROVED)
-        self.assertEqual(submission.reviewed_at, run.reviewed_at)
+        self.assertIsNotNone(submission.reviewed_at)
         self.assertTrue(
             Notification.objects.filter(
                 recipient=self.participant, title="Submission approved"
@@ -289,14 +295,18 @@ class RunSubmissionTests(TestCase):
         )
         self.client.force_login(self.participant)
         dashboard = self.client.get(reverse("registry:account"))
-        self.assertContains(dashboard, "Approved")
+        self.assertContains(dashboard, "Official")
         self.assertContains(dashboard, "Test Survivor")
+        self.assertContains(dashboard, "In-game Day")
+        self.assertNotContains(dashboard, "Day 1")
+        self.assertNotContains(dashboard, "Events verified")
 
     def test_admin_decline_requires_and_records_reason(self):
         self.client.post(
             reverse("registry:submit_run"), {"run_export": make_export()}
         )
         run = ChallengeRun.objects.get()
+        submission = RunSubmission.objects.get()
         administrator = Participant.objects.create_superuser(
             email="reviewer@example.com",
             nickname="Reviewer",
@@ -304,31 +314,30 @@ class RunSubmissionTests(TestCase):
         )
         self.client.force_login(administrator)
         decline_url = reverse(
-            "admin:registry_challengerun_decline", args=(run.pk,)
+            "admin:registry_runsubmission_decline", args=(submission.pk,)
         )
 
         response = self.client.post(decline_url, {"reason": "  "})
         self.assertRedirects(
             response,
-            reverse("admin:registry_challengerun_change", args=(run.pk,)),
+            reverse("admin:registry_runsubmission_change", args=(submission.pk,)),
         )
         run.refresh_from_db()
-        self.assertEqual(run.status, ChallengeRun.Status.UNDER_REVIEW)
-        self.assertIsNone(run.reviewed_at)
+        submission.refresh_from_db()
+        self.assertEqual(run.status, ChallengeRun.Status.PENDING)
+        self.assertIsNone(submission.reviewed_at)
 
         reason = "The submitted event sequence is incomplete."
         response = self.client.post(decline_url, {"reason": reason})
         self.assertRedirects(
             response,
-            reverse("admin:registry_challengerun_change", args=(run.pk,)),
+            reverse("admin:registry_runsubmission_change", args=(submission.pk,)),
         )
         run.refresh_from_db()
-        submission = RunSubmission.objects.get()
-        self.assertEqual(run.status, ChallengeRun.Status.DECLINED)
-        self.assertIsNotNone(run.reviewed_at)
-        self.assertEqual(run.review_reason, reason)
+        submission.refresh_from_db()
+        self.assertEqual(run.status, ChallengeRun.Status.PENDING)
         self.assertEqual(submission.status, RunSubmission.Status.DECLINED)
-        self.assertEqual(submission.reviewed_at, run.reviewed_at)
+        self.assertIsNotNone(submission.reviewed_at)
         self.assertEqual(submission.review_note, reason)
         self.assertTrue(
             Notification.objects.filter(
@@ -338,11 +347,11 @@ class RunSubmissionTests(TestCase):
             ).exists()
         )
 
-    def test_admin_run_page_uses_review_controls_instead_of_save_controls(self):
+    def test_admin_submission_page_uses_review_controls_instead_of_save_controls(self):
         self.client.post(
             reverse("registry:submit_run"), {"run_export": make_export()}
         )
-        run = ChallengeRun.objects.get()
+        submission = RunSubmission.objects.get()
         administrator = Participant.objects.create_superuser(
             email="reviewer@example.com",
             nickname="Reviewer",
@@ -350,18 +359,18 @@ class RunSubmissionTests(TestCase):
         )
         self.client.force_login(administrator)
         response = self.client.get(
-            reverse("admin:registry_challengerun_change", args=(run.pk,))
+            reverse("admin:registry_runsubmission_change", args=(submission.pk,))
         )
         self.assertContains(response, ">Approve</button>", html=False)
         self.assertContains(response, ">Decline</button>", html=False)
         self.assertNotContains(response, "Save and add another")
         self.assertNotContains(response, "Save and continue editing")
 
-    def test_admin_run_page_presents_structured_review(self):
+    def test_admin_submission_page_presents_structured_review(self):
         self.client.post(
             reverse("registry:submit_run"), {"run_export": make_export()}
         )
-        run = ChallengeRun.objects.get()
+        submission = RunSubmission.objects.get()
         administrator = Participant.objects.create_superuser(
             email="structured-reviewer@example.com",
             nickname="Structured Reviewer",
@@ -370,7 +379,7 @@ class RunSubmissionTests(TestCase):
         self.client.force_login(administrator)
 
         response = self.client.get(
-            reverse("admin:registry_challengerun_change", args=(run.pk,))
+            reverse("admin:registry_runsubmission_change", args=(submission.pk,))
         )
 
         self.assertContains(response, "Integrity findings")
@@ -389,6 +398,7 @@ class RunSubmissionTests(TestCase):
             {"run_export": make_export(kills=42, event_specs=initial_specs)},
         )
         run = ChallengeRun.objects.get()
+        initial_submission = RunSubmission.objects.get()
         administrator = Participant.objects.create_superuser(
             email="baseline-reviewer@example.com",
             nickname="Baseline Reviewer",
@@ -396,7 +406,10 @@ class RunSubmissionTests(TestCase):
         )
         self.client.force_login(administrator)
         self.client.post(
-            reverse("admin:registry_challengerun_approve", args=(run.pk,))
+            reverse(
+                "admin:registry_runsubmission_approve",
+                args=(initial_submission.pk,),
+            )
         )
         self.client.force_login(self.participant)
         extended_specs = initial_specs + [
@@ -406,9 +419,8 @@ class RunSubmissionTests(TestCase):
             reverse("registry:submit_run"),
             {"run_export": make_export(kills=55, event_specs=extended_specs)},
         )
-        run.refresh_from_db()
-
-        review = build_run_review(run)
+        pending_submission = RunSubmission.objects.get(status=RunSubmission.Status.RECEIVED)
+        review = build_run_review(pending_submission)
 
         self.assertIsNotNone(review["baseline"])
         self.assertEqual(review["comparison"]["event_delta"], 1)
@@ -421,6 +433,25 @@ class RunSubmissionTests(TestCase):
             )
         )
 
+        self.client.force_login(administrator)
+        self.client.post(
+            reverse(
+                "admin:registry_runsubmission_approve",
+                args=(pending_submission.pk,),
+            )
+        )
+        pending_submission.refresh_from_db()
+        review_after_approval = build_run_review(pending_submission)
+        self.assertEqual(
+            pending_submission.baseline_submission,
+            initial_submission,
+        )
+        self.assertEqual(
+            review_after_approval["baseline"],
+            initial_submission,
+        )
+        self.assertEqual(review_after_approval["comparison"]["event_delta"], 1)
+
     def test_review_flags_changed_events_from_approved_history(self):
         initial_specs = [
             ("session.started", {"character": {"displayName": "Test Survivor"}}),
@@ -431,6 +462,7 @@ class RunSubmissionTests(TestCase):
             {"run_export": make_export(kills=42, event_specs=initial_specs)},
         )
         run = ChallengeRun.objects.get()
+        initial_submission = RunSubmission.objects.get()
         administrator = Participant.objects.create_superuser(
             email="history-reviewer@example.com",
             nickname="History Reviewer",
@@ -438,7 +470,10 @@ class RunSubmissionTests(TestCase):
         )
         self.client.force_login(administrator)
         self.client.post(
-            reverse("admin:registry_challengerun_approve", args=(run.pk,))
+            reverse(
+                "admin:registry_runsubmission_approve",
+                args=(initial_submission.pk,),
+            )
         )
         self.client.force_login(self.participant)
         changed_specs = [
@@ -450,9 +485,8 @@ class RunSubmissionTests(TestCase):
             reverse("registry:submit_run"),
             {"run_export": make_export(kills=55, event_specs=changed_specs)},
         )
-        run.refresh_from_db()
-
-        review = build_run_review(run)
+        pending_submission = RunSubmission.objects.get(status=RunSubmission.Status.RECEIVED)
+        review = build_run_review(pending_submission)
 
         self.assertEqual(review["comparison"]["changed_sequences"], [2])
         self.assertTrue(
@@ -462,3 +496,50 @@ class RunSubmissionTests(TestCase):
                 for finding in review["findings"]
             )
         )
+
+    def test_pending_and_declined_update_do_not_change_approved_run(self):
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(kills=42)},
+        )
+        initial_submission = RunSubmission.objects.get()
+        administrator = Participant.objects.create_superuser(
+            email="canonical-reviewer@example.com",
+            nickname="Canonical Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+        self.client.post(
+            reverse(
+                "admin:registry_runsubmission_approve",
+                args=(initial_submission.pk,),
+            )
+        )
+        run = ChallengeRun.objects.get()
+        self.assertEqual(run.current_kills, 42)
+
+        self.client.force_login(self.participant)
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(kills=99, event_specs=[
+                ("session.started", {"character": {"displayName": "Test Survivor"}}),
+                ("day.started", {"partial": False}),
+                ("skill.level.reached", {"skill": "Woodwork", "level": 3}),
+            ])},
+        )
+        update = RunSubmission.objects.get(status=RunSubmission.Status.RECEIVED)
+        run.refresh_from_db()
+        self.assertEqual(run.current_kills, 42)
+        self.assertEqual(run.approved_submission, initial_submission)
+
+        self.client.force_login(administrator)
+        self.client.post(
+            reverse("admin:registry_runsubmission_decline", args=(update.pk,)),
+            {"reason": "Evidence did not cover this update."},
+        )
+        run.refresh_from_db()
+        update.refresh_from_db()
+        self.assertEqual(run.current_kills, 42)
+        self.assertEqual(run.status, ChallengeRun.Status.OFFICIAL)
+        self.assertEqual(run.approved_submission, initial_submission)
+        self.assertEqual(update.status, RunSubmission.Status.DECLINED)

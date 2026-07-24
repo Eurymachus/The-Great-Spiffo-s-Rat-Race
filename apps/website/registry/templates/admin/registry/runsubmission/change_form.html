@@ -7,8 +7,8 @@
       <section class="run-review-hero">
         <div>
           <p class="run-review-kicker">Run submission review</p>
-          <h2>{{ original.character_name|default:"Unnamed survivor" }}</h2>
-          <p>Submitted by <strong>{{ original.participant|default:"Former Rat Racer" }}</strong></p>
+          <h2>{{ original.run.character_name|default:"Unnamed survivor" }}</h2>
+          <p>Submitted by <strong>{{ original.submitter|default:"Former Rat Racer" }}</strong></p>
         </div>
         <span class="run-review-status status-{{ original.status }}">{{ original.get_status_display }}</span>
       </section>
@@ -50,7 +50,7 @@
 
       <section class="run-review-panel">
         <header><div><p class="run-review-kicker">Stream evidence</p><h3>Broadcast and clips</h3></div></header>
-        {% with evidence=run_review.current_submission %}
+        {% with evidence=original %}
           {% if evidence and evidence.evidence_url %}
             <dl class="run-review-comparison">
               <div><dt>Provider</dt><dd>{{ evidence.evidence_provider|default:"Manual link"|title }}</dd></div>
@@ -107,7 +107,7 @@
       <details class="run-review-evidence">
         <summary>Raw evidence and identifiers</summary>
         <dl>
-          <div><dt>Run ID</dt><dd>{{ original.run_id }}</dd></div>
+          <div><dt>Run ID</dt><dd>{{ original.run.run_id }}</dd></div>
           <div><dt>Ledger head</dt><dd><code>{{ original.event_hash }}</code></dd></div>
           {% if run_review.current_submission %}
             <div><dt>Submission checksum</dt><dd><code>{{ run_review.current_submission.checksum }}</code></dd></div>
@@ -124,18 +124,18 @@
 {% endblock %}
 
 {% block submit_buttons_bottom %}
-  {% if original and original.status == "under_review" %}
+  {% if original and original.status == "received" %}
     <div class="submit-row run-review-submit-row">
       <button
         type="submit"
         class="button run-review-approve"
-        formaction="{% url 'admin:registry_challengerun_approve' original.pk %}"
+        formaction="{% url 'admin:registry_runsubmission_approve' original.pk %}"
         formmethod="post"
       >Approve</button>
       <button type="button" class="button run-review-decline" data-run-decline-open>Decline</button>
     </div>
     <dialog class="run-decline-dialog" data-run-decline-dialog aria-labelledby="run-decline-title">
-      <h2 id="run-decline-title">Decline this run?</h2>
+      <h2 id="run-decline-title">Decline this submission?</h2>
       <p>The participant will be notified and shown the reason.</p>
       <label for="run-decline-reason">Reason</label>
       <textarea id="run-decline-reason" name="reason" rows="5" maxlength="1000" required disabled></textarea>
@@ -144,9 +144,9 @@
         <button
           type="submit"
           class="button run-review-decline"
-          formaction="{% url 'admin:registry_challengerun_decline' original.pk %}"
+          formaction="{% url 'admin:registry_runsubmission_decline' original.pk %}"
           formmethod="post"
-        >Decline run</button>
+        >Decline submission</button>
       </div>
     </dialog>
   {% else %}

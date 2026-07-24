@@ -403,7 +403,7 @@ def account(request):
         request,
         "registry/account.html",
         {
-            "personal_best": runs.filter(status=ChallengeRun.Status.APPROVED)
+            "personal_best": runs.filter(status=ChallengeRun.Status.OFFICIAL)
             .order_by("-current_kills", "first_submitted_at")
             .first(),
             "active_runs": runs.filter(
@@ -412,7 +412,9 @@ def account(request):
             "past_runs": runs.exclude(
                 lifecycle_status=ChallengeRun.Lifecycle.ACTIVE
             ),
-            "submission_history": request.user.run_submissions.select_related("run")[:10],
+            "pending_submissions": request.user.run_submissions.filter(
+                status=RunSubmission.Status.RECEIVED
+            ).select_related("run"),
         },
     )
 
@@ -463,21 +465,17 @@ def submit_run(request):
                         },
                     )
                     run.participant = request.user
-                    run.status = ChallengeRun.Status.UNDER_REVIEW
-                    run.export_format = decoded.format
-                    run.generated_at = decoded.generated_at
-                    run.current_kills = decoded.current_kills
-                    run.event_sequence = decoded.event_sequence
-                    run.event_hash = decoded.event_hash
-                    run.character_name = decoded.character_name
-                    run.bootstrapped = decoded.bootstrapped
-                    run.latest_projection = decoded.projection
-                    run.latest_events = decoded.events
-                    run.reviewed_at = None
-                    run.save()
-                    run.submissions.filter(status=RunSubmission.Status.RECEIVED).update(
-                        status=RunSubmission.Status.SUPERSEDED
-                    )
+                    if not run.approved_submission_id:
+                        run.export_format = decoded.format
+                        run.generated_at = decoded.generated_at
+                        run.current_kills = decoded.current_kills
+                        run.event_sequence = decoded.event_sequence
+                        run.event_hash = decoded.event_hash
+                        run.character_name = decoded.character_name
+                        run.bootstrapped = decoded.bootstrapped
+                        run.latest_projection = decoded.projection
+                        run.latest_events = decoded.events
+                        run.save()
                     selected_media = form.media_by_id.get(
                         form.cleaned_data.get("evidence_video")
                     )
@@ -487,6 +485,7 @@ def submit_run(request):
                     ]
                     RunSubmission.objects.create(
                         run=run,
+                        baseline_submission=run.approved_submission,
                         submitter=request.user,
                         checksum=decoded.checksum,
                         raw_export="".join(form.cleaned_data["run_export"].split()),

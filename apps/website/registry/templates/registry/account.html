@@ -1,6 +1,8 @@
 {% extends "registry/base.html" %}
+{% load static %}
 {% block title_suffix %} | Your account{% endblock %}
 {% block content %}
+<script src="{% static 'registry/run_details.js' %}?v=20260724-1" defer></script>
 <section class="card card-wide account-dashboard">
   <header class="account-dashboard-header">
     <div class="account-dashboard-identity">
@@ -29,13 +31,13 @@
             <p class="dashboard-panel-kicker">Your record</p>
             <h3>Personal Best</h3>
           </div>
-          <span class="dashboard-coming-soon">{% if personal_best %}Approved{% else %}No result yet{% endif %}</span>
+          <span class="dashboard-coming-soon">{% if personal_best %}Official{% else %}No result yet{% endif %}</span>
         </div>
         {% if personal_best %}
         <div class="dashboard-run-summary">
           <div><small>Survivor</small><strong>{{ personal_best.character_name|default:"Recorded run" }}</strong></div>
           <div><small>Zombie kills</small><strong>{{ personal_best.current_kills }}</strong></div>
-          <div><small>Events verified</small><strong>{{ personal_best.event_sequence }}</strong></div>
+          <div><small>In-game Day</small><strong>{% if personal_best.in_game_day %}{{ personal_best.in_game_day }}{% else %}Not recorded{% endif %}</strong></div>
         </div>
         {% else %}
         <div class="dashboard-empty-state dashboard-challenge-state">
@@ -58,10 +60,11 @@
         {% if active_runs %}
         <div class="dashboard-run-list">
           {% for run in active_runs %}
-          <article>
+          <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ run.pk }}" aria-haspopup="dialog">
             <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>Run {{ run.run_id|truncatechars:20 }}</small></div>
             <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_status_display }}</small></div>
-          </article>
+          </button>
+          {% include "registry/_run_detail_dialog.html" with run=run %}
           {% endfor %}
         </div>
         {% else %}
@@ -82,10 +85,11 @@
         {% if past_runs %}
         <div class="dashboard-run-list">
           {% for run in past_runs %}
-          <article>
+          <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ run.pk }}" aria-haspopup="dialog">
             <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>Run {{ run.run_id|truncatechars:20 }}</small></div>
             <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_lifecycle_status_display }}</small></div>
-          </article>
+          </button>
+          {% include "registry/_run_detail_dialog.html" with run=run %}
           {% endfor %}
         </div>
         {% else %}
@@ -99,23 +103,23 @@
       <section class="dashboard-panel">
         <div class="dashboard-panel-heading">
           <div>
-            <p class="dashboard-panel-kicker">Previous entries</p>
-            <h3>Submission History</h3>
+            <p class="dashboard-panel-kicker">Pending moderation</p>
+            <h3>Awaiting Review</h3>
           </div>
         </div>
-        {% if submission_history %}
+        {% if pending_submissions %}
         <div class="dashboard-run-list">
-          {% for submission in submission_history %}
-          <article>
+          {% for submission in pending_submissions %}
+          <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ submission.run.pk }}" aria-haspopup="dialog">
             <div><strong>{{ submission.run.character_name|default:"Rat Race export" }}</strong><small>{{ submission.submitted_at|date:"j M Y, H:i" }}</small></div>
-            <div><strong>{{ submission.current_kills }} kills</strong><small>{{ submission.get_status_display }}</small></div>
-          </article>
+            <div><strong>{{ submission.current_kills }} kills</strong><small>Awaiting review</small></div>
+          </button>
           {% endfor %}
         </div>
         {% else %}
         <div class="dashboard-empty-state compact">
-          <strong>No submissions yet</strong>
-          <p>Your submitted runs and their review status will appear here.</p>
+          <strong>Nothing awaiting review</strong>
+          <p>New submissions will appear here until a moderator approves or declines them.</p>
         </div>
         {% endif %}
       </section>

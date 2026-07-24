@@ -512,7 +512,7 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Personal Best")
         self.assertContains(response, "Active Runs")
         self.assertContains(response, "Past Runs")
-        self.assertContains(response, "Submission History")
+        self.assertContains(response, "Awaiting Review")
         self.assertContains(response, reverse("registry:logout"))
         self.assertContains(response, 'aria-current="page"')
         self.assertNotContains(response, ">Administration<")
@@ -930,7 +930,7 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Personal Best")
         self.assertContains(response, "Active Runs")
         self.assertContains(response, "Past Runs")
-        self.assertContains(response, "Submission History")
+        self.assertContains(response, "Awaiting Review")
         self.assertNotContains(response, "Unread notifications")
 
     def test_participant_can_change_password_and_remains_logged_in(self):

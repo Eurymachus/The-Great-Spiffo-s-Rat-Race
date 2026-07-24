@@ -31,6 +31,7 @@ from .verification_email import send_verification_email
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
 from .notifications import notify
 from .run_review import build_run_review
+from .run_exports import decode_run_export
 
 admin.site.site_header = f"{settings.SITE_SHORT_TITLE} administration"
 admin.site.site_title = f"{settings.SITE_SHORT_TITLE} admin"
@@ -422,7 +423,6 @@ class StreamingMediaAdmin(admin.ModelAdmin):
 
 @admin.register(ChallengeRun)
 class ChallengeRunAdmin(admin.ModelAdmin):
-    change_form_template = "admin/registry/challengerun/change_form.html"
     list_display = (
         "run_id", "participant", "character_name", "lifecycle_status", "status",
         "current_kills", "event_sequence", "updated_at",
@@ -432,99 +432,11 @@ class ChallengeRunAdmin(admin.ModelAdmin):
     )
     search_fields = ("run_id", "character_name", "participant__nickname", "participant__email")
     readonly_fields = (
-        "participant", "status", "reviewed_at", "review_reason",
+        "participant", "status", "approved_submission",
         "run_id", "export_format", "generated_at", "current_kills",
         "event_sequence", "event_hash", "character_name", "bootstrapped",
-        "latest_events", "first_submitted_at", "updated_at",
+        "latest_projection", "latest_events", "first_submitted_at", "updated_at",
     )
-
-    class Media:
-        css = {"all": ("registry/admin_run_review.css",)}
-
-    def change_view(self, request, object_id, form_url="", extra_context=None):
-        run = self.get_object(request, object_id)
-        context = dict(extra_context or {})
-        if run:
-            context["run_review"] = build_run_review(run)
-        return super().change_view(request, object_id, form_url, context)
-
-    def get_urls(self):
-        return [
-            path(
-                "<path:object_id>/approve/",
-                self.admin_site.admin_view(self.approve_run_view),
-                name="registry_challengerun_approve",
-            ),
-            path(
-                "<path:object_id>/decline/",
-                self.admin_site.admin_view(self.decline_run_view),
-                name="registry_challengerun_decline",
-            ),
-        ] + super().get_urls()
-
-    def review_run(self, request, object_id):
-        run = self.get_object(request, object_id)
-        if not run or not self.has_change_permission(request, run):
-            raise Http404
-        return run
-
-    def approve_run_view(self, request, object_id):
-        if request.method != "POST":
-            return HttpResponseNotAllowed(("POST",))
-        run = self.review_run(request, object_id)
-        reviewed_at = timezone.now()
-        run.status = ChallengeRun.Status.APPROVED
-        run.reviewed_at = reviewed_at
-        run.review_reason = ""
-        run.save(update_fields=("status", "reviewed_at", "review_reason"))
-        latest = run.submissions.order_by("-submitted_at").first()
-        if latest:
-            latest.status = RunSubmission.Status.APPROVED
-            latest.reviewed_at = reviewed_at
-            latest.review_note = ""
-            latest.save(update_fields=("status", "reviewed_at", "review_note"))
-        if run.participant:
-            notify(
-                run.participant,
-                category=Notification.Category.SUBMISSION,
-                title="Submission approved",
-                message="Your Rat Race submission has been approved.",
-                destination=reverse("registry:account"),
-            )
-        self.message_user(request, "The run was approved.", level=messages.SUCCESS)
-        return redirect("admin:registry_challengerun_change", run.pk)
-
-    def decline_run_view(self, request, object_id):
-        if request.method != "POST":
-            return HttpResponseNotAllowed(("POST",))
-        run = self.review_run(request, object_id)
-        reason = request.POST.get("reason", "").strip()
-        if not reason:
-            self.message_user(
-                request, "A reason is required when declining a run.", level=messages.ERROR
-            )
-            return redirect("admin:registry_challengerun_change", run.pk)
-        reviewed_at = timezone.now()
-        run.status = ChallengeRun.Status.DECLINED
-        run.reviewed_at = reviewed_at
-        run.review_reason = reason
-        run.save(update_fields=("status", "reviewed_at", "review_reason"))
-        latest = run.submissions.order_by("-submitted_at").first()
-        if latest:
-            latest.status = RunSubmission.Status.DECLINED
-            latest.reviewed_at = reviewed_at
-            latest.review_note = reason
-            latest.save(update_fields=("status", "reviewed_at", "review_note"))
-        if run.participant:
-            notify(
-                run.participant,
-                category=Notification.Category.SUBMISSION,
-                title="Submission declined",
-                message=f"Your Rat Race submission was not approved: {reason}",
-                destination=reverse("registry:account"),
-            )
-        self.message_user(request, "The run was declined.", level=messages.SUCCESS)
-        return redirect("admin:registry_challengerun_change", run.pk)
 
     def has_add_permission(self, request):
         return False
@@ -535,6 +447,7 @@ class ChallengeRunAdmin(admin.ModelAdmin):
 
 @admin.register(RunSubmission)
 class RunSubmissionAdmin(admin.ModelAdmin):
+    change_form_template = "admin/registry/runsubmission/change_form.html"
     list_display = (
         "run", "submitter", "status", "current_kills",
         "event_sequence", "submitted_at",
@@ -543,9 +456,119 @@ class RunSubmissionAdmin(admin.ModelAdmin):
     search_fields = ("run__run_id", "run__character_name", "submitter__nickname")
     autocomplete_fields = ("run", "submitter")
     readonly_fields = (
-        "run", "submitter", "checksum", "raw_export", "export_format",
+        "run", "baseline_submission", "submitter", "checksum", "raw_export", "export_format",
         "generated_at", "current_kills", "event_sequence", "event_hash",
         "submitted_at", "evidence_provider", "evidence_media_type",
         "evidence_media_id", "evidence_url", "evidence_title",
         "evidence_start_seconds", "evidence_end_seconds", "evidence_clips",
+        "projection", "reviewed_at", "review_note",
     )
+
+    class Media:
+        css = {"all": ("registry/admin_run_review.css",)}
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        submission = self.get_object(request, object_id)
+        context = dict(extra_context or {})
+        if submission:
+            context["run_review"] = build_run_review(submission)
+        return super().change_view(request, object_id, form_url, context)
+
+    def get_urls(self):
+        return [
+            path(
+                "<path:object_id>/approve/",
+                self.admin_site.admin_view(self.approve_submission_view),
+                name="registry_runsubmission_approve",
+            ),
+            path(
+                "<path:object_id>/decline/",
+                self.admin_site.admin_view(self.decline_submission_view),
+                name="registry_runsubmission_decline",
+            ),
+        ] + super().get_urls()
+
+    def review_submission(self, request, object_id):
+        submission = self.get_object(request, object_id)
+        if not submission or not self.has_change_permission(request, submission):
+            raise Http404
+        return submission
+
+    def approve_submission_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        submission = self.review_submission(request, object_id)
+        if submission.status != RunSubmission.Status.RECEIVED:
+            self.message_user(request, "This submission has already been reviewed.", level=messages.WARNING)
+            return redirect("admin:registry_runsubmission_change", submission.pk)
+        baseline = submission.run.approved_submission
+        if baseline and submission.event_sequence <= baseline.event_sequence:
+            self.message_user(
+                request,
+                "This submission does not advance beyond the current approved snapshot.",
+                level=messages.ERROR,
+            )
+            return redirect("admin:registry_runsubmission_change", submission.pk)
+        decoded = decode_run_export(submission.raw_export)
+        reviewed_at = timezone.now()
+        submission.status = RunSubmission.Status.APPROVED
+        submission.reviewed_at = reviewed_at
+        submission.review_note = ""
+        submission.save(update_fields=("status", "reviewed_at", "review_note"))
+        run = submission.run
+        run.status = ChallengeRun.Status.OFFICIAL
+        run.approved_submission = submission
+        run.export_format = decoded.format
+        run.generated_at = decoded.generated_at
+        run.current_kills = decoded.current_kills
+        run.event_sequence = decoded.event_sequence
+        run.event_hash = decoded.event_hash
+        run.character_name = decoded.character_name
+        run.bootstrapped = decoded.bootstrapped
+        run.latest_projection = decoded.projection
+        run.latest_events = decoded.events
+        run.save()
+        if run.participant:
+            notify(
+                run.participant,
+                category=Notification.Category.SUBMISSION,
+                title="Submission approved",
+                message="Your Rat Race submission has been approved.",
+                destination=reverse("registry:account"),
+            )
+        self.message_user(request, "The submission was approved.", level=messages.SUCCESS)
+        return redirect("admin:registry_runsubmission_change", submission.pk)
+
+    def decline_submission_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        submission = self.review_submission(request, object_id)
+        if submission.status != RunSubmission.Status.RECEIVED:
+            self.message_user(request, "This submission has already been reviewed.", level=messages.WARNING)
+            return redirect("admin:registry_runsubmission_change", submission.pk)
+        reason = request.POST.get("reason", "").strip()
+        if not reason:
+            self.message_user(
+                request, "A reason is required when declining a submission.", level=messages.ERROR
+            )
+            return redirect("admin:registry_runsubmission_change", submission.pk)
+        submission.status = RunSubmission.Status.DECLINED
+        submission.reviewed_at = timezone.now()
+        submission.review_note = reason
+        submission.save(update_fields=("status", "reviewed_at", "review_note"))
+        if submission.run.participant:
+            notify(
+                submission.run.participant,
+                category=Notification.Category.SUBMISSION,
+                title="Submission declined",
+                message=f"Your Rat Race submission was not approved: {reason}",
+                destination=reverse("registry:account"),
+            )
+        self.message_user(request, "The submission was declined.", level=messages.SUCCESS)
+        return redirect("admin:registry_runsubmission_change", submission.pk)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

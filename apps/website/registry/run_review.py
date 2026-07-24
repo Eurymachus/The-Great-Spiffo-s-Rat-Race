@@ -122,18 +122,14 @@ def _event_rows(events):
     return rows
 
 
-def _baseline_for(run, current_submission):
-    return (
-        run.submissions.filter(status=RunSubmission.Status.APPROVED)
-        .exclude(pk=current_submission.pk if current_submission else None)
-        .order_by("-reviewed_at", "-submitted_at")
-        .first()
-    )
+def _baseline_for(current_submission):
+    return current_submission.baseline_submission
 
 
-def build_run_review(run):
-    current_submission = run.submissions.order_by("-submitted_at").first()
-    events = list(run.latest_events or [])
+def build_run_review(current_submission):
+    run = current_submission.run
+    decoded = decode_run_export(current_submission.raw_export)
+    events = list(decoded.events)
     counts = Counter(str(event.get("event_type") or "unknown") for event in events)
     findings = [
         {
@@ -147,7 +143,7 @@ def build_run_review(run):
             "message": f"{len(events):,} ledger events decoded in sequence.",
         },
     ]
-    if run.bootstrapped:
+    if decoded.bootstrapped:
         findings.append(
             {
                 "level": "warning",
@@ -164,7 +160,7 @@ def build_run_review(run):
             }
         )
 
-    baseline = _baseline_for(run, current_submission)
+    baseline = _baseline_for(current_submission)
     comparison = None
     baseline_events = []
     if baseline:
@@ -210,7 +206,7 @@ def build_run_review(run):
             comparison = {
                 "baseline": baseline,
                 "event_delta": len(events) - len(baseline_events),
-                "kill_delta": run.current_kills - baseline.current_kills,
+                "kill_delta": current_submission.current_kills - baseline.current_kills,
                 "changed_sequences": changed_sequences,
             }
     else:

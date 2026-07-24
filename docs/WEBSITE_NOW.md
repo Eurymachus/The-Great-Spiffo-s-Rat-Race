@@ -56,9 +56,10 @@ a nickname using a verified email address.
 - Cache-backed request limits for signup, resend, and password recovery.
 - Administrator roles, participant promotion, status management, and CSV export.
 - Local development documentation and automated test coverage.
-- Initial mod-export ingestion into immutable run submissions, with integrity
-  verification, participant submission status, and explicit administrator
-  approval or reasoned decline.
+- Mod-export ingestion into immutable, individually reviewed submissions, with
+  integrity verification and explicit administrator approval or reasoned
+  decline. The first approved submission officiates its run; each later approval
+  alone advances the run's canonical snapshot.
 - Current format-3 mod-export ingestion, including the signed ledger and complete
   character/trait projection, preserved on both the run and immutable submission.
 - Independent run lifecycle tracking for active, deceased, abandoned, completed,
@@ -129,7 +130,7 @@ Page's canonical address.
 
 ## Recommended next action
 
-Submit and review a real format-3 export from the current tracker build, using
-the connected Twitch channel as evidence.
+Submit another real format-3 update and verify that its review compares against
+the current approved submission before advancing the official run snapshot.
 
 Retention automation and a final pre-launch privacy review remain required.

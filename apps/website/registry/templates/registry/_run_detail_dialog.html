@@ -1,0 +1,55 @@
+<dialog class="run-detail-modal" id="run-detail-{{ run.pk }}" aria-labelledby="run-detail-title-{{ run.pk }}">
+  <header class="run-detail-header">
+    <div>
+      <p class="dashboard-panel-kicker">Run details</p>
+      <strong id="run-detail-title-{{ run.pk }}">{{ run.character_name|default:"Rat Race run" }}</strong>
+    </div>
+    <button type="button" class="run-detail-close" data-run-detail-close aria-label="Close run details">Close</button>
+  </header>
+  <div class="run-detail-content">
+    <section class="run-detail-summary" aria-label="Run summary">
+      <div><small>Status</small><strong>{{ run.get_status_display }}</strong></div>
+      <div><small>Lifecycle</small><strong>{{ run.get_lifecycle_status_display }}</strong></div>
+      <div><small>Zombie kills</small><strong>{{ run.current_kills }}</strong></div>
+      <div><small>In-game Day</small><strong>{{ run.in_game_day|default:"Not recorded" }}</strong></div>
+      <div><small>Ledger events</small><strong>{{ run.event_sequence }}</strong></div>
+      <div><small>Approved submissions</small><strong>{{ run.approved_submission_count }}</strong></div>
+    </section>
+
+    <section class="run-detail-section">
+      <h3>{% if run.approved_submission_id %}Current approved snapshot{% else %}Latest submitted snapshot{% endif %}</h3>
+      <dl class="run-detail-fields">
+        <div><dt>Moderation</dt><dd>{% if run.approved_submission_id %}Approved canonical state{% else %}Awaiting first approval{% endif %}</dd></div>
+        <div><dt>Generated</dt><dd>{{ run.generated_at|date:"j M Y, H:i:s" }}</dd></div>
+        <div><dt>Export format</dt><dd>{{ run.export_format }}</dd></div>
+        <div><dt>First submitted</dt><dd>{{ run.first_submitted_at|date:"j M Y, H:i:s" }}</dd></div>
+        <div><dt>Run ID</dt><dd><code>{{ run.run_id }}</code></dd></div>
+        <div><dt>Ledger head</dt><dd><code>{{ run.event_hash }}</code></dd></div>
+      </dl>
+    </section>
+
+    <section class="run-detail-section">
+      <h3>Submission history</h3>
+      <div class="run-detail-table-wrap">
+        <table class="run-detail-table">
+          <thead>
+            <tr><th>Submitted</th><th>Status</th><th>Kills</th><th>Events</th><th>Reviewed</th></tr>
+          </thead>
+          <tbody>
+            {% for submission in run.submissions.all %}
+              <tr{% if run.approved_submission_id == submission.pk %} class="is-current"{% endif %}>
+                <td>{{ submission.submitted_at|date:"j M Y, H:i" }}</td>
+                <td>{{ submission.get_status_display }}{% if run.approved_submission_id == submission.pk %} <small>Current</small>{% endif %}</td>
+                <td>{{ submission.current_kills }}</td>
+                <td>{{ submission.event_sequence }}</td>
+                <td>{% if submission.reviewed_at %}{{ submission.reviewed_at|date:"j M Y, H:i" }}{% else %}Awaiting review{% endif %}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5">No submissions recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</dialog>
