@@ -59,6 +59,8 @@ a nickname using a verified email address.
 - Initial mod-export ingestion into immutable run submissions, with integrity
   verification, participant submission status, and explicit administrator
   approval or reasoned decline.
+- Current format-3 mod-export ingestion, including the signed ledger and complete
+  character/trait projection, preserved on both the run and immutable submission.
 - Independent run lifecycle tracking for active, deceased, abandoned, completed,
   and invalidated runs, presented as Active Runs and Past Runs on the participant
   dashboard. Lifecycle is moderator-managed until the tracker emits a terminal
@@ -74,8 +76,13 @@ a nickname using a verified email address.
   ownership proof, hourly-on-use validation, reactive refresh, explicitly
   cached recent broadcasts and clips, and immutable run-evidence snapshots for
   moderation.
-- Official Twitch and YouTube brand marks shared across connected-channel rows,
-  provider actions and the run-submission journey.
+- Real Twitch OAuth, channel linking, VOD/clip refresh, evidence selection,
+  submission review and moderator approval verified end to end against a live
+  Twitch channel on 24 July 2026.
+- Twitch-side credential revocation is detected on the next validation or media
+  refresh and changes the website account to Reconnect required.
+- Official Twitch and YouTube brand marks shared across connected-channel rows
+  and the run-submission journey.
 
 Uploaded brand images live in deployment media storage rather than Git. A live
 deployment must persist and back up that media directory alongside the database.
@@ -84,9 +91,7 @@ deployment must persist and back up that media directory alongside the database.
 
 - Leaderboards and statistics
 - Full mod integration
-- YouTube OAuth linking and media retrieval. Twitch linking and cached evidence
-  selection are implemented; live provider testing still requires deployment
-  credentials.
+- YouTube OAuth linking and media retrieval.
 
 ## Future Core Deliverable: Moderated Run Updates
 
@@ -124,9 +129,7 @@ Page's canonical address.
 
 ## Recommended next action
 
-Configure Twitch development credentials and exercise the complete link,
-refresh, evidence-selection and moderation journey against a real test channel.
-YouTube should follow after this Twitch lifecycle has been proven outside mocked
-tests.
+Submit and review a real format-3 export from the current tracker build, using
+the connected Twitch channel as evidence.
 
 Retention automation and a final pre-launch privacy review remain required.

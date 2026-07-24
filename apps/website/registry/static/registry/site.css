@@ -1009,33 +1009,44 @@ button:hover { background: var(--theme-accent-hover); }
 .streaming-provider-summary > span:last-child {
     display: grid;
 }
-.streaming-channel-link, .streaming-connect-placeholder {
+.streaming-channel-link,
+.streaming-connect-placeholder,
+.streaming-disconnect {
     width: auto !important;
     min-width: 7rem;
     flex: 0 0 auto;
     min-height: 2.4rem;
-    padding: .5rem .8rem;
+    padding: .7rem 1rem;
     border: 1px solid var(--theme-accent);
     border-radius: var(--theme-radius);
     background: transparent;
-    color: var(--theme-accent);
-    font-family: var(--theme-heading-font);
-    font-weight: 700;
+    color: var(--theme-accent-hover);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 800;
     line-height: 1.2;
     text-align: center;
     text-decoration: none;
 }
+.streaming-channel-link:hover {
+    background: var(--theme-accent);
+    color: var(--theme-accent-text);
+}
 .streaming-connect-placeholder:disabled { border-color: var(--theme-border); color: var(--theme-muted); cursor: not-allowed; opacity: .72; }
-.streaming-account-actions { display: flex; align-items: center; gap: .55rem; }
+.settings-row > span.streaming-account-actions:last-child {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    color: inherit;
+    font-size: 1rem;
+    line-height: normal;
+}
 .streaming-account-actions form { margin: 0; }
 .streaming-disconnect {
   background: transparent;
   border: 1px solid var(--theme-danger, #9e4b50);
-  border-radius: var(--theme-radius-small);
   color: var(--theme-danger-text, #e7a5a9);
   cursor: pointer;
-  font: inherit;
-  padding: .55rem .8rem;
 }
 .streaming-disconnect:hover { background: rgba(158, 75, 80, .18); }
 .submission-evidence-times { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }

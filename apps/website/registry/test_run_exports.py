@@ -67,7 +67,7 @@ def literal_lzss(value):
     return bytes(output)
 
 
-def make_export(run_id="rr-web-test", kills=42, event_specs=None):
+def make_export(run_id="rr-web-test", kills=42, event_specs=None, projection=None):
     event_specs = event_specs or [
         ("session.started", {"character": {"displayName": "Test Survivor"}}),
         ("day.started", {"partial": False}),
@@ -80,9 +80,30 @@ def make_export(run_id="rr-web-test", kills=42, event_specs=None):
     for body in bodies:
         previous_hash = hashlib.sha256(previous_hash.encode() + body).hexdigest()
     body_frames = b"".join(frame(body) for body in bodies)
+    projection = projection or {
+        "schema": 1,
+        "currentKills": kills,
+        "character": {
+            "starting": {"displayName": "Starting Survivor"},
+            "current": {"displayName": "Test Survivor"},
+            "selectedStartingTraits": ["base:Strong"],
+            "selectedStartingTraitsPartial": False,
+            "selectedStartingTraitsCapturedUtc": 1784800000,
+            "startingEffectiveTraits": ["base:Strong"],
+            "currentEffectiveTraits": ["base:Strong"],
+        },
+    }
     canonical = b"".join(
         frame(value)
-        for value in (2, run_id, 1784800100, len(bodies), previous_hash, kills, body_frames)
+        for value in (
+            3,
+            run_id,
+            1784800100,
+            len(bodies),
+            previous_hash,
+            canonical_value(projection),
+            body_frames,
+        )
     )
     checksum = hashlib.sha256(canonical).hexdigest()
     payload = base64.urlsafe_b64encode(literal_lzss(canonical)).decode().rstrip("=")
@@ -90,12 +111,17 @@ def make_export(run_id="rr-web-test", kills=42, event_specs=None):
 
 
 class RunExportCodecTests(TestCase):
-    def test_decodes_and_verifies_format_two_export(self):
+    def test_decodes_and_verifies_format_three_export(self):
         decoded = decode_run_export(make_export())
         self.assertEqual(decoded.run_id, "rr-web-test")
         self.assertEqual(decoded.current_kills, 42)
         self.assertEqual(decoded.event_sequence, 2)
         self.assertEqual(decoded.character_name, "Test Survivor")
+        self.assertEqual(decoded.projection["schema"], 1)
+        self.assertEqual(
+            decoded.projection["character"]["selectedStartingTraits"],
+            ["base:Strong"],
+        )
         self.assertEqual(
             decoded.generated_at,
             datetime.fromtimestamp(1784800100, tz=timezone.utc),
@@ -106,6 +132,18 @@ class RunExportCodecTests(TestCase):
         changed = value[:-1] + ("0" if value[-1] != "0" else "1")
         with self.assertRaises(InvalidRunExport):
             decode_run_export(changed)
+
+    def test_rejects_unsupported_projection(self):
+        with self.assertRaisesRegex(InvalidRunExport, "unsupported run projection"):
+            decode_run_export(
+                make_export(
+                    projection={
+                        "schema": 2,
+                        "currentKills": 42,
+                        "character": {},
+                    }
+                )
+            )
 
 
 class RunSubmissionTests(TestCase):
@@ -129,7 +167,9 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(run.participant, self.participant)
         self.assertEqual(run.character_name, "Test Survivor")
         self.assertEqual(run.current_kills, 42)
+        self.assertEqual(run.latest_projection["schema"], 1)
         self.assertEqual(submission.run, run)
+        self.assertEqual(submission.projection, run.latest_projection)
         self.assertTrue(
             Notification.objects.filter(
                 recipient=self.participant, title="Submission received"

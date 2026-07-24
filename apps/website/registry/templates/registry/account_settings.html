@@ -51,21 +51,21 @@
           {% if provider.account %}
             <span class="streaming-account-actions">
               {% if provider.account.status != "connected" and provider.configured %}
-                  <a class="streaming-channel-link streaming-provider-action" href="{% url 'registry:connect_twitch' %}">{% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider compact=True %}Reconnect</a>
+                  <a class="streaming-channel-link streaming-provider-action" href="{% url 'registry:connect_twitch' %}">Reconnect</a>
               {% else %}
-                  <a class="streaming-channel-link streaming-provider-action" href="{{ provider.account.channel_url }}" target="_blank" rel="noopener">{% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider compact=True %}View channel</a>
+                  <a class="streaming-channel-link streaming-provider-action" href="{{ provider.account.channel_url }}" target="_blank" rel="noopener">View channel</a>
               {% endif %}
-              {% if provider.provider == "twitch" %}
+              {% if provider.provider == "twitch" and provider.account.status != "disconnected" %}
                 <form method="post" action="{% url 'registry:disconnect_twitch' %}">
                   {% csrf_token %}
-                    <button type="submit" class="streaming-disconnect streaming-provider-action">{% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider compact=True %}Disconnect</button>
+                    <button type="submit" class="streaming-disconnect streaming-provider-action">Disconnect</button>
                 </form>
               {% endif %}
             </span>
           {% elif provider.provider == "twitch" and provider.configured %}
-              <a class="streaming-channel-link streaming-provider-action" href="{% url 'registry:connect_twitch' %}">{% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider compact=True %}Connect</a>
+              <a class="streaming-channel-link streaming-provider-action" href="{% url 'registry:connect_twitch' %}">Connect</a>
           {% else %}
-              <button type="button" class="streaming-connect-placeholder streaming-provider-action" disabled title="{{ provider.label }} connection is not configured">{% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider compact=True %}Not configured</button>
+              <button type="button" class="streaming-connect-placeholder streaming-provider-action" disabled title="{{ provider.label }} connection is not configured">Not configured</button>
           {% endif %}
         </div>
       {% endfor %}

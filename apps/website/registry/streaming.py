@@ -127,17 +127,29 @@ def validate_twitch_token(access_token):
 def refresh_twitch_token(account):
     refresh_token = decrypt_token(account.encrypted_refresh_token)
     if not refresh_token:
-        raise TwitchIntegrationError("Reconnect Twitch to renew access.")
-    token_data = _json_request(
-        TWITCH_TOKEN_URL,
-        data={
-            "client_id": settings.TWITCH_CLIENT_ID,
-            "client_secret": settings.TWITCH_CLIENT_SECRET,
-            "grant_type": "refresh_token",
-            "refresh_token": refresh_token,
-        },
-    )
-    identity = validate_twitch_token(token_data["access_token"])
+        raise TwitchIntegrationError("Reconnect Twitch to renew access.", status=401)
+    try:
+        token_data = _json_request(
+            TWITCH_TOKEN_URL,
+            data={
+                "client_id": settings.TWITCH_CLIENT_ID,
+                "client_secret": settings.TWITCH_CLIENT_SECRET,
+                "grant_type": "refresh_token",
+                "refresh_token": refresh_token,
+            },
+        )
+        identity = validate_twitch_token(token_data["access_token"])
+    except TwitchIntegrationError as exc:
+        if exc.status not in {400, 401}:
+            raise
+        raise TwitchIntegrationError(
+            "Twitch access has been revoked. Reconnect Twitch to restore access.",
+            status=401,
+        ) from exc
+    except KeyError as exc:
+        raise TwitchIntegrationError(
+            "Twitch returned an incomplete credential response. Please try again."
+        ) from exc
     apply_twitch_credentials(account, token_data, identity)
     return token_data["access_token"]
 
@@ -145,7 +157,7 @@ def refresh_twitch_token(account):
 def get_valid_twitch_token(account):
     token = decrypt_token(account.encrypted_access_token)
     if not token:
-        raise TwitchIntegrationError("Reconnect Twitch to restore access.")
+        raise TwitchIntegrationError("Reconnect Twitch to restore access.", status=401)
     if (
         account.token_validated_at
         and account.token_validated_at >= timezone.now() - timedelta(hours=1)
@@ -252,7 +264,9 @@ def apply_twitch_credentials(account, token_data, identity):
     account.channel_identity = identity["user_id"]
     account.display_name = identity["login"]
     account.channel_url = f"https://www.twitch.tv/{identity['login']}"
-    account.granted_scopes = identity.get("scopes", token_data.get("scope", []))
+    account.granted_scopes = (
+        identity.get("scopes") or token_data.get("scope") or []
+    )
     account.encrypted_access_token = encrypt_token(token_data["access_token"])
     account.encrypted_refresh_token = encrypt_token(token_data.get("refresh_token", ""))
     account.token_expires_at = timezone.now() + timedelta(

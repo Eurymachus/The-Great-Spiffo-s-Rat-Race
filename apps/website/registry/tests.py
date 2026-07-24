@@ -26,7 +26,7 @@ from .admin import export_registrations, promote_to_role
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
 from .models import AccountClosureRecord, Notification, Participant, StreamingAccount
 from .tokens import create_verification_token
-from .streaming import TWITCH_STATE_SESSION_KEY, decrypt_token
+from .streaming import TWITCH_STATE_SESSION_KEY, TwitchIntegrationError, decrypt_token
 
 
 class RegistrationTests(TestCase):
@@ -599,6 +599,36 @@ class RegistrationTests(TestCase):
         TWITCH_REDIRECT_URI="http://testserver/account/streaming/twitch/callback/",
         STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
     )
+    def test_account_settings_hides_disconnect_for_disconnected_channel(self):
+        participant = Participant.objects.create_user(
+            email="streamer@example.com",
+            nickname="Streamer",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        StreamingAccount.objects.create(
+            participant=participant,
+            provider=StreamingAccount.Provider.TWITCH,
+            provider_identity="twitch-user-42",
+            channel_identity="twitch-channel-42",
+            display_name="SpiffoStreams",
+            channel_url="https://www.twitch.tv/spiffostreams",
+            status=StreamingAccount.Status.DISCONNECTED,
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:account_settings"))
+
+        self.assertContains(response, ">Reconnect</a>")
+        self.assertNotContains(response, ">Disconnect</button>")
+
+    @override_settings(
+        TWITCH_CLIENT_ID="client-id",
+        TWITCH_CLIENT_SECRET="client-secret",
+        TWITCH_REDIRECT_URI="http://testserver/account/streaming/twitch/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
     def test_twitch_connect_starts_state_protected_authorization(self):
         participant = Participant.objects.create_user(
             email="streamer@example.com",
@@ -615,6 +645,37 @@ class RegistrationTests(TestCase):
         self.assertTrue(response.url.startswith("https://id.twitch.tv/oauth2/authorize?"))
         self.assertIn("response_type=code", response.url)
         self.assertIn(TWITCH_STATE_SESSION_KEY, self.client.session)
+
+    @patch("registry.views.refresh_twitch_media")
+    def test_revoked_twitch_credentials_require_reconnect(self, refresh_media):
+        participant = Participant.objects.create_user(
+            email="streamer@example.com",
+            nickname="Streamer",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        account = StreamingAccount.objects.create(
+            participant=participant,
+            provider=StreamingAccount.Provider.TWITCH,
+            provider_identity="twitch-user-42",
+            channel_identity="twitch-channel-42",
+            display_name="SpiffoStreams",
+        )
+        refresh_media.side_effect = TwitchIntegrationError(
+            "Twitch access has been revoked. Reconnect Twitch to restore access.",
+            status=401,
+        )
+        self.client.force_login(participant)
+
+        response = self.client.post(reverse("registry:refresh_twitch_media"))
+
+        self.assertRedirects(response, reverse("registry:submit_run"))
+        account.refresh_from_db()
+        self.assertEqual(
+            account.status,
+            StreamingAccount.Status.RECONNECT_REQUIRED,
+        )
 
     @override_settings(
         TWITCH_CLIENT_ID="client-id",
@@ -652,7 +713,7 @@ class RegistrationTests(TestCase):
             "user_id": "42",
             "login": "spiffostreams",
             "expires_in": 3600,
-            "scopes": [],
+            "scopes": None,
         }
 
         response = self.client.get(
@@ -663,6 +724,7 @@ class RegistrationTests(TestCase):
         self.assertRedirects(response, reverse("registry:account_settings"))
         account = StreamingAccount.objects.get(participant=participant)
         self.assertEqual(account.display_name, "spiffostreams")
+        self.assertEqual(account.granted_scopes, [])
         self.assertNotIn("access-secret", account.encrypted_access_token)
         self.assertNotIn("refresh-secret", account.encrypted_refresh_token)
         self.assertEqual(decrypt_token(account.encrypted_access_token), "access-secret")

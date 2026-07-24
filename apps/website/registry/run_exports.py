@@ -26,9 +26,30 @@ class DecodedRunExport:
     current_kills: int
     checksum: str
     events: list[dict]
+    projection: dict
 
     @property
     def character_name(self):
+        character_projection = self.projection.get("character")
+        if isinstance(character_projection, dict):
+            for snapshot_name in ("current", "starting"):
+                snapshot = character_projection.get(snapshot_name)
+                if not isinstance(snapshot, dict):
+                    continue
+                display_name = str(
+                    snapshot.get("displayName")
+                    or snapshot.get("display_name")
+                    or " ".join(
+                        part
+                        for part in (
+                            str(snapshot.get("forename") or "").strip(),
+                            str(snapshot.get("surname") or "").strip(),
+                        )
+                        if part
+                    )
+                ).strip()
+                if display_name:
+                    return display_name
         for event in self.events:
             if event["event_type"] != "session.started":
                 continue
@@ -198,8 +219,8 @@ def decode_run_export(value):
         export_format = int(format_field)
     except ValueError as exc:
         raise InvalidRunExport("The export format is invalid.") from exc
-    if export_format != 2:
-        raise InvalidRunExport("Please create a current format-2 Rat Race export.")
+    if export_format != 3:
+        raise InvalidRunExport("Please create a current format-3 Rat Race export.")
     fields.append(format_field)
     for _ in range(6):
         _, field, cursor = _read_frame(canonical, cursor)
@@ -211,13 +232,25 @@ def decode_run_export(value):
         generated_utc = int(fields[2])
         event_count = int(fields[3])
         event_hash = fields[4].decode("ascii")
-        current_kills = int(fields[5])
     except (UnicodeDecodeError, ValueError) as exc:
         raise InvalidRunExport("The export header is invalid.") from exc
-    if not run_id or event_count < 0 or current_kills < 0:
+    if not run_id or generated_utc < 0 or event_count < 0:
         raise InvalidRunExport("The export header contains invalid values.")
     if not re.fullmatch(r"[0-9a-f]{64}", event_hash):
         raise InvalidRunExport("The export ledger head is invalid.")
+
+    projection, projection_cursor = _decode_value(fields[5])
+    if projection_cursor != len(fields[5]) or not isinstance(projection, dict):
+        raise InvalidRunExport("The export contains an invalid run projection.")
+    current_kills = projection.get("currentKills")
+    if (
+        projection.get("schema") != 1
+        or isinstance(current_kills, bool)
+        or not isinstance(current_kills, int)
+        or current_kills < 0
+        or not isinstance(projection.get("character"), dict)
+    ):
+        raise InvalidRunExport("The export contains an unsupported run projection.")
 
     bodies = []
     body_cursor = 0
@@ -250,4 +283,5 @@ def decode_run_export(value):
         current_kills=current_kills,
         checksum=checksum,
         events=events,
+        projection=projection,
     )

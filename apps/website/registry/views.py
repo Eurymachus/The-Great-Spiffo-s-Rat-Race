@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from django.conf import settings
@@ -56,6 +57,9 @@ from .streaming import (
     validate_twitch_token,
 )
 from .verification_email import send_password_reset_email, send_verification_email
+
+
+logger = logging.getLogger(__name__)
 
 
 def managed_page_queryset():
@@ -467,6 +471,7 @@ def submit_run(request):
                     run.event_hash = decoded.event_hash
                     run.character_name = decoded.character_name
                     run.bootstrapped = decoded.bootstrapped
+                    run.latest_projection = decoded.projection
                     run.latest_events = decoded.events
                     run.reviewed_at = None
                     run.save()
@@ -490,6 +495,7 @@ def submit_run(request):
                         current_kills=decoded.current_kills,
                         event_sequence=decoded.event_sequence,
                         event_hash=decoded.event_hash,
+                        projection=decoded.projection,
                         evidence_provider=(
                             selected_media.account.provider if selected_media else ""
                         ),
@@ -620,6 +626,8 @@ def twitch_callback(request):
         with transaction.atomic():
             apply_twitch_credentials(account, token_data, identity)
     except (IntegrityError, KeyError, TwitchIntegrationError) as exc:
+        if not isinstance(exc, TwitchIntegrationError):
+            logger.exception("Twitch callback returned incomplete or conflicting data.")
         message = (
             str(exc)
             if isinstance(exc, TwitchIntegrationError)

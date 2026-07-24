@@ -29,7 +29,11 @@ address used by the deployment. Supply these environment values:
 - `TWITCH_CLIENT_ID`
 - `TWITCH_CLIENT_SECRET`
 - `TWITCH_REDIRECT_URI` (for local development:
-  `http://127.0.0.1:8000/account/streaming/twitch/callback/`)
+  `http://localhost:8000/account/streaming/twitch/callback/`)
+
+Twitch permits plain HTTP specifically for `localhost`; it rejects the equivalent
+`127.0.0.1` callback. Open the local site through `http://localhost:8000/` while
+testing so the registered callback and browser session use the same host.
 - `STREAMING_TOKEN_ENCRYPTION_KEY`, generated as a Fernet key using the command
   documented in `.env.example`
 
