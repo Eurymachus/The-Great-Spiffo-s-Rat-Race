@@ -74,9 +74,9 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260723-6">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260724-1">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
-    <script src="{% static 'registry/site_menu.js' %}?v=20260722-1" defer></script>
+    <script src="{% static 'registry/site_menu.js' %}?v=20260723-2" defer></script>
     <script src="{% static 'registry/account_menu.js' %}?v=20260722-1" defer></script>
     <script src="{% static 'registry/avatar_modal.js' %}?v=20260723-2" defer></script>
     <script src="{% static 'registry/gallery.js' %}?v=20260721-4" defer></script>
@@ -175,7 +175,19 @@
                             </button>
                         </span>
                         <div class="site-nav-submenu notification-dropdown">
-                            <div class="utility-panel-heading"><strong>Notifications</strong><a href="{% url 'registry:notifications' %}">View all</a></div>
+                            <div class="utility-panel-heading">
+                                <strong>Notifications</strong>
+                                <div class="notification-panel-actions">
+                                    {% if header_unread_notification_count %}
+                                    <form method="post" action="{% url 'registry:mark_notifications_read' %}" data-notifications-read-form>
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit">Mark all as read</button>
+                                    </form>
+                                    {% endif %}
+                                    <a href="{% url 'registry:notifications' %}">View all</a>
+                                </div>
+                            </div>
                             <div class="notification-preview-list">
                                 {% for notification in header_notifications %}
                                 <a class="notification-preview{% if not notification.is_read %} is-unread{% endif %}" href="{% url 'registry:open_notification' notification.pk %}">

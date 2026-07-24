@@ -378,8 +378,8 @@ class SiteBrandingAdminTests(TestCase):
         )
         self.client.force_login(account_user)
         account = self.client.get(reverse("registry:account"))
-        self.assertContains(account, "Edited updates")
-        self.assertContains(account, "Edited update submissions")
+        self.assertContains(account, "Edited Racer dashboard")
+        self.assertContains(account, "Edited welcome!")
 
     def test_branding_administrator_can_delete_only_inactive_custom_themes(self):
         participant = Participant.objects.create_user(

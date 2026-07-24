@@ -22,13 +22,19 @@ from django.urls import include, path
 
 
 def admin_home(request):
-    if (
-        request.user.is_authenticated
-        and not request.user.has_perm("registry.view_participant")
-        and request.user.has_perm("branding.view_sitebranding")
+    if request.user.is_authenticated and request.user.has_perm(
+        "registry.view_participant"
+    ):
+        return redirect("admin:registry_participant_changelist")
+    if request.user.is_authenticated and request.user.has_perm(
+        "branding.view_sitebranding"
     ):
         return redirect("admin:branding_sitebranding_change", object_id="1")
-    return redirect("admin:registry_participant_changelist")
+    if request.user.is_authenticated and request.user.has_perm(
+        "zomboid_catalogue.view_catalogueentry"
+    ):
+        return redirect("admin:zomboid_catalogue_catalogueentry_changelist")
+    return redirect("admin:index")
 
 urlpatterns = [
     path(

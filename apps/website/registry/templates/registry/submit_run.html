@@ -1,0 +1,105 @@
+{% extends "registry/base.html" %}
+{% block title_suffix %} | Submit a run{% endblock %}
+{% block content %}
+<section class="card account-form-card run-submission-card">
+  <header class="run-submission-header">
+    <div>
+      <p class="account-dashboard-kicker">Challenge submission</p>
+      <h2>Submit a run</h2>
+      <p>Send your tracker export and the stream evidence needed to review it.</p>
+    </div>
+    <a class="dashboard-header-action" href="{% url 'registry:account' %}">Dashboard</a>
+  </header>
+  <form method="post" class="stacked-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <section class="submission-step">
+      <header class="submission-step-heading">
+        <span class="submission-step-number" aria-hidden="true">1</span>
+        <div>
+          <h3>Tracker export</h3>
+          <p>Paste the complete export from the Challenge Tracker. We will verify its checksum and event ledger.</p>
+        </div>
+      </header>
+      <div class="submission-step-body">
+        <div class="field">
+          {{ form.run_export.label_tag }}
+          {{ form.run_export }}
+          {% if form.run_export.help_text %}<small>{{ form.run_export.help_text }}</small>{% endif %}
+          {{ form.run_export.errors }}
+        </div>
+      </div>
+    </section>
+
+    <section class="submission-step submission-evidence">
+      <header class="submission-step-heading">
+        <span class="submission-step-number" aria-hidden="true">2</span>
+        <div>
+          <h3>Stream evidence</h3>
+          <p>Select the broadcast containing this run and narrow down the section moderators should review.</p>
+        </div>
+      </header>
+      <div class="submission-step-body">
+        {% if twitch_account %}
+          <div class="submission-source-status">
+              <div class="streaming-provider-summary">
+                {% include "registry/includes/streaming_provider_icon.html" with provider="twitch" compact=True %}
+                <span>
+                  <span>Connected Twitch channel</span>
+                  <strong>{{ twitch_account.display_name }}</strong>
+                </span>
+              </div>
+              <button class="submission-secondary-action streaming-provider-action" type="submit" form="refresh-twitch-media-form">{% include "registry/includes/streaming_provider_icon.html" with provider="twitch" compact=True %}Refresh media</button>
+          </div>
+          {% if not cached_media_count %}
+            <p class="submission-evidence-empty">Refresh media to load recent broadcasts and clips.</p>
+          {% endif %}
+          <div class="field">
+            {{ form.evidence_video.label_tag }}
+            {{ form.evidence_video }}
+            <small>{{ form.evidence_video.help_text }}</small>
+            {{ form.evidence_video.errors }}
+          </div>
+          {% else %}
+            <div class="submission-connect-callout">
+              <div class="submission-provider-intro">
+                {% include "registry/includes/streaming_provider_icon.html" with provider="twitch" %}
+                <span>
+                  <strong>Connect Twitch for quicker submissions</strong>
+                  <span>Choose broadcasts and clips directly from your verified channel.</span>
+                </span>
+              </div>
+              <a class="dashboard-header-action streaming-provider-action" href="{% url 'registry:account_settings' %}">{% include "registry/includes/streaming_provider_icon.html" with provider="twitch" compact=True %}Connect Twitch</a>
+            </div>
+        {% endif %}
+
+        <div class="submission-evidence-times">
+          <div class="field">{{ form.evidence_start_seconds.label_tag }}{{ form.evidence_start_seconds }}<small>Seconds from the beginning of the broadcast.</small>{{ form.evidence_start_seconds.errors }}</div>
+          <div class="field">{{ form.evidence_end_seconds.label_tag }}{{ form.evidence_end_seconds }}<small>Leave blank if the run continues to the end.</small>{{ form.evidence_end_seconds.errors }}</div>
+        </div>
+        {% if form.evidence_clips.field.choices %}
+          <div class="field evidence-clips">{{ form.evidence_clips.label_tag }}{{ form.evidence_clips }}{{ form.evidence_clips.errors }}</div>
+        {% endif %}
+        <div class="submission-manual-evidence">
+          <span class="submission-divider-label">{% if twitch_account %}Broadcast not listed?{% else %}Broadcast link{% endif %}</span>
+          <div class="field">
+            {{ form.manual_evidence_url.label_tag }}
+            {{ form.manual_evidence_url }}
+            <small>{{ form.manual_evidence_url.help_text }}</small>
+            {{ form.manual_evidence_url.errors }}
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="submission-actions">
+      <p>The run will be placed under review. Nothing is published automatically.</p>
+      <button type="submit">Verify and submit</button>
+    </div>
+  </form>
+  {% if twitch_account %}
+    <form id="refresh-twitch-media-form" method="post" action="{% url 'registry:refresh_twitch_media' %}">
+      {% csrf_token %}
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

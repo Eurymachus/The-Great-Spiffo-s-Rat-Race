@@ -42,6 +42,17 @@ ROLE_PERMISSIONS = {
     ),
 }
 
+ZOMBOID_INTEGRATION_PERMISSIONS = (
+    "add_catalogueentry",
+    "view_catalogueentry",
+    "change_catalogueentry",
+    "delete_catalogueentry",
+    "add_cataloguealias",
+    "view_cataloguealias",
+    "change_cataloguealias",
+    "delete_cataloguealias",
+)
+
 
 class Command(BaseCommand):
     help = "Create or update the standard Rat Race account roles."
@@ -54,6 +65,13 @@ class Command(BaseCommand):
                 codename__in=codenames,
             )
             group.permissions.set(permissions)
+        integration_group, _ = Group.objects.get_or_create(name="Zomboid Integration")
+        integration_group.permissions.set(
+            Permission.objects.filter(
+                content_type__app_label="zomboid_catalogue",
+                codename__in=ZOMBOID_INTEGRATION_PERMISSIONS,
+            )
+        )
         themes = {}
         for preset_key, values in THEME_PRESETS.items():
             themes[preset_key], _ = WebsiteTheme.objects.get_or_create(

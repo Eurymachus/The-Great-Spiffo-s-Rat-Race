@@ -15,7 +15,10 @@
       <h2>{{ site_welcome_message }}</h2>
       <p>Your participant account is ready, <strong>{{ request.user.nickname }}</strong>.</p>
     </div>
-    <a class="dashboard-header-action" href="{% url 'registry:account_settings' %}">Settings</a>
+    <div class="dashboard-header-actions">
+      <a class="dashboard-header-action" href="{% url 'registry:submit_run' %}">Submit run</a>
+      <a class="dashboard-header-action" href="{% url 'registry:account_settings' %}">Settings</a>
+    </div>
   </header>
 
   <div class="account-dashboard-grid">
@@ -26,15 +29,23 @@
             <p class="dashboard-panel-kicker">Your record</p>
             <h3>Personal Best</h3>
           </div>
-          <span class="dashboard-coming-soon">No result yet</span>
+          <span class="dashboard-coming-soon">{% if personal_best %}Approved{% else %}No result yet{% endif %}</span>
         </div>
+        {% if personal_best %}
+        <div class="dashboard-run-summary">
+          <div><small>Survivor</small><strong>{{ personal_best.character_name|default:"Recorded run" }}</strong></div>
+          <div><small>Zombie kills</small><strong>{{ personal_best.current_kills }}</strong></div>
+          <div><small>Events verified</small><strong>{{ personal_best.event_sequence }}</strong></div>
+        </div>
+        {% else %}
         <div class="dashboard-empty-state dashboard-challenge-state">
-          <span class="dashboard-state-icon" aria-hidden="true">—</span>
+          <span class="dashboard-state-icon" aria-hidden="true">&mdash;</span>
           <div>
             <strong>Your best verified run will appear here</strong>
             <p>Once a completed run has been approved, this panel will show your strongest result.</p>
           </div>
         </div>
+        {% endif %}
       </section>
 
       <section class="dashboard-panel">
@@ -44,10 +55,45 @@
             <h3>Active Runs</h3>
           </div>
         </div>
+        {% if active_runs %}
+        <div class="dashboard-run-list">
+          {% for run in active_runs %}
+          <article>
+            <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>Run {{ run.run_id|truncatechars:20 }}</small></div>
+            <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_status_display }}</small></div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
         <div class="dashboard-empty-state compact">
           <strong>No active runs</strong>
           <p>Runs currently being tracked will appear here.</p>
         </div>
+        {% endif %}
+      </section>
+
+      <section class="dashboard-panel">
+        <div class="dashboard-panel-heading">
+          <div>
+            <p class="dashboard-panel-kicker">Previous attempts</p>
+            <h3>Past Runs</h3>
+          </div>
+        </div>
+        {% if past_runs %}
+        <div class="dashboard-run-list">
+          {% for run in past_runs %}
+          <article>
+            <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>Run {{ run.run_id|truncatechars:20 }}</small></div>
+            <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_lifecycle_status_display }}</small></div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="dashboard-empty-state compact">
+          <strong>No past runs</strong>
+          <p>Runs that have ended or can no longer continue will appear here.</p>
+        </div>
+        {% endif %}
       </section>
 
       <section class="dashboard-panel">
@@ -57,10 +103,21 @@
             <h3>Submission History</h3>
           </div>
         </div>
+        {% if submission_history %}
+        <div class="dashboard-run-list">
+          {% for submission in submission_history %}
+          <article>
+            <div><strong>{{ submission.run.character_name|default:"Rat Race export" }}</strong><small>{{ submission.submitted_at|date:"j M Y, H:i" }}</small></div>
+            <div><strong>{{ submission.current_kills }} kills</strong><small>{{ submission.get_status_display }}</small></div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
         <div class="dashboard-empty-state compact">
           <strong>No submissions yet</strong>
           <p>Your submitted runs and their review status will appear here.</p>
         </div>
+        {% endif %}
       </section>
     </div>
   </div>

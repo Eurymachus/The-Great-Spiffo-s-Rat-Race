@@ -8,6 +8,7 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
 from django.core.paginator import Paginator
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -27,13 +28,33 @@ from .forms import (
     RegistrationForm,
     ResendVerificationForm,
     SignInForm,
+    RunSubmissionForm,
 )
 from .avatar_moderation import InvalidAvatar, remove_avatar, submit_avatar
-from .models import Notification, Participant
+from .models import (
+    ChallengeRun,
+    Notification,
+    Participant,
+    RunSubmission,
+    StreamingAccount,
+    StreamingMedia,
+)
+from .run_exports import InvalidRunExport, decode_run_export
 from .notifications import notify
 from .rate_limit import exceeded, request_ip
 from .tokens import create_verification_token, read_verification_token
 from .turnstile import validate_turnstile
+from .streaming import (
+    TwitchIntegrationError,
+    apply_twitch_credentials,
+    begin_twitch_authorization,
+    consume_twitch_state,
+    exchange_twitch_code,
+    revoke_twitch_account,
+    refresh_twitch_media,
+    twitch_is_configured,
+    validate_twitch_token,
+)
 from .verification_email import send_password_reset_email, send_verification_email
 
 
@@ -373,12 +394,300 @@ def verify(request, token):
 
 @login_required
 def account(request):
-    return render(request, "registry/account.html")
+    runs = request.user.challenge_runs.prefetch_related("submissions")
+    return render(
+        request,
+        "registry/account.html",
+        {
+            "personal_best": runs.filter(status=ChallengeRun.Status.APPROVED)
+            .order_by("-current_kills", "first_submitted_at")
+            .first(),
+            "active_runs": runs.filter(
+                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE
+            ),
+            "past_runs": runs.exclude(
+                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE
+            ),
+            "submission_history": request.user.run_submissions.select_related("run")[:10],
+        },
+    )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def submit_run(request):
+    form = RunSubmissionForm(request.POST or None, participant=request.user)
+    if request.method == "POST" and form.is_valid():
+        try:
+            decoded = decode_run_export(form.cleaned_data["run_export"])
+        except InvalidRunExport as exc:
+            form.add_error("run_export", str(exc))
+        else:
+            existing = ChallengeRun.objects.filter(run_id=decoded.run_id).first()
+            if existing and existing.participant_id != request.user.id:
+                form.add_error(
+                    "run_export",
+                    "This run is already associated with another participant account.",
+                )
+            elif RunSubmission.objects.filter(checksum=decoded.checksum).exists():
+                form.add_error("run_export", "This exact export has already been submitted.")
+            elif existing and decoded.event_sequence < existing.event_sequence:
+                form.add_error(
+                    "run_export",
+                    "This export is older than the latest version already submitted for this run.",
+                )
+            elif (
+                existing
+                and decoded.event_sequence == existing.event_sequence
+                and decoded.event_hash != existing.event_hash
+            ):
+                form.add_error(
+                    "run_export",
+                    "This export conflicts with the existing ledger for this run.",
+                )
+            else:
+                with transaction.atomic():
+                    run, _ = ChallengeRun.objects.get_or_create(
+                        run_id=decoded.run_id,
+                        defaults={
+                            "participant": request.user,
+                            "export_format": decoded.format,
+                            "generated_at": decoded.generated_at,
+                            "current_kills": decoded.current_kills,
+                            "event_sequence": decoded.event_sequence,
+                            "event_hash": decoded.event_hash,
+                        },
+                    )
+                    run.participant = request.user
+                    run.status = ChallengeRun.Status.UNDER_REVIEW
+                    run.export_format = decoded.format
+                    run.generated_at = decoded.generated_at
+                    run.current_kills = decoded.current_kills
+                    run.event_sequence = decoded.event_sequence
+                    run.event_hash = decoded.event_hash
+                    run.character_name = decoded.character_name
+                    run.bootstrapped = decoded.bootstrapped
+                    run.latest_events = decoded.events
+                    run.reviewed_at = None
+                    run.save()
+                    run.submissions.filter(status=RunSubmission.Status.RECEIVED).update(
+                        status=RunSubmission.Status.SUPERSEDED
+                    )
+                    selected_media = form.media_by_id.get(
+                        form.cleaned_data.get("evidence_video")
+                    )
+                    selected_clips = [
+                        form.media_by_id[value]
+                        for value in form.cleaned_data.get("evidence_clips", [])
+                    ]
+                    RunSubmission.objects.create(
+                        run=run,
+                        submitter=request.user,
+                        checksum=decoded.checksum,
+                        raw_export="".join(form.cleaned_data["run_export"].split()),
+                        export_format=decoded.format,
+                        generated_at=decoded.generated_at,
+                        current_kills=decoded.current_kills,
+                        event_sequence=decoded.event_sequence,
+                        event_hash=decoded.event_hash,
+                        evidence_provider=(
+                            selected_media.account.provider if selected_media else ""
+                        ),
+                        evidence_media_type=(
+                            selected_media.kind if selected_media else ""
+                        ),
+                        evidence_media_id=(
+                            selected_media.provider_media_id if selected_media else ""
+                        ),
+                        evidence_url=(
+                            selected_media.canonical_url
+                            if selected_media
+                            else form.cleaned_data.get("manual_evidence_url", "")
+                        ),
+                        evidence_title=selected_media.title if selected_media else "",
+                        evidence_start_seconds=form.cleaned_data.get(
+                            "evidence_start_seconds"
+                        ),
+                        evidence_end_seconds=form.cleaned_data.get(
+                            "evidence_end_seconds"
+                        ),
+                        evidence_clips=[
+                            {
+                                "provider": clip.account.provider,
+                                "media_id": clip.provider_media_id,
+                                "url": clip.canonical_url,
+                                "title": clip.title,
+                                "parent_media_id": clip.parent_media_id,
+                                "vod_offset_seconds": clip.vod_offset_seconds,
+                            }
+                            for clip in selected_clips
+                        ],
+                    )
+                notify(
+                    request.user,
+                    category=Notification.Category.SUBMISSION,
+                    title="Submission received",
+                    message="Your Rat Race export passed its integrity checks and is awaiting review.",
+                    destination=reverse("registry:account"),
+                )
+                return redirect("registry:account")
+    twitch_account = request.user.streaming_accounts.filter(
+        provider=StreamingAccount.Provider.TWITCH,
+        status=StreamingAccount.Status.CONNECTED,
+    ).first()
+    return render(
+        request,
+        "registry/submit_run.html",
+        {
+            "form": form,
+            "twitch_account": twitch_account,
+            "cached_media_count": (
+                twitch_account.media.count() if twitch_account else 0
+            ),
+        },
+    )
 
 
 @login_required
 def account_settings(request):
-    return render(request, "registry/account_settings.html")
+    accounts = {
+        account.provider: account
+        for account in request.user.streaming_accounts.all()
+    }
+    streaming_accounts = [
+        {
+            "provider": provider,
+            "label": label,
+            "account": accounts.get(provider),
+            "configured": provider == StreamingAccount.Provider.TWITCH
+            and twitch_is_configured(),
+        }
+        for provider, label in StreamingAccount.Provider.choices
+    ]
+    return render(
+        request,
+        "registry/account_settings.html",
+        {"streaming_accounts": streaming_accounts},
+    )
+
+
+@login_required
+def connect_twitch(request):
+    try:
+        return redirect(begin_twitch_authorization(request))
+    except TwitchIntegrationError as exc:
+        notify(
+            request.user,
+            title="Twitch connection unavailable",
+            message=str(exc),
+            destination=reverse("registry:account_settings"),
+        )
+        return redirect("registry:account_settings")
+
+
+@login_required
+def twitch_callback(request):
+    try:
+        consume_twitch_state(request, request.GET.get("state"))
+        if request.GET.get("error"):
+            raise TwitchIntegrationError("Twitch access was not granted.")
+        code = request.GET.get("code")
+        if not code:
+            raise TwitchIntegrationError("Twitch did not return an authorization code.")
+        token_data = exchange_twitch_code(code)
+        identity = validate_twitch_token(token_data["access_token"])
+        owner = StreamingAccount.objects.filter(
+            provider=StreamingAccount.Provider.TWITCH,
+            provider_identity=identity["user_id"],
+        ).exclude(participant=request.user).first()
+        if owner:
+            raise TwitchIntegrationError(
+                "That Twitch channel is already connected to another Rat Race account."
+            )
+        account = StreamingAccount.objects.filter(
+            participant=request.user,
+            provider=StreamingAccount.Provider.TWITCH,
+        ).first()
+        if account is None:
+            account = StreamingAccount(
+                participant=request.user,
+                provider=StreamingAccount.Provider.TWITCH,
+                provider_identity=identity["user_id"],
+                channel_identity=identity["user_id"],
+                display_name=identity["login"],
+                channel_url=f"https://www.twitch.tv/{identity['login']}",
+            )
+        with transaction.atomic():
+            apply_twitch_credentials(account, token_data, identity)
+    except (IntegrityError, KeyError, TwitchIntegrationError) as exc:
+        message = (
+            str(exc)
+            if isinstance(exc, TwitchIntegrationError)
+            else "Twitch returned an incomplete or conflicting account response."
+        )
+        notify(
+            request.user,
+            title="Twitch was not connected",
+            message=message,
+            destination=reverse("registry:account_settings"),
+        )
+    else:
+        notify(
+            request.user,
+            title="Twitch connected",
+            message=f"Your Twitch channel, {account.display_name}, is now linked.",
+            destination=reverse("registry:account_settings"),
+        )
+    return redirect("registry:account_settings")
+
+
+@login_required
+@require_http_methods(["POST"])
+def disconnect_twitch(request):
+    account = get_object_or_404(
+        StreamingAccount,
+        participant=request.user,
+        provider=StreamingAccount.Provider.TWITCH,
+    )
+    revoke_twitch_account(account)
+    notify(
+        request.user,
+        title="Twitch disconnected",
+        message="Your Twitch channel is no longer linked to your Rat Race account.",
+        destination=reverse("registry:account_settings"),
+    )
+    return redirect("registry:account_settings")
+
+
+@login_required
+@require_http_methods(["POST"])
+def refresh_twitch_media_view(request):
+    account = get_object_or_404(
+        StreamingAccount,
+        participant=request.user,
+        provider=StreamingAccount.Provider.TWITCH,
+        status=StreamingAccount.Status.CONNECTED,
+    )
+    try:
+        videos, clips = refresh_twitch_media(account)
+    except TwitchIntegrationError as exc:
+        if exc.status == 401:
+            account.status = StreamingAccount.Status.RECONNECT_REQUIRED
+            account.save(update_fields=("status",))
+        notify(
+            request.user,
+            title="Twitch media could not be refreshed",
+            message=str(exc),
+            destination=reverse("registry:submit_run"),
+        )
+    else:
+        notify(
+            request.user,
+            title="Twitch media refreshed",
+            message=f"Found {videos} recent broadcasts and {clips} clips.",
+            destination=reverse("registry:submit_run"),
+        )
+    return redirect("registry:submit_run")
 
 
 def avatar_return_url(request):
@@ -446,6 +755,11 @@ def open_notification(request, notification_id):
 @require_http_methods(["POST"])
 def mark_notifications_read(request):
     request.user.notifications.filter(read_at__isnull=True).update(read_at=timezone.now())
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"ok": True, "unread_count": 0})
+    next_url = request.POST.get("next", "")
+    if next_url.startswith("/") and not next_url.startswith("//"):
+        return redirect(next_url)
     return redirect("registry:notifications")
 
 
@@ -501,6 +815,40 @@ def download_my_data(request):
                     "read_at": notification.read_at.isoformat() if notification.read_at else None,
                 }
                 for notification in participant.notifications.all()
+            ],
+            "challenge_runs": [
+                {
+                    "run_id": run.run_id,
+                    "status": run.status,
+                    "lifecycle_status": run.lifecycle_status,
+                    "character_name": run.character_name,
+                    "generated_at": run.generated_at.isoformat(),
+                    "current_kills": run.current_kills,
+                    "event_sequence": run.event_sequence,
+                    "event_hash": run.event_hash,
+                    "bootstrapped": run.bootstrapped,
+                    "first_submitted_at": run.first_submitted_at.isoformat(),
+                    "updated_at": run.updated_at.isoformat(),
+                    "submissions": [
+                        {
+                            "id": str(submission.id),
+                            "status": submission.status,
+                            "checksum": submission.checksum,
+                            "generated_at": submission.generated_at.isoformat(),
+                            "current_kills": submission.current_kills,
+                            "event_sequence": submission.event_sequence,
+                            "event_hash": submission.event_hash,
+                            "submitted_at": submission.submitted_at.isoformat(),
+                            "reviewed_at": (
+                                submission.reviewed_at.isoformat()
+                                if submission.reviewed_at
+                                else None
+                            ),
+                        }
+                        for submission in run.submissions.all()
+                    ],
+                }
+                for run in participant.challenge_runs.prefetch_related("submissions")
             ],
         },
     }

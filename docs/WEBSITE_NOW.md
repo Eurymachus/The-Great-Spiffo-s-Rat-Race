@@ -56,16 +56,37 @@ a nickname using a verified email address.
 - Cache-backed request limits for signup, resend, and password recovery.
 - Administrator roles, participant promotion, status management, and CSV export.
 - Local development documentation and automated test coverage.
+- Initial mod-export ingestion into immutable run submissions, with integrity
+  verification, participant submission status, and explicit administrator
+  approval or reasoned decline.
+- Independent run lifecycle tracking for active, deceased, abandoned, completed,
+  and invalidated runs, presented as Active Runs and Past Runs on the participant
+  dashboard. Lifecycle is moderator-managed until the tracker emits a terminal
+  run signal.
+- Participant notifications for submission receipt and moderation decisions.
+- A dedicated Project Zomboid Catalogue administration section with stable IDs,
+  display metadata, version ranges, aliases, a reusable resolver, and a scoped
+  Zomboid Integration staff role.
+- A provider-neutral connected streaming-account foundation for Twitch and
+  YouTube, including immutable provider/channel identities, connection state,
+  audit timestamps, administration and participant-facing account status.
+- Production-shaped Twitch linking with encrypted rotating credentials,
+  ownership proof, hourly-on-use validation, reactive refresh, explicitly
+  cached recent broadcasts and clips, and immutable run-evidence snapshots for
+  moderation.
+- Official Twitch and YouTube brand marks shared across connected-channel rows,
+  provider actions and the run-submission journey.
 
 Uploaded brand images live in deployment media storage rather than Git. A live
 deployment must persist and back up that media directory alongside the database.
 
 ## Not Now
 
-- Run update-code submission
 - Leaderboards and statistics
-- Report moderation implementation
 - Full mod integration
+- YouTube OAuth linking and media retrieval. Twitch linking and cached evidence
+  selection are implemented; live provider testing still requires deployment
+  credentials.
 
 ## Future Core Deliverable: Moderated Run Updates
 
@@ -103,12 +124,9 @@ Page's canonical address.
 
 ## Recommended next action
 
-Exercise the navigation editor with representative real content, including a
-root Gallery link and a Media heading with nested pages, then refine the admin
-ordering experience based on that test.
+Configure Twitch development credentials and exercise the complete link,
+refresh, evidence-selection and moderation journey against a real test channel.
+YouTube should follow after this Twitch lifecycle has been proven outside mocked
+tests.
 
-Afterwards, extend the structured content system only when the Rat Race needs
-another proven section or block type.
-Run/report ingestion remains deferred until Project Zomboid B42 Stable and the
-challenge rules are finalised. Retention automation and a final pre-launch
-privacy review still remain required.
+Retention automation and a final pre-launch privacy review remain required.

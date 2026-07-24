@@ -16,6 +16,8 @@ From the repository root in PowerShell:
 python -m venv .venv
 .\.venv\Scripts\python -m pip install -r .\apps\website\requirements.txt
 .\.venv\Scripts\python .\apps\website\manage.py migrate
+.\.venv\Scripts\python .\apps\website\manage.py bootstrap_roles
+.\.venv\Scripts\python .\apps\website\manage.py import_zomboid_catalogue
 .\.venv\Scripts\python .\apps\website\manage.py runserver
 ```
 

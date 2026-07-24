@@ -33,6 +33,44 @@
       </a>
     </section>
 
+    <section class="dashboard-panel settings-group settings-streaming">
+      <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Streaming</p><h3>Connected channels</h3></div></div>
+      {% for provider in streaming_accounts %}
+        <div class="settings-row streaming-account-row">
+          <span class="streaming-provider-copy">
+            {% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider %}
+            <span>
+              <strong>{{ provider.label }}</strong>
+              {% if provider.account %}
+                <small>{{ provider.account.display_name }} · {{ provider.account.get_status_display }}</small>
+              {% else %}
+                <small>Connect your channel to select stream evidence for Rat Race submissions.</small>
+              {% endif %}
+            </span>
+          </span>
+          {% if provider.account %}
+            <span class="streaming-account-actions">
+              {% if provider.account.status != "connected" and provider.configured %}
+                  <a class="streaming-channel-link streaming-provider-action" href="{% url 'registry:connect_twitch' %}">{% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider compact=True %}Reconnect</a>
+              {% else %}
+                  <a class="streaming-channel-link streaming-provider-action" href="{{ provider.account.channel_url }}" target="_blank" rel="noopener">{% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider compact=True %}View channel</a>
+              {% endif %}
+              {% if provider.provider == "twitch" %}
+                <form method="post" action="{% url 'registry:disconnect_twitch' %}">
+                  {% csrf_token %}
+                    <button type="submit" class="streaming-disconnect streaming-provider-action">{% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider compact=True %}Disconnect</button>
+                </form>
+              {% endif %}
+            </span>
+          {% elif provider.provider == "twitch" and provider.configured %}
+              <a class="streaming-channel-link streaming-provider-action" href="{% url 'registry:connect_twitch' %}">{% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider compact=True %}Connect</a>
+          {% else %}
+              <button type="button" class="streaming-connect-placeholder streaming-provider-action" disabled title="{{ provider.label }} connection is not configured">{% include "registry/includes/streaming_provider_icon.html" with provider=provider.provider compact=True %}Not configured</button>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </section>
+
     <section class="dashboard-panel settings-group">
       <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Privacy</p><h3>Your information</h3></div></div>
       <a class="settings-row" href="{% url 'registry:download_my_data' %}">

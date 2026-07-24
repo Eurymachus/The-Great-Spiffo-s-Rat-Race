@@ -140,3 +140,194 @@ class Notification(models.Model):
     @property
     def is_read(self):
         return self.read_at is not None
+
+
+class StreamingAccount(models.Model):
+    class Provider(models.TextChoices):
+        TWITCH = "twitch", "Twitch"
+        YOUTUBE = "youtube", "YouTube"
+
+    class Status(models.TextChoices):
+        CONNECTED = "connected", "Connected"
+        RECONNECT_REQUIRED = "reconnect_required", "Reconnect required"
+        DISCONNECTED = "disconnected", "Disconnected"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    participant = models.ForeignKey(
+        Participant,
+        on_delete=models.CASCADE,
+        related_name="streaming_accounts",
+    )
+    provider = models.CharField(max_length=16, choices=Provider.choices)
+    provider_identity = models.CharField(
+        max_length=255,
+        help_text="The provider's immutable account identifier.",
+    )
+    channel_identity = models.CharField(
+        max_length=255,
+        help_text="The immutable broadcaster or channel identifier.",
+    )
+    display_name = models.CharField(max_length=255)
+    channel_url = models.URLField(max_length=500)
+    granted_scopes = models.JSONField(default=list, blank=True)
+    status = models.CharField(
+        max_length=24,
+        choices=Status.choices,
+        default=Status.CONNECTED,
+    )
+    connected_at = models.DateTimeField(auto_now_add=True)
+    refreshed_at = models.DateTimeField(null=True, blank=True)
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+    encrypted_access_token = models.TextField(blank=True, editable=False)
+    encrypted_refresh_token = models.TextField(blank=True, editable=False)
+    token_validated_at = models.DateTimeField(null=True, blank=True)
+    disconnected_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("provider",)
+        constraints = (
+            models.UniqueConstraint(
+                fields=("participant", "provider"),
+                name="unique_streaming_provider_per_participant",
+            ),
+            models.UniqueConstraint(
+                fields=("provider", "provider_identity"),
+                name="unique_streaming_provider_identity",
+            ),
+            models.UniqueConstraint(
+                fields=("provider", "channel_identity"),
+                name="unique_streaming_channel_identity",
+            ),
+        )
+
+    def __str__(self):
+        return f"{self.participant} — {self.get_provider_display()}"
+
+
+class StreamingMedia(models.Model):
+    class Kind(models.TextChoices):
+        VIDEO = "video", "Video"
+        CLIP = "clip", "Clip"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    account = models.ForeignKey(
+        StreamingAccount, on_delete=models.CASCADE, related_name="media"
+    )
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    provider_media_id = models.CharField(max_length=255)
+    parent_media_id = models.CharField(max_length=255, blank=True)
+    title = models.CharField(max_length=500, blank=True)
+    canonical_url = models.URLField(max_length=1000)
+    thumbnail_url = models.URLField(max_length=1000, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    vod_offset_seconds = models.PositiveIntegerField(null=True, blank=True)
+    metadata_snapshot = models.JSONField(default=dict, blank=True)
+    refreshed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-published_at", "kind", "provider_media_id")
+        constraints = (
+            models.UniqueConstraint(
+                fields=("account", "kind", "provider_media_id"),
+                name="unique_streaming_media_per_account",
+            ),
+        )
+
+    def __str__(self):
+        return self.title or self.provider_media_id
+
+
+class ChallengeRun(models.Model):
+    class Status(models.TextChoices):
+        UNDER_REVIEW = "under_review", "Under review"
+        APPROVED = "approved", "Approved"
+        DECLINED = "declined", "Declined"
+
+    class Lifecycle(models.TextChoices):
+        ACTIVE = "active", "Active"
+        DECEASED = "deceased", "Deceased"
+        ABANDONED = "abandoned", "Abandoned"
+        COMPLETED = "completed", "Completed"
+        INVALIDATED = "invalidated", "Invalidated"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    participant = models.ForeignKey(
+        Participant,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="challenge_runs",
+    )
+    run_id = models.CharField(max_length=160, unique=True)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.UNDER_REVIEW
+    )
+    lifecycle_status = models.CharField(
+        max_length=16, choices=Lifecycle.choices, default=Lifecycle.ACTIVE
+    )
+    export_format = models.PositiveSmallIntegerField()
+    generated_at = models.DateTimeField()
+    current_kills = models.PositiveBigIntegerField(default=0)
+    event_sequence = models.PositiveBigIntegerField(default=0)
+    event_hash = models.CharField(max_length=64)
+    character_name = models.CharField(max_length=160, blank=True)
+    bootstrapped = models.BooleanField(default=False)
+    latest_events = models.JSONField(default=list, blank=True)
+    first_submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_reason = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+
+    def __str__(self):
+        return self.character_name or self.run_id
+
+
+class RunSubmission(models.Model):
+    class Status(models.TextChoices):
+        RECEIVED = "received", "Received"
+        APPROVED = "approved", "Approved"
+        DECLINED = "declined", "Declined"
+        SUPERSEDED = "superseded", "Superseded"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    run = models.ForeignKey(
+        ChallengeRun, on_delete=models.CASCADE, related_name="submissions"
+    )
+    submitter = models.ForeignKey(
+        Participant,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="run_submissions",
+    )
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.RECEIVED
+    )
+    checksum = models.CharField(max_length=64, unique=True)
+    raw_export = models.TextField()
+    export_format = models.PositiveSmallIntegerField()
+    generated_at = models.DateTimeField()
+    current_kills = models.PositiveBigIntegerField(default=0)
+    event_sequence = models.PositiveBigIntegerField(default=0)
+    event_hash = models.CharField(max_length=64)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.TextField(blank=True)
+    evidence_provider = models.CharField(max_length=16, blank=True)
+    evidence_media_type = models.CharField(max_length=12, blank=True)
+    evidence_media_id = models.CharField(max_length=255, blank=True)
+    evidence_url = models.URLField(max_length=1000, blank=True)
+    evidence_title = models.CharField(max_length=500, blank=True)
+    evidence_start_seconds = models.PositiveIntegerField(null=True, blank=True)
+    evidence_end_seconds = models.PositiveIntegerField(null=True, blank=True)
+    evidence_clips = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ("-submitted_at",)
+
+    def __str__(self):
+        return f"{self.run} — {self.get_status_display()}"

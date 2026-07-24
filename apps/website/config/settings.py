@@ -132,6 +132,7 @@ INSTALLED_APPS = [
     'branding',
     'pages',
     'registry',
+    'zomboid_catalogue',
 ]
 
 AUTH_USER_MODEL = 'registry.Participant'
@@ -223,6 +224,17 @@ AVATAR_QUARANTINE_ROOT = BASE_DIR / 'private_uploads' / 'avatars'
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_MODERATION_URL = "https://api.openai.com/v1/moderations"
 AVATAR_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
+
+# Streaming-provider credentials are optional in development. Connections are
+# only enabled when all provider credentials and a separate Fernet encryption
+# key are supplied.
+STREAMING_TOKEN_ENCRYPTION_KEY = os.environ.get(
+    "STREAMING_TOKEN_ENCRYPTION_KEY", ""
+)
+TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID", "")
+TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET", "")
+TWITCH_REDIRECT_URI = os.environ.get("TWITCH_REDIRECT_URI", "")
+TWITCH_HTTP_TIMEOUT_SECONDS = 10
 
 # Local development prints verification emails to the server console. Production
 # will override this with the Microsoft 365 email backend/configuration.

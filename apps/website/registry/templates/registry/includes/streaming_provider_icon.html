@@ -1,0 +1,8 @@
+{% load static %}
+<span class="streaming-provider-icon streaming-provider-icon-{{ provider }}{% if compact %} is-compact{% endif %}" aria-hidden="true">
+  {% if provider == "twitch" %}
+    <img src="{% static 'registry/images/brands/twitch-glitch-purple.png' %}" alt="">
+  {% elif provider == "youtube" %}
+    <img src="{% static 'registry/images/brands/youtube-icon-red.png' %}" alt="">
+  {% endif %}
+</span>

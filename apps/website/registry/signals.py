@@ -10,6 +10,7 @@ STAFF_ROLE_NAMES = {
     "Moderator",
     "Challenge Administrator",
     "Branding Administrator",
+    "Zomboid Integration",
 }
 
 

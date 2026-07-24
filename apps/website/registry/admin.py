@@ -17,11 +17,20 @@ from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
 
-from .models import AccountClosureRecord, Notification, Participant
+from .models import (
+    AccountClosureRecord,
+    ChallengeRun,
+    Notification,
+    Participant,
+    RunSubmission,
+    StreamingAccount,
+    StreamingMedia,
+)
 from .tokens import create_verification_token
 from .verification_email import send_verification_email
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
 from .notifications import notify
+from .run_review import build_run_review
 
 admin.site.site_header = f"{settings.SITE_SHORT_TITLE} administration"
 admin.site.site_title = f"{settings.SITE_SHORT_TITLE} admin"
@@ -137,6 +146,11 @@ def promote_to_branding_admin(modeladmin, request, queryset):
     promote_to_role(modeladmin, request, queryset, "Branding Administrator")
 
 
+@admin.action(description="Promote selected participants to Zomboid Integration")
+def promote_to_zomboid_integration(modeladmin, request, queryset):
+    promote_to_role(modeladmin, request, queryset, "Zomboid Integration")
+
+
 @admin.action(description="Process closure and redact selected participants")
 def process_account_closures(modeladmin, request, queryset):
     if not can_process_closures(request.user):
@@ -231,7 +245,7 @@ class ParticipantAdmin(UserAdmin):
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("email", "nickname", "password1", "password2", "is_active", "is_staff", "groups")}),
     )
-    actions = (approve_avatars, reject_avatars, resend_verifications, promote_to_approver, promote_to_moderator, promote_to_challenge_admin, promote_to_branding_admin, process_account_closures, export_registrations)
+    actions = (approve_avatars, reject_avatars, resend_verifications, promote_to_approver, promote_to_moderator, promote_to_challenge_admin, promote_to_branding_admin, promote_to_zomboid_integration, process_account_closures, export_registrations)
     date_hierarchy = "registered_at"
 
     @admin.display(description="Pending avatar preview")
@@ -346,3 +360,192 @@ class NotificationAdmin(admin.ModelAdmin):
     autocomplete_fields = ("recipient",)
     readonly_fields = ("created_at", "read_at")
     ordering = ("-created_at",)
+
+
+@admin.register(StreamingAccount)
+class StreamingAccountAdmin(admin.ModelAdmin):
+    list_display = (
+        "participant", "provider", "display_name", "status", "connected_at",
+    )
+    list_filter = ("provider", "status", "connected_at")
+    search_fields = (
+        "participant__nickname", "participant__email", "display_name",
+        "provider_identity", "channel_identity",
+    )
+    autocomplete_fields = ("participant",)
+    readonly_fields = (
+        "provider_identity", "channel_identity", "connected_at", "refreshed_at",
+        "token_expires_at", "token_validated_at", "disconnected_at",
+    )
+
+    def get_exclude(self, request, obj=None):
+        return ("encrypted_access_token", "encrypted_refresh_token")
+
+    def has_add_permission(self, request):
+        return False
+
+
+@admin.register(StreamingMedia)
+class StreamingMediaAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "kind",
+        "account",
+        "provider_media_id",
+        "published_at",
+        "refreshed_at",
+    )
+    list_filter = ("kind", "account__provider", "published_at", "refreshed_at")
+    search_fields = (
+        "title",
+        "provider_media_id",
+        "account__display_name",
+        "account__participant__email",
+    )
+    autocomplete_fields = ("account",)
+    readonly_fields = (
+        "provider_media_id",
+        "parent_media_id",
+        "title",
+        "canonical_url",
+        "thumbnail_url",
+        "published_at",
+        "duration_seconds",
+        "vod_offset_seconds",
+        "metadata_snapshot",
+        "refreshed_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+
+@admin.register(ChallengeRun)
+class ChallengeRunAdmin(admin.ModelAdmin):
+    change_form_template = "admin/registry/challengerun/change_form.html"
+    list_display = (
+        "run_id", "participant", "character_name", "lifecycle_status", "status",
+        "current_kills", "event_sequence", "updated_at",
+    )
+    list_filter = (
+        "lifecycle_status", "status", "export_format", "bootstrapped", "updated_at"
+    )
+    search_fields = ("run_id", "character_name", "participant__nickname", "participant__email")
+    readonly_fields = (
+        "participant", "status", "reviewed_at", "review_reason",
+        "run_id", "export_format", "generated_at", "current_kills",
+        "event_sequence", "event_hash", "character_name", "bootstrapped",
+        "latest_events", "first_submitted_at", "updated_at",
+    )
+
+    class Media:
+        css = {"all": ("registry/admin_run_review.css",)}
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        run = self.get_object(request, object_id)
+        context = dict(extra_context or {})
+        if run:
+            context["run_review"] = build_run_review(run)
+        return super().change_view(request, object_id, form_url, context)
+
+    def get_urls(self):
+        return [
+            path(
+                "<path:object_id>/approve/",
+                self.admin_site.admin_view(self.approve_run_view),
+                name="registry_challengerun_approve",
+            ),
+            path(
+                "<path:object_id>/decline/",
+                self.admin_site.admin_view(self.decline_run_view),
+                name="registry_challengerun_decline",
+            ),
+        ] + super().get_urls()
+
+    def review_run(self, request, object_id):
+        run = self.get_object(request, object_id)
+        if not run or not self.has_change_permission(request, run):
+            raise Http404
+        return run
+
+    def approve_run_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        run = self.review_run(request, object_id)
+        reviewed_at = timezone.now()
+        run.status = ChallengeRun.Status.APPROVED
+        run.reviewed_at = reviewed_at
+        run.review_reason = ""
+        run.save(update_fields=("status", "reviewed_at", "review_reason"))
+        latest = run.submissions.order_by("-submitted_at").first()
+        if latest:
+            latest.status = RunSubmission.Status.APPROVED
+            latest.reviewed_at = reviewed_at
+            latest.review_note = ""
+            latest.save(update_fields=("status", "reviewed_at", "review_note"))
+        if run.participant:
+            notify(
+                run.participant,
+                category=Notification.Category.SUBMISSION,
+                title="Submission approved",
+                message="Your Rat Race submission has been approved.",
+                destination=reverse("registry:account"),
+            )
+        self.message_user(request, "The run was approved.", level=messages.SUCCESS)
+        return redirect("admin:registry_challengerun_change", run.pk)
+
+    def decline_run_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        run = self.review_run(request, object_id)
+        reason = request.POST.get("reason", "").strip()
+        if not reason:
+            self.message_user(
+                request, "A reason is required when declining a run.", level=messages.ERROR
+            )
+            return redirect("admin:registry_challengerun_change", run.pk)
+        reviewed_at = timezone.now()
+        run.status = ChallengeRun.Status.DECLINED
+        run.reviewed_at = reviewed_at
+        run.review_reason = reason
+        run.save(update_fields=("status", "reviewed_at", "review_reason"))
+        latest = run.submissions.order_by("-submitted_at").first()
+        if latest:
+            latest.status = RunSubmission.Status.DECLINED
+            latest.reviewed_at = reviewed_at
+            latest.review_note = reason
+            latest.save(update_fields=("status", "reviewed_at", "review_note"))
+        if run.participant:
+            notify(
+                run.participant,
+                category=Notification.Category.SUBMISSION,
+                title="Submission declined",
+                message=f"Your Rat Race submission was not approved: {reason}",
+                destination=reverse("registry:account"),
+            )
+        self.message_user(request, "The run was declined.", level=messages.SUCCESS)
+        return redirect("admin:registry_challengerun_change", run.pk)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(RunSubmission)
+class RunSubmissionAdmin(admin.ModelAdmin):
+    list_display = (
+        "run", "submitter", "status", "current_kills",
+        "event_sequence", "submitted_at",
+    )
+    list_filter = ("status", "export_format", "submitted_at")
+    search_fields = ("run__run_id", "run__character_name", "submitter__nickname")
+    autocomplete_fields = ("run", "submitter")
+    readonly_fields = (
+        "run", "submitter", "checksum", "raw_export", "export_format",
+        "generated_at", "current_kills", "event_sequence", "event_hash",
+        "submitted_at", "evidence_provider", "evidence_media_type",
+        "evidence_media_id", "evidence_url", "evidence_title",
+        "evidence_start_seconds", "evidence_end_seconds", "evidence_clips",
+    )

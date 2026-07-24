@@ -42,7 +42,28 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("account/", views.account, name="account"),
+    path("account/submit/", views.submit_run, name="submit_run"),
     path("account/settings/", views.account_settings, name="account_settings"),
+    path(
+        "account/streaming/twitch/connect/",
+        views.connect_twitch,
+        name="connect_twitch",
+    ),
+    path(
+        "account/streaming/twitch/callback/",
+        views.twitch_callback,
+        name="twitch_callback",
+    ),
+    path(
+        "account/streaming/twitch/disconnect/",
+        views.disconnect_twitch,
+        name="disconnect_twitch",
+    ),
+    path(
+        "account/streaming/twitch/media/refresh/",
+        views.refresh_twitch_media_view,
+        name="refresh_twitch_media",
+    ),
     path("account/settings/avatar/", views.upload_avatar, name="upload_avatar"),
     path("account/settings/avatar/remove/", views.delete_avatar, name="delete_avatar"),
     path("account/notifications/", views.notifications, name="notifications"),

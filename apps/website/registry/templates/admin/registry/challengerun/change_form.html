@@ -1,0 +1,186 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block field_sets %}
+  {% if original and run_review %}
+    <div class="run-review">
+      <section class="run-review-hero">
+        <div>
+          <p class="run-review-kicker">Run submission review</p>
+          <h2>{{ original.character_name|default:"Unnamed survivor" }}</h2>
+          <p>Submitted by <strong>{{ original.participant|default:"Former Rat Racer" }}</strong></p>
+        </div>
+        <span class="run-review-status status-{{ original.status }}">{{ original.get_status_display }}</span>
+      </section>
+
+      <section class="run-review-summary" aria-label="Run summary">
+        <div><small>Zombie kills</small><strong>{{ original.current_kills }}</strong></div>
+        <div><small>Ledger events</small><strong>{{ original.event_sequence }}</strong></div>
+        <div><small>Generated</small><strong>{{ original.generated_at|date:"j M Y, H:i" }}</strong></div>
+        <div><small>Export format</small><strong>{{ original.export_format }}</strong></div>
+      </section>
+
+      <div class="run-review-columns">
+        <section class="run-review-panel">
+          <header><div><p class="run-review-kicker">Automated review</p><h3>Integrity findings</h3></div></header>
+          <div class="run-review-findings">
+            {% for finding in run_review.findings %}
+              <article class="run-review-finding finding-{{ finding.level }}">
+                <span class="finding-icon" aria-hidden="true">{% if finding.level == "pass" %}✓{% elif finding.level == "danger" %}!{% elif finding.level == "warning" %}△{% else %}i{% endif %}</span>
+                <div><strong>{{ finding.title }}</strong><p>{{ finding.message }}</p></div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="run-review-panel">
+          <header><div><p class="run-review-kicker">Approved baseline</p><h3>Material changes</h3></div></header>
+          {% if run_review.comparison %}
+            <dl class="run-review-comparison">
+              <div><dt>Approved snapshot</dt><dd>{{ run_review.baseline.reviewed_at|date:"j M Y, H:i" }}</dd></div>
+              <div><dt>Additional events</dt><dd>{{ run_review.comparison.event_delta|stringformat:"+d" }}</dd></div>
+              <div><dt>Additional kills</dt><dd>{{ run_review.comparison.kill_delta|stringformat:"+d" }}</dd></div>
+              <div><dt>Changed approved events</dt><dd>{{ run_review.comparison.changed_sequences|length }}</dd></div>
+            </dl>
+          {% else %}
+            <div class="run-review-empty"><strong>No approved baseline</strong><p>This is the first submission for this run.</p></div>
+          {% endif %}
+        </section>
+      </div>
+
+      <section class="run-review-panel">
+        <header><div><p class="run-review-kicker">Stream evidence</p><h3>Broadcast and clips</h3></div></header>
+        {% with evidence=run_review.current_submission %}
+          {% if evidence and evidence.evidence_url %}
+            <dl class="run-review-comparison">
+              <div><dt>Provider</dt><dd>{{ evidence.evidence_provider|default:"Manual link"|title }}</dd></div>
+              <div><dt>Broadcast</dt><dd><a href="{{ evidence.evidence_url }}" target="_blank" rel="noopener noreferrer">{{ evidence.evidence_title|default:evidence.evidence_url }}</a></dd></div>
+              <div><dt>Start</dt><dd>{% if evidence.evidence_start_seconds is not None %}{{ evidence.evidence_start_seconds }} seconds{% else %}Not supplied{% endif %}</dd></div>
+              <div><dt>End</dt><dd>{% if evidence.evidence_end_seconds is not None %}{{ evidence.evidence_end_seconds }} seconds{% else %}Not supplied{% endif %}</dd></div>
+            </dl>
+            {% if evidence.evidence_clips %}
+              <div class="run-event-counts">
+                {% for clip in evidence.evidence_clips %}
+                  <div><strong>Clip</strong><a href="{{ clip.url }}" target="_blank" rel="noopener noreferrer">{{ clip.title|default:clip.media_id }}</a><small>{% if clip.vod_offset_seconds is not None %}VOD offset {{ clip.vod_offset_seconds }} seconds{% endif %}</small></div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% else %}
+            <div class="run-review-empty"><strong>No stream evidence attached</strong><p>The participant did not select a cached broadcast or provide a manual URL.</p></div>
+          {% endif %}
+        {% endwith %}
+      </section>
+
+      <section class="run-review-panel">
+        <header><div><p class="run-review-kicker">Ledger overview</p><h3>Recorded event types</h3></div></header>
+        <div class="run-event-counts">
+          {% for event in run_review.event_counts %}
+            <div><strong>{{ event.count }}</strong><span>{{ event.label }}</span><small>{{ event.event_type }}</small></div>
+          {% empty %}
+            <p>No ledger events were decoded.</p>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="run-review-panel">
+        <header><div><p class="run-review-kicker">Chronology</p><h3>Event ledger</h3></div><span>{{ run_review.event_rows|length }} events</span></header>
+        <div class="run-event-table-wrap">
+          <table class="run-event-table">
+            <thead><tr><th>Seq.</th><th>Day</th><th>Event</th><th>Details</th><th>Recorded</th></tr></thead>
+            <tbody>
+              {% for event in run_review.event_rows %}
+                <tr>
+                  <td>{{ event.sequence }}</td>
+                  <td>{% if event.day %}{{ event.day }}{% else %}—{% endif %}</td>
+                  <td><strong>{{ event.label }}</strong><small>{{ event.event_type }}</small></td>
+                  <td>{{ event.summary }}{% if event.identifiers %}<small>{{ event.identifiers }}</small>{% endif %}</td>
+                  <td>{% if event.occurred_at %}{{ event.occurred_at|date:"j M Y, H:i:s" }}{% else %}—{% endif %}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5">No events were decoded.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <details class="run-review-evidence">
+        <summary>Raw evidence and identifiers</summary>
+        <dl>
+          <div><dt>Run ID</dt><dd>{{ original.run_id }}</dd></div>
+          <div><dt>Ledger head</dt><dd><code>{{ original.event_hash }}</code></dd></div>
+          {% if run_review.current_submission %}
+            <div><dt>Submission checksum</dt><dd><code>{{ run_review.current_submission.checksum }}</code></dd></div>
+            <div><dt>Submitted</dt><dd>{{ run_review.current_submission.submitted_at|date:"j M Y, H:i:s" }}</dd></div>
+          {% endif %}
+        </dl>
+        <h3>Decoded event JSON</h3>
+        <pre>{{ run_review.raw_json }}</pre>
+      </details>
+    </div>
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block submit_buttons_bottom %}
+  {% if original and original.status == "under_review" %}
+    <div class="submit-row run-review-submit-row">
+      <button
+        type="submit"
+        class="button run-review-approve"
+        formaction="{% url 'admin:registry_challengerun_approve' original.pk %}"
+        formmethod="post"
+      >Approve</button>
+      <button type="button" class="button run-review-decline" data-run-decline-open>Decline</button>
+    </div>
+    <dialog class="run-decline-dialog" data-run-decline-dialog aria-labelledby="run-decline-title">
+      <h2 id="run-decline-title">Decline this run?</h2>
+      <p>The participant will be notified and shown the reason.</p>
+      <label for="run-decline-reason">Reason</label>
+      <textarea id="run-decline-reason" name="reason" rows="5" maxlength="1000" required disabled></textarea>
+      <div class="run-decline-actions">
+        <button type="button" class="button" data-run-decline-close>Cancel</button>
+        <button
+          type="submit"
+          class="button run-review-decline"
+          formaction="{% url 'admin:registry_challengerun_decline' original.pk %}"
+          formmethod="post"
+        >Decline run</button>
+      </div>
+    </dialog>
+  {% else %}
+    <div class="submit-row run-review-complete">
+      Review completed
+      {% if original.reviewed_at %}{{ original.reviewed_at|date:"j F Y, H:i" }}{% endif %}
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+  {{ block.super }}
+  <script>
+    (() => {
+      const dialog = document.querySelector("[data-run-decline-dialog]");
+      const open = document.querySelector("[data-run-decline-open]");
+      const close = document.querySelector("[data-run-decline-close]");
+      if (!dialog || !open) return;
+      const reason = dialog.querySelector("textarea");
+      open.addEventListener("click", () => {
+        reason.disabled = false;
+        dialog.showModal();
+        reason.focus();
+      });
+      const closeDialog = () => {
+        dialog.close();
+      };
+      close?.addEventListener("click", closeDialog);
+      dialog.addEventListener("close", () => {
+        reason.disabled = true;
+      });
+      dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) closeDialog();
+      });
+    })();
+  </script>
+{% endblock %}

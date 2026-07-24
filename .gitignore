@@ -9,6 +9,8 @@ db.sqlite3
 staticfiles/
 apps/website/media/
 apps/website/private_uploads/
+server-*.log
+website-server*.log
 
 # Editors and operating systems
 .idea/

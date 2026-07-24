@@ -6,6 +6,7 @@ from io import BytesIO, StringIO
 from pathlib import Path
 from unittest.mock import patch
 
+from cryptography.fernet import Fernet
 from PIL import Image
 
 from django.conf import settings
@@ -23,8 +24,9 @@ from branding.models import SiteBranding
 from pages.models import NavigationItem, Page, PageBlock, PageSection
 from .admin import export_registrations, promote_to_role
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
-from .models import AccountClosureRecord, Notification, Participant
+from .models import AccountClosureRecord, Notification, Participant, StreamingAccount
 from .tokens import create_verification_token
+from .streaming import TWITCH_STATE_SESSION_KEY, decrypt_token
 
 
 class RegistrationTests(TestCase):
@@ -509,6 +511,7 @@ class RegistrationTests(TestCase):
         self.assertNotContains(response, reverse("registry:password_change"))
         self.assertContains(response, "Personal Best")
         self.assertContains(response, "Active Runs")
+        self.assertContains(response, "Past Runs")
         self.assertContains(response, "Submission History")
         self.assertContains(response, reverse("registry:logout"))
         self.assertContains(response, 'aria-current="page"')
@@ -560,7 +563,136 @@ class RegistrationTests(TestCase):
         self.assertContains(response, reverse("registry:download_my_data"))
         self.assertContains(response, reverse("registry:privacy"))
         self.assertContains(response, reverse("registry:account_closure"))
+        self.assertContains(response, "Connected channels")
+        self.assertContains(response, "Twitch")
+        self.assertContains(response, "YouTube")
         self.assertContains(response, 'aria-current="page"')
+
+    def test_account_settings_shows_connected_streaming_channel(self):
+        participant = Participant.objects.create_user(
+            email="streamer@example.com",
+            nickname="Streamer",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        StreamingAccount.objects.create(
+            participant=participant,
+            provider=StreamingAccount.Provider.TWITCH,
+            provider_identity="twitch-user-42",
+            channel_identity="twitch-channel-42",
+            display_name="SpiffoStreams",
+            channel_url="https://www.twitch.tv/spiffostreams",
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:account_settings"))
+
+        self.assertContains(response, "SpiffoStreams")
+        self.assertContains(response, "Connected")
+        self.assertContains(response, "https://www.twitch.tv/spiffostreams")
+        self.assertContains(response, "View channel")
+
+    @override_settings(
+        TWITCH_CLIENT_ID="client-id",
+        TWITCH_CLIENT_SECRET="client-secret",
+        TWITCH_REDIRECT_URI="http://testserver/account/streaming/twitch/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
+    def test_twitch_connect_starts_state_protected_authorization(self):
+        participant = Participant.objects.create_user(
+            email="streamer@example.com",
+            nickname="Streamer",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:connect_twitch"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith("https://id.twitch.tv/oauth2/authorize?"))
+        self.assertIn("response_type=code", response.url)
+        self.assertIn(TWITCH_STATE_SESSION_KEY, self.client.session)
+
+    @override_settings(
+        TWITCH_CLIENT_ID="client-id",
+        TWITCH_CLIENT_SECRET="client-secret",
+        TWITCH_REDIRECT_URI="http://testserver/account/streaming/twitch/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
+    @patch("registry.views.validate_twitch_token")
+    @patch("registry.views.exchange_twitch_code")
+    def test_twitch_callback_links_owned_channel_and_encrypts_tokens(
+        self, exchange_code, validate_token
+    ):
+        participant = Participant.objects.create_user(
+            email="streamer@example.com",
+            nickname="Streamer",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+        session = self.client.session
+        session[TWITCH_STATE_SESSION_KEY] = {
+            "value": "safe-state",
+            "created_at": timezone.now().timestamp(),
+        }
+        session.save()
+        exchange_code.return_value = {
+            "access_token": "access-secret",
+            "refresh_token": "refresh-secret",
+            "expires_in": 3600,
+            "scope": [],
+        }
+        validate_token.return_value = {
+            "client_id": "client-id",
+            "user_id": "42",
+            "login": "spiffostreams",
+            "expires_in": 3600,
+            "scopes": [],
+        }
+
+        response = self.client.get(
+            reverse("registry:twitch_callback"),
+            {"code": "authorization-code", "state": "safe-state"},
+        )
+
+        self.assertRedirects(response, reverse("registry:account_settings"))
+        account = StreamingAccount.objects.get(participant=participant)
+        self.assertEqual(account.display_name, "spiffostreams")
+        self.assertNotIn("access-secret", account.encrypted_access_token)
+        self.assertNotIn("refresh-secret", account.encrypted_refresh_token)
+        self.assertEqual(decrypt_token(account.encrypted_access_token), "access-secret")
+        self.assertEqual(decrypt_token(account.encrypted_refresh_token), "refresh-secret")
+
+    @override_settings(
+        TWITCH_CLIENT_ID="client-id",
+        TWITCH_CLIENT_SECRET="client-secret",
+        TWITCH_REDIRECT_URI="http://testserver/account/streaming/twitch/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
+    def test_twitch_callback_rejects_invalid_state_without_exchanging_code(self):
+        participant = Participant.objects.create_user(
+            email="streamer@example.com",
+            nickname="Streamer",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+
+        with patch("registry.views.exchange_twitch_code") as exchange_code:
+            response = self.client.get(
+                reverse("registry:twitch_callback"),
+                {"code": "authorization-code", "state": "wrong-state"},
+            )
+
+        self.assertRedirects(response, reverse("registry:account_settings"))
+        exchange_code.assert_not_called()
+        self.assertFalse(StreamingAccount.objects.exists())
 
     def test_avatar_upload_is_quarantined_when_moderation_is_not_configured(self):
         participant = Participant.objects.create_user(
@@ -735,6 +867,7 @@ class RegistrationTests(TestCase):
         self.assertNotContains(response, "<h3>Notifications</h3>", html=True)
         self.assertContains(response, "Personal Best")
         self.assertContains(response, "Active Runs")
+        self.assertContains(response, "Past Runs")
         self.assertContains(response, "Submission History")
         self.assertNotContains(response, "Unread notifications")
 
@@ -866,6 +999,31 @@ class RegistrationTests(TestCase):
 
         self.assertRedirects(response, reverse("registry:notifications"))
         self.assertFalse(participant.notifications.filter(read_at__isnull=True).exists())
+
+    def test_notification_popup_can_mark_all_read_and_return_to_current_page(self):
+        participant = Participant.objects.create_user(
+            email="popup-read@example.com", nickname="Popup Read",
+            password="Local-test-password-482!", is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        Notification.objects.create(
+            recipient=participant, title="Update", message="An update is ready."
+        )
+        self.client.force_login(participant)
+
+        account_response = self.client.get(reverse("registry:account"))
+        self.assertContains(account_response, "Mark all as read")
+        response = self.client.post(
+            reverse("registry:mark_notifications_read"),
+            {"next": reverse("registry:account")},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"ok": True, "unread_count": 0})
+        self.assertFalse(
+            participant.notifications.filter(read_at__isnull=True).exists()
+        )
 
     def test_authenticated_participant_is_redirected_away_from_auth_forms(self):
         participant = Participant.objects.create_user(

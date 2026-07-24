@@ -265,3 +265,38 @@ an ordered tree of links and non-clickable headings with a maximum depth of
 three. The public menu provides desktop dropdowns and explicit mobile expansion.
 Application routes are reserved and always take precedence over managed paths.
 Legacy `/pages/<slug>/` links permanently redirect to canonical Page addresses.
+
+## 2026-07-24 - Separate website identity from streaming connections
+
+A Participant is the enduring Rat Race account. Twitch and YouTube are optional
+connected streaming identities owned by that account, and a participant may
+connect either or both. Provider email matches must never silently merge local
+accounts.
+
+The first integration milestone is channel linking and selection of recent
+stream evidence for submissions. Twitch or Google alternative sign-in may follow
+after linking, unlinking, collision handling and recovery behaviour are proven.
+Google is the authentication provider for YouTube, so public wording distinguishes
+**Continue with Google** from **Connect YouTube**. Full requirements and the
+intended implementation order are recorded in `docs/STREAMING_INTEGRATIONS.md`.
+
+## 2026-07-24 - Versioned Project Zomboid catalogue
+
+Stable identifiers in run exports remain immutable evidence. Human-readable
+names, categories, icons, aliases and game-version applicability live in a
+separate website catalogue and may be corrected without rewriting submissions.
+Unknown or ambiguous identifiers remain visible and are never guessed.
+
+The administrator portal exposes this data under **Project Zomboid Catalogue**.
+A scoped **Zomboid Integration** role may maintain it without participant or
+website-configuration permissions. The catalogue schema is recreated by Django
+migrations, while the maintained Build 42.19 baseline is stored as versioned
+JSON and imported idempotently with `manage.py import_zomboid_catalogue`.
+
+## 2026-07-24 - Use official streaming-provider brand assets
+
+Streaming-channel rows and provider-specific actions use the supplied official
+Twitch Glitch and YouTube icon PNGs rather than approximate glyphs. Both assets
+retain their original transparent source canvases. CSS presents them through
+fixed-width icon slots and crops the YouTube canvas at display time, keeping row
+labels and actions aligned without modifying the source artwork.

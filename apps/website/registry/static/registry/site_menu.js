@@ -41,6 +41,37 @@
             submenuToggle.setAttribute("aria-expanded", String(opening));
         });
     });
+
+    const notificationsReadForm = menu.querySelector("[data-notifications-read-form]");
+    notificationsReadForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submitButton = notificationsReadForm.querySelector("button[type='submit']");
+        submitButton.disabled = true;
+        try {
+            const response = await fetch(notificationsReadForm.action, {
+                method: "POST",
+                body: new FormData(notificationsReadForm),
+                credentials: "same-origin",
+                headers: {"X-Requested-With": "XMLHttpRequest"},
+            });
+            if (!response.ok) throw new Error("Unable to mark notifications as read.");
+            await response.json();
+            menu.querySelectorAll(".notification-preview.is-unread").forEach((notification) => {
+                notification.classList.remove("is-unread");
+            });
+            document.querySelectorAll(".notification-history-item.is-unread").forEach((notification) => {
+                notification.classList.remove("is-unread");
+            });
+            menu.querySelector(".notification-count")?.remove();
+            const notificationToggle = menu.querySelector(".notification-menu-toggle");
+            notificationToggle?.setAttribute("aria-label", "Notifications");
+            notificationsReadForm.remove();
+        } catch (error) {
+            submitButton.disabled = false;
+            submitButton.textContent = "Try again";
+        }
+    });
+
     toggle.addEventListener("click", () => {
         const opening = !menu.classList.contains("is-open");
         menu.classList.toggle("is-open", opening);
