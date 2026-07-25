@@ -65,7 +65,9 @@ a nickname using a verified email address.
 - Mod-export ingestion into immutable, individually reviewed submissions, with
   integrity verification and explicit administrator approval or reasoned
   decline. The first approved submission officiates its run; each later approval
-  alone advances the run's canonical snapshot.
+  alone advances the run's canonical snapshot. A later generated snapshot may
+  advance with an unchanged verified ledger so current-state changes are not
+  discarded merely because no new semantic event occurred.
 - Current format-3 mod-export ingestion, including the signed ledger and complete
   character/trait projection, preserved on both the run and immutable submission.
 - Optional raw `challenge.id` and `challenge.gameMode` evidence within the
@@ -79,7 +81,8 @@ a nickname using a verified email address.
   run signal.
 - Participant notifications for submission receipt and moderation decisions,
   with ASGI/SSE live invalidation, immediate bell/dropdown refresh, unobtrusive
-  title toasts, and a visible-tab polling fallback.
+  title toasts, a visible-tab polling fallback, and in-place refresh of
+  participant dashboard run and moderation panels.
 - A dedicated Project Zomboid Catalogue administration section with stable IDs,
   display metadata, version ranges, aliases, a reusable resolver, and a scoped
   Zomboid Integration staff role.

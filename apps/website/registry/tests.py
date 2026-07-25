@@ -1107,7 +1107,15 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Active Runs")
         self.assertContains(response, "Past Runs")
         self.assertContains(response, "Awaiting Review")
+        self.assertContains(response, "data-dashboard-live")
         self.assertNotContains(response, "Unread notifications")
+
+        fragment = self.client.get(reverse("registry:account_dashboard_fragment"))
+        self.assertEqual(fragment.status_code, 200)
+        self.assertEqual(fragment["Cache-Control"], "no-store")
+        self.assertContains(fragment, "data-dashboard-live")
+        self.assertContains(fragment, "Personal Best")
+        self.assertNotContains(fragment, "account-dashboard-header")
 
     def test_participant_can_change_password_and_remains_logged_in(self):
         self.client.post(reverse("registry:register"), self.registration_data())

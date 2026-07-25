@@ -546,13 +546,29 @@ class RunSubmissionAdmin(admin.ModelAdmin):
                 level=messages.ERROR,
             )
             return redirect("admin:registry_runsubmission_change", submission.pk)
-        if baseline and submission.event_sequence <= baseline.event_sequence:
-            self.message_user(
-                request,
-                "This submission does not advance beyond the current approved snapshot.",
-                level=messages.ERROR,
-            )
-            return redirect("admin:registry_runsubmission_change", submission.pk)
+        if baseline:
+            if submission.event_sequence < baseline.event_sequence:
+                self.message_user(
+                    request,
+                    "This submission is older than the current approved snapshot.",
+                    level=messages.ERROR,
+                )
+                return redirect("admin:registry_runsubmission_change", submission.pk)
+            if submission.event_sequence == baseline.event_sequence:
+                if submission.event_hash != baseline.event_hash:
+                    self.message_user(
+                        request,
+                        "This submission conflicts with the current approved ledger.",
+                        level=messages.ERROR,
+                    )
+                    return redirect("admin:registry_runsubmission_change", submission.pk)
+                if submission.generated_at <= baseline.generated_at:
+                    self.message_user(
+                        request,
+                        "This submission is not newer than the current approved snapshot.",
+                        level=messages.ERROR,
+                    )
+                    return redirect("admin:registry_runsubmission_change", submission.pk)
         decoded = decode_run_export(submission.raw_export)
         reviewed_at = timezone.now()
         submission.status = RunSubmission.Status.APPROVED

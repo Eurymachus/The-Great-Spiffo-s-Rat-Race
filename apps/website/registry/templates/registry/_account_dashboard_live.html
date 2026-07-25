@@ -1,0 +1,87 @@
+<div
+  class="account-dashboard-main"
+  data-dashboard-live
+  data-refresh-url="{% url 'registry:account_dashboard_fragment' %}"
+>
+  <section class="dashboard-panel personal-best-panel">
+    <div class="dashboard-panel-heading">
+      <div>
+        <p class="dashboard-panel-kicker">Your record</p>
+        <h3>Personal Best</h3>
+      </div>
+      <span class="dashboard-coming-soon">{% if personal_best %}Verified{% else %}No result yet{% endif %}</span>
+    </div>
+    {% if personal_best %}
+    <div class="dashboard-run-summary">
+      <div><small>Survivor</small><strong>{{ personal_best.character_name|default:"Recorded run" }}</strong></div>
+      <div><small>Zombie kills</small><strong>{{ personal_best.current_kills }}</strong></div>
+      <div><small>In-game Day</small><strong>{% if personal_best.in_game_day %}{{ personal_best.in_game_day }}{% else %}Not recorded{% endif %}</strong></div>
+      <div><small>Challenge mode</small><strong>{{ personal_best.challenge_mode_display }}</strong></div>
+    </div>
+    {% else %}
+    <div class="dashboard-empty-state dashboard-challenge-state">
+      <span class="dashboard-state-icon" aria-hidden="true">&mdash;</span>
+      <div>
+        <strong>Your best verified run will appear here</strong>
+        <p>Once a completed run has been approved, this panel will show your strongest result.</p>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="dashboard-panel">
+    <div class="dashboard-panel-heading">
+      <div><p class="dashboard-panel-kicker">In progress</p><h3>Active Runs</h3></div>
+    </div>
+    {% if active_runs %}
+    <div class="dashboard-run-list">
+      {% for run in active_runs %}
+      <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ run.pk }}" aria-haspopup="dialog">
+        <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></div>
+        <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_status_display }}</small></div>
+      </button>
+      {% include "registry/_run_detail_dialog.html" with run=run %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="dashboard-empty-state compact"><strong>No active runs</strong><p>Runs currently being tracked will appear here.</p></div>
+    {% endif %}
+  </section>
+
+  <section class="dashboard-panel">
+    <div class="dashboard-panel-heading">
+      <div><p class="dashboard-panel-kicker">Previous attempts</p><h3>Past Runs</h3></div>
+    </div>
+    {% if past_runs %}
+    <div class="dashboard-run-list">
+      {% for run in past_runs %}
+      <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ run.pk }}" aria-haspopup="dialog">
+        <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></div>
+        <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_lifecycle_status_display }}</small></div>
+      </button>
+      {% include "registry/_run_detail_dialog.html" with run=run %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="dashboard-empty-state compact"><strong>No past runs</strong><p>Runs that have ended or can no longer continue will appear here.</p></div>
+    {% endif %}
+  </section>
+
+  <section class="dashboard-panel">
+    <div class="dashboard-panel-heading">
+      <div><p class="dashboard-panel-kicker">Pending moderation</p><h3>Awaiting Review</h3></div>
+    </div>
+    {% if pending_submissions %}
+    <div class="dashboard-run-list">
+      {% for submission in pending_submissions %}
+      <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ submission.run.pk }}" aria-haspopup="dialog">
+        <div><strong>{{ submission.run.character_name|default:"Rat Race export" }}</strong><small>{{ submission.challenge_mode_display }} · {{ submission.submitted_at|date:"j M Y, H:i" }}</small></div>
+        <div><strong>{{ submission.current_kills }} kills</strong><small>Awaiting review</small></div>
+      </button>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="dashboard-empty-state compact"><strong>Nothing awaiting review</strong><p>New submissions will appear here until a moderator approves or declines them.</p></div>
+    {% endif %}
+  </section>
+</div>

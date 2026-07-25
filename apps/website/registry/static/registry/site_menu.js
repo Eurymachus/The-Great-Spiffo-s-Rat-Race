@@ -15,6 +15,7 @@
     );
     let notificationSummaryRequest = null;
     let notificationToastTimer = null;
+    let notificationState = null;
 
     const notificationToastRegion = document.createElement("div");
     notificationToastRegion.className = "notification-live-toast-region";
@@ -54,6 +55,14 @@
 
     const renderNotificationSummary = (summary, announce = false) => {
         if (!notificationItem || !notificationToggle || !notificationList) return;
+        const nextNotificationState = `${summary.unread_count}:${
+            summary.notifications.map((notification) => (
+                `${notification.id}:${notification.is_read ? "1" : "0"}`
+            )).join(",")
+        }`;
+        const stateChanged = notificationState !== null
+            && nextNotificationState !== notificationState;
+        notificationState = nextNotificationState;
         const newNotifications = summary.notifications.filter(
             (notification) => !knownNotificationIds.has(notification.id)
         );
@@ -113,6 +122,9 @@
             }
         }
         if (announce) showNotificationToast(newNotifications, summary.all_url);
+        if (stateChanged) {
+            document.dispatchEvent(new CustomEvent("notifications:changed"));
+        }
     };
 
     const refreshNotificationSummary = (announce = false) => {

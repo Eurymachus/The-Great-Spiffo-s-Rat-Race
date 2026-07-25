@@ -42,6 +42,10 @@ Current known IDs are:
   current approved snapshot.
 - A changed non-empty challenge ID is a dangerous review finding and cannot be
   approved as a continuation of that run.
+- A later generated snapshot may be approved when its verified event sequence
+  and ledger head are unchanged. This allows current-state projection changes to
+  advance the canonical run even when no new semantic event occurred. Equal or
+  older generation timestamps do not supersede the approved snapshot.
 
 ## Separate states
 

@@ -12,6 +12,10 @@ does not carry or persist notification records:
 3. The browser immediately fetches the authenticated notification-summary JSON.
 4. That response replaces the bell count and dropdown contents without a page
    refresh.
+5. When the participant dashboard is open, the same invalidation fetches a
+   server-rendered dashboard fragment. Personal Best, Active Runs, Past Runs,
+   Awaiting Review, and run-detail dialogs update in place without resetting the
+   page or scroll position.
 
 The toast presents only the notification title:
 

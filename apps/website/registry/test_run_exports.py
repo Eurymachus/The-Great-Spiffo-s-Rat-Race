@@ -74,6 +74,7 @@ def make_export(
     event_specs=None,
     projection=None,
     challenge=None,
+    generated_at=1784800100,
 ):
     event_specs = event_specs or [
         ("session.started", {"character": {"displayName": "Test Survivor"}}),
@@ -107,7 +108,7 @@ def make_export(
         for value in (
             3,
             run_id,
-            1784800100,
+            generated_at,
             len(bodies),
             previous_hash,
             canonical_value(projection),
@@ -338,16 +339,22 @@ class RunSubmissionTests(TestCase):
             reverse("registry:submit_run"),
             {"run_export": make_export(run_id="past-run")},
         )
+        active_run = ChallengeRun.objects.get(run_id="active-run")
+        active_run.character_name = "Active Survivor"
+        active_run.save(update_fields=("character_name",))
         past_run = ChallengeRun.objects.get(run_id="past-run")
+        past_run.character_name = "Past Survivor"
         past_run.lifecycle_status = ChallengeRun.Lifecycle.DECEASED
-        past_run.save(update_fields=("lifecycle_status",))
+        past_run.save(update_fields=("character_name", "lifecycle_status"))
 
         dashboard = self.client.get(reverse("registry:account"))
 
         self.assertContains(dashboard, "Past Runs")
         self.assertContains(dashboard, "Deceased")
-        self.assertContains(dashboard, "active-run")
-        self.assertContains(dashboard, "past-run")
+        self.assertContains(dashboard, "Active Survivor")
+        self.assertContains(dashboard, "Past Survivor")
+        self.assertNotContains(dashboard, "active-run")
+        self.assertNotContains(dashboard, "past-run")
         self.assertContains(dashboard, 'class="dashboard-run-entry"', count=4)
         self.assertContains(dashboard, "Run details", count=2)
         self.assertContains(dashboard, "Approved submissions", count=2)
@@ -402,6 +409,59 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "In-game Day")
         self.assertNotContains(dashboard, "Day 1")
         self.assertNotContains(dashboard, "Events verified")
+
+    def test_newer_snapshot_can_be_approved_without_new_ledger_events(self):
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(kills=42)},
+        )
+        initial_submission = RunSubmission.objects.get()
+        administrator = Participant.objects.create_superuser(
+            email="snapshot-reviewer@example.com",
+            nickname="Snapshot Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+        self.client.post(
+            reverse(
+                "admin:registry_runsubmission_approve",
+                args=(initial_submission.pk,),
+            )
+        )
+
+        self.client.force_login(self.participant)
+        self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    kills=55,
+                    generated_at=1784800200,
+                )
+            },
+        )
+        newer_snapshot = RunSubmission.objects.get(
+            status=RunSubmission.Status.RECEIVED
+        )
+        self.assertEqual(
+            newer_snapshot.event_sequence,
+            initial_submission.event_sequence,
+        )
+        self.assertEqual(newer_snapshot.event_hash, initial_submission.event_hash)
+
+        self.client.force_login(administrator)
+        self.client.post(
+            reverse(
+                "admin:registry_runsubmission_approve",
+                args=(newer_snapshot.pk,),
+            )
+        )
+
+        newer_snapshot.refresh_from_db()
+        run = newer_snapshot.run
+        run.refresh_from_db()
+        self.assertEqual(newer_snapshot.status, RunSubmission.Status.APPROVED)
+        self.assertEqual(run.approved_submission, newer_snapshot)
+        self.assertEqual(run.current_kills, 55)
 
     def test_admin_decline_requires_and_records_reason(self):
         self.client.post(
@@ -489,6 +549,8 @@ class RunSubmissionTests(TestCase):
         self.assertContains(response, "Recorded event types")
         self.assertContains(response, "Session started")
         self.assertContains(response, "Raw evidence and identifiers")
+        event_ledger = response.content.decode().split("Event ledger", 1)[1]
+        self.assertLess(event_ledger.index("<td>2</td>"), event_ledger.index("<td>1</td>"))
 
     def test_review_and_approval_reject_mid_run_challenge_mode_change(self):
         cdda = {

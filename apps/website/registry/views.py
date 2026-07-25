@@ -409,29 +409,41 @@ def verify(request, token):
     )
 
 
-@login_required
-def account(request):
-    runs = request.user.challenge_runs.select_related("challenge_mode").prefetch_related(
+def account_dashboard_context(user):
+    runs = user.challenge_runs.select_related("challenge_mode").prefetch_related(
         "submissions__challenge_mode"
     )
+    return {
+        "personal_best": runs.filter(status=ChallengeRun.Status.OFFICIAL)
+            .order_by("-current_kills", "first_submitted_at")
+            .first(),
+        "active_runs": runs.filter(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE),
+        "past_runs": runs.exclude(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE),
+        "pending_submissions": user.run_submissions.filter(
+            status=RunSubmission.Status.RECEIVED
+        ).select_related("run", "challenge_mode"),
+    }
+
+
+@login_required
+def account(request):
     return render(
         request,
         "registry/account.html",
-        {
-            "personal_best": runs.filter(status=ChallengeRun.Status.OFFICIAL)
-            .order_by("-current_kills", "first_submitted_at")
-            .first(),
-            "active_runs": runs.filter(
-                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE
-            ),
-            "past_runs": runs.exclude(
-                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE
-            ),
-            "pending_submissions": request.user.run_submissions.filter(
-                status=RunSubmission.Status.RECEIVED
-            ).select_related("run", "challenge_mode"),
-        },
+        account_dashboard_context(request.user),
     )
+
+
+@login_required
+@require_http_methods(["GET"])
+def account_dashboard_fragment(request):
+    response = render(
+        request,
+        "registry/_account_dashboard_live.html",
+        account_dashboard_context(request.user),
+    )
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 @login_required

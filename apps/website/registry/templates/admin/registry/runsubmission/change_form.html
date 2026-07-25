@@ -89,7 +89,7 @@
           <table class="run-event-table">
             <thead><tr><th>Seq.</th><th>Day</th><th>Event</th><th>Details</th><th>Recorded</th></tr></thead>
             <tbody>
-              {% for event in run_review.event_rows %}
+              {% for event in run_review.event_rows reversed %}
                 <tr>
                   <td>{{ event.sequence }}</td>
                   <td>{% if event.day %}{{ event.day }}{% else %}—{% endif %}</td>
