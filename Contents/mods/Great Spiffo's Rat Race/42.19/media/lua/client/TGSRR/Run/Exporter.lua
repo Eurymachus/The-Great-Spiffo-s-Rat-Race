@@ -1,6 +1,15 @@
 local Identity = require "TGSRR/Run/Identity"
 local Ledger = require "TGSRR/Run/Ledger"
 local ExportCodec = require "TGSRR/Run/ExportCodec"
+local SkillSnapshot = require "TGSRR/Run/SkillSnapshot"
+local OutpostSnapshot = require "TGSRR/Run/OutpostSnapshot"
+local ChallengeProgressSnapshot = require "TGSRR/Run/ChallengeProgressSnapshot"
+local ModSnapshot = require "TGSRR/Run/ModSnapshot"
+local DailySnapshot = require "TGSRR/Run/DailySnapshot"
+local WeaponKillSnapshot = require "TGSRR/Run/WeaponKillSnapshot"
+local TownSnapshot = require "TGSRR/Run/TownSnapshot"
+local LiteratureSnapshot = require "TGSRR/Run/LiteratureSnapshot"
+local LocationSnapshot = require "TGSRR/Run/LocationSnapshot"
 
 local Exporter = {}
 
@@ -10,6 +19,34 @@ local SLICE_MILLISECONDS = 8
 local function milliseconds()
     if getTimestampMs then return getTimestampMs() end
     return os.clock() * 1000
+end
+
+local function copyList(values)
+    local result = {}
+    for index, value in ipairs(values or {}) do result[index] = tostring(value) end
+    return result
+end
+
+local function characterProjection(run, player)
+    return {
+        starting = run.startingCharacter or {},
+        current = Identity.observeCharacter(player),
+        selectedStartingTraits = copyList(run.selectedStartingTraits),
+        selectedStartingTraitsPartial = run.selectedStartingTraitsPartial == true,
+        selectedStartingTraitsCapturedUtc =
+            math.max(0, math.floor(tonumber(run.selectedStartingTraitsCapturedUtc) or 0)),
+        startingEffectiveTraits = copyList(run.startingEffectiveTraits),
+        currentEffectiveTraits = Identity.observeTraits(player),
+    }
+end
+
+local function challengeModeProjection(run)
+    local mode = run.challengeMode
+        or Identity.getChallengeMode(run.challengeId)
+        or Identity.getChallengeMode(Identity.getChallengeId())
+    if mode == "standard" then return "official" end
+    if mode == "cdda" or mode == "sprinters" then return mode end
+    return nil
 end
 
 function Exporter.generate(run, work)
@@ -22,8 +59,31 @@ function Exporter.generate(run, work)
     if not ledger then return false, ledgerError end
     local player = getSpecificPlayer and getSpecificPlayer(0) or nil
     local projection = {
+        schema = 1,
+        challengeMode = challengeModeProjection(run),
         currentKills = math.max(0, tonumber(player and player:getZombieKills()) or 0),
+        character = characterProjection(run, player),
+        skills = SkillSnapshot.observe(player),
+        outposts = OutpostSnapshot.observe(),
+        challengeProgress = ChallengeProgressSnapshot.observe(player),
+        activeMods = ModSnapshot.observe(),
+        activeDay = DailySnapshot.active(run, player),
+        weaponKills = {
+            partial = run.weaponKillsPartial == true,
+            baselineTotal = math.max(0,
+                math.floor(tonumber(run.weaponKillsBaselineTotal) or 0)),
+            sources = WeaponKillSnapshot.list(run.weaponKills),
+        },
+        fireDeaths = {
+            count = math.max(0, math.floor(tonumber(run.fireDeaths) or 0)),
+            partial = run.fireDeathsPartial == true,
+        },
+        townVisits = TownSnapshot.observe(run),
+        literature = LiteratureSnapshot.observe(run),
+        locations = LocationSnapshot.observe(run),
     }
+    if not projection.challengeMode then return false, "missing_challenge_mode" end
+    if not projection.activeDay then return false, "missing_active_day" end
     local encoded, stats = ExportCodec.encode(
         ledger.runId,
         Identity.utcSeconds(),
@@ -36,7 +96,26 @@ function Exporter.generate(run, work)
     if not decoded then return false, decodeError end
     if decoded.runId ~= ledger.runId or decoded.eventSequence ~= ledger.eventSequence
             or decoded.eventHash ~= ledger.eventHash
-            or decoded.currentKills ~= projection.currentKills then
+            or decoded.currentKills ~= projection.currentKills
+            or not decoded.projection or decoded.projection.schema ~= projection.schema
+            or decoded.projection.challengeMode ~= projection.challengeMode
+            or #decoded.projection.skills ~= #projection.skills
+            or #decoded.projection.outposts ~= #projection.outposts
+            or #decoded.projection.activeMods ~= #projection.activeMods
+            or not decoded.projection.activeDay
+            or decoded.projection.activeDay.dayIndex ~= projection.activeDay.dayIndex
+            or #decoded.projection.weaponKills.sources ~=
+                #projection.weaponKills.sources
+            or decoded.projection.fireDeaths.count ~=
+                projection.fireDeaths.count
+            or #decoded.projection.townVisits.towns ~=
+                #projection.townVisits.towns
+            or #decoded.projection.literature.currentItemIds ~=
+                #projection.literature.currentItemIds
+            or #decoded.projection.locations.entries ~=
+                #projection.locations.entries
+            or decoded.projection.challengeProgress.rulesVersion ~=
+                projection.challengeProgress.rulesVersion then
         return false, "export_readback_mismatch"
     end
 
@@ -48,6 +127,7 @@ function Exporter.generate(run, work)
     stats.eventSequence = ledger.eventSequence
     stats.eventHash = ledger.eventHash
     stats.currentKills = projection.currentKills
+    stats.projection = projection
     stats.filename = filename
     stats.value = encoded
     return true, stats

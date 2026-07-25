@@ -35,7 +35,8 @@ Persist stable identifiers, not localized display values:
 - Skills: internal perk ID.
 - Traits: namespaced character-trait ID where available.
 - Literature and weapons: full item type, including module.
-- Towns: stable TGSRR/integration town ID.
+- Towns: stable TGSRR-owned town ID. A town may have multiple activation points,
+  but all points resolve to the same permanent visit identity.
 - Locations: registered location ID, plus coordinates/world context where the record requires it.
 - Mods: paired activated mod ID and Workshop ID where available. Workshop ID is the website's external lookup/link key; mod ID remains required because one Workshop item may contain multiple mods and local/unpublished mods have no Workshop ID.
 
@@ -68,7 +69,42 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
 
 - Daily kill and per-skill XP deltas: TGSRR counters accumulated from authoritative game events and sealed at the day boundary.
 - Starting and current traits: TGSRR ID snapshots from the Build 42 character trait registry.
-- Weapon kills and broken weapons: TGSRR attribution and aggregate counters keyed by full item type.
+- Weapon kills: TGSRR attributes player-credited zombie deaths from the actual
+  `OnWeaponHitCharacter` weapon and the `OnZombieDead` credited attacker.
+  Aggregate counters use full item type plus TGSRR pseudo IDs for vehicle,
+  unarmed, and otherwise unknown sources. Delayed fire deaths are excluded
+  because vanilla clears `attackedBy` and does not increment the player's zombie
+  kill counter. Completed days seal source deltas; the current export includes
+  cumulative and active-day values.
+- Zombie fire deaths: counted separately when ongoing fire kills a zombie
+  without vanilla player credit. Cumulative and daily values never contribute
+  to authoritative player or weapon-kill totals.
+- Town visits: TGSRR checks a compact registry of map-reviewed settlement
+  activation points once per real-time second. Entering any point's configured
+  radius records the town's first visit as a hash-chained `town.visited` event
+  and persists its UTC
+  time, world age, triggering point ID, and observed player coordinates.
+  Per-point radii range from 200 tiles for compact towns to 350 tiles across
+  Louisville. Additional points cover large or elongated settlements without pretending
+  that vanilla `TownZone` fragments form authoritative municipal boundaries.
+  Hog Wallow Military Base is intentionally excluded because it is a location,
+  not a town.
+- Literature completion: run initialization enumerates PZ's actual persisted
+  completed-page, `AlreadyReadBook`, literature-title, and print-media state
+  into one immutable `literature.baseline`. It does not infer reading from known
+  recipes or skill level. TGSRR wraps the successful local-player
+  `ISReadABook.complete()` edge and appends one `literature.read` delta carrying
+  the full item ID, stable classification, learned recipe IDs, literature-title
+  IDs, print-media IDs, UTC, and world age. Repeat leisure reading remains a
+  legitimate completion; reopening already-completed paged literature does not.
+- Non-town locations: the collector and export contract are registry-driven,
+  but the canonical definition list is deliberately deferred. Registry version
+  0 contains no locations and exports an authoritative empty list. When the
+  first definition set is approved, incrementing the registry version makes the
+  existing one-second position check record permanent `location.visited` events
+  with stable location/point IDs, UTC, world age, and observed coordinates.
+  Runs that predate a populated registry are then marked partial automatically.
+- Broken weapons remain a separate planned collector.
 - Day starts, visits, literature, milestones, outposts, distance, injuries, animals, production, and mod sessions: TGSRR records using their appropriate events, aggregates, or semantic checkpoints.
 
 High-frequency values are not appended on every tick. TGSRR records meaningful state transitions and periodic/session/day checkpoints so the canonical history remains compact.
@@ -132,12 +168,41 @@ Suggested run artifacts:
 - `recovery-NNNN.bin`: immutable recovery evidence/authorization segments where needed.
 - `run.export`: generated submission envelope containing the data and integrity manifest.
 
-Export format 2 serializes the complete verified ledger history and a small
-live-state projection, compresses it with TGSRR's deterministic LZSS codec,
+Export format 3 serializes the complete verified ledger history and a
+schema-versioned live-state projection, compresses it with TGSRR's deterministic LZSS codec,
 encodes it as Base64URL, and includes a SHA-256 checksum. The current live kill
-total is included so an export does not need to wait for the next daily seal.
+total, challenge-mode reference (`official`, `cdda`, or `sprinters`),
+starting/current character identity, immutable pre-spawn selected trait IDs,
+spawned effective trait IDs, current effective trait IDs, and a stable-ID snapshot
+of every current skill's category, level, and cumulative XP are included. The
+current snapshot also contains all 13 stable outpost IDs with discovery/stage
+state, strict completion, weighted progress, requirement counts, observation
+times, and the latest persisted value of every observed deliverable. A
+rules-versioned challenge-progress snapshot records the Tracker's authoritative
+kills, skills, and outposts category summaries without inventing a single
+overall percentage. A sorted current loaded-mod snapshot preserves every active
+Mod ID and its Workshop ID association, including local mods with no Workshop
+ID. A non-mutating active-day snapshot includes the current day's start and
+observation timestamps, elapsed world hours, live kill delta, and non-zero
+per-skill XP deltas without prematurely sealing a historical day event.
+The current projection also includes every registered town ID and its permanent
+first-visit state. Visits carry their original UTC time, world age, activation
+point ID, and observed coordinates; migrated runs explicitly disclose a partial
+town-history baseline.
+Literature export schema 1 contains the immutable starting baseline, sorted
+current sets of full literature item IDs, literature-title IDs, and print-media
+IDs, plus sorted per-item first/last completion times and completion counts.
+Runs migrated after collection begins disclose a partial baseline rather than
+inventing historical read timestamps.
+Non-town location export schema 1 is already present with the registry version,
+partial-history flag, and registered first-visit entries. At registry version 0
+the entries array is intentionally empty.
+Selected traits are captured from the character-creation UI before Project
+Zomboid applies spawn-time mutations. A missing capture on an already-running
+or migrated save uses a clearly marked partial fallback rather than claiming
+that the effective spawned set was the player's original selection.
 The exporter reads its generated envelope back before presenting it to the
-player. Format 1 envelopes remain decodable for pre-release test runs.
+player. Format 1 and 2 envelopes remain decodable for pre-release test runs.
 
 Ledger segment format 1 stores up to 256 canonical events per
 `segments/events-NNNNNN.bin` file. Records are byte-length framed and hex encoded
@@ -246,6 +311,4 @@ Website database mappings are presentation/integration metadata. A missing websi
 - Snapshot cadence, flush policy, and which compact integrity anchors are duplicated into global ModData.
 - Offline recovery-authorization signature algorithm and import/user-interface flow.
 - Definition and granularity of a location visit.
-- Canonical town registry and boundary source.
-- Authoritative event path for completed literature.
 - Whether unchanged mod sets produce a session record or only a session-start timestamp referencing the prior set.

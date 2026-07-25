@@ -3,7 +3,7 @@ local Hash = require "TGSRR/Run/Hash"
 
 local ExportCodec = {}
 
-local FORMAT = 2
+local FORMAT = 3
 local PREFIX = "TGSRR1.LZ1."
 local WINDOW = 4095
 local MIN_MATCH = 3
@@ -174,7 +174,7 @@ local function canonicalEnvelope(runId, generatedUtc, records, eventHash, projec
         frame(generatedUtc),
         frame(#records),
         frame(eventHash),
-        frame(math.max(0, math.floor(tonumber(projection.currentKills) or 0))),
+        frame(EventCodec.canonicalPayload(projection)),
         frame(table.concat(bodies)),
     })
 end
@@ -185,7 +185,7 @@ local function parseEnvelope(value)
     local formatText, nextCursor, formatError = readFrame(value, cursor)
     if not formatText then return nil, formatError end
     local format = tonumber(formatText)
-    if format ~= 1 and format ~= FORMAT then return nil, "unsupported_export_format" end
+    if format ~= 1 and format ~= 2 and format ~= FORMAT then return nil, "unsupported_export_format" end
     fields[1], cursor = formatText, nextCursor
     local fieldCount = format >= 2 and 7 or 6
     for index = 2, fieldCount do
@@ -203,9 +203,19 @@ local function parseEnvelope(value)
     local count = tonumber(fields[4])
     if not count or count < 0 or count % 1 ~= 0 then return nil, "invalid_export_event_count" end
     local currentKills = nil
+    local projection = {}
     local bodiesField = 6
-    if format >= 2 then
+    if format == 2 then
         currentKills = tonumber(fields[6])
+        if not currentKills or currentKills < 0 or currentKills % 1 ~= 0 then
+            return nil, "invalid_export_current_kills"
+        end
+        bodiesField = 7
+    elseif format >= 3 then
+        local projectionError
+        projection, projectionError = EventCodec.decodePayload(fields[6])
+        if not projection then return nil, projectionError end
+        currentKills = tonumber(projection.currentKills)
         if not currentKills or currentKills < 0 or currentKills % 1 ~= 0 then
             return nil, "invalid_export_current_kills"
         end
@@ -226,6 +236,7 @@ local function parseEnvelope(value)
         eventSequence = count,
         eventHash = fields[5],
         currentKills = currentKills,
+        projection = projection,
         bodies = bodies,
     }
 end
@@ -290,12 +301,120 @@ function ExportCodec.selfTest(work)
         previousHash = record.hash
     end
     local encoded = ExportCodec.encode(
-        "rr-export-test", 1234567890, records, previousHash, { currentKills = 42 }, work
+        "rr-export-test", 1234567890, records, previousHash, {
+            schema = 1,
+            challengeMode = "official",
+            currentKills = 42,
+            character = {
+                selectedStartingTraits = { "base:Brave", "base:Strong" },
+                currentEffectiveTraits = { "base:Brave" },
+            },
+            skills = {
+                { id = "Fitness", categoryId = "Passive", level = 7, xp = 12345.5 },
+                { id = "Sprinting", categoryId = "Agility", level = 4, xp = 678.25 },
+            },
+            outposts = {
+                {
+                    id = "echo_creek_church",
+                    discovered = true,
+                    discoveredWorldAgeHours = 12.5,
+                    stage = "in_progress",
+                    complete = false,
+                    progress = 0.42,
+                    passedRequirements = 5,
+                    totalRequirements = 13,
+                    workStartedWorldAgeHours = 15,
+                    deliverables = {
+                        {
+                            id = "food",
+                            available = true,
+                            passed = false,
+                            current = 20,
+                            required = 40,
+                            progress = 0.5,
+                            observedWorldAgeHours = 16,
+                        },
+                    },
+                },
+            },
+            challengeProgress = {
+                rulesVersion = 1,
+                categories = {
+                    kills = {
+                        available = true,
+                        current = 42,
+                        target = 1000000,
+                        progress = 0.000042,
+                        status = "active",
+                    },
+                    skills = {
+                        available = true,
+                        current = 0,
+                        target = 2,
+                        progress = 0.55,
+                        status = "active",
+                    },
+                    outposts = {
+                        available = true,
+                        current = 0,
+                        target = 1,
+                        progress = 0.42,
+                        status = "active",
+                    },
+                },
+            },
+            activeMods = {
+                { modId = "TGSRR", workshopId = "1234567890" },
+                { modId = "example.local", workshopId = "" },
+            },
+            activeDay = {
+                dayIndex = 4,
+                baselinePartial = false,
+                startedUtc = 1234560000,
+                startedWorldAgeHours = 72,
+                observedUtc = 1234567890,
+                observedWorldAgeHours = 79.5,
+                elapsedWorldHours = 7.5,
+                killDelta = 87,
+                xpDeltas = { Fitness = 45.25, Sprinting = 12 },
+                weaponKillDeltas = { ["Base.Axe"] = 3, __VEHICLE__ = 2 },
+                weaponKillsPartial = false,
+                fireDeathDelta = 6,
+                fireDeathsPartial = false,
+            },
+            weaponKills = {
+                partial = false,
+                baselineTotal = 0,
+                sources = {
+                    { id = "Base.Axe", kills = 12 },
+                    { id = "__VEHICLE__", kills = 4 },
+                },
+            },
+            fireDeaths = { count = 19, partial = false },
+        }, work
     )
     local decoded, decodeError = ExportCodec.decode(encoded, work)
     if not decoded then return false, decodeError end
     if decoded.runId ~= "rr-export-test" or decoded.eventSequence ~= #records
             or decoded.currentKills ~= 42
+            or decoded.projection.challengeMode ~= "official"
+            or decoded.projection.character.selectedStartingTraits[2] ~= "base:Strong"
+            or decoded.projection.skills[2].id ~= "Sprinting"
+            or decoded.projection.skills[2].level ~= 4
+            or decoded.projection.skills[2].xp ~= 678.25
+            or decoded.projection.outposts[1].id ~= "echo_creek_church"
+            or decoded.projection.outposts[1].deliverables[1].progress ~= 0.5
+            or decoded.projection.challengeProgress.rulesVersion ~= 1
+            or decoded.projection.challengeProgress.categories.skills.progress ~= 0.55
+            or decoded.projection.activeMods[1].modId ~= "TGSRR"
+            or decoded.projection.activeMods[2].workshopId ~= ""
+            or decoded.projection.activeDay.dayIndex ~= 4
+            or decoded.projection.activeDay.xpDeltas.Fitness ~= 45.25
+            or decoded.projection.activeDay.weaponKillDeltas.__VEHICLE__ ~= 2
+            or decoded.projection.weaponKills.sources[1].id ~= "Base.Axe"
+            or decoded.projection.weaponKills.sources[1].kills ~= 12
+            or decoded.projection.fireDeaths.count ~= 19
+            or decoded.projection.activeDay.fireDeathDelta ~= 6
             or decoded.eventHash ~= previousHash or decoded.bodies[2] ~= records[2].body then
         return false, "export_round_trip_mismatch"
     end

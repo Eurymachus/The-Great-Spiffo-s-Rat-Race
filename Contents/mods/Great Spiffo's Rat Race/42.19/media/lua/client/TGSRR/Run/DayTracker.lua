@@ -1,44 +1,18 @@
 local Identity = require "TGSRR/Run/Identity"
 local Recorder = require "TGSRR/Run/Recorder"
+local DailySnapshot = require "TGSRR/Run/DailySnapshot"
 
 local DayTracker = {}
 
 local activeRun = nil
 local activePlayer = nil
 
-local function skillTotals(player)
-    local result = {}
-    local xp = player and player.getXp and player:getXp() or nil
-    local perks = PerkFactory and PerkFactory.PerkList or nil
-    if not xp or not perks then return result end
-
-    for index = 0, perks:size() - 1 do
-        local perk = perks:get(index)
-        if perk and perk:getParent() ~= Perks.None then
-            local perkType = perk:getType()
-            result[tostring(perkType)] = tonumber(xp:getXP(perkType)) or 0
-        end
-    end
-    return result
-end
-
 local function snapshot(player)
-    return {
-        kills = math.max(0, tonumber(player and player:getZombieKills()) or 0),
-        skills = skillTotals(player),
-    }
+    return DailySnapshot.current(player, activeRun)
 end
 
 local function deltas(current, baseline)
-    local result = {}
-    local keys = {}
-    for id, _ in pairs(current or {}) do keys[id] = true end
-    for id, _ in pairs(baseline or {}) do keys[id] = true end
-    for id, _ in pairs(keys) do
-        local delta = (tonumber(current[id]) or 0) - (tonumber(baseline[id]) or 0)
-        if delta ~= 0 then result[id] = delta end
-    end
-    return result
+    return DailySnapshot.deltas(current, baseline)
 end
 
 local function calendar()
@@ -65,6 +39,12 @@ local function beginDay(initial)
             startedWorldAgeHours = tonumber(previousState.startedWorldAgeHours) or 0,
             killDelta = current.kills - (tonumber(previousState.kills) or 0),
             xpDeltas = deltas(current.skills, previousState.skills),
+            weaponKillDeltas =
+                deltas(current.weaponKills, previousState.weaponKills),
+            weaponKillsPartial = previousState.weaponKillsPartial == true,
+            fireDeathDelta =
+                current.fireDeaths - (tonumber(previousState.fireDeaths) or 0),
+            fireDeathsPartial = previousState.fireDeathsPartial == true,
         }
     end
 
@@ -78,6 +58,12 @@ local function beginDay(initial)
         baseline = {
             kills = current.kills,
             skills = current.skills,
+            weaponKills = current.weaponKills,
+            weaponKillsPartial =
+                initial == true and activeRun.weaponKillsPartial == true,
+            fireDeaths = current.fireDeaths,
+            fireDeathsPartial =
+                initial == true and activeRun.fireDeathsPartial == true,
         },
         previousDay = previousDay,
     }, {
@@ -88,10 +74,17 @@ local function beginDay(initial)
 
     activeRun.dailyState = {
         dayIndex = dayIndex,
+        partial = initial == true and activeRun.bootstrapped == true,
         startedUtc = record.utc,
         startedWorldAgeHours = record.worldAgeHours,
         kills = current.kills,
         skills = current.skills,
+        weaponKills = current.weaponKills,
+        weaponKillsPartial =
+            initial == true and activeRun.weaponKillsPartial == true,
+        fireDeaths = current.fireDeaths,
+        fireDeathsPartial =
+            initial == true and activeRun.fireDeathsPartial == true,
     }
     return true
 end

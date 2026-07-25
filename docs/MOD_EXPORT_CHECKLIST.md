@@ -9,6 +9,9 @@ TGSRR is always the sole authority for this data. Installed unrelated mods do no
 ## Status definitions
 
 - 🟢 **Implemented**: TGSRR already collects or persists the underlying canonical information. This does not by itself mean the final submission exporter is complete.
+- 🔵 **In progress — awaiting decision**: the technical collection/export
+  infrastructure exists, but an agreed content or policy decision is still
+  required before the contract can be activated and considered complete.
 - 🟡 **Planned**: accepted into the export contract, with a sufficiently clear intended meaning, but collection or persistence is incomplete.
 - 🔴 **Needs investigation**: desired data whose authoritative Project Zomboid event path, attribution, performance model, or precise gameplay definition must be established before implementation is promised.
 
@@ -19,28 +22,30 @@ The `Contract` scope contains the agreed export contract. `Team request` contain
 | Scope | Data | Status | Notes |
 |---|---|---|---|
 | Contract | Character name | 🟢 Implemented | Starting and current character metadata are captured; the name is presentation metadata, not the run identity. |
-| Contract | Starting traits | 🟡 Planned | Capture a TGSRR-owned starting snapshot using stable trait IDs; the website can use these IDs for cross-run population comparisons. |
-| Contract | Current traits | 🟡 Planned | Export a current stable-ID snapshot; the website derives additions, removals, and cross-run population comparisons. |
+| Contract | Starting traits | 🟢 Implemented | Raw namespaced trait IDs are captured from the selected-traits list before the character-creation transition and persisted immutably for the matching new character. Migrated or missed captures are explicitly marked partial. Spawned effective traits are retained separately. |
+| Contract | Current traits | 🟢 Implemented | Format-3 exports contain the current sorted effective trait-ID set; the website derives additions, removals, and cross-run population comparisons. |
 | Contract | Run start date and time | 🟢 Implemented | Stored with the immutable TGSRR run identity. |
-| Contract | Timestamp for the beginning of each survived day | 🟡 Planned | Requires the daily-history collector. |
+| Contract | Timestamp for the beginning of each survived day | 🟢 Implemented | A hash-chained `day.started` event records UTC, world age, calendar date, and the survived-day index. The first observation is marked partial when an existing run is bootstrapped. |
 | Contract | Total zombie kills | 🟢 Implemented | Uses the authoritative Character Info total. |
-| Contract | Daily zombie-kill totals | 🟡 Planned | Requires daily baseline and rollover collection. |
-| Contract | Kills with each weapon | 🟡 Planned | Requires TGSRR-owned kill attribution keyed by full item type. The website derives weapon-class totals from its item mapping unless runtime classification carries otherwise unavailable meaning. |
-| Contract | Current level and XP for every skill | 🟢 Implemented | Current skill state already powers the Tracker. |
-| Contract | Daily and total XP gained for every skill | 🟡 Planned | Aggregate `AddXP` by stable perk ID, seal daily values at the day boundary, and derive total XP without duplicating raw events. |
-| Contract | Locations visited and when | 🟡 Planned | Requires a location registry and agreed visit semantics. |
-| Contract | Towns visited and when | 🟡 Planned | Requires canonical town IDs and boundaries. |
-| Contract | Books and magazines read and when | 🟡 Planned | Requires the authoritative literature-completion path. |
-| Contract | Progress for every outpost | 🟢 Implemented | Latest deliverable state and observation time are persisted. |
+| Contract | Daily zombie-kill totals | 🟢 Implemented | Each `day.started` event seals the preceding day's delta from authoritative Character Info kill totals. Format-3 also exports the active unfinished day's live delta without mutating history. |
+| Contract | Kills with each weapon | 🟢 Implemented | TGSRR attributes player-credited deaths using the actual hit weapon and credited attacker. Format-3 exports cumulative ID-sorted totals and active-day deltas keyed by full item type or `__VEHICLE__`, `__UNARMED__`, and `__UNKNOWN__`. Vanilla does not credit delayed fire deaths to the player. Existing runs disclose a partial baseline. |
+| Team request | Zombies killed by fire | 🟢 Implemented | Tracked separately from vanilla and weapon kills because ongoing fire clears `attackedBy` and does not increment player kills. Format-3 exports cumulative and active-day fire-death counts with partial-baseline disclosure. |
+| Contract | Current level and XP for every skill | 🟢 Implemented | Format-3 exports every registered non-category perk as a stable, ID-sorted record containing category ID, current level, and cumulative XP. Localized names are intentionally excluded. |
+| Contract | Daily and total XP gained for every skill | 🟢 Implemented | Day-boundary snapshots use stable perk IDs and seal non-zero XP deltas for the preceding day. Format-3 includes the active unfinished day's non-zero deltas, while total gain remains derivable without recording every `AddXP`. |
+| Contract | Locations visited and when | 🔵 In progress — awaiting decision | Registry-driven tracking, permanent first-visit persistence, `location.visited` events, and format-3 schema-1 projection are implemented. The canonical non-town location definitions are deliberately deferred; registry version 0 therefore exports an authoritative empty list without claiming coverage. |
+| Contract | Towns visited and when | 🟢 Implemented | A TGSRR-owned registry defines stable town IDs and one or more map-reviewed activation points per settlement. Per-point radii range from 200 tiles for compact towns to 350 for Louisville coverage. First entry appends one `town.visited` event and permanently stores its UTC time, world age, triggering point ID, and player coordinates. Format-3 exports every registered town and its first-visit state; migrated runs are marked partial. |
+| Contract | Books and magazines read and when | 🟢 Implemented | Run initialization records one sorted `literature.baseline` containing PZ's actual completed-page item IDs, `AlreadyReadBook` IDs, literature-title keys, and print-media IDs. Successful local-player `ISReadABook.complete()` transitions append `literature.read` events with full item ID, classification, recipes, media/title IDs, UTC, and world age. Format-3 exports the baseline, current derived sets, and per-item completion summaries. Existing or bootstrapped runs are explicitly partial. |
+| Contract | Progress for every outpost | 🟢 Implemented | Format-3 exports all 13 stable outpost IDs with discovery/stage state, strict completion, weighted progress, requirement counts, timestamps, and every latest persisted deliverable value. |
 | Contract | Completed outposts and completion order | 🟢 Implemented | Whole-outpost completion rising-edge events and world-age timestamps exist; the final export projection will order them chronologically. |
 | Contract | Kill milestones and elapsed days | 🟢 Implemented | Persistent claims include world age; the final export projection remains to be written. |
 | Contract | Skill milestones, including level 10 and elapsed days | 🟡 Planned | Generic level-reached events exist; milestone policy and persistent records remain unfinished. |
 | Contract | Outpost milestones and elapsed days | 🟢 Implemented | Deliverable and whole-outpost completion claims retain world age; the final export projection remains to be written. |
-| Contract | Overall challenge progress | 🟢 Implemented | The Tracker calculates kills, skills, and outpost progress. |
+| Contract | Overall challenge progress | 🟢 Implemented | Format-3 exports a rules-versioned map of the Tracker's kills, skills, and outposts summaries. Each retains current, target, normalized progress, availability, and status. No single overall percentage is defined. |
+| Contract | Challenge mode | 🟢 Implemented | Format-3 exports the stable `official`, `cdda`, or `sprinters` mode reference. This identifies the selected challenge variant and does not claim future submission eligibility. |
 | Contract | Whether the run remains official | 🟡 Planned | The classification foundation exists; final policy and transitions remain. |
 | Contract | Save rollbacks, recovery decisions, and continuation as an unofficial run | 🟡 Planned | The ledger and recovery model are designed but not implemented. |
 | Contract | Mods used when the run began | 🟢 Implemented | Captures Mod IDs, Workshop IDs, and their mapping. |
-| Contract | Mods added or removed during later sessions | 🟢 Implemented | Session-start deltas are recorded. |
+| Contract | Mods added or removed during later sessions | 🟢 Implemented | Session-start deltas are recorded, and format-3 also exports the current sorted Mod ID/Workshop ID mapping so consumers need not reconstruct the active state from history. |
 | Team request | Distance travelled | 🟡 Planned | Use compact accumulated distance rather than raw position telemetry; final rules should reject teleport/discontinuity artefacts. |
 | Team request | Animals slaughtered | 🔴&nbsp;Needs&nbsp;investigation | Establish authoritative action/event and species attribution. |
 | Team request | Animals trapped | 🔴&nbsp;Needs&nbsp;investigation | Establish the completed-trap/claim event and animal identity. |
@@ -68,3 +73,41 @@ The `Contract` scope contains the agreed export contract. `Team request` contain
 ## Export implementation reminder
 
 Items marked **Implemented** indicate that their underlying canonical data exists. A separate export implementation pass must still verify that every accepted item is serialized, schema-versioned, integrity-checked, and covered by a representative test run.
+
+## Verified collection boundary
+
+Implementation and persisted test-run audit completed on 2026-07-24:
+
+- World-scoped run state persists immutable run identity, challenge mode, creation
+  timestamps, starting character data, selected starting traits, spawned effective
+  traits, session sequence, current mod reference baseline, ledger cursor, and the
+  active daily baseline.
+- The hash-chained event ledger collects session starts and mod deltas, day starts
+  and completed-day kill/skill-XP deltas, kill milestones, skill-level events,
+  outpost-deliverable completions, and whole-outpost completions.
+- Town visitation uses 12 stable town IDs and compact multi-point activation
+  rather than unreliable vanilla `TownZone` fragments or hand-authored municipal
+  polygons. Hog Wallow Military Base remains a location, not a town.
+- Persisted test ledgers contain `session.started`, `day.started`,
+  `skill.level.reached`, `outpost.deliverable.completed`, and
+  `outpost.completed` records. Rolled-over `day.started` records were verified to
+  contain `previousDay`, `killDelta`, and `xpDeltas` payloads.
+- The outpost progress store separately persists the latest observation for every
+  deliverable and the data required to derive current outpost completion.
+- Format-3 currently exports the complete verified event ledger plus a small live
+  projection containing the challenge-mode reference, current kills, and
+  starting/current character and trait data, plus every current skill's stable
+  ID, category ID, level, and cumulative XP, and the full current snapshot of
+  all 13 outposts. It also includes the rules-versioned kills, skills, and
+  outposts challenge-progress summaries calculated by the Tracker providers and
+  the current sorted active Mod ID/Workshop ID mapping. Its active-day snapshot
+  adds live kill and per-skill XP deltas without altering sealed history.
+- The current projection exports every registered town ID and its permanent
+  first-visit state, including the visit timestamps, triggering activation point,
+  observed coordinates, and partial-history disclosure.
+- Literature history begins with one immutable read-state baseline and then uses
+  hash-chained completion deltas. The projection exports complete derived item,
+  literature-title, and print-media sets without inferring physical reading from
+  profession recipes or skill levels.
+- Future run eligibility classification is not yet serialized in the format-3
+  current-state projection.

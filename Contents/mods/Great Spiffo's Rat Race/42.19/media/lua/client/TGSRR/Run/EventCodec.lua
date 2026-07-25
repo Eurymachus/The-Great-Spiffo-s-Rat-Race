@@ -85,6 +85,66 @@ function EventCodec.canonicalPayload(payload)
     return result
 end
 
+local decodeValue
+
+local function decodeTable(tag, value)
+    local result = {}
+    local cursor = 1
+    if tag == "a" then
+        while cursor <= #value do
+            local decoded, nextCursor, decodeError = decodeValue(value, cursor)
+            if decodeError then return nil, decodeError end
+            result[#result + 1], cursor = decoded, nextCursor
+        end
+        return result
+    end
+
+    while cursor <= #value do
+        local keyTag, key, nextCursor, keyError = readFrame(value, cursor)
+        if not keyTag then return nil, keyError end
+        if keyTag ~= "k" or key == "" then return nil, "invalid_canonical_map_key" end
+        local decoded, valueCursor, decodeError = decodeValue(value, nextCursor)
+        if decodeError then return nil, decodeError end
+        if result[key] ~= nil then return nil, "duplicate_canonical_map_key" end
+        result[key], cursor = decoded, valueCursor
+    end
+    return result
+end
+
+decodeValue = function(value, cursor)
+    local tag, framed, nextCursor, readError = readFrame(value, cursor)
+    if not tag then return nil, nil, readError end
+    if tag == "z" then
+        if framed ~= "" then return nil, nil, "invalid_canonical_nil" end
+        return nil, nextCursor
+    elseif tag == "b" then
+        if framed ~= "0" and framed ~= "1" then return nil, nil, "invalid_canonical_boolean" end
+        return framed == "1", nextCursor
+    elseif tag == "n" then
+        local number = tonumber(framed)
+        if not number or canonicalNumber(number) ~= framed then
+            return nil, nil, "invalid_canonical_number"
+        end
+        return number, nextCursor
+    elseif tag == "s" then
+        return framed, nextCursor
+    elseif tag == "a" or tag == "m" then
+        local decoded, decodeError = decodeTable(tag, framed)
+        if decodeError then return nil, nil, decodeError end
+        return decoded, nextCursor
+    end
+    return nil, nil, "unsupported_canonical_tag:" .. tostring(tag)
+end
+
+function EventCodec.decodePayload(value)
+    value = tostring(value or "")
+    local decoded, cursor, decodeError = decodeValue(value, 1)
+    if decodeError then return nil, decodeError end
+    if cursor ~= #value + 1 then return nil, "trailing_canonical_payload_data" end
+    if type(decoded) ~= "table" then return nil, "canonical_payload_not_table" end
+    return decoded
+end
+
 function EventCodec.canonicalBody(event)
     if type(event) ~= "table" then return nil, "invalid_event" end
     local sequence = tonumber(event.sequence)
@@ -201,6 +261,14 @@ function EventCodec.selfTest()
     if not inspected then return false, inspectError end
     if inspected.runId ~= "rr-test" or inspected.sequence ~= 1 or inspected.eventType ~= "test" then
         return false, "canonical_inspection_self_test_failed"
+    end
+    local payload, payloadError = EventCodec.decodePayload(
+        EventCodec.canonicalPayload({ b = "two", a = 1, flags = { true, false } })
+    )
+    if not payload then return false, payloadError end
+    if payload.a ~= 1 or payload.b ~= "two" or payload.flags[1] ~= true
+            or payload.flags[2] ~= false then
+        return false, "canonical_payload_decode_self_test_failed"
     end
     return EventCodec.verify(first, EventCodec.GENESIS_HASH)
 end

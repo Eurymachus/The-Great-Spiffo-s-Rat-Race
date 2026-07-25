@@ -7,6 +7,7 @@ local L = require "TGSRR/Core/Localization"
 local Icons = require "TGSRR/Tracker/Outposts/Icons"
 local Notifications = require "TGSRR/Challenge/Notifications"
 local State = require "TGSRR/Tracker/State"
+local Identity = require "TGSRR/Run/Identity"
 
 local Window = ISCollapsableWindow:derive("TGSRROutpostOverviewWindow")
 Window.instance = nil
@@ -359,9 +360,7 @@ Notifications.subscribe("outpost-overview-window", function(outpostId)
 end)
 
 local function isRatRace()
-    if not getCore():isChallenge() then return false end
-    local id = getCore():getChallengeID()
-    return id == "TGSRR" or id == "TGSRR_CDDA" or id == "TGSRR_Sprinters"
+    return Identity.isRatRaceChallenge()
 end
 
 Events.OnGameStart.Add(function()

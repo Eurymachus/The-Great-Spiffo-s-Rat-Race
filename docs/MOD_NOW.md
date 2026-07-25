@@ -31,6 +31,28 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Kill milestones at 1,000, 10,000, 25,000, 50,000, 100,000, 250,000, 500,000, 750,000, and 1,000,000, shown on the Kills tab and emitted only when thresholds are crossed.
 - Dynamic all-skills level-10 deliverable grouped by vanilla skill category, with ten-segment per-skill progress, aggregate fractional progress, and event-driven refresh.
 - World-scoped Rat Race run identity foundation with immutable `runId`, starting-character metadata, versioned `run.meta`, and timestamped session/mod-list history.
+- Canonical schema-1 event codec, SHA-256 hash-chained ledger, append-safe segmented storage, lifecycle verification, and migration support for pre-release test ledgers.
+- TGSRR-owned daily history with UTC/world-age day boundaries, daily kill deltas, and non-zero per-skill XP deltas.
+- TGSRR-owned weapon-kill attribution keyed by full item type or explicit
+  non-item pseudo ID, with cumulative totals, completed-day deltas, active-day
+  deltas, and partial-baseline disclosure for existing runs.
+- Separate cumulative, completed-day, and active-day zombie fire-death counts
+  that never contribute to vanilla or weapon-kill totals.
+- Permanent first-visit tracking for 12 canonical towns using stable TGSRR IDs,
+  map-reviewed multi-point coverage with per-point radii, hash-chained
+  `town.visited` events, and partial-history disclosure for migrated runs.
+- Immutable literature read-state baseline plus hash-chained successful-reading
+  deltas from PZ's authoritative `ISReadABook.complete()` edge. Current export
+  derives full item, literature-title, and print-media sets without mistaking
+  profession knowledge for physical reading.
+- Versioned non-town location registry, lightweight first-visit collector, and
+  schema-1 export projection. Registry version 0 intentionally contains no
+  definitions while the canonical location list is deferred.
+- Compact loaded-mod history: a complete initial Mod ID/Workshop ID baseline followed by timestamped added, removed, and changed-association session deltas.
+- Versioned, deterministic LZSS/Base64URL run exports containing the complete verified event history, integrity metadata, and a live current-kills projection.
+- Pre-spawn capture of the raw namespaced trait IDs selected on the character-creation screen, persisted across the loading transition and consumed only by the matching new character.
+- Format-3 current-state projection containing challenge mode; character and trait state; current skills; all 13 current outposts; all 12 town-visit states; versioned non-town location state; literature baseline/current/completion state; rules-versioned Tracker summaries; current active mods; and a non-mutating active-day snapshot with live kill and per-skill XP deltas.
+- Cooperative pause-menu export flow with progress presentation, read-back verification, explicit clipboard copy, and format-1 export compatibility.
 - Generic `skill.level.reached` events containing the skill, parent category, and reached level; award policy remains intentionally undecided.
 - Rising-edge events for individual outpost deliverable completion and whole-outpost completion; initial observations do not retroactively award milestones.
 - Saved window position, selected tab, open state, and movable launcher position.
@@ -72,7 +94,8 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 
 ## Recommended next action
 
-Validate run bootstrap and session reload in game, then specify and implement the canonical hash-chained record codec before adding the remaining history collectors.
+Define the canonical non-town location membership when ready, or continue with
+future eligibility classification.
 
 ## Related decisions
 

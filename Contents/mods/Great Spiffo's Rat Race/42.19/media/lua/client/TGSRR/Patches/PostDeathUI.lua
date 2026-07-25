@@ -1,13 +1,9 @@
 require "ISUI/ISPostDeathUI"
 
-local TGSRR_CHALLENGE_IDS = {
-    TGSRR = true,
-    TGSRR_CDDA = true,
-    TGSRR_Sprinters = true
-}
+local Identity = require "TGSRR/Run/Identity"
 
 local function TGSRR_isRatRaceChallenge()
-    return getCore():isChallenge() and TGSRR_CHALLENGE_IDS[getCore():getChallengeID()] == true
+    return Identity.isRatRaceChallenge()
 end
 
 if ISPostDeathUI and not ISPostDeathUI.TGSRR_postDeathPatched then

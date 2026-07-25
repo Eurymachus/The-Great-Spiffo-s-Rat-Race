@@ -118,6 +118,13 @@ The general Stats mod uses player ModData for daily-kill baselines, distance, pe
 - TGSRR maintains its own weapon and weapon-class aggregates using equivalent authoritative game flows where appropriate.
 - Website export uses full item IDs and TGSRR-owned pseudo IDs for non-item sources.
 - TGSRR does not read or write `TTF_KillStats`.
+- TGSRR's implemented collector credits only deaths whose `getAttackedBy()` is
+  the active Rat Race player. It preserves the weapon captured by
+  `OnWeaponHitCharacter`, then resolves vehicle, unarmed, and unknown sources
+  explicitly at `OnZombieDead`. Delayed fire deaths are excluded, matching
+  vanilla's decision to clear `attackedBy` and not increment player kills. It
+  does not copy the reference mod's data schema or treat that mod as runtime
+  authority.
 
 ## Additional TGSRR capabilities
 
@@ -125,10 +132,13 @@ The audited versions do not provide authoritative histories for:
 
 - Locations visited and visit times.
 - Towns visited and visit times.
-- Books and magazines read and read times.
 - Loaded-mod session history.
 
 These require TGSRR collectors and stable in-game or TGSRR IDs rather than localized names.
+
+TGSRR now supplies its own literature history by baselining PZ's persisted read
+collections and wrapping the vanilla `ISReadABook.complete()` transition. It
+does not read another mod's state or infer a publication from recipe knowledge.
 
 ## Storage conclusion
 

@@ -10,6 +10,7 @@ local registered = {
     ["skill.milestone.reached"] = true,
     ["location.visited"] = true,
     ["town.visited"] = true,
+    ["literature.baseline"] = true,
     ["literature.read"] = true,
     ["run.classification.changed"] = true,
     ["run.recovery.decided"] = true,

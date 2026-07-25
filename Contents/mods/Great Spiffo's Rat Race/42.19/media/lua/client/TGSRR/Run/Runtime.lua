@@ -6,6 +6,12 @@ local Recorder = require "TGSRR/Run/Recorder"
 local EventBridge = require "TGSRR/Run/EventBridge"
 local DayTracker = require "TGSRR/Run/DayTracker"
 local Exporter = require "TGSRR/Run/Exporter"
+local PendingTraitSelection = require "TGSRR/Run/PendingTraitSelection"
+local ModSnapshot = require "TGSRR/Run/ModSnapshot"
+local WeaponKillTracker = require "TGSRR/Run/WeaponKillTracker"
+local TownTracker = require "TGSRR/Run/TownTracker"
+local LiteratureTracker = require "TGSRR/Run/LiteratureTracker"
+local LocationTracker = require "TGSRR/Run/LocationTracker"
 require "TGSRR/Run/ExportMenu"
 
 TGSRR = TGSRR or {}
@@ -24,34 +30,9 @@ end
 local initialized = false
 
 local function activeMods()
-    local result = {
-        mods = {},
-        modIds = {},
-        workshopIds = {},
-    }
-    local workshopSet = {}
-    local mods = getActivatedMods and getActivatedMods() or nil
-    if mods then
-        for index = 0, mods:size() - 1 do
-            local modId = tostring(mods:get(index))
-            local modInfo = getModInfoByID and getModInfoByID(modId) or nil
-            local workshopId = modInfo and modInfo.getWorkshopID and modInfo:getWorkshopID() or nil
-            workshopId = workshopId and tostring(workshopId) or ""
-            result.mods[#result.mods + 1] = {
-                modId = modId,
-                workshopId = workshopId,
-            }
-            result.modIds[#result.modIds + 1] = modId
-            if workshopId ~= "" and not workshopSet[workshopId] then
-                workshopSet[workshopId] = true
-                result.workshopIds[#result.workshopIds + 1] = workshopId
-            end
-        end
-    end
-    table.sort(result.mods, function(a, b) return a.modId < b.modId end)
-    table.sort(result.modIds)
-    table.sort(result.workshopIds)
-    return result
+    local mods = ModSnapshot.observe()
+    local modIds, workshopIds = ModSnapshot.ids(mods)
+    return { mods = mods, modIds = modIds, workshopIds = workshopIds }
 end
 
 local function copyList(values)
@@ -114,7 +95,9 @@ local function initialize()
         return
     end
 
-    local run, created = Identity.ensure(player)
+    local existingRun = Identity.get()
+    local selectedTraitSnapshot = existingRun and nil or PendingTraitSelection.consume(player)
+    local run, created = Identity.ensure(player, selectedTraitSnapshot)
     if not run then return end
 
     local ok, state = FileStore.initialize(run, created)
@@ -201,6 +184,17 @@ local function initialize()
     run.lastWorkshopIds = copyList(currentWorkshopIds)
     run.lastModRefs = copyModReferences(current.mods)
     run.integrityStatus = "ok"
+    WeaponKillTracker.initialize(run, player)
+    TownTracker.initialize(run, player)
+    LocationTracker.initialize(run, player, created)
+    local literatureReady, literatureError =
+        LiteratureTracker.initialize(run, player, created)
+    if not literatureReady then
+        run.integrityStatus = literatureError
+        print("[TGSRR Run] Literature tracking initialization failed: "
+            .. tostring(literatureError))
+        return
+    end
     local dayReady, dayError = DayTracker.initialize(run, player)
     if not dayReady then
         run.integrityStatus = dayError

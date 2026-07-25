@@ -4,6 +4,7 @@ require "ISUI/ISButton"
 local Tracker = require "TGSRR/Challenge/TrackerRegistry"
 local State = require "TGSRR/Tracker/State"
 local L = require "TGSRR/Core/Localization"
+local Identity = require "TGSRR/Run/Identity"
 require "TGSRR/Tracker/Overview/Module"
 require "TGSRR/Tracker/Kills/Module"
 require "TGSRR/Notifications/MilestonePresenter"
@@ -106,9 +107,7 @@ function TGSRRTrackerLauncher:onMouseUpOutside(x, y)
 end
 
 local function isRatRace()
-    if not getCore():isChallenge() then return false end
-    local id = getCore():getChallengeID()
-    return id == "TGSRR" or id == "TGSRR_CDDA" or id == "TGSRR_Sprinters"
+    return Identity.isRatRaceChallenge()
 end
 
 function TGSRRChallengeTrackerWindow:createChildren()
