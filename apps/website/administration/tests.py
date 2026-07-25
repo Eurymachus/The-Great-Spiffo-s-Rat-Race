@@ -41,6 +41,20 @@ class WebsiteSettingsAdminTests(TestCase):
 
         self.assertContains(response, "registry/admin_save.js")
 
+    def test_admin_change_forms_offer_one_save_and_continue_action(self):
+        settings = WebsiteSettings.current()
+        response = self.client.get(
+            reverse("admin:administration_websitesettings_change", args=(settings.pk,))
+        )
+
+        self.assertContains(response, 'name="_continue"', count=1)
+        self.assertContains(response, 'value="Save"', count=1)
+        self.assertNotContains(response, 'name="_save"')
+        self.assertNotContains(response, 'name="_addanother"')
+        self.assertNotContains(response, 'name="_saveasnew"')
+        self.assertNotContains(response, "Save and continue editing")
+        self.assertNotContains(response, "Save and add another")
+
     def test_image_validator_uses_configured_limit(self):
         settings = WebsiteSettings.current()
         settings.maximum_image_upload_size = 1

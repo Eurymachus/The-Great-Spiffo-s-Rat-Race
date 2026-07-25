@@ -1,11 +1,14 @@
 (() => {
     "use strict";
 
-    const form = document.querySelector("body.change-form form[id$='_form']");
+    const form = document.querySelector(
+        "body.change-form form[id$='_form'], body.add-form form[id$='_form']"
+    );
     const continueButton = form?.querySelector('[type="submit"][name="_continue"]');
     if (!form || !continueButton || !window.fetch || !window.DOMParser) return;
 
     let saving = false;
+    let dirty = false;
     let toastTimer = null;
     const region = document.createElement("div");
     region.className = "admin-save-toast-region";
@@ -51,6 +54,22 @@
         }
     };
 
+    const setDirty = (nextDirty) => {
+        dirty = nextDirty;
+        continueButton.disabled = saving || !dirty;
+    };
+    const markDirty = (event) => {
+        if (event.target?.name === "csrfmiddlewaretoken") return;
+        setDirty(true);
+    };
+
+    continueButton.value = "Save";
+    setDirty(false);
+    form.addEventListener("input", markDirty);
+    form.addEventListener("change", markDirty);
+    form.addEventListener("rat-race:admin-dirty", () => setDirty(true));
+    form.addEventListener("rat-race:admin-editor-ready", () => setDirty(false));
+
     form.addEventListener("submit", async (event) => {
         const submitter = event.submitter;
         if (form.dataset.adminSaveBypass === "true" || submitter?.name !== "_continue") return;
@@ -83,6 +102,7 @@
                 form.dispatchEvent(new CustomEvent("rat-race:admin-save-success", {
                     detail: {document: savedDocument, responseUrl: response.url},
                 }));
+                setDirty(false);
                 showToast("Changes saved");
                 return;
                 }
@@ -98,7 +118,7 @@
             showToast("Changes could not be saved. Please try again.", "error");
         } finally {
             saving = false;
-            continueButton.disabled = false;
+            continueButton.disabled = !dirty;
         }
     });
 })();

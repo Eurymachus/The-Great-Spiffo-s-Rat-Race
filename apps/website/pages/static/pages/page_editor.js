@@ -493,7 +493,11 @@ document.addEventListener("DOMContentLoaded", () => {
             list.append(panel);
             updateSectionNameDirty(panel);
         });
-        payload.value = JSON.stringify(sections);
+        const nextPayload = JSON.stringify(sections);
+        if (payload.value !== nextPayload) {
+            payload.value = nextPayload;
+            form.dispatchEvent(new CustomEvent("rat-race:admin-dirty"));
+        }
     };
 
     const preserve = (mutate, syncBefore = true) => {

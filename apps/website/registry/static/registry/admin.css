@@ -98,6 +98,17 @@ body.add-form .submit-row a.deletelink {
     margin: 0;
 }
 
+body .submit-row input[name="_continue"],
+[data-navigation-save] {
+    text-transform: none !important;
+}
+
+.submit-row [name="_continue"]:disabled,
+[data-navigation-save]:disabled {
+    cursor: not-allowed;
+    opacity: .5;
+}
+
 .submit-row .admin-close-button {
     order: -1;
     margin: 0 auto 0 0;

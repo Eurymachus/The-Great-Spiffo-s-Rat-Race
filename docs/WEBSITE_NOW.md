@@ -50,6 +50,9 @@ a nickname using a verified email address.
   with page-owned navigation labels, visibility, and ordering.
 - Consistent primary navigation, authenticated-route redirects, accessible form
   metadata, keyboard focus treatment, and responsive local journey checks.
+- Administration editing forms use one **Save** action that saves in place and
+  continues editing. It activates only when the form has unsaved changes;
+  workflow actions such as submission review remain separate.
 - Privileged, confirmation-protected closure processing with non-personal
   closure receipts and a documented nullable owner for future independent runs.
 - Cloudflare Turnstile integration using official test credentials locally.

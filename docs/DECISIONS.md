@@ -308,3 +308,14 @@ or a streaming-evidence provider. The first milestone requests only Discord's
 `identify` OAuth scope and stores the immutable Discord user ID, current display
 metadata, and encrypted OAuth credentials. It does not install a bot, inspect
 servers, request email access, or silently merge participant accounts.
+
+## 2026-07-25 - Use one persistent Save action in administration
+
+Backend editing forms expose one action labelled **Save**. Its contract is to
+save the current record and continue editing it, including when the record is
+first created. The alternative Django admin actions **Save and add another**,
+**Save and continue editing**, and the redirecting plain **Save** are not shown.
+Save is disabled when the displayed state matches the saved state, activates
+when a change is made, and returns to disabled after a successful save.
+Purpose-specific workflow actions such as approving or declining a submission
+remain distinct from ordinary form saving.
