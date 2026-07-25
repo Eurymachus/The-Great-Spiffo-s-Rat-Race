@@ -56,8 +56,8 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
   completions; kill and outpost-deliverable milestones with elapsed days; all 12
   town-visit states; versioned non-town location state; literature
   baseline/current/completion state; rules-versioned Tracker summaries; current
-  active mods; and a non-mutating active-day snapshot with live kill and
-  per-skill XP deltas.
+  active mods; cumulative filtered distance travelled; and a non-mutating
+  active-day snapshot with live kill, per-skill XP, and distance deltas.
 - Cooperative pause-menu export flow with progress presentation, read-back verification, explicit clipboard copy, and format-1 export compatibility.
 - Generic `skill.level.reached` events containing the skill, parent category, and reached level; award policy remains intentionally undecided.
 - Rising-edge events for individual outpost deliverable completion and whole-outpost completion; initial observations do not retroactively award milestones.

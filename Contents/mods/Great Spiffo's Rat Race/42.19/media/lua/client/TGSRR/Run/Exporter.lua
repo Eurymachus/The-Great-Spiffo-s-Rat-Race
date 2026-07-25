@@ -77,6 +77,14 @@ function Exporter.generate(run, work)
         literature = LiteratureSnapshot.observe(run),
         locations = LocationSnapshot.observe(run),
         milestones = milestones,
+        distance = {
+            unit = "meter",
+            travelledMeters = math.max(0,
+                tonumber(run.distanceTravelledMeters) or 0),
+            rejectedSamples = math.max(0, math.floor(
+                tonumber(run.distanceRejectedSamples) or 0)),
+            partial = run.distanceTravelledPartial == true,
+        },
     }
     if not projection.activeDay then return false, "missing_active_day" end
     local encoded, stats = ExportCodec.encode(
@@ -117,6 +125,10 @@ function Exporter.generate(run, work)
                 #projection.milestones.killMilestones
             or #decoded.projection.milestones.outpostDeliverableMilestones ~=
                 #projection.milestones.outpostDeliverableMilestones
+            or decoded.projection.distance.travelledMeters ~=
+                projection.distance.travelledMeters
+            or decoded.projection.activeDay.distanceDeltaMeters ~=
+                projection.activeDay.distanceDeltaMeters
             or decoded.projection.challengeProgress.rulesVersion ~=
                 projection.challengeProgress.rulesVersion then
         return false, "export_readback_mismatch"

@@ -10,6 +10,8 @@ function DailySnapshot.current(player, run)
         skills = SkillSnapshot.totals(player),
         weaponKills = WeaponKillSnapshot.copy(run and run.weaponKills),
         fireDeaths = math.max(0, tonumber(run and run.fireDeaths) or 0),
+        distanceTravelledMeters =
+            math.max(0, tonumber(run and run.distanceTravelledMeters) or 0),
     }
 end
 
@@ -48,6 +50,10 @@ function DailySnapshot.active(run, player)
         fireDeathDelta =
             current.fireDeaths - (tonumber(baseline.fireDeaths) or 0),
         fireDeathsPartial = baseline.fireDeathsPartial == true,
+        distanceDeltaMeters = math.max(0,
+            current.distanceTravelledMeters
+                - (tonumber(baseline.distanceTravelledMeters) or 0)),
+        distancePartial = baseline.distancePartial == true,
     }
 end
 

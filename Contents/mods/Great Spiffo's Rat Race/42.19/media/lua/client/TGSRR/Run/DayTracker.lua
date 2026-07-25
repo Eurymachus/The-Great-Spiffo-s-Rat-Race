@@ -45,6 +45,10 @@ local function beginDay(initial)
             fireDeathDelta =
                 current.fireDeaths - (tonumber(previousState.fireDeaths) or 0),
             fireDeathsPartial = previousState.fireDeathsPartial == true,
+            distanceDeltaMeters = math.max(0,
+                current.distanceTravelledMeters
+                    - (tonumber(previousState.distanceTravelledMeters) or 0)),
+            distancePartial = previousState.distancePartial == true,
         }
     end
 
@@ -64,6 +68,9 @@ local function beginDay(initial)
             fireDeaths = current.fireDeaths,
             fireDeathsPartial =
                 initial == true and activeRun.fireDeathsPartial == true,
+            distanceTravelledMeters = current.distanceTravelledMeters,
+            distancePartial =
+                initial == true and activeRun.distanceTravelledPartial == true,
         },
         previousDay = previousDay,
     }, {
@@ -85,6 +92,9 @@ local function beginDay(initial)
         fireDeaths = current.fireDeaths,
         fireDeathsPartial =
             initial == true and activeRun.fireDeathsPartial == true,
+        distanceTravelledMeters = current.distanceTravelledMeters,
+        distancePartial =
+            initial == true and activeRun.distanceTravelledPartial == true,
     }
     return true
 end

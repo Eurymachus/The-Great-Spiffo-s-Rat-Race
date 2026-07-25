@@ -105,7 +105,14 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   with stable location/point IDs, UTC, world age, and observed coordinates.
   Runs that predate a populated registry are then marked partial automatically.
 - Broken weapons remain a separate planned collector.
-- Day starts, visits, literature, milestones, outposts, distance, injuries, animals, production, and mod sessions: TGSRR records using their appropriate events, aggregates, or semantic checkpoints.
+- Distance travelled uses `Events.OnPlayerMove` and planar player-coordinate
+  deltas, matching the established Twist Stats interpretation of one world unit
+  as one metre and including vehicle movement. TGSRR adds a real-time
+  speed/step bound to reject teleports and loading discontinuities, retains only
+  cumulative metres and a rejected-sample count, and seals daily metre deltas.
+- Day starts, visits, literature, milestones, outposts, injuries, animals,
+  production, and mod sessions: TGSRR records using their appropriate events,
+  aggregates, or semantic checkpoints.
 
 High-frequency values are not appended on every tick. TGSRR records meaningful state transitions and periodic/session/day checkpoints so the canonical history remains compact.
 
