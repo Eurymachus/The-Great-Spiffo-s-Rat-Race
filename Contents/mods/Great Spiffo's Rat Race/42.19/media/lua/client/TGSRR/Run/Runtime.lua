@@ -17,6 +17,7 @@ local BrokenWeaponTracker = require "TGSRR/Run/BrokenWeaponTracker"
 local AnimalSlaughterTracker = require "TGSRR/Run/AnimalSlaughterTracker"
 local AnimalTrapTracker = require "TGSRR/Run/AnimalTrapTracker"
 local AnimalBirthTracker = require "TGSRR/Run/AnimalBirthTracker"
+local GeneratorKnowledgeTracker = require "TGSRR/Run/GeneratorKnowledgeTracker"
 require "TGSRR/Run/ExportMenu"
 
 TGSRR = TGSRR or {}
@@ -206,6 +207,14 @@ local function initialize()
         run.integrityStatus = literatureError
         print("[TGSRR Run] Literature tracking initialization failed: "
             .. tostring(literatureError))
+        return
+    end
+    local generatorReady, generatorError =
+        GeneratorKnowledgeTracker.initialize(run, player, created)
+    if not generatorReady then
+        run.integrityStatus = generatorError
+        print("[TGSRR Run] Generator knowledge tracking initialization failed: "
+            .. tostring(generatorError))
         return
     end
     local dayReady, dayError = DayTracker.initialize(run, player)

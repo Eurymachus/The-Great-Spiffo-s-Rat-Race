@@ -2,7 +2,7 @@ local Identity = {}
 local CharacterSnapshot = require "TGSRR/Run/CharacterSnapshot"
 
 local MOD_DATA_KEY = "TGSRR_Run"
-local SCHEMA_VERSION = 13
+local SCHEMA_VERSION = 14
 
 local CHALLENGE_MODES = {
     TGSRR = "standard",
@@ -131,6 +131,7 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.animalIdentityByPzId = {}
         data.animalIdentitySequence = 0
         data.animalBirthTrackingInitialized = false
+        data.generatorKnowledge = nil
         data.integrityStatus = "unverified"
         created = true
     end

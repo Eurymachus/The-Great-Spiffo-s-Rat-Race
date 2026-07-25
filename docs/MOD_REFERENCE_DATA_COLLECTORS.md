@@ -140,6 +140,13 @@ TGSRR now supplies its own literature history by baselining PZ's persisted read
 collections and wrapping the vanilla `ISReadABook.complete()` transition. It
 does not read another mod's state or infer a publication from recipe knowledge.
 
+Generator knowledge is independently observed through
+`IsoGameCharacter:isRecipeActuallyKnown("Generator")`. This avoids treating
+`Base.ElectronicsMag4` as the only route: Build 42 also grants the recipe to the
+Electrician profession and at Electrical level 3, reduced to level 2 by
+Inventive. TGSRR records one first-observed milestone with contemporaneous
+evidence and does not assert which route caused it.
+
 ## Storage conclusion
 
 Global ModData and player ModData are serialized save state, not unbounded databases. There is no useful project-level promise that they may be made arbitrarily large. Large nested histories increase save size, serialization cost, load cost, and multiplayer synchronization risk; large player ModData has also proven fragile in practice.

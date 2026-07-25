@@ -15,6 +15,8 @@ local BrokenWeaponSnapshot = require "TGSRR/Run/BrokenWeaponSnapshot"
 local AnimalSlaughterSnapshot = require "TGSRR/Run/AnimalSlaughterSnapshot"
 local AnimalTrapSnapshot = require "TGSRR/Run/AnimalTrapSnapshot"
 local AnimalBirthSnapshot = require "TGSRR/Run/AnimalBirthSnapshot"
+local GeneratorKnowledgeSnapshot =
+    require "TGSRR/Run/GeneratorKnowledgeSnapshot"
 
 local Exporter = {}
 
@@ -117,6 +119,7 @@ function Exporter.generate(run, work)
             partial = run.animalBirthsPartial == true,
             animalTypes = AnimalBirthSnapshot.list(run.animalBirths),
         },
+        generatorKnowledge = GeneratorKnowledgeSnapshot.observe(run),
     }
     if not projection.activeDay then return false, "missing_active_day" end
     local encoded, stats = ExportCodec.encode(
@@ -185,6 +188,10 @@ function Exporter.generate(run, work)
                 #projection.animalBirths.animalTypes
             or #decoded.projection.activeDay.animalBirthDeltas ~=
                 #projection.activeDay.animalBirthDeltas
+            or decoded.projection.generatorKnowledge.known ~=
+                projection.generatorKnowledge.known
+            or decoded.projection.generatorKnowledge.recipeId ~=
+                projection.generatorKnowledge.recipeId
             or decoded.projection.challengeProgress.rulesVersion ~=
                 projection.challengeProgress.rulesVersion then
         return false, "export_readback_mismatch"

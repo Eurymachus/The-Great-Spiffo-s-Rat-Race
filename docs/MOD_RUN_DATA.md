@@ -97,6 +97,16 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   the full item ID, `skill_book`/`recipe_literature` classification, learned
   recipe IDs, UTC, and world age. Leisure books, ordinary magazines,
   newspapers, crosswords, and generic print media are excluded.
+- Generator knowledge: TGSRR polls the stable vanilla recipe-knowledge query
+  for raw recipe ID `Generator`. The first observed known state is persisted and
+  appended once as `knowledge.generator.first_observed`, including UTC, world
+  age, survived days, known-at-tracking-start and partial-history flags.
+  The event and current-state snapshot also preserve contemporaneous raw
+  profession ID, Electrical level, Inventive state, and whether
+  `Base.ElectronicsMag4` appears in TGSRR's literature history. Those fields are
+  neutral evidence rather than a declared source: vanilla can grant generator
+  knowledge through that magazine, the Electrician profession, or Electrical
+  level 3 (level 2 with Inventive), while mods or admin tools can add it too.
 - Non-town locations: the collector and export contract are registry-driven,
   but the canonical definition list is deliberately deferred. Registry version
   0 contains no locations and exports an authoritative empty list. When the
