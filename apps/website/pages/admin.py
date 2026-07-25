@@ -98,7 +98,7 @@ class PageAdmin(admin.ModelAdmin):
                             "text_size", "text_weight", "destination", "style",
                             "card_columns",
                             "image_asset", "image_alt", "image_fit", "image_height",
-                            "image_custom_height", "image_position",
+                            "image_custom_height", "image_position", "image_expandable",
                             "gallery_auto_scroll", "gallery_scroll_speed", "gallery_loop",
                             "gallery_show_controls", "gallery_show_captions", "gallery_expandable",
                         ):

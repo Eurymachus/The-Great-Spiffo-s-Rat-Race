@@ -26,7 +26,13 @@ from .admin import export_registrations, promote_to_role
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
 from .models import AccountClosureRecord, Notification, Participant, StreamingAccount
 from .tokens import create_verification_token
-from .streaming import TWITCH_STATE_SESSION_KEY, TwitchIntegrationError, decrypt_token
+from .streaming import (
+    TWITCH_STATE_SESSION_KEY,
+    TwitchIntegrationError,
+    decrypt_token,
+    encrypt_token,
+)
+from .discord_integration import DISCORD_STATE_SESSION_KEY
 
 
 class RegistrationTests(TestCase):
@@ -358,6 +364,16 @@ class RegistrationTests(TestCase):
             age_eligibility_confirmed_at=timezone.now(),
             age_policy_version="18-plus-v1",
         )
+        StreamingAccount.objects.create(
+            participant=participant,
+            provider=StreamingAccount.Provider.DISCORD,
+            provider_identity="80351110224678912",
+            channel_identity="80351110224678912",
+            display_name="Nelly",
+            channel_url="https://discord.com/users/80351110224678912",
+            granted_scopes=["identify"],
+            provider_metadata={"username": "nelly"},
+        )
         self.client.force_login(participant)
 
         response = self.client.get(reverse("registry:download_my_data"))
@@ -374,6 +390,15 @@ class RegistrationTests(TestCase):
         self.assertIsNotNone(
             payload["participant"]["age_eligibility_confirmed_at"]
         )
+        self.assertEqual(
+            payload["participant"]["connected_accounts"][0]["provider"],
+            StreamingAccount.Provider.DISCORD,
+        )
+        self.assertEqual(
+            payload["participant"]["connected_accounts"][0]["provider_identity"],
+            "80351110224678912",
+        )
+        self.assertNotIn("encrypted_access_token", response.content.decode())
 
     def test_account_closure_requires_current_password(self):
         participant = Participant.objects.create_user(
@@ -563,7 +588,8 @@ class RegistrationTests(TestCase):
         self.assertContains(response, reverse("registry:download_my_data"))
         self.assertContains(response, reverse("registry:privacy"))
         self.assertContains(response, reverse("registry:account_closure"))
-        self.assertContains(response, "Connected channels")
+        self.assertContains(response, "Connected accounts")
+        self.assertContains(response, "Discord")
         self.assertContains(response, "Twitch")
         self.assertContains(response, "YouTube")
         self.assertContains(response, 'aria-current="page"')
@@ -599,7 +625,7 @@ class RegistrationTests(TestCase):
         TWITCH_REDIRECT_URI="http://testserver/account/streaming/twitch/callback/",
         STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
     )
-    def test_account_settings_hides_disconnect_for_disconnected_channel(self):
+    def test_account_settings_offers_reconnect_for_lost_connection(self):
         participant = Participant.objects.create_user(
             email="streamer@example.com",
             nickname="Streamer",
@@ -614,14 +640,48 @@ class RegistrationTests(TestCase):
             channel_identity="twitch-channel-42",
             display_name="SpiffoStreams",
             channel_url="https://www.twitch.tv/spiffostreams",
-            status=StreamingAccount.Status.DISCONNECTED,
+            status=StreamingAccount.Status.RECONNECT_REQUIRED,
         )
         self.client.force_login(participant)
 
         response = self.client.get(reverse("registry:account_settings"))
 
         self.assertContains(response, ">Reconnect</a>")
-        self.assertNotContains(response, ">Disconnect</button>")
+        self.assertContains(response, ">Disconnect</button>")
+
+    @override_settings(
+        TWITCH_CLIENT_ID="client-id",
+        TWITCH_CLIENT_SECRET="client-secret",
+        TWITCH_REDIRECT_URI="http://testserver/account/streaming/twitch/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
+    @patch("registry.streaming._json_request", return_value={})
+    def test_twitch_disconnect_removes_connection(self, revoke_request):
+        participant = Participant.objects.create_user(
+            email="streamer@example.com",
+            nickname="Streamer",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        account = StreamingAccount.objects.create(
+            participant=participant,
+            provider=StreamingAccount.Provider.TWITCH,
+            provider_identity="twitch-user-42",
+            channel_identity="twitch-channel-42",
+            display_name="SpiffoStreams",
+            channel_url="https://www.twitch.tv/spiffostreams",
+            encrypted_access_token=encrypt_token("twitch-access-secret"),
+        )
+        self.client.force_login(participant)
+
+        response = self.client.post(reverse("registry:disconnect_twitch"))
+
+        self.assertRedirects(response, reverse("registry:account_settings"))
+        self.assertFalse(
+            StreamingAccount.objects.filter(pk=account.pk).exists()
+        )
+        revoke_request.assert_called_once()
 
     @override_settings(
         TWITCH_CLIENT_ID="client-id",
@@ -644,6 +704,7 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.url.startswith("https://id.twitch.tv/oauth2/authorize?"))
         self.assertIn("response_type=code", response.url)
+        self.assertIn("force_verify=true", response.url)
         self.assertIn(TWITCH_STATE_SESSION_KEY, self.client.session)
 
     @patch("registry.views.refresh_twitch_media")
@@ -755,6 +816,120 @@ class RegistrationTests(TestCase):
         self.assertRedirects(response, reverse("registry:account_settings"))
         exchange_code.assert_not_called()
         self.assertFalse(StreamingAccount.objects.exists())
+
+    @override_settings(
+        DISCORD_CLIENT_ID="discord-client-id",
+        DISCORD_CLIENT_SECRET="discord-client-secret",
+        DISCORD_REDIRECT_URI="http://testserver/account/connections/discord/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
+    def test_discord_connect_requests_only_identity_scope(self):
+        participant = Participant.objects.create_user(
+            email="discord@example.com",
+            nickname="Discord User",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:connect_discord"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith("https://discord.com/oauth2/authorize?"))
+        self.assertIn("scope=identify", response.url)
+        self.assertIn(DISCORD_STATE_SESSION_KEY, self.client.session)
+
+    @override_settings(
+        DISCORD_CLIENT_ID="discord-client-id",
+        DISCORD_CLIENT_SECRET="discord-client-secret",
+        DISCORD_REDIRECT_URI="http://testserver/account/connections/discord/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
+    @patch("registry.views.fetch_discord_identity")
+    @patch("registry.views.exchange_discord_code")
+    def test_discord_callback_links_identity_and_encrypts_tokens(
+        self, exchange_code, fetch_identity
+    ):
+        participant = Participant.objects.create_user(
+            email="discord@example.com",
+            nickname="Discord User",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+        session = self.client.session
+        session[DISCORD_STATE_SESSION_KEY] = {
+            "value": "safe-state",
+            "created_at": timezone.now().timestamp(),
+        }
+        session.save()
+        exchange_code.return_value = {
+            "access_token": "discord-access-secret",
+            "refresh_token": "discord-refresh-secret",
+            "expires_in": 604800,
+            "scope": "identify",
+        }
+        fetch_identity.return_value = {
+            "id": "80351110224678912",
+            "username": "nelly",
+            "global_name": "Nelly",
+            "avatar": "avatar-hash",
+        }
+
+        response = self.client.get(
+            reverse("registry:discord_callback"),
+            {"code": "authorization-code", "state": "safe-state"},
+        )
+
+        self.assertRedirects(response, reverse("registry:account_settings"))
+        account = StreamingAccount.objects.get(
+            participant=participant,
+            provider=StreamingAccount.Provider.DISCORD,
+        )
+        self.assertEqual(account.provider_identity, "80351110224678912")
+        self.assertEqual(account.display_name, "Nelly")
+        self.assertEqual(account.granted_scopes, ["identify"])
+        self.assertEqual(account.provider_metadata["avatar"], "avatar-hash")
+        self.assertEqual(
+            decrypt_token(account.encrypted_access_token),
+            "discord-access-secret",
+        )
+
+    @override_settings(
+        DISCORD_CLIENT_ID="discord-client-id",
+        DISCORD_CLIENT_SECRET="discord-client-secret",
+        DISCORD_REDIRECT_URI="http://testserver/account/connections/discord/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
+    @patch("registry.discord_integration._json_request", return_value={})
+    def test_discord_disconnect_removes_connection(self, revoke_request):
+        participant = Participant.objects.create_user(
+            email="discord@example.com",
+            nickname="Discord User",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        account = StreamingAccount.objects.create(
+            participant=participant,
+            provider=StreamingAccount.Provider.DISCORD,
+            provider_identity="80351110224678912",
+            channel_identity="80351110224678912",
+            display_name="Nelly",
+            channel_url="https://discord.com/users/80351110224678912",
+            encrypted_access_token=encrypt_token("discord-access-secret"),
+        )
+        self.client.force_login(participant)
+
+        response = self.client.post(reverse("registry:disconnect_discord"))
+
+        self.assertRedirects(response, reverse("registry:account_settings"))
+        self.assertFalse(
+            StreamingAccount.objects.filter(pk=account.pk).exists()
+        )
+        revoke_request.assert_called_once()
 
     def test_avatar_upload_is_quarantined_when_moderation_is_not_configured(self):
         participant = Participant.objects.create_user(

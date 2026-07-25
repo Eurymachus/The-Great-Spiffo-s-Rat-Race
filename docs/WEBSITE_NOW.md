@@ -84,6 +84,8 @@ a nickname using a verified email address.
   refresh and changes the website account to Reconnect required.
 - Official Twitch and YouTube brand marks shared across connected-channel rows
   and the run-submission journey.
+- Optional Discord identity linking using the minimal `identify` permission,
+  with encrypted credentials and participant-controlled disconnect.
 
 Uploaded brand images live in deployment media storage rather than Git. A live
 deployment must persist and back up that media directory alongside the database.
@@ -126,11 +128,13 @@ Navigation Item records. An item may link to a Page or act as a non-clickable
 heading, and may be nested to three visible levels. The public header renders
 desktop dropdowns and expandable mobile submenus. Code-controlled routes remain
 reserved, and provisional `/pages/<slug>/` addresses permanently redirect to a
-Page's canonical address.
+Page's canonical address. The admin tree uses visual drag-and-drop insertion
+between items: vertical movement selects the position, while moving right nests
+under the nearest preceding item and moving left moves the item outward.
 
 ## Recommended next action
 
-Submit another real format-3 update and verify that its review compares against
-the current approved submission before advancing the official run snapshot.
+Verify the revised navigation tree drag-and-drop interaction with root, second-
+level, and third-level moves before returning to the final mod export.
 
 Retention automation and a final pre-launch privacy review remain required.

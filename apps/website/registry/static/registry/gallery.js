@@ -1,5 +1,28 @@
 document.addEventListener("DOMContentLoaded", () => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.querySelectorAll("[data-image-expand]").forEach((expandButton) => {
+        expandButton.addEventListener("click", () => {
+            const sourceImage = expandButton.querySelector("img");
+            if (!sourceImage) return;
+            const dialog = document.createElement("dialog");
+            dialog.className = "managed-gallery-dialog";
+            dialog.innerHTML = `<div class="managed-gallery-dialog-viewer is-single">
+                <button type="button" class="managed-gallery-dialog-close" aria-label="Close expanded image">&times;</button>
+                <figure><img></figure>
+            </div>`;
+            const expandedImage = dialog.querySelector("img");
+            expandedImage.src = sourceImage.src;
+            expandedImage.alt = sourceImage.alt;
+            dialog.querySelector(".managed-gallery-dialog-close").addEventListener("click", () => dialog.close());
+            dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+            dialog.addEventListener("close", () => {
+                dialog.remove();
+                requestAnimationFrame(() => expandButton.focus());
+            });
+            document.body.append(dialog);
+            dialog.showModal();
+        });
+    });
     document.querySelectorAll("[data-gallery]").forEach((gallery) => {
         const slides = [...gallery.querySelectorAll("[data-gallery-slide]")];
         if (!slides.length) return;

@@ -300,3 +300,11 @@ Twitch Glitch and YouTube icon PNGs rather than approximate glyphs. Both assets
 retain their original transparent source canvases. CSS presents them through
 fixed-width icon slots and crops the YouTube canvas at display time, keeping row
 labels and actions aligned without modifying the source artwork.
+
+## 2026-07-25 - Link Discord as an optional identity
+
+Discord is an optional connected identity, not an alternative Rat Race account
+or a streaming-evidence provider. The first milestone requests only Discord's
+`identify` OAuth scope and stores the immutable Discord user ID, current display
+metadata, and encrypted OAuth credentials. It does not install a bot, inspect
+servers, request email access, or silently merge participant accounts.

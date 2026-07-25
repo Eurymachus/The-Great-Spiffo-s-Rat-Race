@@ -75,6 +75,7 @@ def begin_twitch_authorization(request):
         'client_id': settings.TWITCH_CLIENT_ID,
         'redirect_uri': settings.TWITCH_REDIRECT_URI,
         'state': state,
+        'force_verify': 'true',
     })}"
 
 
@@ -274,7 +275,6 @@ def apply_twitch_credentials(account, token_data, identity):
     )
     account.token_validated_at = timezone.now()
     account.refreshed_at = timezone.now()
-    account.disconnected_at = None
     account.status = account.Status.CONNECTED
     account.save()
 
@@ -289,15 +289,3 @@ def revoke_twitch_account(account):
             )
         except TwitchIntegrationError:
             pass
-    account.encrypted_access_token = ""
-    account.encrypted_refresh_token = ""
-    account.status = account.Status.DISCONNECTED
-    account.disconnected_at = timezone.now()
-    account.save(
-        update_fields=(
-            "encrypted_access_token",
-            "encrypted_refresh_token",
-            "status",
-            "disconnected_at",
-        )
-    )

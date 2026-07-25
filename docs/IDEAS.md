@@ -18,7 +18,16 @@ it part of the active deliverable.
 - Seasons and versioned rules
 - Appeals and public integrity policies
 - Achievements and shareable result cards
-- Discord integration and challenge announcements
+- Discord role synchronisation and challenge announcements. Participants first
+  link their immutable Discord identity through the website's minimal
+  `identify` OAuth flow. A later phase may use the existing **The Great
+  Spiffo** bot from the same Discord application, currently hosted through
+  MEE6 Custom Bot, for narrowly scoped and audited role changes. MEE6 may
+  continue hosting ordinary bot features while the website uses Discord's REST
+  API for role updates. Any bot-token reset must be coordinated between MEE6
+  and the website. Define explicit Rat Race status-to-role mappings, preserve
+  role hierarchy constraints, and avoid enabling broader permissions or
+  gateway intents solely for website synchronisation.
 
 ## Report Data
 

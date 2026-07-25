@@ -144,13 +144,13 @@ class Notification(models.Model):
 
 class StreamingAccount(models.Model):
     class Provider(models.TextChoices):
+        DISCORD = "discord", "Discord"
         TWITCH = "twitch", "Twitch"
         YOUTUBE = "youtube", "YouTube"
 
     class Status(models.TextChoices):
         CONNECTED = "connected", "Connected"
         RECONNECT_REQUIRED = "reconnect_required", "Reconnect required"
-        DISCONNECTED = "disconnected", "Disconnected"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     participant = models.ForeignKey(
@@ -170,6 +170,7 @@ class StreamingAccount(models.Model):
     display_name = models.CharField(max_length=255)
     channel_url = models.URLField(max_length=500)
     granted_scopes = models.JSONField(default=list, blank=True)
+    provider_metadata = models.JSONField(default=dict, blank=True)
     status = models.CharField(
         max_length=24,
         choices=Status.choices,
@@ -181,9 +182,10 @@ class StreamingAccount(models.Model):
     encrypted_access_token = models.TextField(blank=True, editable=False)
     encrypted_refresh_token = models.TextField(blank=True, editable=False)
     token_validated_at = models.DateTimeField(null=True, blank=True)
-    disconnected_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        verbose_name = "platform integration"
+        verbose_name_plural = "platform integrations"
         ordering = ("provider",)
         constraints = (
             models.UniqueConstraint(
@@ -226,6 +228,8 @@ class StreamingMedia(models.Model):
     refreshed_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        verbose_name = "cached streaming media"
+        verbose_name_plural = "cached streaming media"
         ordering = ("-published_at", "kind", "provider_media_id")
         constraints = (
             models.UniqueConstraint(

@@ -35,7 +35,9 @@
         </div>
     {% elif block.block_type == "image" and block.image_asset %}
         <figure class="managed-image-block managed-block managed-block-align-{{ block.alignment }} managed-image-height-{{ block.image_height }}" style="--managed-image-fit:{{ block.image_fit }};--managed-image-position:{{ block.image_position }};--managed-image-custom-height:{{ block.image_custom_height }}rem">
+            {% if block.image_expandable %}<button type="button" class="managed-image-expand" data-image-expand aria-label="Open expanded image">{% endif %}
             <img src="{{ block.image_asset.image.url }}" alt="{{ block.image_alt }}">
+            {% if block.image_expandable %}</button>{% endif %}
         </figure>
     {% elif block.block_type == "gallery" and block.gallery_images.exists %}
         <section class="managed-gallery managed-block managed-block-align-{{ block.alignment }}" data-gallery data-auto-scroll="{{ block.gallery_auto_scroll|yesno:'true,false' }}" data-scroll-speed="{{ block.gallery_scroll_speed }}" data-loop="{{ block.gallery_loop|yesno:'true,false' }}" data-expandable="{{ block.gallery_expandable|yesno:'true,false' }}" aria-label="Image gallery">

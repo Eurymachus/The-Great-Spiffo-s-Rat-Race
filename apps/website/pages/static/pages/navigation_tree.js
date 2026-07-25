@@ -6,8 +6,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const save = document.querySelector("[data-navigation-save]");
     const csrf = editor.querySelector('[name="csrfmiddlewaretoken"]')?.value || "";
     let dragged = null;
+    let pendingPickup = null;
     let dirty = false;
     let suppressNextClick = false;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     let toastTimer = null;
     const showToast = (message, type = "success") => {
@@ -101,9 +103,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     const canMoveToDepth = (item, depth) => depth + subtreeDepth(item) - 1 <= 3;
 
-    const clearMarkers = () => editor.querySelectorAll(".is-drop-before, .is-drop-after, .is-drop-inside").forEach((row) => {
-        row.classList.remove("is-drop-before", "is-drop-after", "is-drop-inside");
-        delete row.dataset.dropIntent;
+    const clearMarkers = () => editor.querySelectorAll(".navigation-tree-live-destination, .navigation-tree-drop-target, .navigation-tree-drop-zone").forEach((node) => {
+        node.classList.remove("navigation-tree-live-destination", "navigation-tree-drop-target", "navigation-tree-drop-zone");
     });
     const markDirty = () => {
         dirty = true;
@@ -232,69 +233,160 @@ document.addEventListener("DOMContentLoaded", () => {
         if (input) finishNameEdit(input);
     });
 
+    const animateReflow = (positions) => {
+        if (reducedMotion) return;
+        editor.querySelectorAll("[data-navigation-item]").forEach((item) => {
+            if (item === dragged?.item || !positions.has(item)) return;
+            const delta = positions.get(item) - item.getBoundingClientRect().top;
+            if (!delta) return;
+            item.style.transition = "none";
+            item.style.transform = `translateY(${delta}px)`;
+            requestAnimationFrame(() => {
+                item.style.transition = "transform 170ms ease-out";
+                item.style.transform = "";
+                window.setTimeout(() => { item.style.transition = ""; }, 180);
+            });
+        });
+    };
+    const beginPickup = (row, event) => {
+        const item = row.closest("[data-navigation-item]");
+        const label = item.querySelector(":scope > [data-navigation-row] [data-navigation-summary-label]")?.textContent.trim() || "Navigation item";
+        const placeholder = document.createElement("li");
+        placeholder.className = "navigation-tree-drag-placeholder";
+        placeholder.style.height = `${Math.max(52, item.getBoundingClientRect().height)}px`;
+        const placeholderLabel = document.createElement("strong");
+        placeholderLabel.textContent = label;
+        placeholder.append(placeholderLabel);
+        item.after(placeholder);
+        const preview = document.createElement("div");
+        preview.className = "navigation-tree-pointer-preview";
+        preview.textContent = label;
+        document.body.append(preview);
+        dragged = {
+            item,
+            placeholder,
+            preview,
+            pointerId: event.pointerId,
+            originalParent: item.parentElement,
+            originalNext: item.nextElementSibling === placeholder ? placeholder.nextElementSibling : item.nextElementSibling,
+        };
+        item.classList.add("navigation-tree-drag-source-lifted");
+        document.documentElement.classList.add("navigation-tree-is-dragging");
+        preview.style.transform = `translate(${event.clientX + 18}px, ${event.clientY + 18}px)`;
+        suppressNextClick = true;
+    };
+    const destinationFor = (clientX, clientY) => {
+        const items = [...editor.querySelectorAll("[data-navigation-item]")].filter(
+            (item) => item !== dragged.item && !dragged.item.contains(item)
+        );
+        const measured = items.map((item) => {
+            const row = item.querySelector(":scope > [data-navigation-row]");
+            const rect = row.getBoundingClientRect();
+            return {item, centre: rect.top + rect.height / 2};
+        });
+        const firstBelow = measured.findIndex((entry) => clientY < entry.centre);
+        const insertionIndex = firstBelow < 0 ? measured.length : firstBelow;
+        const horizontalOrigin = root.getBoundingClientRect().left + 56;
+        const requestedDepth = Math.max(
+            1,
+            Math.min(3, 1 + Math.round((clientX - horizontalOrigin) / 48))
+        );
+        let depth = Math.min(requestedDepth, 4 - subtreeDepth(dragged.item));
+        let parentItem = null;
+        while (depth > 1) {
+            const parentDepth = depth - 1;
+            for (const entry of measured.slice(0, insertionIndex).reverse()) {
+                const entryDepth = itemDepth(entry.item);
+                if (entryDepth === parentDepth) {
+                    parentItem = entry.item;
+                    break;
+                }
+                if (entryDepth < parentDepth) break;
+            }
+            if (parentItem) break;
+            depth -= 1;
+        }
+        const container = parentItem ? childContainer(parentItem) : root;
+        const next = directItems(container)
+            .filter((item) => item !== dragged.item)
+            .find((item) => {
+                const row = item.querySelector(":scope > [data-navigation-row]");
+                const rect = row.getBoundingClientRect();
+                return clientY < rect.top + rect.height / 2;
+            }) || null;
+        return {container, next, target: parentItem, depth};
+    };
+    const movePickup = (clientX, clientY) => {
+        const destination = destinationFor(clientX, clientY);
+        if (!destination) return false;
+        clearMarkers();
+        const unchanged = dragged.placeholder.parentElement === destination.container
+            && dragged.placeholder.nextElementSibling === destination.next;
+        const positions = new Map([...editor.querySelectorAll("[data-navigation-item]")].map((item) => [item, item.getBoundingClientRect().top]));
+        destination.container.insertBefore(dragged.placeholder, destination.next);
+        if (!unchanged) animateReflow(positions);
+        dragged.placeholder.classList.add("navigation-tree-live-destination");
+        destination.target?.querySelector(":scope > [data-navigation-row]")?.classList.add("navigation-tree-drop-target");
+        destination.container.classList.add("navigation-tree-drop-zone");
+        return true;
+    };
+    const finishPickup = (commit) => {
+        if (!dragged) return;
+        const {item, placeholder, preview, originalParent, originalNext} = dragged;
+        preview.remove();
+        if (commit) {
+            placeholder.before(item);
+            markDirty();
+        } else {
+            originalParent.insertBefore(item, originalNext?.parentElement === originalParent ? originalNext : null);
+        }
+        placeholder.remove();
+        item.classList.remove("navigation-tree-drag-source-lifted");
+        clearMarkers();
+        document.documentElement.classList.remove("navigation-tree-is-dragging");
+        dragged = null;
+    };
     editor.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0) return;
+        if (event.button !== 0 || dragged || pendingPickup) return;
         const row = event.target.closest("[data-navigation-row]");
         if (!row) return;
         const handle = event.target.closest("[data-navigation-handle]");
         if (!handle && event.target.closest("button, input, textarea, select, a, label, [data-navigation-name-trigger]")) return;
-        row.closest("[data-navigation-item]").draggable = true;
-    });
-    editor.addEventListener("pointerup", () => {
-        editor.querySelectorAll("[data-navigation-item][draggable=true]").forEach((item) => {
-            if (item !== dragged) item.draggable = false;
-        });
-    });
-    editor.addEventListener("dragstart", (event) => {
-        const item = event.target.closest("[data-navigation-item]");
-        if (!item?.draggable) return event.preventDefault();
-        dragged = item;
-        item.classList.add("is-dragging");
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", item.dataset.id);
-        const row = item.querySelector(":scope > [data-navigation-row]");
-        if (row) event.dataTransfer.setDragImage(row, 24, Math.min(event.offsetY || 18, row.offsetHeight));
-    });
-    editor.addEventListener("dragover", (event) => {
-        if (!dragged) return;
-        const row = event.target.closest("[data-navigation-row]");
-        const target = row?.closest("[data-navigation-item]");
-        clearMarkers();
-        if (!row || !target || target === dragged || dragged.contains(target)) return;
-
-        const rect = row.getBoundingClientRect();
-        const ratio = (event.clientY - rect.top) / rect.height;
-        let intent = ratio < .28 ? "before" : ratio > .72 ? "after" : "inside";
-        const destinationDepth = intent === "inside" ? itemDepth(target) + 1 : itemDepth(target);
-        if (!canMoveToDepth(dragged, destinationDepth)) {
-            if (intent === "inside") intent = ratio < .5 ? "before" : "after";
-            if (!canMoveToDepth(dragged, itemDepth(target))) return;
+        if (handle) {
+            event.preventDefault();
+            beginPickup(row, event);
+            return;
         }
-        event.preventDefault();
-        event.dataTransfer.dropEffect = "move";
-        row.dataset.dropIntent = intent;
-        row.classList.add(`is-drop-${intent}`);
+        pendingPickup = {row, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY};
     });
-    editor.addEventListener("drop", (event) => {
-        if (!dragged) return;
-        const row = event.target.closest("[data-navigation-row]");
-        const target = row?.closest("[data-navigation-item]");
-        const intent = row?.dataset.dropIntent;
-        if (!target || !intent || target === dragged || dragged.contains(target)) return;
+    document.addEventListener("pointermove", (event) => {
+        if (pendingPickup && event.pointerId === pendingPickup.pointerId) {
+            if (Math.hypot(event.clientX - pendingPickup.startX, event.clientY - pendingPickup.startY) <= 7) return;
+            const pickup = pendingPickup;
+            pendingPickup = null;
+            beginPickup(pickup.row, event);
+        }
+        if (!dragged || event.pointerId !== dragged.pointerId) return;
         event.preventDefault();
-        if (intent === "inside") childContainer(target).append(dragged);
-        else if (intent === "before") target.parentElement.insertBefore(dragged, target);
-        else target.parentElement.insertBefore(dragged, target.nextSibling);
-        clearMarkers();
-        markDirty();
-    });
-    editor.addEventListener("dragend", () => {
-        clearMarkers();
-        suppressNextClick = Boolean(dragged);
-        window.setTimeout(() => { suppressNextClick = false; }, 0);
-        dragged?.classList.remove("is-dragging");
-        if (dragged) dragged.draggable = false;
-        dragged = null;
+        dragged.preview.style.transform = `translate(${event.clientX + 18}px, ${event.clientY + 18}px)`;
+        movePickup(event.clientX, event.clientY);
+        const edge = 56;
+        if (event.clientY < edge) window.scrollBy(0, -12);
+        else if (event.clientY > window.innerHeight - edge) window.scrollBy(0, 12);
+    }, {passive: false});
+    const releasePickup = (event) => {
+        if (pendingPickup && event.pointerId === pendingPickup.pointerId) {
+            pendingPickup = null;
+            return;
+        }
+        if (!dragged || event.pointerId !== dragged.pointerId) return;
+        event.preventDefault();
+        finishPickup(dragged.placeholder.classList.contains("navigation-tree-live-destination"));
+    };
+    document.addEventListener("pointerup", releasePickup);
+    document.addEventListener("pointercancel", (event) => {
+        if (pendingPickup && event.pointerId === pendingPickup.pointerId) pendingPickup = null;
+        if (dragged && event.pointerId === dragged.pointerId) finishPickup(false);
     });
 
     editor.addEventListener("keydown", (event) => {

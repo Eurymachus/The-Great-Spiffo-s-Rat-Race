@@ -6,6 +6,7 @@ from django.contrib import admin, messages
 from django import forms
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth.models import Group
 from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed
@@ -41,6 +42,13 @@ admin.site.app_index_template = "admin/rat_race_app_index.html"
 
 
 class ParticipantAdminForm(forms.ModelForm):
+    password = ReadOnlyPasswordHashField(
+        label="Password",
+        help_text=(
+            "Passwords are not stored in plaintext, so the existing password "
+            "cannot be viewed. Use the password-change form to replace it."
+        ),
+    )
     avatar_status = forms.CharField(label="Avatar status", disabled=True, required=False)
 
     class Meta:
@@ -376,7 +384,8 @@ class StreamingAccountAdmin(admin.ModelAdmin):
     autocomplete_fields = ("participant",)
     readonly_fields = (
         "provider_identity", "channel_identity", "connected_at", "refreshed_at",
-        "token_expires_at", "token_validated_at", "disconnected_at",
+        "token_expires_at", "token_validated_at",
+        "provider_metadata",
     )
 
     def get_exclude(self, request, obj=None):

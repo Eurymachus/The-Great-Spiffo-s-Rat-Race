@@ -56,6 +56,16 @@ from .streaming import (
     twitch_is_configured,
     validate_twitch_token,
 )
+from .discord_integration import (
+    DiscordIntegrationError,
+    apply_discord_credentials,
+    begin_discord_authorization,
+    consume_discord_state,
+    discord_is_configured,
+    exchange_discord_code,
+    fetch_discord_identity,
+    revoke_discord_account,
+)
 from .verification_email import send_password_reset_email, send_verification_email
 
 
@@ -564,8 +574,28 @@ def account_settings(request):
             "provider": provider,
             "label": label,
             "account": accounts.get(provider),
-            "configured": provider == StreamingAccount.Provider.TWITCH
-            and twitch_is_configured(),
+            "configured": (
+                provider == StreamingAccount.Provider.TWITCH
+                and twitch_is_configured()
+            )
+            or (
+                provider == StreamingAccount.Provider.DISCORD
+                and discord_is_configured()
+            ),
+            "connect_url": reverse(
+                "registry:connect_discord"
+                if provider == StreamingAccount.Provider.DISCORD
+                else "registry:connect_twitch"
+                if provider == StreamingAccount.Provider.TWITCH
+                else "registry:account_settings"
+            ) if provider != StreamingAccount.Provider.YOUTUBE else "",
+            "disconnect_url": reverse(
+                "registry:disconnect_discord"
+                if provider == StreamingAccount.Provider.DISCORD
+                else "registry:disconnect_twitch"
+                if provider == StreamingAccount.Provider.TWITCH
+                else "registry:account_settings"
+            ) if provider != StreamingAccount.Provider.YOUTUBE else "",
         }
         for provider, label in StreamingAccount.Provider.choices
     ]
@@ -649,6 +679,99 @@ def twitch_callback(request):
 
 
 @login_required
+def connect_discord(request):
+    try:
+        return redirect(begin_discord_authorization(request))
+    except DiscordIntegrationError as exc:
+        notify(
+            request.user,
+            title="Discord connection unavailable",
+            message=str(exc),
+            destination=reverse("registry:account_settings"),
+        )
+        return redirect("registry:account_settings")
+
+
+@login_required
+def discord_callback(request):
+    try:
+        consume_discord_state(request, request.GET.get("state"))
+        if request.GET.get("error"):
+            raise DiscordIntegrationError("Discord access was not granted.")
+        code = request.GET.get("code")
+        if not code:
+            raise DiscordIntegrationError(
+                "Discord did not return an authorization code."
+            )
+        token_data = exchange_discord_code(code)
+        identity = fetch_discord_identity(token_data["access_token"])
+        owner = StreamingAccount.objects.filter(
+            provider=StreamingAccount.Provider.DISCORD,
+            provider_identity=identity["id"],
+        ).exclude(participant=request.user).first()
+        if owner:
+            raise DiscordIntegrationError(
+                "That Discord account is already connected to another Rat Race account."
+            )
+        account = StreamingAccount.objects.filter(
+            participant=request.user,
+            provider=StreamingAccount.Provider.DISCORD,
+        ).first()
+        if account is None:
+            account = StreamingAccount(
+                participant=request.user,
+                provider=StreamingAccount.Provider.DISCORD,
+                provider_identity=identity["id"],
+                channel_identity=identity["id"],
+                display_name=identity.get("global_name") or identity["username"],
+                channel_url=f"https://discord.com/users/{identity['id']}",
+            )
+        with transaction.atomic():
+            apply_discord_credentials(account, token_data, identity)
+    except (IntegrityError, KeyError, DiscordIntegrationError) as exc:
+        if not isinstance(exc, DiscordIntegrationError):
+            logger.exception("Discord callback returned incomplete or conflicting data.")
+        message = (
+            str(exc)
+            if isinstance(exc, DiscordIntegrationError)
+            else "Discord returned an incomplete or conflicting account response."
+        )
+        notify(
+            request.user,
+            title="Discord was not connected",
+            message=message,
+            destination=reverse("registry:account_settings"),
+        )
+    else:
+        notify(
+            request.user,
+            title="Discord connected",
+            message=f"Your Discord account, {account.display_name}, is now linked.",
+            destination=reverse("registry:account_settings"),
+        )
+    return redirect("registry:account_settings")
+
+
+@login_required
+@require_http_methods(["POST"])
+def disconnect_discord(request):
+    account = get_object_or_404(
+        StreamingAccount,
+        participant=request.user,
+        provider=StreamingAccount.Provider.DISCORD,
+    )
+    revoke_discord_account(account)
+    account.delete()
+    notify(
+        request.user,
+        title="Discord disconnected",
+        message="Your Discord identity is no longer linked to your Rat Race account.",
+        destination=reverse("registry:account_settings"),
+    )
+    return redirect("registry:account_settings")
+
+
+@login_required
 @require_http_methods(["POST"])
 def disconnect_twitch(request):
     account = get_object_or_404(
@@ -657,6 +780,7 @@ def disconnect_twitch(request):
         provider=StreamingAccount.Provider.TWITCH,
     )
     revoke_twitch_account(account)
+    account.delete()
     notify(
         request.user,
         title="Twitch disconnected",
@@ -806,6 +930,24 @@ def download_my_data(request):
             "roles": list(
                 participant.groups.order_by("name").values_list("name", flat=True)
             ),
+            "connected_accounts": [
+                {
+                    "provider": account.provider,
+                    "provider_identity": account.provider_identity,
+                    "display_name": account.display_name,
+                    "profile_url": account.channel_url,
+                    "status": account.status,
+                    "granted_scopes": account.granted_scopes,
+                    "provider_metadata": account.provider_metadata,
+                    "connected_at": account.connected_at.isoformat(),
+                    "refreshed_at": (
+                        account.refreshed_at.isoformat()
+                        if account.refreshed_at
+                        else None
+                    ),
+                }
+                for account in participant.streaming_accounts.all()
+            ],
             "deletion_requested_at": (
                 participant.deletion_requested_at.isoformat()
                 if participant.deletion_requested_at

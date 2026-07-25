@@ -235,6 +235,10 @@ TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID", "")
 TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET", "")
 TWITCH_REDIRECT_URI = os.environ.get("TWITCH_REDIRECT_URI", "")
 TWITCH_HTTP_TIMEOUT_SECONDS = 10
+DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "")
+DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "")
+DISCORD_REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI", "")
+DISCORD_HTTP_TIMEOUT_SECONDS = 10
 
 # Local development prints verification emails to the server console. Production
 # will override this with the Microsoft 365 email backend/configuration.

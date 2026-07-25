@@ -276,6 +276,7 @@ class PageBlock(models.Model):
         validators=(MinValueValidator(6), MaxValueValidator(60)),
     )
     image_position = models.CharField(max_length=20, choices=ImagePosition.choices, default=ImagePosition.CENTRE)
+    image_expandable = models.BooleanField("allow expanded view", default=False)
     gallery_auto_scroll = models.BooleanField("scroll automatically", default=False)
     gallery_scroll_speed = models.PositiveSmallIntegerField(
         "scroll interval (seconds)", default=5,

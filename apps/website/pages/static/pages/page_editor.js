@@ -316,6 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
             image_height: blockPanel.querySelector('[data-key="image_height"]')?.value || "standard",
             image_custom_height: Number(blockPanel.querySelector('[data-key="image_custom_height"]')?.value || 24),
             image_position: blockPanel.querySelector('[data-key="image_position"]')?.value || "center center",
+            image_expandable: blockPanel.querySelector('[data-key="image_expandable"]')?.checked || false,
             gallery_auto_scroll: blockPanel.querySelector('[data-key="gallery_auto_scroll"]')?.checked || false,
             gallery_scroll_speed: Number(blockPanel.querySelector('[data-key="gallery_scroll_speed"]')?.value || 5),
             gallery_loop: blockPanel.querySelector('[data-key="gallery_loop"]')?.checked ?? true,
@@ -342,6 +343,7 @@ document.addEventListener("DOMContentLoaded", () => {
         text_role: "paragraph", text_font: "theme", text_size: "standard", text_weight: "theme",
         destination: "none", style: "default", card_columns: "auto", image_asset: null,
         image_alt: "", image_fit: "cover", image_height: "standard", image_custom_height: 24,
+        image_expandable: false,
         image_position: "center center", gallery_auto_scroll: false, gallery_scroll_speed: 5,
         gallery_loop: true, gallery_show_controls: true, gallery_show_captions: true,
         gallery_expandable: true, gallery_images: [], items: [],
@@ -383,7 +385,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 selectField("Image fit", "image_fit", block.image_fit || "cover", choices.image_fit),
                 selectField("Height", "image_height", block.image_height || "standard", choices.image_height),
                 field("Custom height (rem)", "image_custom_height", block.image_custom_height || 24, "number"),
-                selectField("Focal position", "image_position", block.image_position || "center center", choices.image_position)
+                selectField("Focal position", "image_position", block.image_position || "center center", choices.image_position),
+                checkboxField("Allow expanded view", "image_expandable", block.image_expandable)
             );
         } else if (block.block_type === "gallery") {
             grid.append(

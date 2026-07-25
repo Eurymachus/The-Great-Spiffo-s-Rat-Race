@@ -34,7 +34,7 @@
     </section>
 
     <section class="dashboard-panel settings-group settings-streaming">
-      <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Streaming</p><h3>Connected channels</h3></div></div>
+      <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Connections</p><h3>Connected accounts</h3></div></div>
       {% for provider in streaming_accounts %}
         <div class="settings-row streaming-account-row">
           <span class="streaming-provider-copy">
@@ -44,26 +44,26 @@
               {% if provider.account %}
                 <small>{{ provider.account.display_name }} · {{ provider.account.get_status_display }}</small>
               {% else %}
-                <small>Connect your channel to select stream evidence for Rat Race submissions.</small>
+                <small>{% if provider.provider == "discord" %}Connect your Discord identity to your Rat Race account.{% else %}Connect your channel to select stream evidence for Rat Race submissions.{% endif %}</small>
               {% endif %}
             </span>
           </span>
           {% if provider.account %}
             <span class="streaming-account-actions">
               {% if provider.account.status != "connected" and provider.configured %}
-                  <a class="streaming-channel-link streaming-provider-action" href="{% url 'registry:connect_twitch' %}">Reconnect</a>
+                  <a class="streaming-channel-link streaming-provider-action" href="{{ provider.connect_url }}" data-connection-action="reconnect" data-connection-provider="{{ provider.provider }}" data-connection-label="{{ provider.label }}">Reconnect</a>
               {% else %}
-                  <a class="streaming-channel-link streaming-provider-action" href="{{ provider.account.channel_url }}" target="_blank" rel="noopener">View channel</a>
+                  <a class="streaming-channel-link streaming-provider-action" href="{{ provider.account.channel_url }}" target="_blank" rel="noopener">{% if provider.provider == "discord" %}View profile{% else %}View channel{% endif %}</a>
               {% endif %}
-              {% if provider.provider == "twitch" and provider.account.status != "disconnected" %}
-                <form method="post" action="{% url 'registry:disconnect_twitch' %}">
+              {% if provider.disconnect_url %}
+                <form method="post" action="{{ provider.disconnect_url }}" data-connection-action="disconnect" data-connection-provider="{{ provider.provider }}" data-connection-label="{{ provider.label }}">
                   {% csrf_token %}
                     <button type="submit" class="streaming-disconnect streaming-provider-action">Disconnect</button>
                 </form>
               {% endif %}
             </span>
-          {% elif provider.provider == "twitch" and provider.configured %}
-              <a class="streaming-channel-link streaming-provider-action" href="{% url 'registry:connect_twitch' %}">Connect</a>
+          {% elif provider.configured and provider.connect_url %}
+              <a class="streaming-channel-link streaming-provider-action" href="{{ provider.connect_url }}" data-connection-action="connect" data-connection-provider="{{ provider.provider }}" data-connection-label="{{ provider.label }}">Connect</a>
           {% else %}
               <button type="button" class="streaming-connect-placeholder streaming-provider-action" disabled title="{{ provider.label }} connection is not configured">Not configured</button>
           {% endif %}
@@ -93,4 +93,22 @@
     </section>
   </div>
 </section>
+<dialog class="connection-modal" data-connection-dialog aria-labelledby="connection-modal-title" aria-describedby="connection-modal-copy">
+  <div class="connection-modal-header">
+    <div>
+      <p class="dashboard-panel-kicker" data-connection-kicker>Connected account</p>
+      <strong id="connection-modal-title" data-connection-title>Connect account</strong>
+    </div>
+    <button type="button" class="connection-modal-close" data-connection-close aria-label="Close connection dialog">Close</button>
+  </div>
+  <div class="connection-modal-content">
+    <span data-connection-icon></span>
+    <p id="connection-modal-copy" data-connection-copy></p>
+    <p class="connection-modal-note" data-connection-note></p>
+    <div class="connection-modal-actions">
+      <button type="button" class="button-secondary" data-connection-cancel>Cancel</button>
+      <button type="button" data-connection-confirm>Continue</button>
+    </div>
+  </div>
+</dialog>
 {% endblock %}

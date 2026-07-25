@@ -64,6 +64,21 @@ urlpatterns = [
         views.refresh_twitch_media_view,
         name="refresh_twitch_media",
     ),
+    path(
+        "account/connections/discord/connect/",
+        views.connect_discord,
+        name="connect_discord",
+    ),
+    path(
+        "account/connections/discord/callback/",
+        views.discord_callback,
+        name="discord_callback",
+    ),
+    path(
+        "account/connections/discord/disconnect/",
+        views.disconnect_discord,
+        name="disconnect_discord",
+    ),
     path("account/settings/avatar/", views.upload_avatar, name="upload_avatar"),
     path("account/settings/avatar/remove/", views.delete_avatar, name="delete_avatar"),
     path("account/notifications/", views.notifications, name="notifications"),

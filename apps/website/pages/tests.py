@@ -49,6 +49,7 @@ class ManagedPageTests(TestCase):
                 "image_height": block.image_height,
                 "image_custom_height": block.image_custom_height,
                 "image_position": block.image_position,
+                "image_expandable": block.image_expandable,
                 "gallery_auto_scroll": block.gallery_auto_scroll,
                 "gallery_scroll_speed": block.gallery_scroll_speed,
                 "gallery_loop": block.gallery_loop,
@@ -126,6 +127,7 @@ class ManagedPageTests(TestCase):
             image_height=PageBlock.ImageHeight.CUSTOM,
             image_custom_height=30,
             image_position=PageBlock.ImagePosition.BOTTOM_RIGHT,
+            image_expandable=True,
         )
 
         response = self.client.get(reverse("registry:home"))
@@ -135,6 +137,45 @@ class ManagedPageTests(TestCase):
         self.assertContains(response, "managed-image-height-custom")
         self.assertContains(response, "--managed-image-fit:contain")
         self.assertContains(response, "--managed-image-custom-height:30rem")
+        self.assertContains(response, "data-image-expand")
+
+    def test_image_expanded_view_is_disabled_by_default(self):
+        image = ManagedImage.objects.bulk_create([ManagedImage(
+            name="Static image", image="branding/library/static.png",
+            original_filename="static.png",
+        )])[0]
+        block = PageBlock.objects.create(
+            section=self.section, position=98, block_type=PageBlock.BlockType.IMAGE,
+            image_asset=image, image_alt="Static image",
+        )
+
+        self.assertFalse(block.image_expandable)
+        self.assertNotContains(
+            self.client.get(reverse("registry:home")),
+            "data-image-expand",
+        )
+
+    def test_page_editor_saves_image_expanded_view_option(self):
+        self.login_superuser("image-editor@example.com")
+        image = ManagedImage.objects.bulk_create([ManagedImage(
+            name="Expandable image", image="branding/library/expandable.png",
+            original_filename="expandable.png",
+        )])[0]
+        payload = self.editor_payload()
+        payload[0]["blocks"].append({
+            "column": 0, "is_visible": True, "block_type": "image", "content": "",
+            "image_asset": image.pk, "image_alt": "Expandable image",
+            "image_fit": "contain", "image_height": "natural",
+            "image_custom_height": 24, "image_position": "center center",
+            "image_expandable": True, "items": [], "gallery_images": [],
+        })
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            self.section.blocks.get(image_asset=image).image_expandable
+        )
 
     def test_gallery_block_renders_images_controls_and_expand_option(self):
         images = ManagedImage.objects.bulk_create([

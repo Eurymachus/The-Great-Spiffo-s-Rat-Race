@@ -3,12 +3,12 @@
 
 {% block extrahead %}
 {{ block.super }}
-<script src="{% static 'pages/navigation_tree.js' %}?v=20260723-1" defer></script>
+<script src="{% static 'pages/navigation_tree.js' %}?v=20260725-4" defer></script>
 {% endblock %}
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'pages/navigation_tree.css' %}?v=20260723-1">
+<link rel="stylesheet" href="{% static 'pages/navigation_tree.css' %}?v=20260725-2">
 {% endblock %}
 
 {% block result_list %}
@@ -16,7 +16,7 @@
     <div class="navigation-tree-heading">
         <div>
             <h2>Navigation structure</h2>
-            <p>Drag a row above or below another item to reorder it. Drop onto the middle of a row to place it inside that menu. Navigation supports three levels.</p>
+            <p>Drop between items to reorder. Move right to nest under the nearest preceding item, or left to move outward. Navigation supports three levels.</p>
         </div>
     </div>
     <form hidden>{% csrf_token %}</form>

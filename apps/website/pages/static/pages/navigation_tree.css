@@ -42,10 +42,64 @@
 .navigation-submit-row { position: fixed; z-index: 1000; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: flex-end; gap: .65rem; box-sizing: border-box; margin: 0 !important; padding: .8rem max(1rem, env(safe-area-inset-right)) max(.8rem, env(safe-area-inset-bottom)) !important; border: 0 !important; border-top: 1px solid var(--hairline-color, #333) !important; border-radius: 0 !important; background: color-mix(in srgb, var(--body-bg, #121212) 94%, transparent) !important; box-shadow: 0 -.5rem 1.5rem rgba(0, 0, 0, .28); backdrop-filter: blur(.5rem); }
 .navigation-submit-row .admin-close-button { margin-right: auto; }
 .navigation-submit-row button { margin: 0; }
-.navigation-tree-item.is-dragging > .navigation-tree-row { opacity: .3; }
-.navigation-tree-row.is-drop-before { box-shadow: inset 0 3px 0 var(--link-fg); }
-.navigation-tree-row.is-drop-after { box-shadow: inset 0 -3px 0 var(--link-fg); }
-.navigation-tree-row.is-drop-inside { background: color-mix(in srgb, var(--link-fg) 12%, var(--body-bg)); outline: 2px solid color-mix(in srgb, var(--link-fg) 55%, transparent); outline-offset: -2px; }
+.navigation-tree-is-dragging,
+.navigation-tree-is-dragging * { cursor: grabbing !important; user-select: none !important; }
+.navigation-tree-drag-source-lifted {
+    position: fixed !important;
+    top: -10000px !important;
+    left: -10000px !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+.navigation-tree-drag-placeholder {
+    display: flex;
+    align-items: flex-start;
+    min-height: 3.25rem;
+    margin-top: .45rem;
+    padding: .85rem 1rem;
+    overflow: hidden;
+    border: 2px dashed var(--link-fg);
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--link-fg) 12%, var(--body-bg));
+    color: var(--body-quiet-color);
+    box-sizing: border-box;
+    pointer-events: none;
+}
+.navigation-tree-drag-placeholder strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navigation-tree-pointer-preview {
+    position: fixed;
+    z-index: 10000;
+    top: 0;
+    left: 0;
+    width: min(28rem, calc(100vw - 2rem));
+    padding: .85rem 1rem;
+    overflow: hidden;
+    border: 2px solid var(--link-fg);
+    border-radius: 5px;
+    background: var(--darkened-bg);
+    color: var(--body-fg);
+    box-shadow: 0 .75rem 2rem rgb(0 0 0 / 38%);
+    box-sizing: border-box;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+    will-change: transform;
+}
+.navigation-tree-live-destination {
+    outline: 3px solid var(--link-fg);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--link-fg) 20%, transparent);
+}
+.navigation-tree-drop-zone { background: color-mix(in srgb, var(--link-fg) 6%, transparent); }
+.navigation-tree-row.navigation-tree-drop-target {
+    outline: 2px solid color-mix(in srgb, var(--link-fg) 65%, transparent);
+    outline-offset: 1px;
+}
 .navigation-tree-editor.is-saving { opacity: .7; pointer-events: none; }
 @media (max-width: 48rem) {
     .navigation-tree-heading { align-items: stretch; flex-direction: column; }
