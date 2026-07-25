@@ -1,5 +1,3 @@
-local Recorder = require "TGSRR/Run/Recorder"
-
 local BrokenWeaponTracker = {}
 
 local activeRun = nil
@@ -38,11 +36,6 @@ function BrokenWeaponTracker.record(player, item, originalFullType)
 
     local id = originalFullType or fullType(item)
     if not id or id == "" or id == "Base.BareHands" then return false end
-    local recorded, event = Recorder.record("weapon.broken", {
-        weaponId = id,
-    })
-    if not recorded then return false, event end
-
     if item then countedItems[item] = true end
     activeRun.brokenWeapons[id] =
         math.max(0, math.floor(
@@ -50,7 +43,7 @@ function BrokenWeaponTracker.record(player, item, originalFullType)
     activeRun.brokenWeaponsTotal =
         math.max(0, math.floor(
             tonumber(activeRun.brokenWeaponsTotal) or 0)) + 1
-    return true, event
+    return true
 end
 
 function BrokenWeaponTracker.installOnBreakWrappers()

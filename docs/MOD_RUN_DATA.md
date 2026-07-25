@@ -106,9 +106,9 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   Runs that predate a populated registry are then marked partial automatically.
 - Broken weapons use Build 42 `OnBreak` callbacks where defined and a short
   post-`OnWeaponSwing` condition check otherwise. The same item is weakly
-  deduplicated across both paths. TGSRR appends one `weapon.broken` event with
-  the original full item ID, maintains cumulative per-ID totals, and seals daily
-  deltas.
+  deduplicated across both paths. TGSRR maintains cumulative per-ID totals and
+  seals daily deltas. Individual breaks are not appended to the ledger because
+  their exact timestamps do not justify event growth across a multi-year run.
 - Distance travelled uses `Events.OnPlayerMove` and planar player-coordinate
   deltas, matching the established Twist Stats interpretation of one world unit
   as one metre and including vehicle movement. TGSRR adds a real-time

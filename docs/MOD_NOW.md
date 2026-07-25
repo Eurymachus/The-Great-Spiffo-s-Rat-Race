@@ -62,8 +62,8 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Generic `skill.level.reached` events containing the skill, parent category, and reached level; award policy remains intentionally undecided.
 - Rising-edge events for individual outpost deliverable completion and whole-outpost completion; initial observations do not retroactively award milestones.
 - Local-player broken weapons captured through Build 42 `OnBreak` callbacks plus
-  post-swing condition verification, with full item IDs, hash-chained events,
-  cumulative totals, and daily deltas.
+  post-swing condition verification, with full item IDs, cumulative totals, and
+  daily deltas. Individual breaks are not ledger events.
 - Saved window position, selected tab, open state, and movable launcher position.
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
 - One-second refresh that updates stable list entries in place.
