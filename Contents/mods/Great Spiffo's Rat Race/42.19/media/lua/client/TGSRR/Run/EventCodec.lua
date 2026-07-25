@@ -31,6 +31,16 @@ local function canonicalNumber(value)
     return string.format("%.17g", value)
 end
 
+local function canonicalNumberText(value)
+    if value == "0" then return true end
+    local mantissa, exponent = value:match("^(-?[1-9]%d*%.?%d*)e([+-]?%d+)$")
+    if not mantissa then mantissa = value end
+    if exponent and not exponent:match("^[+-]?%d+$") then return false end
+    if mantissa:match("^-?[1-9]%d*$") then return true end
+    if mantissa:match("^-?[1-9]%d*%.%d+$") then return true end
+    return mantissa:match("^-?0%.%d+$") ~= nil
+end
+
 local function tableShape(value)
     local count = 0
     local maximum = 0
@@ -122,7 +132,12 @@ decodeValue = function(value, cursor)
         return framed == "1", nextCursor
     elseif tag == "n" then
         local number = tonumber(framed)
-        if not number or canonicalNumber(number) ~= framed then
+        -- Kahlua can parse a correctly formatted 17-digit decimal to the
+        -- adjacent double, so formatting the parsed value again is not a
+        -- reliable canonical-text check. Validate the encoder's grammar and
+        -- finiteness instead.
+        if not number or not canonicalNumberText(framed)
+                or number ~= number or number == math.huge or number == -math.huge then
             return nil, nil, "invalid_canonical_number"
         end
         return number, nextCursor
