@@ -338,3 +338,17 @@ approval. Submission moderation, run eligibility, challenge mode, and lifecycle
 remain separate concepts. The existing run approval label is **Verified**, not
 **Official**, reserving official/unofficial for a future organiser-owned
 eligibility decision.
+## 2026-07-25 — Live participant notifications
+
+- Notification rows in the database remain authoritative.
+- ASGI Server-Sent Events carry only a `notifications-changed` invalidation;
+  browsers then fetch the authenticated JSON summary.
+- A visible signed-in page falls back to a 60-second summary poll if SSE is
+  unavailable, so missed live delivery does not lose notifications.
+- Toasts show the notification title but not its message body. Initial page
+  loading does not raise a toast.
+- WSGI remains supported for ordinary requests but the live endpoint refuses to
+  hold a WSGI worker. Local and live SSE operation uses
+  `config.asgi:application`.
+- The initial database-checking stream is limited to local/small single-process
+  use. Multi-worker production requires a shared event bus such as Redis.

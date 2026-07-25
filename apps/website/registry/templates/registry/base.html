@@ -74,9 +74,9 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260725-1">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260725-4">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
-    <script src="{% static 'registry/site_menu.js' %}?v=20260723-2" defer></script>
+    <script src="{% static 'registry/site_menu.js' %}?v=20260725-1" defer></script>
     <script src="{% static 'registry/account_menu.js' %}?v=20260722-1" defer></script>
     <script src="{% static 'registry/avatar_modal.js' %}?v=20260723-2" defer></script>
     <script src="{% static 'registry/connection_modal.js' %}?v=20260725-1" defer></script>
@@ -168,7 +168,14 @@
                             </li>
                         </ul>
                     </li>
-                    <li class="site-nav-item site-utility-item site-notification-item has-children">
+                    <li
+                        class="site-nav-item site-utility-item site-notification-item has-children"
+                        data-notification-live
+                        data-summary-url="{% url 'registry:notification_summary' %}"
+                        data-stream-url="{% url 'registry:notification_stream' %}"
+                        data-all-url="{% url 'registry:notifications' %}"
+                        data-unread-count="{{ header_unread_notification_count }}"
+                    >
                         <span class="site-nav-entry">
                             <button class="notification-menu-toggle" type="button" aria-expanded="false" aria-label="Notifications{% if header_unread_notification_count %}, {{ header_unread_notification_count }} unread{% endif %}" data-nav-submenu-toggle>
                                 <span class="notification-bell" aria-hidden="true">&#128276;</span>
@@ -179,19 +186,17 @@
                             <div class="utility-panel-heading">
                                 <strong>Notifications</strong>
                                 <div class="notification-panel-actions">
-                                    {% if header_unread_notification_count %}
-                                    <form method="post" action="{% url 'registry:mark_notifications_read' %}" data-notifications-read-form>
+                                    <form method="post" action="{% url 'registry:mark_notifications_read' %}" data-notifications-read-form{% if not header_unread_notification_count %} hidden{% endif %}>
                                         {% csrf_token %}
                                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                         <button type="submit">Mark all as read</button>
                                     </form>
-                                    {% endif %}
                                     <a href="{% url 'registry:notifications' %}">View all</a>
                                 </div>
                             </div>
                             <div class="notification-preview-list">
                                 {% for notification in header_notifications %}
-                                <a class="notification-preview{% if not notification.is_read %} is-unread{% endif %}" href="{% url 'registry:open_notification' notification.pk %}">
+                                <a class="notification-preview{% if not notification.is_read %} is-unread{% endif %}" href="{% url 'registry:open_notification' notification.pk %}" data-notification-id="{{ notification.pk }}">
                                     <strong>{{ notification.title }}</strong>
                                     <span>{{ notification.message }}</span>
                                     <time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|timesince }} ago</time>

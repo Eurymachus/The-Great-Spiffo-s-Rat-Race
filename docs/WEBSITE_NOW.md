@@ -77,7 +77,9 @@ a nickname using a verified email address.
   and invalidated runs, presented as Active Runs and Past Runs on the participant
   dashboard. Lifecycle is moderator-managed until the tracker emits a terminal
   run signal.
-- Participant notifications for submission receipt and moderation decisions.
+- Participant notifications for submission receipt and moderation decisions,
+  with ASGI/SSE live invalidation, immediate bell/dropdown refresh, unobtrusive
+  title toasts, and a visible-tab polling fallback.
 - A dedicated Project Zomboid Catalogue administration section with stable IDs,
   display metadata, version ranges, aliases, a reusable resolver, and a scoped
   Zomboid Integration staff role.
@@ -145,7 +147,8 @@ under the nearest preceding item and moving left moves the item outward.
 
 ## Recommended next action
 
-Submit real format-3 exports for each seeded Challenge Mode and verify exact ID
-mapping, unknown-ID handling, and the mid-run mode-change review safeguard.
+Exercise live notifications in two signed-in browser sessions: create or
+moderate a submission in one and confirm the other updates its bell, dropdown,
+and toast without a page refresh.
 
 Retention automation and a final pre-launch privacy review remain required.

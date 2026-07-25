@@ -62,7 +62,7 @@
         <div class="dashboard-run-list">
           {% for run in active_runs %}
           <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ run.pk }}" aria-haspopup="dialog">
-            <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }} · Run {{ run.run_id|truncatechars:20 }}</small></div>
+            <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></div>
             <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_status_display }}</small></div>
           </button>
           {% include "registry/_run_detail_dialog.html" with run=run %}
@@ -87,7 +87,7 @@
         <div class="dashboard-run-list">
           {% for run in past_runs %}
           <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ run.pk }}" aria-haspopup="dialog">
-            <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }} · Run {{ run.run_id|truncatechars:20 }}</small></div>
+            <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></div>
             <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_lifecycle_status_display }}</small></div>
           </button>
           {% include "registry/_run_detail_dialog.html" with run=run %}

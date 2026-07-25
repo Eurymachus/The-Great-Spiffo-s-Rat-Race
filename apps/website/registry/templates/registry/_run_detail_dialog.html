@@ -13,23 +13,14 @@
       <div><small>Lifecycle</small><strong>{{ run.get_lifecycle_status_display }}</strong></div>
       <div><small>Zombie kills</small><strong>{{ run.current_kills }}</strong></div>
       <div><small>In-game Day</small><strong>{{ run.in_game_day|default:"Not recorded" }}</strong></div>
-      <div><small>Ledger events</small><strong>{{ run.event_sequence }}</strong></div>
       <div><small>Approved submissions</small><strong>{{ run.approved_submission_count }}</strong></div>
     </section>
 
     <section class="run-detail-section">
-      <h3>{% if run.approved_submission_id %}Current approved snapshot{% else %}Latest submitted snapshot{% endif %}</h3>
+      <h3>Run timeline</h3>
       <dl class="run-detail-fields">
-        <div><dt>Moderation</dt><dd>{% if run.approved_submission_id %}Approved canonical state{% else %}Awaiting first approval{% endif %}</dd></div>
-        <div><dt>Generated</dt><dd>{{ run.generated_at|date:"j M Y, H:i:s" }}</dd></div>
-        <div><dt>Export format</dt><dd>{{ run.export_format }}</dd></div>
         <div><dt>First submitted</dt><dd>{{ run.first_submitted_at|date:"j M Y, H:i:s" }}</dd></div>
-        <div><dt>Run ID</dt><dd><code>{{ run.run_id }}</code></dd></div>
-        <div><dt>Raw challenge ID</dt><dd>{% if run.challenge_id %}<code>{{ run.challenge_id }}</code>{% else %}Not present in legacy export{% endif %}</dd></div>
-        <div><dt>PZ game mode</dt><dd>{{ run.challenge_game_mode|default:"Not present in legacy export" }}</dd></div>
-        <div><dt>Starting challenge ID</dt><dd>{% if run.starting_challenge_id %}<code>{{ run.starting_challenge_id }}</code>{% else %}Not present in legacy export{% endif %}</dd></div>
-        <div><dt>Starting PZ game mode</dt><dd>{{ run.starting_challenge_game_mode|default:"Not present in legacy export" }}</dd></div>
-        <div><dt>Ledger head</dt><dd><code>{{ run.event_hash }}</code></dd></div>
+        <div><dt>Latest submitted snapshot</dt><dd>{{ run.generated_at|date:"j M Y, H:i:s" }}</dd></div>
       </dl>
     </section>
 
@@ -38,7 +29,7 @@
       <div class="run-detail-table-wrap">
         <table class="run-detail-table">
           <thead>
-            <tr><th>Submitted</th><th>Challenge mode</th><th>Status</th><th>Kills</th><th>Events</th><th>Reviewed</th></tr>
+            <tr><th>Submitted</th><th>Challenge mode</th><th>Status</th><th>Kills</th><th>Reviewed</th></tr>
           </thead>
           <tbody>
             {% for submission in run.submissions.all %}
@@ -47,11 +38,10 @@
                 <td>{{ submission.challenge_mode_display }}</td>
                 <td>{{ submission.get_status_display }}{% if run.approved_submission_id == submission.pk %} <small>Current</small>{% endif %}</td>
                 <td>{{ submission.current_kills }}</td>
-                <td>{{ submission.event_sequence }}</td>
                 <td>{% if submission.reviewed_at %}{{ submission.reviewed_at|date:"j M Y, H:i" }}{% else %}Awaiting review{% endif %}</td>
               </tr>
             {% empty %}
-              <tr><td colspan="6">No submissions recorded.</td></tr>
+              <tr><td colspan="5">No submissions recorded.</td></tr>
             {% endfor %}
           </tbody>
         </table>

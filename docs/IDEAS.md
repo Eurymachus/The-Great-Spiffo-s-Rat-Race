@@ -11,6 +11,20 @@ it part of the active deliverable.
 - Moderator approval, rejection, review, and invalidation tools
 - Public leaderboards with active and ended runs
 - Detailed player and run analysis
+- After the final export contract is settled, keep the dashboard run modal as a
+  concise summary and add a **View details** action to a dedicated page for that
+  run. Present the complete approved dataset in participant-friendly language,
+  with useful chronology, comparisons, and charts rather than raw import fields.
+  Give each eligible run a stable, publicly accessible and shareable address.
+  Public pages expose only the canonical moderator-approved run state; pending
+  and declined submissions, review notes, raw hashes, and ingestion metadata
+  remain private.
+- Extend managed Pages with reusable dynamic page templates rather than creating
+  one Page record per database object. Initial template types should include
+  **Run details** (rendered with one approved run as context) and **Leaderboard**
+  (rendered with an approved, filterable ranking dataset). Administrators retain
+  control of surrounding copy, section ordering, and enabled data/chart blocks;
+  Django owns querying, eligibility, privacy, and canonical values.
 - Aggregate charts such as traits and weapons used
 
 ## Challenge Operations

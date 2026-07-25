@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 
@@ -10,12 +11,13 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils import timezone
+from django.utils.timesince import timesince
 from django.views.decorators.http import require_http_methods
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -883,6 +885,90 @@ def notifications(request):
         "registry/notifications.html",
         {"notifications": page, "notification_page": page},
     )
+
+
+def notification_summary_payload(user):
+    notifications = list(user.notifications.all()[:5])
+    return {
+        "unread_count": user.notifications.filter(read_at__isnull=True).count(),
+        "notifications": [
+            {
+                "id": str(notification.pk),
+                "title": notification.title,
+                "message": notification.message,
+                "created_at": notification.created_at.isoformat(),
+                "age": f"{timesince(notification.created_at, timezone.now())} ago",
+                "is_read": notification.is_read,
+                "open_url": reverse(
+                    "registry:open_notification", args=(notification.pk,)
+                ),
+            }
+            for notification in notifications
+        ],
+        "all_url": reverse("registry:notifications"),
+    }
+
+
+@login_required
+@require_http_methods(["GET"])
+def notification_summary(request):
+    response = JsonResponse(notification_summary_payload(request.user))
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+async def _notification_stream_state(user_id):
+    notifications = Notification.objects.filter(recipient_id=user_id)
+    latest = await notifications.values("id", "created_at").afirst()
+    return (
+        await notifications.filter(read_at__isnull=True).acount(),
+        str(latest["id"]) if latest else "",
+        latest["created_at"].isoformat() if latest else "",
+    )
+
+
+@login_required
+@require_http_methods(["GET"])
+async def notification_stream(request):
+    # A long-lived response would occupy a WSGI worker. Refuse the stream there
+    # so the browser's ordinary polling fallback remains the safe degradation.
+    if not hasattr(request, "scope"):
+        response = JsonResponse(
+            {"detail": "Live notifications require the ASGI application."},
+            status=503,
+        )
+        response["Cache-Control"] = "no-store"
+        return response
+
+    user = await request.auser()
+    user_id = user.pk
+
+    async def events():
+        state = await _notification_stream_state(user_id)
+        yield "event: ready\ndata: {}\n\n"
+        elapsed = 0
+        try:
+            while True:
+                await asyncio.sleep(3)
+                elapsed += 3
+                next_state = await _notification_stream_state(user_id)
+                if next_state != state:
+                    state = next_state
+                    yield "event: notifications-changed\ndata: {}\n\n"
+                    elapsed = 0
+                elif elapsed >= 18:
+                    yield ": keep-alive\n\n"
+                    elapsed = 0
+        except asyncio.CancelledError:
+            return
+
+    response = StreamingHttpResponse(
+        events(),
+        content_type="text/event-stream",
+    )
+    response["Cache-Control"] = "no-cache, no-store"
+    response["X-Accel-Buffering"] = "no"
+    return response
 
 
 @login_required

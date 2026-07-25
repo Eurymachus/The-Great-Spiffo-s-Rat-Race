@@ -18,11 +18,15 @@ python -m venv .venv
 .\.venv\Scripts\python .\apps\website\manage.py migrate
 .\.venv\Scripts\python .\apps\website\manage.py bootstrap_roles
 .\.venv\Scripts\python .\apps\website\manage.py import_zomboid_catalogue
-.\.venv\Scripts\python .\apps\website\manage.py runserver
+.\.venv\Scripts\python -m uvicorn config.asgi:application --app-dir .\apps\website --reload
 ```
 
 Open `http://127.0.0.1:8000/`. The initial local configuration uses SQLite only
 to make development easy; production will use PostgreSQL.
+
+Uvicorn runs the local application through its ASGI entry point so authenticated
+notification streams can remain open. Django's WSGI entry point remains present
+for compatibility, but the ASGI command is the documented development default.
 
 Signup and resend pages use Cloudflare's official localhost test credentials.
 The widget therefore passes without a real Cloudflare account. Production must

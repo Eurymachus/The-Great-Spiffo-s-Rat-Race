@@ -83,6 +83,16 @@ urlpatterns = [
     path("account/settings/avatar/remove/", views.delete_avatar, name="delete_avatar"),
     path("account/notifications/", views.notifications, name="notifications"),
     path(
+        "account/notifications/summary/",
+        views.notification_summary,
+        name="notification_summary",
+    ),
+    path(
+        "account/notifications/stream/",
+        views.notification_stream,
+        name="notification_stream",
+    ),
+    path(
         "account/notifications/read/",
         views.mark_notifications_read,
         name="mark_notifications_read",

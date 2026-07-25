@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from cryptography.fernet import Fernet
+from asgiref.sync import async_to_sync
 from PIL import Image
 
 from django.conf import settings
@@ -1221,6 +1222,77 @@ class RegistrationTests(TestCase):
         self.assertRedirects(opened, reverse("registry:account"))
         notification.refresh_from_db()
         self.assertIsNotNone(notification.read_at)
+
+    def test_notification_summary_returns_authoritative_dropdown_state(self):
+        participant = Participant.objects.create_user(
+            email="notify-summary@example.com",
+            nickname="Notify Summary",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        notification = Notification.objects.create(
+            recipient=participant,
+            title="Submission approved",
+            message="Your submission has been approved.",
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:notification_summary"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Cache-Control"], "no-store")
+        payload = response.json()
+        self.assertEqual(payload["unread_count"], 1)
+        self.assertEqual(payload["notifications"][0]["id"], str(notification.pk))
+        self.assertEqual(
+            payload["notifications"][0]["title"],
+            "Submission approved",
+        )
+        self.assertEqual(
+            payload["notifications"][0]["open_url"],
+            reverse("registry:open_notification", args=(notification.pk,)),
+        )
+
+    def test_notification_stream_is_an_authenticated_event_stream(self):
+        participant = Participant.objects.create_user(
+            email="notify-stream@example.com",
+            nickname="Notify Stream",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        async def read_ready_event():
+            await self.async_client.aforce_login(participant)
+            response = await self.async_client.get(
+                reverse("registry:notification_stream")
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.streaming)
+            self.assertEqual(response["Content-Type"], "text/event-stream")
+            self.assertEqual(response["X-Accel-Buffering"], "no")
+            try:
+                return await anext(response.streaming_content)
+            finally:
+                await response.streaming_content.aclose()
+
+        first_event = async_to_sync(read_ready_event)()
+        self.assertEqual(first_event, b"event: ready\ndata: {}\n\n")
+
+    def test_notification_stream_falls_back_safely_under_wsgi(self):
+        participant = Participant.objects.create_user(
+            email="notify-wsgi@example.com",
+            nickname="Notify WSGI",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:notification_stream"))
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response["Cache-Control"], "no-store")
 
     def test_participant_can_mark_all_notifications_read(self):
         participant = Participant.objects.create_user(
