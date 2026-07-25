@@ -171,7 +171,9 @@ Suggested run artifacts:
 Export format 3 serializes the complete verified ledger history and a
 schema-versioned live-state projection, compresses it with TGSRR's deterministic LZSS codec,
 encodes it as Base64URL, and includes a SHA-256 checksum. The current live kill
-total, raw challenge evidence (`challenge.id` and `challenge.gameMode`),
+total, raw challenge evidence (`challenge.id` and `challenge.gameMode`; the
+first observed challenge ID is retained because PZ clears its live ID while
+loading an existing save),
 starting/current character identity, immutable pre-spawn selected trait IDs,
 spawned effective trait IDs, current effective trait IDs, and a stable-ID snapshot
 of every current skill's category, level, and cumulative XP are included. The

@@ -51,7 +51,7 @@ function Exporter.generate(run, work)
     local player = getSpecificPlayer and getSpecificPlayer(0) or nil
     local projection = {
         schema = 1,
-        challenge = Identity.observeChallenge(),
+        challenge = Identity.exportChallenge(run),
         currentKills = math.max(0, tonumber(player and player:getZombieKills()) or 0),
         character = characterProjection(run, player),
         skills = SkillSnapshot.observe(player),

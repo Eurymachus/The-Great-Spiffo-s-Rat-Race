@@ -123,6 +123,15 @@ function Identity.ensure(player, selectedTraitSnapshot)
         }
         data.startingChallengePartial = true
     end
+    local observedChallenge = challengeEvidence()
+    if not nonEmpty(data.startingChallenge.id)
+            and nonEmpty(observedChallenge.id) then
+        data.startingChallenge.id = observedChallenge.id
+    end
+    if not nonEmpty(data.startingChallenge.gameMode)
+            and nonEmpty(observedChallenge.gameMode) then
+        data.startingChallenge.gameMode = observedChallenge.gameMode
+    end
     data.classification = nil
     data.challengeId = nil
     data.challengeMode = nil
@@ -180,6 +189,18 @@ end
 
 function Identity.observeChallenge()
     return challengeEvidence()
+end
+
+function Identity.exportChallenge(run)
+    local observed = challengeEvidence()
+    local starting = type(run) == "table"
+        and type(run.startingChallenge) == "table"
+        and run.startingChallenge or {}
+    return {
+        id = nonEmpty(observed.id) or nonEmpty(starting.id) or "",
+        gameMode = nonEmpty(observed.gameMode)
+            or nonEmpty(starting.gameMode) or "",
+    }
 end
 
 function Identity.utcSeconds()

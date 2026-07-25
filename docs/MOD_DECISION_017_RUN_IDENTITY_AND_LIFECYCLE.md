@@ -16,6 +16,11 @@ Existing saves first opened after this feature is introduced are supported. Thei
 - Challenge evidence: the exact current Project Zomboid challenge ID and game
   mode, captured at run creation and every session boundary.
 
+Project Zomboid sets `Core.challengeId` when starting a challenge but clears it
+during ordinary world loading. TGSRR therefore retains the first non-empty raw
+ID it observes and uses that retained value when the live ID is empty. A later
+non-empty live ID is never hidden by the retained value.
+
 Character names are mutable and non-unique. A name change never changes the run ID.
 
 ## Lifecycle
