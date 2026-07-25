@@ -144,6 +144,11 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
 
 High-frequency values are not appended on every tick. TGSRR records meaningful state transitions and periodic/session/day checkpoints so the canonical history remains compact.
 
+Book-boost-specific XP attribution is deliberately deferred. Timestamped
+skill-book completion and daily per-skill XP deltas provide the useful evidence;
+TGSRR does not attempt to separate book contribution from profession, trait,
+sandbox, or other simultaneous XP modifiers.
+
 ## Run identity
 
 The canonical run identity is a TGSRR-owned world-scoped ID stored in global ModData and used as the run-file directory key. It is not derived solely from the character name and is never replaced by an external identity.
