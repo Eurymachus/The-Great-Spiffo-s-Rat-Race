@@ -109,12 +109,19 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   deduplicated across both paths. TGSRR maintains cumulative per-ID totals and
   seals daily deltas. Individual breaks are not appended to the ledger because
   their exact timestamps do not justify event growth across a multi-year run.
+- Animal slaughter uses the successful local-player completion edge of Build
+  42's world-animal and inventory-animal `Kill Animal` timed actions. TGSRR
+  preserves the raw `IsoAnimal:getAnimalType()` value and maintains one
+  cumulative run total plus cumulative and daily totals keyed by that type.
+  Ordinary combat deaths and butchering an existing carcass are separate
+  gameplay paths and are not counted. Individual slaughters are not ledger
+  events, bounding growth by survived days and observed animal types.
 - Distance travelled uses `Events.OnPlayerMove` and planar player-coordinate
   deltas, matching the established Twist Stats interpretation of one world unit
   as one metre and including vehicle movement. TGSRR adds a real-time
   speed/step bound to reject teleports and loading discontinuities, retains only
   cumulative metres and a rejected-sample count, and seals daily metre deltas.
-- Day starts, visits, literature, milestones, outposts, injuries, animals,
+- Day starts, visits, literature, milestones, outposts, injuries,
   production, and mod sessions: TGSRR records using their appropriate events,
   aggregates, or semantic checkpoints.
 

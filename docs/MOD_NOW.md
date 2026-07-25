@@ -63,6 +63,10 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Local-player broken weapons captured through Build 42 `OnBreak` callbacks plus
   post-swing condition verification, with full item IDs, cumulative totals, and
   daily deltas. Individual breaks are not ledger events.
+- Deliberate local-player animal slaughter captured from Build 42's two
+  successful `Kill Animal` action completions, with a cumulative total,
+  cumulative raw animal-type totals, and per-type daily deltas. Ordinary animal
+  deaths, carcass butchering, and individual ledger events are excluded.
 - Saved window position, selected tab, open state, and movable launcher position.
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
 - One-second refresh that updates stable list entries in place.

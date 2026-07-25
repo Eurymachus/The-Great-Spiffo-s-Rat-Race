@@ -53,6 +53,11 @@ local function beginDay(initial)
                 deltas(current.brokenWeapons, previousState.brokenWeapons),
             brokenWeaponsPartial =
                 previousState.brokenWeaponsPartial == true,
+            animalSlaughterDeltas = deltas(
+                current.animalsSlaughtered,
+                previousState.animalsSlaughtered),
+            animalsSlaughteredPartial =
+                previousState.animalsSlaughteredPartial == true,
         }
     end
 
@@ -78,6 +83,10 @@ local function beginDay(initial)
             brokenWeapons = current.brokenWeapons,
             brokenWeaponsPartial =
                 initial == true and activeRun.brokenWeaponsPartial == true,
+            animalsSlaughtered = current.animalsSlaughtered,
+            animalsSlaughteredPartial =
+                initial == true
+                    and activeRun.animalsSlaughteredPartial == true,
         },
         previousDay = previousDay,
     }, {
@@ -105,6 +114,9 @@ local function beginDay(initial)
         brokenWeapons = current.brokenWeapons,
         brokenWeaponsPartial =
             initial == true and activeRun.brokenWeaponsPartial == true,
+        animalsSlaughtered = current.animalsSlaughtered,
+        animalsSlaughteredPartial =
+            initial == true and activeRun.animalsSlaughteredPartial == true,
     }
     return true
 end
