@@ -10,6 +10,7 @@ local WeaponKillSnapshot = require "TGSRR/Run/WeaponKillSnapshot"
 local TownSnapshot = require "TGSRR/Run/TownSnapshot"
 local LiteratureSnapshot = require "TGSRR/Run/LiteratureSnapshot"
 local LocationSnapshot = require "TGSRR/Run/LocationSnapshot"
+local MilestoneSnapshot = require "TGSRR/Run/MilestoneSnapshot"
 
 local Exporter = {}
 
@@ -49,6 +50,9 @@ function Exporter.generate(run, work)
     local ledger, ledgerError = Ledger.readAll(run, work)
     if not ledger then return false, ledgerError end
     local player = getSpecificPlayer and getSpecificPlayer(0) or nil
+    local milestones, milestoneError =
+        MilestoneSnapshot.observe(run, ledger.records)
+    if not milestones then return false, milestoneError end
     local projection = {
         schema = 1,
         challenge = Identity.exportChallenge(run),
@@ -72,6 +76,7 @@ function Exporter.generate(run, work)
         townVisits = TownSnapshot.observe(run),
         literature = LiteratureSnapshot.observe(run),
         locations = LocationSnapshot.observe(run),
+        milestones = milestones,
     }
     if not projection.activeDay then return false, "missing_active_day" end
     local encoded, stats = ExportCodec.encode(
@@ -106,6 +111,12 @@ function Exporter.generate(run, work)
                 #projection.literature.currentItemIds
             or #decoded.projection.locations.entries ~=
                 #projection.locations.entries
+            or #decoded.projection.milestones.outpostCompletions ~=
+                #projection.milestones.outpostCompletions
+            or #decoded.projection.milestones.killMilestones ~=
+                #projection.milestones.killMilestones
+            or #decoded.projection.milestones.outpostDeliverableMilestones ~=
+                #projection.milestones.outpostDeliverableMilestones
             or decoded.projection.challengeProgress.rulesVersion ~=
                 projection.challengeProgress.rulesVersion then
         return false, "export_readback_mismatch"

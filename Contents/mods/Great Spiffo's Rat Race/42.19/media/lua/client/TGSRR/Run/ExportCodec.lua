@@ -394,6 +394,32 @@ function ExportCodec.selfTest(work)
                 },
             },
             fireDeaths = { count = 19, partial = false },
+            milestones = {
+                schema = 1,
+                partial = false,
+                outpostCompletions = {
+                    {
+                        outpostId = "echo_creek_church",
+                        completionOrder = 1,
+                        sequence = 20,
+                        utc = 1234567890,
+                        worldAgeHours = 96,
+                        elapsedDays = 4,
+                    },
+                },
+                killMilestones = {
+                    {
+                        threshold = 1000,
+                        killTotal = 1002,
+                        characterId = "player",
+                        sequence = 18,
+                        utc = 1234567800,
+                        worldAgeHours = 72,
+                        elapsedDays = 3,
+                    },
+                },
+                outpostDeliverableMilestones = {},
+            },
         }, work
     )
     local decoded, decodeError = ExportCodec.decode(encoded, work)
@@ -413,6 +439,8 @@ function ExportCodec.selfTest(work)
             or decoded.projection.challengeProgress.categories.skills.progress ~= 0.55
             or decoded.projection.activeMods[1].modId ~= "TGSRR"
             or decoded.projection.activeMods[2].workshopId ~= ""
+            or decoded.projection.milestones.outpostCompletions[1].completionOrder ~= 1
+            or decoded.projection.milestones.killMilestones[1].threshold ~= 1000
             or decoded.projection.activeDay.dayIndex ~= 4
             or decoded.projection.activeDay.xpDeltas.Fitness ~= 45.25
             or decoded.projection.activeDay.weaponKillDeltas.__VEHICLE__ ~= 2

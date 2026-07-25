@@ -51,7 +51,13 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Compact loaded-mod history: a complete initial Mod ID/Workshop ID baseline followed by timestamped added, removed, and changed-association session deltas.
 - Versioned, deterministic LZSS/Base64URL run exports containing the complete verified event history, integrity metadata, and a live current-kills projection.
 - Pre-spawn capture of the raw namespaced trait IDs selected on the character-creation screen, persisted across the loading transition and consumed only by the matching new character.
-- Format-3 current-state projection containing challenge mode; character and trait state; current skills; all 13 current outposts; all 12 town-visit states; versioned non-town location state; literature baseline/current/completion state; rules-versioned Tracker summaries; current active mods; and a non-mutating active-day snapshot with live kill and per-skill XP deltas.
+- Format-3 current-state projection containing challenge evidence; character and
+  trait state; current skills; all 13 current outposts; ordered first outpost
+  completions; kill and outpost-deliverable milestones with elapsed days; all 12
+  town-visit states; versioned non-town location state; literature
+  baseline/current/completion state; rules-versioned Tracker summaries; current
+  active mods; and a non-mutating active-day snapshot with live kill and
+  per-skill XP deltas.
 - Cooperative pause-menu export flow with progress presentation, read-back verification, explicit clipboard copy, and format-1 export compatibility.
 - Generic `skill.level.reached` events containing the skill, parent category, and reached level; award policy remains intentionally undecided.
 - Rising-edge events for individual outpost deliverable completion and whole-outpost completion; initial observations do not retroactively award milestones.

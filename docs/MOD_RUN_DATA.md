@@ -128,7 +128,9 @@ Suggested streams:
 - `literature`: books and magazines read.
 - `traits`: starting and latest current ID snapshots, if a separate file projection is needed.
 - `sessions`: loaded-mod snapshots/deltas and session boundaries.
-- `milestones`: export projection of the existing milestone ledger where required.
+- `milestones`: ledger-derived ordered outpost completions, kill milestones, and
+  first outpost-deliverable completions with event sequence, UTC, world age, and
+  elapsed days since run creation. Skill award policy remains separate.
 
 Keep only compact recovery state and gameplay aggregates needed by TGSRR in ModData.
 
