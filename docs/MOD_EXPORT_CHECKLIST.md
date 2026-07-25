@@ -48,7 +48,7 @@ The `Contract` scope contains the agreed export contract. `Team request` contain
 | Contract | Mods added or removed during later sessions | 🟢 Implemented | Session-start deltas are recorded, and format-3 also exports the current sorted Mod ID/Workshop ID mapping so consumers need not reconstruct the active state from history. |
 | Team request | Distance travelled | 🟢 Implemented | TGSRR follows the established `OnPlayerMove` planar-coordinate pattern used by Twist Stats, treating one world unit as one metre and including vehicle travel. It persists only a monotonic cumulative aggregate, not raw positions. A real-time speed/step bound rejects load jumps and teleports while counting rejected samples. Format-3 exports cumulative metres plus the active day's metre delta; each `day.started` event seals the preceding daily delta. Existing runs are partial. |
 | Team request | Animals slaughtered | 🟢 Implemented | TGSRR wraps the successful Build 42 `ISKillAnimal.complete()` and `ISKillAnimalInInventory.complete()` actions for the local player. It records Project Zomboid's raw `IsoAnimal:getAnimalType()` value, a cumulative total, cumulative totals per animal type, and daily deltas per type. Killing an animal through ordinary combat and processing an already-dead carcass are not counted as slaughter. Individual slaughters are deliberately not ledger events, keeping export growth bounded by survived days and observed animal types. Existing runs are partial. |
-| Team request | Animals trapped | 🔴&nbsp;Needs&nbsp;investigation | Establish the completed-trap/claim event and animal identity. |
+| Team request | Animals trapped | 🟢 Implemented | TGSRR wraps successful local-player `ISCheckTrapAction.complete()` claims and requires the trap to contain an animal before completion. It preserves PZ's raw trap-animal category (`rabbit`, `squirrel`, `bird`, `mouse`, `rat`, or `raccoon`) and full trap item ID. Format-3 exports the cumulative total plus aggregates by animal category, trap ID, and animal/trap pairing; active and completed days contain pairing deltas from which either dimension can be derived. Individual catches are deliberately not ledger events. Existing runs are partial. |
 | Team request | Animal births | 🔴&nbsp;Needs&nbsp;investigation | Establish an authoritative birth event and ownership/world context. |
 | Team request | XP gained through skill-book boosts | 🔴&nbsp;Needs&nbsp;investigation | Define attribution when multiple XP modifiers are active and identify the authoritative multiplier state. |
 | Team request | Days survived before generator knowledge is learned | 🔴&nbsp;Needs&nbsp;investigation | Identify the stable knowledge/recipe ID and reliable acquisition edge. |
@@ -113,5 +113,9 @@ Implementation and persisted test-run audit completed on 2026-07-24:
   action completions. The current-state snapshot contains the cumulative total
   and raw animal-type totals; day records contain only per-type deltas. No
   per-animal event history is retained.
+- Claimed trap catches are captured at successful `Check Trap` completion rather
+  than during the unattended hourly catch roll. The current-state snapshot
+  contains cumulative animal-category, trap-ID, and paired totals; day records
+  contain compact paired deltas. No per-catch history is retained.
 - Submission status, run eligibility, and website lifecycle presentation are not
   mod-authored fields. The projection supplies evidence for website-side policy.

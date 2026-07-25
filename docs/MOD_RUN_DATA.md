@@ -116,6 +116,13 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   Ordinary combat deaths and butchering an existing carcass are separate
   gameplay paths and are not counted. Individual slaughters are not ledger
   events, bounding growth by survived days and observed animal types.
+- Trapped animals are counted when the local player successfully completes
+  `ISCheckTrapAction` while an animal remains in the trap. This represents a
+  claimed catch rather than an unattended hourly catch roll. TGSRR preserves
+  both PZ's raw trap-animal category and the full trap item ID, maintaining the
+  cumulative total and aggregates by category, trap, and category/trap pairing.
+  Daily records retain paired deltas, allowing either dimension to be derived
+  without individual catch events.
 - Distance travelled uses `Events.OnPlayerMove` and planar player-coordinate
   deltas, matching the established Twist Stats interpretation of one world unit
   as one metre and including vehicle movement. TGSRR adds a real-time

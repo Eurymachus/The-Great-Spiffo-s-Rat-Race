@@ -3,6 +3,7 @@ local SkillSnapshot = require "TGSRR/Run/SkillSnapshot"
 local WeaponKillSnapshot = require "TGSRR/Run/WeaponKillSnapshot"
 local BrokenWeaponSnapshot = require "TGSRR/Run/BrokenWeaponSnapshot"
 local AnimalSlaughterSnapshot = require "TGSRR/Run/AnimalSlaughterSnapshot"
+local AnimalTrapSnapshot = require "TGSRR/Run/AnimalTrapSnapshot"
 
 local DailySnapshot = {}
 
@@ -18,6 +19,8 @@ function DailySnapshot.current(player, run)
             BrokenWeaponSnapshot.copy(run and run.brokenWeapons),
         animalsSlaughtered =
             AnimalSlaughterSnapshot.copy(run and run.animalsSlaughtered),
+        animalsTrapped =
+            AnimalTrapSnapshot.copy(run and run.animalsTrapped),
     }
 end
 
@@ -67,6 +70,9 @@ function DailySnapshot.active(run, player)
             current.animalsSlaughtered, baseline.animalsSlaughtered),
         animalsSlaughteredPartial =
             baseline.animalsSlaughteredPartial == true,
+        animalTrapDeltas = AnimalTrapSnapshot.deltaPairs(
+            current.animalsTrapped, baseline.animalsTrapped),
+        animalsTrappedPartial = baseline.animalsTrappedPartial == true,
     }
 end
 

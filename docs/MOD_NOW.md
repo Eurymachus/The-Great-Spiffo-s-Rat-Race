@@ -67,6 +67,9 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
   successful `Kill Animal` action completions, with a cumulative total,
   cumulative raw animal-type totals, and per-type daily deltas. Ordinary animal
   deaths, carcass butchering, and individual ledger events are excluded.
+- Successful local-player `Check Trap` claims aggregated cumulatively by raw
+  trap-animal category, full trap item ID, and their pairing, with paired daily
+  deltas. Unclaimed hourly catches and individual ledger events are excluded.
 - Saved window position, selected tab, open state, and movable launcher position.
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
 - One-second refresh that updates stable list entries in place.

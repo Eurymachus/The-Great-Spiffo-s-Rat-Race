@@ -1,6 +1,7 @@
 local Identity = require "TGSRR/Run/Identity"
 local Recorder = require "TGSRR/Run/Recorder"
 local DailySnapshot = require "TGSRR/Run/DailySnapshot"
+local AnimalTrapSnapshot = require "TGSRR/Run/AnimalTrapSnapshot"
 
 local DayTracker = {}
 
@@ -58,6 +59,11 @@ local function beginDay(initial)
                 previousState.animalsSlaughtered),
             animalsSlaughteredPartial =
                 previousState.animalsSlaughteredPartial == true,
+            animalTrapDeltas = AnimalTrapSnapshot.deltaPairs(
+                current.animalsTrapped,
+                previousState.animalsTrapped),
+            animalsTrappedPartial =
+                previousState.animalsTrappedPartial == true,
         }
     end
 
@@ -87,6 +93,9 @@ local function beginDay(initial)
             animalsSlaughteredPartial =
                 initial == true
                     and activeRun.animalsSlaughteredPartial == true,
+            animalsTrapped = current.animalsTrapped,
+            animalsTrappedPartial =
+                initial == true and activeRun.animalsTrappedPartial == true,
         },
         previousDay = previousDay,
     }, {
@@ -117,6 +126,9 @@ local function beginDay(initial)
         animalsSlaughtered = current.animalsSlaughtered,
         animalsSlaughteredPartial =
             initial == true and activeRun.animalsSlaughteredPartial == true,
+        animalsTrapped = current.animalsTrapped,
+        animalsTrappedPartial =
+            initial == true and activeRun.animalsTrappedPartial == true,
     }
     return true
 end
