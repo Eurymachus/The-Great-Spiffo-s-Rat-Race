@@ -41,10 +41,9 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Permanent first-visit tracking for 12 canonical towns using stable TGSRR IDs,
   map-reviewed multi-point coverage with per-point radii, hash-chained
   `town.visited` events, and partial-history disclosure for migrated runs.
-- Immutable literature read-state baseline plus hash-chained successful-reading
-  deltas from PZ's authoritative `ISReadABook.complete()` edge. Current export
-  derives full item, literature-title, and print-media sets without mistaking
-  profession knowledge for physical reading.
+- Immutable skill-book and recipe-magazine read-state baseline plus hash-chained
+  successful-reading deltas from PZ's authoritative `ISReadABook.complete()`
+  edge. Leisure and generic print media are excluded.
 - Versioned non-town location registry, lightweight first-visit collector, and
   schema-1 export projection. Registry version 0 intentionally contains no
   definitions while the canonical location list is deferred.
@@ -54,8 +53,8 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Format-3 current-state projection containing challenge evidence; character and
   trait state; current skills; all 13 current outposts; ordered first outpost
   completions; kill and outpost-deliverable milestones with elapsed days; all 12
-  town-visit states; versioned non-town location state; literature
-  baseline/current/completion state; rules-versioned Tracker summaries; current
+  town-visit states; versioned non-town location state; filtered skill-book and
+  recipe-magazine baseline/current/completion state; rules-versioned Tracker summaries; current
   active mods; cumulative filtered distance travelled; and a non-mutating
   active-day snapshot with live kill, per-skill XP, and distance deltas.
 - Cooperative pause-menu export flow with progress presentation, read-back verification, explicit clipboard copy, and format-1 export compatibility.

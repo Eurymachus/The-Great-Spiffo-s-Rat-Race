@@ -10,17 +10,6 @@ local activePlayer = nil
 local installed = false
 local originalComplete = nil
 
-local function sortedKeys(collection)
-    local result = {}
-    if not collection then return result end
-    local iterator = collection:iterator()
-    while iterator:hasNext() do
-        result[#result + 1] = tostring(iterator:next())
-    end
-    table.sort(result)
-    return result
-end
-
 local function javaList(values)
     local result = {}
     if not values then return result end
@@ -46,13 +35,23 @@ local function merge(values, additions)
     return values
 end
 
+local function classification(item)
+    if not item then return nil end
+    if SkillBook[item:getSkillTrained()] then return "skill_book" end
+    local recipes = item:getLearnedRecipes()
+    if recipes and not recipes:isEmpty() then return "recipe_literature" end
+    return nil
+end
+
 local function baseline(player, partial)
     local itemSet = {}
+    local eligibleIds = {}
     local allItems = getScriptManager():getAllItems()
     for index = 0, allItems:size() - 1 do
         local item = allItems:get(index)
-        if item:isItemType(ItemType.LITERATURE) then
+        if item:isItemType(ItemType.LITERATURE) and classification(item) then
             local fullType = tostring(item:getFullName())
+            eligibleIds[fullType] = true
             local pages = tonumber(item:getNumberOfPages()) or 0
             if pages > 0 and player:getAlreadyReadPages(fullType) >= pages then
                 itemSet[fullType] = true
@@ -61,7 +60,8 @@ local function baseline(player, partial)
     end
     local alreadyRead = player:getAlreadyReadBook()
     for index = 0, alreadyRead:size() - 1 do
-        itemSet[tostring(alreadyRead:get(index))] = true
+        local id = tostring(alreadyRead:get(index))
+        if eligibleIds[id] then itemSet[id] = true end
     end
 
     local itemIds = {}
@@ -73,33 +73,9 @@ local function baseline(player, partial)
         worldAgeHours = gameTime and gameTime:getWorldAgeHours() or 0,
         partial = partial == true,
         itemIds = itemIds,
-        literatureTitles = sortedKeys(player:getReadLiterature():keySet()),
-        printMediaIds = sortedKeys(player:getReadPrintMedia()),
+        literatureTitles = {},
+        printMediaIds = {},
     }
-end
-
-local function classification(item)
-    if SkillBook[item:getSkillTrained()] then return "skill_book" end
-    local recipes = item:getLearnedRecipes()
-    if recipes and not recipes:isEmpty() then return "recipe_literature" end
-    local modData = item:hasModData() and item:getModData() or nil
-    if modData and modData.printMedia then return "print_media" end
-    if modData and modData.literatureTitle then return "leisure_literature" end
-    return "literature"
-end
-
-local function printMediaIds(item)
-    local modData = item:hasModData() and item:getModData() or nil
-    local value = modData and modData.printMedia or nil
-    if not value then return {} end
-    local id = value.id
-    return id and { tostring(id) } or {}
-end
-
-local function literatureTitles(item)
-    local modData = item:hasModData() and item:getModData() or nil
-    local value = modData and modData.literatureTitle or nil
-    return value and { tostring(value) } or {}
 end
 
 local function recordCompletion(action, item, wasComplete)
@@ -108,9 +84,10 @@ local function recordCompletion(action, item, wasComplete)
 
     local id = tostring(item:getFullType())
     local kind = classification(item)
+    if not kind then return end
     local recipes = javaList(item:getLearnedRecipes())
-    local mediaIds = printMediaIds(item)
-    local titles = literatureTitles(item)
+    local mediaIds = {}
+    local titles = {}
     local recorded, event = Recorder.record("literature.read", {
         itemId = id,
         classification = kind,
@@ -147,6 +124,32 @@ local function recordCompletion(action, item, wasComplete)
     end
 end
 
+local function sanitizeExisting(state)
+    local baselineValue = state.baseline
+    local filteredIds = {}
+    for _, id in ipairs(baselineValue.itemIds or {}) do
+        id = tostring(id)
+        local item = getScriptManager():FindItem(id)
+        if classification(item) then filteredIds[#filteredIds + 1] = id end
+    end
+    table.sort(filteredIds)
+    baselineValue.itemIds = filteredIds
+    baselineValue.literatureTitles = {}
+    baselineValue.printMediaIds = {}
+
+    local filteredCompleted = {}
+    for id, record in pairs(state.completed or {}) do
+        if type(record) == "table"
+                and (record.classification == "skill_book"
+                    or record.classification == "recipe_literature") then
+            record.literatureTitles = {}
+            record.printMediaIds = {}
+            filteredCompleted[tostring(id)] = record
+        end
+    end
+    state.completed = filteredCompleted
+end
+
 local function install()
     if installed then return end
     installed = true
@@ -177,6 +180,7 @@ function LiteratureTracker.initialize(run, player, created)
             and type(run.literature.baseline) == "table" then
         run.literature.completed = type(run.literature.completed) == "table"
             and run.literature.completed or {}
+        sanitizeExisting(run.literature)
         return true
     end
 

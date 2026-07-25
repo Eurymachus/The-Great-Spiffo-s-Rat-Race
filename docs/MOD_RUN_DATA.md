@@ -18,7 +18,7 @@ Use [MOD_EXPORT_CHECKLIST.md](MOD_EXPORT_CHECKLIST.md) as the live implementatio
 - Daily XP deltas per internal skill ID.
 - Locations visited and visit times.
 - Towns visited and visit times.
-- Books and magazines read and read times.
+- Skill books and recipe magazines read and read times.
 - Starting trait IDs.
 - Current trait IDs.
 - Kills by full weapon item ID.
@@ -89,14 +89,14 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   that vanilla `TownZone` fragments form authoritative municipal boundaries.
   Hog Wallow Military Base is intentionally excluded because it is a location,
   not a town.
-- Literature completion: run initialization enumerates PZ's actual persisted
-  completed-page, `AlreadyReadBook`, literature-title, and print-media state
-  into one immutable `literature.baseline`. It does not infer reading from known
-  recipes or skill level. TGSRR wraps the successful local-player
+- Skill-literature completion: run initialization enumerates PZ's persisted
+  completed-page and `AlreadyReadBook` state, filtered to items registered in
+  `SkillBook` or carrying one or more learned recipes, into one immutable
+  `literature.baseline`. TGSRR wraps the successful local-player
   `ISReadABook.complete()` edge and appends one `literature.read` delta carrying
-  the full item ID, stable classification, learned recipe IDs, literature-title
-  IDs, print-media IDs, UTC, and world age. Repeat leisure reading remains a
-  legitimate completion; reopening already-completed paged literature does not.
+  the full item ID, `skill_book`/`recipe_literature` classification, learned
+  recipe IDs, UTC, and world age. Leisure books, ordinary magazines,
+  newspapers, crosswords, and generic print media are excluded.
 - Non-town locations: the collector and export contract are registry-driven,
   but the canonical definition list is deliberately deferred. Registry version
   0 contains no locations and exports an authoritative empty list. When the
@@ -204,9 +204,9 @@ The current projection also includes every registered town ID and its permanent
 first-visit state. Visits carry their original UTC time, world age, activation
 point ID, and observed coordinates; migrated runs explicitly disclose a partial
 town-history baseline.
-Literature export schema 1 contains the immutable starting baseline, sorted
-current sets of full literature item IDs, literature-title IDs, and print-media
-IDs, plus sorted per-item first/last completion times and completion counts.
+Literature export schema 1 contains the immutable filtered starting baseline,
+sorted current sets of full skill-book and recipe-magazine item IDs, plus sorted
+per-item first/last completion times and completion counts.
 Runs migrated after collection begins disclose a partial baseline rather than
 inventing historical read timestamps.
 Non-town location export schema 1 is already present with the registry version,

@@ -34,7 +34,7 @@ The `Contract` scope contains the agreed export contract. `Team request` contain
 | Contract | Daily and total XP gained for every skill | 🟢 Implemented | Day-boundary snapshots use stable perk IDs and seal non-zero XP deltas for the preceding day. Format-3 includes the active unfinished day's non-zero deltas, while total gain remains derivable without recording every `AddXP`. |
 | Contract | Locations visited and when | 🔵 In progress — awaiting decision | Registry-driven tracking, permanent first-visit persistence, `location.visited` events, and format-3 schema-1 projection are implemented. The canonical non-town location definitions are deliberately deferred; registry version 0 therefore exports an authoritative empty list without claiming coverage. |
 | Contract | Towns visited and when | 🟢 Implemented | A TGSRR-owned registry defines stable town IDs and one or more map-reviewed activation points per settlement. Per-point radii range from 200 tiles for compact towns to 350 for Louisville coverage. First entry appends one `town.visited` event and permanently stores its UTC time, world age, triggering point ID, and player coordinates. Format-3 exports every registered town and its first-visit state; migrated runs are marked partial. |
-| Contract | Books and magazines read and when | 🟢 Implemented | Run initialization records one sorted `literature.baseline` containing PZ's actual completed-page item IDs, `AlreadyReadBook` IDs, literature-title keys, and print-media IDs. Successful local-player `ISReadABook.complete()` transitions append `literature.read` events with full item ID, classification, recipes, media/title IDs, UTC, and world age. Format-3 exports the baseline, current derived sets, and per-item completion summaries. Existing or bootstrapped runs are explicitly partial. |
+| Contract | Skill books and recipe magazines read and when | 🟢 Implemented | Run initialization records one sorted `literature.baseline` containing only completed PZ literature with a registered `SkillBook` entry or one or more learned recipes. Successful local-player `ISReadABook.complete()` transitions append `literature.read` only for those categories, carrying full item ID, `skill_book`/`recipe_literature` classification, learned recipe IDs, UTC, and world age. Leisure books, ordinary magazines, newspapers, crosswords, and generic print media are excluded. Format-3 exports the filtered baseline and per-item completion summaries; existing broad development state is sanitized and bootstrapped runs remain partial. |
 | Contract | Progress for every outpost | 🟢 Implemented | Format-3 exports all 13 stable outpost IDs with discovery/stage state, strict completion, weighted progress, requirement counts, timestamps, and every latest persisted deliverable value. |
 | Contract | Completed outposts and completion order | 🟢 Implemented | Format-3 derives an immutable first-completion list from the hash-chained `outpost.completed` events. Each entry includes its chronological completion order, event sequence, UTC, world age, elapsed days since run creation, and requirement totals. Later regression and re-completion do not replace the first completion; bootstrapped runs mark the milestone projection partial. |
 | Contract | Kill milestones and elapsed days | 🟢 Implemented | Format-3 exports every hash-chained `kills.milestone.reached` event in sequence order with threshold, observed kill total, character ID, UTC, world age, and elapsed days since run creation. |
@@ -105,9 +105,9 @@ Implementation and persisted test-run audit completed on 2026-07-24:
 - The current projection exports every registered town ID and its permanent
   first-visit state, including the visit timestamps, triggering activation point,
   observed coordinates, and partial-history disclosure.
-- Literature history begins with one immutable read-state baseline and then uses
-  hash-chained completion deltas. The projection exports complete derived item,
-  literature-title, and print-media sets without inferring physical reading from
-  profession recipes or skill levels.
+- Skill-literature history begins with one immutable read-state baseline and
+  then uses hash-chained completion deltas. Eligibility comes from PZ's
+  registered skill-book metadata or learned-recipe list; generic leisure and
+  print-media state is intentionally excluded.
 - Submission status, run eligibility, and website lifecycle presentation are not
   mod-authored fields. The projection supplies evidence for website-side policy.
