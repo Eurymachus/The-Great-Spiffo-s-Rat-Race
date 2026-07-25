@@ -2,7 +2,7 @@ local Identity = {}
 local CharacterSnapshot = require "TGSRR/Run/CharacterSnapshot"
 
 local MOD_DATA_KEY = "TGSRR_Run"
-local SCHEMA_VERSION = 9
+local SCHEMA_VERSION = 10
 
 local CHALLENGE_MODES = {
     TGSRR = "standard",
@@ -115,6 +115,9 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.distanceTravelledMeters = 0
         data.distanceRejectedSamples = 0
         data.distanceTravelledPartial = data.bootstrapped
+        data.brokenWeapons = {}
+        data.brokenWeaponsTotal = 0
+        data.brokenWeaponsPartial = data.bootstrapped
         data.integrityStatus = "unverified"
         created = true
     end
@@ -183,6 +186,15 @@ function Identity.ensure(player, selectedTraitSnapshot)
             math.floor(tonumber(data.distanceRejectedSamples) or 0))
     end
     data.distanceTravelledPartial = data.distanceTravelledPartial == true
+    if type(data.brokenWeapons) ~= "table" then
+        data.brokenWeapons = {}
+        data.brokenWeaponsTotal = 0
+        data.brokenWeaponsPartial = true
+    else
+        data.brokenWeaponsTotal = math.max(0,
+            math.floor(tonumber(data.brokenWeaponsTotal) or 0))
+    end
+    data.brokenWeaponsPartial = data.brokenWeaponsPartial == true
 
     return data, created
 end

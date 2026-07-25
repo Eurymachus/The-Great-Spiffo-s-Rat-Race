@@ -11,6 +11,7 @@ local TownSnapshot = require "TGSRR/Run/TownSnapshot"
 local LiteratureSnapshot = require "TGSRR/Run/LiteratureSnapshot"
 local LocationSnapshot = require "TGSRR/Run/LocationSnapshot"
 local MilestoneSnapshot = require "TGSRR/Run/MilestoneSnapshot"
+local BrokenWeaponSnapshot = require "TGSRR/Run/BrokenWeaponSnapshot"
 
 local Exporter = {}
 
@@ -85,6 +86,12 @@ function Exporter.generate(run, work)
                 tonumber(run.distanceRejectedSamples) or 0)),
             partial = run.distanceTravelledPartial == true,
         },
+        brokenWeapons = {
+            total = math.max(0, math.floor(
+                tonumber(run.brokenWeaponsTotal) or 0)),
+            partial = run.brokenWeaponsPartial == true,
+            weapons = BrokenWeaponSnapshot.list(run.brokenWeapons),
+        },
     }
     if not projection.activeDay then return false, "missing_active_day" end
     local encoded, stats = ExportCodec.encode(
@@ -129,6 +136,10 @@ function Exporter.generate(run, work)
                 projection.distance.travelledMeters
             or decoded.projection.activeDay.distanceDeltaMeters ~=
                 projection.activeDay.distanceDeltaMeters
+            or decoded.projection.brokenWeapons.total ~=
+                projection.brokenWeapons.total
+            or #decoded.projection.brokenWeapons.weapons ~=
+                #projection.brokenWeapons.weapons
             or decoded.projection.challengeProgress.rulesVersion ~=
                 projection.challengeProgress.rulesVersion then
         return false, "export_readback_mismatch"

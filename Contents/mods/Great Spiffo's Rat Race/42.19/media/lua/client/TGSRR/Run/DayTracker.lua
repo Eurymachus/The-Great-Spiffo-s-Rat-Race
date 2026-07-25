@@ -49,6 +49,10 @@ local function beginDay(initial)
                 current.distanceTravelledMeters
                     - (tonumber(previousState.distanceTravelledMeters) or 0)),
             distancePartial = previousState.distancePartial == true,
+            brokenWeaponDeltas =
+                deltas(current.brokenWeapons, previousState.brokenWeapons),
+            brokenWeaponsPartial =
+                previousState.brokenWeaponsPartial == true,
         }
     end
 
@@ -71,6 +75,9 @@ local function beginDay(initial)
             distanceTravelledMeters = current.distanceTravelledMeters,
             distancePartial =
                 initial == true and activeRun.distanceTravelledPartial == true,
+            brokenWeapons = current.brokenWeapons,
+            brokenWeaponsPartial =
+                initial == true and activeRun.brokenWeaponsPartial == true,
         },
         previousDay = previousDay,
     }, {
@@ -95,6 +102,9 @@ local function beginDay(initial)
         distanceTravelledMeters = current.distanceTravelledMeters,
         distancePartial =
             initial == true and activeRun.distanceTravelledPartial == true,
+        brokenWeapons = current.brokenWeapons,
+        brokenWeaponsPartial =
+            initial == true and activeRun.brokenWeaponsPartial == true,
     }
     return true
 end

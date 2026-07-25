@@ -386,6 +386,11 @@ function ExportCodec.selfTest(work)
                 fireDeathsPartial = false,
                 distanceDeltaMeters = 1250.5,
                 distancePartial = false,
+                brokenWeaponDeltas = {
+                    ["Base.Axe"] = 1,
+                    ["Base.HuntingKnife"] = 2,
+                },
+                brokenWeaponsPartial = false,
             },
             weaponKills = {
                 partial = false,
@@ -428,6 +433,14 @@ function ExportCodec.selfTest(work)
                 rejectedSamples = 2,
                 partial = false,
             },
+            brokenWeapons = {
+                total = 3,
+                partial = false,
+                weapons = {
+                    { id = "Base.Axe", breaks = 1 },
+                    { id = "Base.HuntingKnife", breaks = 2 },
+                },
+            },
         }, work
     )
     local decoded, decodeError = ExportCodec.decode(encoded, work)
@@ -451,6 +464,9 @@ function ExportCodec.selfTest(work)
             or decoded.projection.milestones.killMilestones[1].threshold ~= 1000
             or decoded.projection.distance.travelledMeters ~= 12345.75
             or decoded.projection.activeDay.distanceDeltaMeters ~= 1250.5
+            or decoded.projection.brokenWeapons.total ~= 3
+            or decoded.projection.brokenWeapons.weapons[2].breaks ~= 2
+            or decoded.projection.activeDay.brokenWeaponDeltas["Base.Axe"] ~= 1
             or decoded.projection.activeDay.dayIndex ~= 4
             or decoded.projection.activeDay.xpDeltas.Fitness ~= 45.25
             or decoded.projection.activeDay.weaponKillDeltas.__VEHICLE__ ~= 2
