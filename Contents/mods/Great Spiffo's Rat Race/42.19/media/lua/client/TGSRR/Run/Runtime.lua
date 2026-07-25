@@ -84,9 +84,11 @@ local function modReferenceDelta(previous, current)
 end
 
 local function initialize()
-    if initialized or not Identity.isRatRaceChallenge() then return end
+    if initialized then return end
     local player = getSpecificPlayer(0)
     if not player then return end
+    local existingRun = Identity.get()
+    if not existingRun and not Identity.isRatRaceChallenge() then return end
     initialized = true
 
     local codecOk, codecError = EventCodec.selfTest()
@@ -95,7 +97,6 @@ local function initialize()
         return
     end
 
-    local existingRun = Identity.get()
     local selectedTraitSnapshot = existingRun and nil or PendingTraitSelection.consume(player)
     local run, created = Identity.ensure(player, selectedTraitSnapshot)
     if not run then return end
@@ -146,6 +147,7 @@ local function initialize()
         utc = Identity.utcSeconds(),
         worldAgeHours = gameTime and gameTime:getWorldAgeHours() or 0,
         character = character,
+        challenge = Identity.observeChallenge(),
         modState = hasPreviousSession and "delta" or "baseline",
         mods = hasPreviousSession and {} or current.mods,
         addedMods = hasPreviousSession and addedMods or {},
@@ -156,6 +158,7 @@ local function initialize()
     local ledgerAppended, ledgerResult = Recorder.record("session.started", {
         sessionSequence = session.sequence,
         character = session.character,
+        challenge = session.challenge,
         modState = session.modState,
         mods = session.mods,
         addedMods = session.addedMods,

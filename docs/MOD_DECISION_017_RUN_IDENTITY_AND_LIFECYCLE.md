@@ -13,17 +13,26 @@ Existing saves first opened after this feature is introduced are supported. Thei
 - Canonical run identity: TGSRR global ModData.
 - File root: `TGSRR/Runs/<runId>/` under the Zomboid Lua storage area.
 - Starting character name: captured from the associated character descriptor.
-- Challenge variant: captured from the active Project Zomboid challenge ID and game mode.
+- Challenge evidence: the exact current Project Zomboid challenge ID and game
+  mode, captured at run creation and every session boundary.
 
 Character names are mutable and non-unique. A name change never changes the run ID.
 
 ## Lifecycle
 
-The normalized lifecycle begins with `active`. Later transitions may produce `completed`, `abandoned`, `recovery_required`, or `invalid`. Official classification is a separate field so lifecycle and verification policy do not become conflated.
+The factual mod-side lifecycle begins with `active`. Later observed transitions
+may record events such as character death, completion, abandonment, or a recovery
+condition. These observations are distinct from website-owned submission status
+and run eligibility.
 
-Until challenge-mode registration explicitly assigns verification policy, the foundation records `unclassified`. It must not silently label a bootstrapped development save as an official run.
+The mod does not store or export an authoritative `official`, `unofficial`, or
+`unclassified` verdict. It exports neutral evidence. The website applies the
+current competition rules and a moderator can approve or decline a submission
+and determine run eligibility.
 
-Continuing after a disqualifying decision may permanently change official classification to `unofficial`; it does not create a new run ID. Approved recovery creates a new epoch/branch inside the same run, as specified in `MOD_RUN_DATA.md`.
+Continuing after a recovery decision does not create a new run ID. An approved
+recovery creates a new epoch/branch inside the same run, as specified in
+`MOD_RUN_DATA.md`; its eligibility effect is decided outside the mod.
 
 ## Session boundary
 
@@ -31,7 +40,8 @@ Each game load appends one session-start record containing:
 
 - Run ID and session sequence.
 - UTC time and world age.
-- Challenge ID and game mode.
+- Exact current challenge ID and game mode. Unknown or changed values are retained
+  as evidence rather than rejected or normalized.
 - Current character name.
 - Sorted complete active-mod ID set and unique Workshop-ID set.
 - Mod ID to Workshop ID mapping, including local/unpublished entries with no Workshop ID.

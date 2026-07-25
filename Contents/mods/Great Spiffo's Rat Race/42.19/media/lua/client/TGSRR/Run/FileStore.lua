@@ -2,7 +2,7 @@ local FileStore = {}
 
 local ROOT = "TGSRR/Runs"
 local META_FORMAT = 1
-local SESSION_FORMAT = 4
+local SESSION_FORMAT = 5
 
 local function encode(value)
     value = tostring(value == nil and "" or value)
@@ -42,11 +42,10 @@ local function writeMeta(run)
         { "createdWorldAgeHours", run.createdWorldAgeHours },
         { "bootstrapped", run.bootstrapped and "true" or "false" },
         { "lifecycle", run.lifecycle },
-        { "classification", run.classification },
         { "epoch", run.epoch },
-        { "challengeId", run.challengeId },
-        { "challengeMode", run.challengeMode },
-        { "gameMode", run.gameMode },
+        { "startingChallengeId", run.startingChallenge and run.startingChallenge.id },
+        { "startingGameMode", run.startingChallenge and run.startingChallenge.gameMode },
+        { "startingChallengePartial", run.startingChallengePartial and "true" or "false" },
         { "forename", run.startingCharacter and run.startingCharacter.forename },
         { "surname", run.startingCharacter and run.startingCharacter.surname },
         { "displayName", run.startingCharacter and run.startingCharacter.displayName },
@@ -146,8 +145,8 @@ function FileStore.appendSession(run, session)
         "seq=" .. encode(session.sequence),
         "utc=" .. encode(session.utc),
         "worldAgeHours=" .. encode(session.worldAgeHours),
-        "challengeId=" .. encode(run.challengeId),
-        "gameMode=" .. encode(run.gameMode),
+        "challengeId=" .. encode(session.challenge and session.challenge.id),
+        "gameMode=" .. encode(session.challenge and session.challenge.gameMode),
         "forename=" .. encode(session.character.forename),
         "surname=" .. encode(session.character.surname),
         "displayName=" .. encode(session.character.displayName),

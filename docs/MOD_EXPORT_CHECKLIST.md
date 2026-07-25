@@ -41,9 +41,9 @@ The `Contract` scope contains the agreed export contract. `Team request` contain
 | Contract | Skill milestones, including level 10 and elapsed days | 🟡 Planned | Generic level-reached events exist; milestone policy and persistent records remain unfinished. |
 | Contract | Outpost milestones and elapsed days | 🟢 Implemented | Deliverable and whole-outpost completion claims retain world age; the final export projection remains to be written. |
 | Contract | Overall challenge progress | 🟢 Implemented | Format-3 exports a rules-versioned map of the Tracker's kills, skills, and outposts summaries. Each retains current, target, normalized progress, availability, and status. No single overall percentage is defined. |
-| Contract | Challenge mode | 🟢 Implemented | Format-3 exports the stable `official`, `cdda`, or `sprinters` mode reference. This identifies the selected challenge variant and does not claim future submission eligibility. |
-| Contract | Whether the run remains official | 🟡 Planned | The classification foundation exists; final policy and transitions remain. |
-| Contract | Save rollbacks, recovery decisions, and continuation as an unofficial run | 🟡 Planned | The ledger and recovery model are designed but not implemented. |
+| Contract | Challenge mode | 🟢 Implemented | Every format-3 schema-1 projection contains `challenge.id` and `challenge.gameMode`, preserving the current raw Project Zomboid strings without mapping or inferring eligibility. Known IDs are `TGSRR`, `TGSRR_CDDA`, and `TGSRR_Sprinters`; unknown IDs remain valid evidence for website-side mapping and review. |
+| Contract | Whether the run remains official | 🔵 In progress — awaiting decision | Run eligibility is website/moderator-owned. The mod will export neutral rule-relevant evidence rather than an authoritative official/unofficial verdict; the complete evidence and policy boundary are still being defined. |
+| Contract | Save rollbacks and recovery decisions | 🟡 Planned | The mod-side ledger and neutral recovery-evidence model are designed but not implemented. Eligibility consequences belong to the website/moderator. |
 | Contract | Mods used when the run began | 🟢 Implemented | Captures Mod IDs, Workshop IDs, and their mapping. |
 | Contract | Mods added or removed during later sessions | 🟢 Implemented | Session-start deltas are recorded, and format-3 also exports the current sorted Mod ID/Workshop ID mapping so consumers need not reconstruct the active state from history. |
 | Team request | Distance travelled | 🟡 Planned | Use compact accumulated distance rather than raw position telemetry; final rules should reject teleport/discontinuity artefacts. |
@@ -109,5 +109,5 @@ Implementation and persisted test-run audit completed on 2026-07-24:
   hash-chained completion deltas. The projection exports complete derived item,
   literature-title, and print-media sets without inferring physical reading from
   profession recipes or skill levels.
-- Future run eligibility classification is not yet serialized in the format-3
-  current-state projection.
+- Submission status, run eligibility, and website lifecycle presentation are not
+  mod-authored fields. The projection supplies evidence for website-side policy.

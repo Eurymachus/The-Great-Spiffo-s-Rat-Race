@@ -40,15 +40,6 @@ local function characterProjection(run, player)
     }
 end
 
-local function challengeModeProjection(run)
-    local mode = run.challengeMode
-        or Identity.getChallengeMode(run.challengeId)
-        or Identity.getChallengeMode(Identity.getChallengeId())
-    if mode == "standard" then return "official" end
-    if mode == "cdda" or mode == "sprinters" then return mode end
-    return nil
-end
-
 function Exporter.generate(run, work)
     run = run or Identity.get()
     if not run or not run.runId then return false, "missing_active_run" end
@@ -60,7 +51,7 @@ function Exporter.generate(run, work)
     local player = getSpecificPlayer and getSpecificPlayer(0) or nil
     local projection = {
         schema = 1,
-        challengeMode = challengeModeProjection(run),
+        challenge = Identity.observeChallenge(),
         currentKills = math.max(0, tonumber(player and player:getZombieKills()) or 0),
         character = characterProjection(run, player),
         skills = SkillSnapshot.observe(player),
@@ -82,7 +73,6 @@ function Exporter.generate(run, work)
         literature = LiteratureSnapshot.observe(run),
         locations = LocationSnapshot.observe(run),
     }
-    if not projection.challengeMode then return false, "missing_challenge_mode" end
     if not projection.activeDay then return false, "missing_active_day" end
     local encoded, stats = ExportCodec.encode(
         ledger.runId,
@@ -98,7 +88,9 @@ function Exporter.generate(run, work)
             or decoded.eventHash ~= ledger.eventHash
             or decoded.currentKills ~= projection.currentKills
             or not decoded.projection or decoded.projection.schema ~= projection.schema
-            or decoded.projection.challengeMode ~= projection.challengeMode
+            or not decoded.projection.challenge
+            or decoded.projection.challenge.id ~= projection.challenge.id
+            or decoded.projection.challenge.gameMode ~= projection.challenge.gameMode
             or #decoded.projection.skills ~= #projection.skills
             or #decoded.projection.outposts ~= #projection.outposts
             or #decoded.projection.activeMods ~= #projection.activeMods

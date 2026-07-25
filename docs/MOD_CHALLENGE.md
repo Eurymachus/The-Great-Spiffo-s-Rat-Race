@@ -21,7 +21,8 @@ The Great Spiffo's Rat Race is an extreme, long-form Project Zomboid ironman cha
 
 ## Current implementation
 
-- Official, unofficial CDDA, and unofficial Sprinters challenge variants exist.
+- Standard, CDDA, and Sprinters challenge variants exist, identified by the raw
+  Project Zomboid IDs `TGSRR`, `TGSRR_CDDA`, and `TGSRR_Sprinters`.
 - Character respawn is removed for all three variants.
 - Sandbox configuration is supplied by the challenge scripts/configuration.
 - The tracker reads the Character Info zombie-kill counter and exposes normalized outpost progress.
@@ -33,11 +34,13 @@ The Great Spiffo's Rat Race is an extreme, long-form Project Zomboid ironman cha
 - Discord was the support and rules-discussion venue.
 - The official challenge was associated with leaderboard/bounty submission; unofficial variants were for fun and not leaderboard-eligible.
 
-These communication and submission details are product history. Their final in-game presentation is unresolved.
+These communication and submission details are product history, not eligibility
+verdicts emitted by the mod. The website maps challenge IDs for presentation and
+applies current competition policy to exported evidence.
 
 ## Open questions
 
-- Should official and unofficial variants display different submission/bounty messaging?
+- Should variants display different historical or submission/bounty messaging?
 - Where should the approved mod list, settings file, and current organizer links be presented?
 
 ## Related documents

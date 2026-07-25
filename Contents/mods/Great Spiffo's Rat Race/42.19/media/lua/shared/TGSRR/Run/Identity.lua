@@ -2,7 +2,7 @@ local Identity = {}
 local CharacterSnapshot = require "TGSRR/Run/CharacterSnapshot"
 
 local MOD_DATA_KEY = "TGSRR_Run"
-local SCHEMA_VERSION = 7
+local SCHEMA_VERSION = 8
 
 local CHALLENGE_MODES = {
     TGSRR = "standard",
@@ -43,18 +43,23 @@ local function root()
     return data
 end
 
-local function challengeId()
+local function challengeEvidence()
     local core = getCore and getCore() or nil
-    if not core then return nil end
-    local id = core.isChallenge and core:isChallenge()
-        and core.getChallengeID and nonEmpty(core:getChallengeID()) or nil
+    return {
+        id = core and core.getChallengeID and nonEmpty(core:getChallengeID()) or "",
+        gameMode = core and core.getGameMode and nonEmpty(core:getGameMode()) or "",
+    }
+end
+
+local function recognizedChallengeId()
+    local evidence = challengeEvidence()
+    local id = nonEmpty(evidence.id)
     if id and CHALLENGE_MODES[id] then return id end
-    local gameMode = core.getGameMode and nonEmpty(core:getGameMode()) or nil
-    return GAME_MODE_IDS[gameMode]
+    return GAME_MODE_IDS[nonEmpty(evidence.gameMode)]
 end
 
 function Identity.isRatRaceChallenge()
-    return CHALLENGE_MODES[challengeId()] ~= nil
+    return CHALLENGE_MODES[recognizedChallengeId()] ~= nil
 end
 
 local function newRunId()
@@ -67,13 +72,14 @@ local function newRunId()
 end
 
 function Identity.ensure(player, selectedTraitSnapshot)
-    if not Identity.isRatRaceChallenge() or not player then return nil, false end
-
+    if not player then return nil, false end
     local data = root()
+    if not nonEmpty(data.runId) and not Identity.isRatRaceChallenge() then
+        return nil, false
+    end
     local created = false
     if not nonEmpty(data.runId) then
-        local id = challengeId()
-        local core = getCore()
+        local challenge = challengeEvidence()
         local gameTime = getGameTime()
         local character = CharacterSnapshot.observe(player)
 
@@ -82,11 +88,8 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.createdWorldAgeHours = gameTime and gameTime:getWorldAgeHours() or 0
         data.bootstrapped = player.getHoursSurvived and player:getHoursSurvived() > 0 or false
         data.lifecycle = "active"
-        data.classification = "unclassified"
         data.epoch = 1
-        data.challengeId = id
-        data.challengeMode = CHALLENGE_MODES[id]
-        data.gameMode = core and nonEmpty(core:getGameMode()) or nil
+        data.startingChallenge = challenge
         data.startingCharacter = character.name
         data.selectedStartingTraits = selectedTraitSnapshot
             and selectedTraitSnapshot.traits or character.traits
@@ -112,6 +115,18 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.integrityStatus = "unverified"
         created = true
     end
+
+    if type(data.startingChallenge) ~= "table" then
+        data.startingChallenge = {
+            id = nonEmpty(data.challengeId) or "",
+            gameMode = nonEmpty(data.gameMode) or "",
+        }
+        data.startingChallengePartial = true
+    end
+    data.classification = nil
+    data.challengeId = nil
+    data.challengeMode = nil
+    data.gameMode = nil
 
     if type(data.selectedStartingTraits) ~= "table" then
         local legacy = type(data.startingTraits) == "table"
@@ -163,12 +178,8 @@ function Identity.get()
     return data
 end
 
-function Identity.getChallengeMode(id)
-    return CHALLENGE_MODES[id]
-end
-
-function Identity.getChallengeId()
-    return challengeId()
+function Identity.observeChallenge()
+    return challengeEvidence()
 end
 
 function Identity.utcSeconds()

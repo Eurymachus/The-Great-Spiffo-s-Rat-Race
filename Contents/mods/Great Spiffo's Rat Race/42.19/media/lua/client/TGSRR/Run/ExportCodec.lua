@@ -303,7 +303,10 @@ function ExportCodec.selfTest(work)
     local encoded = ExportCodec.encode(
         "rr-export-test", 1234567890, records, previousHash, {
             schema = 1,
-            challengeMode = "official",
+            challenge = {
+                id = "TGSRR_CDDA",
+                gameMode = "The Great Spiffo's Rat Race - CDDA",
+            },
             currentKills = 42,
             character = {
                 selectedStartingTraits = { "base:Brave", "base:Strong" },
@@ -397,7 +400,9 @@ function ExportCodec.selfTest(work)
     if not decoded then return false, decodeError end
     if decoded.runId ~= "rr-export-test" or decoded.eventSequence ~= #records
             or decoded.currentKills ~= 42
-            or decoded.projection.challengeMode ~= "official"
+            or decoded.projection.challenge.id ~= "TGSRR_CDDA"
+            or decoded.projection.challenge.gameMode ~=
+                "The Great Spiffo's Rat Race - CDDA"
             or decoded.projection.character.selectedStartingTraits[2] ~= "base:Strong"
             or decoded.projection.skills[2].id ~= "Sprinting"
             or decoded.projection.skills[2].level ~= 4

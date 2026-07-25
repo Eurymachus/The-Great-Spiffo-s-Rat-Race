@@ -84,7 +84,9 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Double-clicking an outpost opens the localized player-facing Outpost Overview with the full persisted deliverable set.
 - The player-facing Outpost Overview displays all current completion checks and last-known persisted values.
 - Outpost Overview rows provide localized requirement tooltips, and the window remembers its screen position, open/closed state, and selected outpost.
-- Tracker launches for official, CDDA, and Sprinters variants; submission/bounty presentation differences are not implemented.
+- Tracker launches for Standard, CDDA, and Sprinters variants. Exports preserve
+  the current raw Project Zomboid challenge ID and game-mode name; the website
+  maps those values for presentation and determines submission eligibility.
 
 ## Not implemented
 
@@ -94,8 +96,8 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 
 ## Recommended next action
 
-Define the canonical non-town location membership when ready, or continue with
-future eligibility classification.
+Define the canonical non-town location membership when ready, or continue adding
+neutral rule-relevant evidence for website-side eligibility review.
 
 ## Related decisions
 

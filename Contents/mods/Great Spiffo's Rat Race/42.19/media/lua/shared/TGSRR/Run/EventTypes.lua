@@ -12,7 +12,6 @@ local registered = {
     ["town.visited"] = true,
     ["literature.baseline"] = true,
     ["literature.read"] = true,
-    ["run.classification.changed"] = true,
     ["run.recovery.decided"] = true,
 }
 

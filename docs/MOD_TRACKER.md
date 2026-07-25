@@ -107,7 +107,8 @@ The Inspector is developer-facing diagnostics for BuildingDefs, RoomDefs, activa
 - Final tracker dimensions.
 - Whether a row uses a progress bar, table columns, staged status, or a combination.
 - Per-outpost partial-progress formula. The aggregate formula is settled, but its inputs are not.
-- Whether unofficial variants share identical tracker content or receive submission/bounty distinctions.
+- Whether challenge variants share identical tracker content or receive
+  submission/bounty presentation distinctions.
 
 ## Relevant implementation
 

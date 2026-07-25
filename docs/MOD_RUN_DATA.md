@@ -171,7 +171,7 @@ Suggested run artifacts:
 Export format 3 serializes the complete verified ledger history and a
 schema-versioned live-state projection, compresses it with TGSRR's deterministic LZSS codec,
 encodes it as Base64URL, and includes a SHA-256 checksum. The current live kill
-total, challenge-mode reference (`official`, `cdda`, or `sprinters`),
+total, raw challenge evidence (`challenge.id` and `challenge.gameMode`),
 starting/current character identity, immutable pre-spawn selected trait IDs,
 spawned effective trait IDs, current effective trait IDs, and a stable-ID snapshot
 of every current skill's category, level, and cumulative XP are included. The
@@ -244,7 +244,7 @@ This raises the effort needed to fabricate a consistent history and gives stream
 
 Recovery creates a new declared timeline branch; it never erases or overwrites existing history.
 
-If the external ledger head is ahead of the checkpoint embedded in a restored save, the load is a detected rollback. For an official run, normal play must pause until the recovery is either authorized, the player quits, or the run permanently continues as unofficial. The existing later records remain preserved as a superseded branch and are not counted again in accepted aggregates.
+If the external ledger head is ahead of the checkpoint embedded in a restored save, the load is a detected rollback. Normal play may need to pause until a recovery decision is recorded. The existing later records remain preserved as a superseded branch and are not counted again in accepted aggregates. The mod exports the rollback and recovery evidence; the website and moderator determine any eligibility consequence.
 
 An accepted recovery record contains at least:
 
@@ -274,7 +274,7 @@ Exports distinguish at least:
 - Normal uninterrupted continuation.
 - Detected unauthorized rollback or corruption.
 - Organizer-authorized recovery with superseded history retained.
-- Player choice to continue unofficially.
+- Player choice to continue after the detected condition.
 
 ## Loaded-mod session history
 
