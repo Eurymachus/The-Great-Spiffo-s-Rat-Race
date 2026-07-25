@@ -64,6 +64,10 @@ local function beginDay(initial)
                 previousState.animalsTrapped),
             animalsTrappedPartial =
                 previousState.animalsTrappedPartial == true,
+            animalBirthDeltas =
+                deltas(current.animalBirths, previousState.animalBirths),
+            animalBirthsPartial =
+                previousState.animalBirthsPartial == true,
         }
     end
 
@@ -96,6 +100,9 @@ local function beginDay(initial)
             animalsTrapped = current.animalsTrapped,
             animalsTrappedPartial =
                 initial == true and activeRun.animalsTrappedPartial == true,
+            animalBirths = current.animalBirths,
+            animalBirthsPartial =
+                initial == true and activeRun.animalBirthsPartial == true,
         },
         previousDay = previousDay,
     }, {
@@ -129,6 +136,9 @@ local function beginDay(initial)
         animalsTrapped = current.animalsTrapped,
         animalsTrappedPartial =
             initial == true and activeRun.animalsTrappedPartial == true,
+        animalBirths = current.animalBirths,
+        animalBirthsPartial =
+            initial == true and activeRun.animalBirthsPartial == true,
     }
     return true
 end

@@ -2,7 +2,7 @@ local Identity = {}
 local CharacterSnapshot = require "TGSRR/Run/CharacterSnapshot"
 
 local MOD_DATA_KEY = "TGSRR_Run"
-local SCHEMA_VERSION = 12
+local SCHEMA_VERSION = 13
 
 local CHALLENGE_MODES = {
     TGSRR = "standard",
@@ -124,6 +124,13 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.animalsTrapped = {}
         data.animalsTrappedTotal = 0
         data.animalsTrappedPartial = data.bootstrapped
+        data.animalBirths = {}
+        data.animalBirthsTotal = 0
+        data.animalBirthsPartial = data.bootstrapped
+        data.animalIdentities = {}
+        data.animalIdentityByPzId = {}
+        data.animalIdentitySequence = 0
+        data.animalBirthTrackingInitialized = false
         data.integrityStatus = "unverified"
         created = true
     end
@@ -220,6 +227,25 @@ function Identity.ensure(player, selectedTraitSnapshot)
             math.floor(tonumber(data.animalsTrappedTotal) or 0))
     end
     data.animalsTrappedPartial = data.animalsTrappedPartial == true
+    if type(data.animalBirths) ~= "table" then
+        data.animalBirths = {}
+        data.animalBirthsTotal = 0
+        data.animalBirthsPartial = true
+        data.animalBirthTrackingInitialized = false
+    else
+        data.animalBirthsTotal = math.max(0,
+            math.floor(tonumber(data.animalBirthsTotal) or 0))
+    end
+    data.animalBirthsPartial = data.animalBirthsPartial == true
+    data.animalIdentities = type(data.animalIdentities) == "table"
+        and data.animalIdentities or {}
+    data.animalIdentityByPzId =
+        type(data.animalIdentityByPzId) == "table"
+            and data.animalIdentityByPzId or {}
+    data.animalIdentitySequence = math.max(0,
+        math.floor(tonumber(data.animalIdentitySequence) or 0))
+    data.animalBirthTrackingInitialized =
+        data.animalBirthTrackingInitialized == true
 
     return data, created
 end

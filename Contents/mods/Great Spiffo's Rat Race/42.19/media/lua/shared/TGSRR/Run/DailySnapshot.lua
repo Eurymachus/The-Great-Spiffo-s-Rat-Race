@@ -4,6 +4,7 @@ local WeaponKillSnapshot = require "TGSRR/Run/WeaponKillSnapshot"
 local BrokenWeaponSnapshot = require "TGSRR/Run/BrokenWeaponSnapshot"
 local AnimalSlaughterSnapshot = require "TGSRR/Run/AnimalSlaughterSnapshot"
 local AnimalTrapSnapshot = require "TGSRR/Run/AnimalTrapSnapshot"
+local AnimalBirthSnapshot = require "TGSRR/Run/AnimalBirthSnapshot"
 
 local DailySnapshot = {}
 
@@ -21,6 +22,8 @@ function DailySnapshot.current(player, run)
             AnimalSlaughterSnapshot.copy(run and run.animalsSlaughtered),
         animalsTrapped =
             AnimalTrapSnapshot.copy(run and run.animalsTrapped),
+        animalBirths =
+            AnimalBirthSnapshot.copy(run and run.animalBirths),
     }
 end
 
@@ -73,6 +76,9 @@ function DailySnapshot.active(run, player)
         animalTrapDeltas = AnimalTrapSnapshot.deltaPairs(
             current.animalsTrapped, baseline.animalsTrapped),
         animalsTrappedPartial = baseline.animalsTrappedPartial == true,
+        animalBirthDeltas =
+            DailySnapshot.deltas(current.animalBirths, baseline.animalBirths),
+        animalBirthsPartial = baseline.animalBirthsPartial == true,
     }
 end
 

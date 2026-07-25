@@ -123,6 +123,16 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   cumulative total and aggregates by category, trap, and category/trap pairing.
   Daily records retain paired deltas, allowing either dimension to be derived
   without individual catch events.
+- Domestic births are reconciled from `IsoCell:getAnimals()`, animals inside
+  connected hutches, and animals in loaded trailers every five seconds. PZ
+  advances pregnancy during unloaded husbandry simulation but only creates the
+  litter when normal loaded server updating resumes; it exposes no Lua birth
+  event. TGSRR therefore assigns persistent run-owned identities in animal
+  ModData, baselines existing populations, and counts only a previously
+  untagged non-wild baby linked to an already-known mother. PZ animal IDs and
+  mother IDs support relationship restoration but are not treated as globally
+  unique identities. Identity bookkeeping is not exported; cumulative and
+  daily raw newborn-type aggregates are.
 - Distance travelled uses `Events.OnPlayerMove` and planar player-coordinate
   deltas, matching the established Twist Stats interpretation of one world unit
   as one metre and including vehicle movement. TGSRR adds a real-time

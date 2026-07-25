@@ -70,6 +70,10 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Successful local-player `Check Trap` claims aggregated cumulatively by raw
   trap-animal category, full trap item ID, and their pairing, with paired daily
   deltas. Unclaimed hourly catches and individual ledger events are excluded.
+- Conservative domestic-birth reconciliation across loaded world, connected
+  hutch, and trailer animals. Persistent TGSRR animal identities prevent
+  recounts; exports contain only cumulative and daily raw newborn-type totals,
+  not animal identities or individual birth events.
 - Saved window position, selected tab, open state, and movable launcher position.
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
 - One-second refresh that updates stable list entries in place.

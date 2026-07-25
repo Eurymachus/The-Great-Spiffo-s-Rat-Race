@@ -16,6 +16,7 @@ local DistanceTracker = require "TGSRR/Run/DistanceTracker"
 local BrokenWeaponTracker = require "TGSRR/Run/BrokenWeaponTracker"
 local AnimalSlaughterTracker = require "TGSRR/Run/AnimalSlaughterTracker"
 local AnimalTrapTracker = require "TGSRR/Run/AnimalTrapTracker"
+local AnimalBirthTracker = require "TGSRR/Run/AnimalBirthTracker"
 require "TGSRR/Run/ExportMenu"
 
 TGSRR = TGSRR or {}
@@ -198,6 +199,7 @@ local function initialize()
     BrokenWeaponTracker.initialize(run, player)
     AnimalSlaughterTracker.initialize(run, player)
     AnimalTrapTracker.initialize(run, player)
+    AnimalBirthTracker.initialize(run, player)
     local literatureReady, literatureError =
         LiteratureTracker.initialize(run, player, created)
     if not literatureReady then
