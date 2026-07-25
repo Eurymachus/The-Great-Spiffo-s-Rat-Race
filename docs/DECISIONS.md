@@ -319,3 +319,22 @@ Save is disabled when the displayed state matches the saved state, activates
 when a change is made, and returns to disabled after a successful save.
 Purpose-specific workflow actions such as approving or declining a submission
 remain distinct from ordinary form saving.
+
+## 2026-07-25 - Map raw challenge evidence on the website
+
+The mod exports the exact Project Zomboid challenge ID and game-mode name as
+objective evidence inside the format-3 schema-1 projection. It does not classify
+a run as official or unofficial. The website owns editable challenge-mode
+display names, aliases, ordering, activation, and grouping.
+
+Every submission preserves the raw challenge evidence and an optional mapping to
+a managed Challenge Mode. A run separately preserves its first reported
+challenge evidence and the current approved snapshot. Unknown IDs are accepted
+and shown as unmapped. When an existing save exposes an empty ID, the website may
+map its exact game-mode name while preserving the empty raw ID; exports predating
+the entire field remain legacy/unspecified.
+Changing challenge ID during a run is a dangerous review finding and prevents
+approval. Submission moderation, run eligibility, challenge mode, and lifecycle
+remain separate concepts. The existing run approval label is **Verified**, not
+**Official**, reserving official/unofficial for a future organiser-owned
+eligibility decision.

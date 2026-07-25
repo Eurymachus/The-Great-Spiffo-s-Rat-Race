@@ -242,10 +242,54 @@ class StreamingMedia(models.Model):
         return self.title or self.provider_media_id
 
 
+class ChallengeMode(models.Model):
+    key = models.CharField(
+        max_length=160,
+        unique=True,
+        help_text="The exact challenge ID exported by Project Zomboid.",
+    )
+    display_name = models.CharField(max_length=160)
+    game_mode_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="The expected Project Zomboid game-mode name, retained for comparison.",
+    )
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ("display_order", "display_name", "key")
+        verbose_name = "challenge mode"
+        verbose_name_plural = "challenge modes"
+
+    def __str__(self):
+        return self.display_name
+
+
+class ChallengeModeAlias(models.Model):
+    challenge_mode = models.ForeignKey(
+        ChallengeMode, on_delete=models.CASCADE, related_name="aliases"
+    )
+    key = models.CharField(
+        max_length=160,
+        unique=True,
+        help_text="An exact historical or alternative challenge ID.",
+    )
+
+    class Meta:
+        ordering = ("key",)
+        verbose_name = "challenge mode alias"
+        verbose_name_plural = "challenge mode aliases"
+
+    def __str__(self):
+        return self.key
+
+
 class ChallengeRun(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending first approval"
-        OFFICIAL = "official", "Official"
+        OFFICIAL = "official", "Verified"
 
     class Lifecycle(models.TextChoices):
         ACTIVE = "active", "Active"
@@ -273,6 +317,24 @@ class ChallengeRun(models.Model):
         on_delete=models.SET_NULL,
         related_name="+",
     )
+    challenge_mode = models.ForeignKey(
+        ChallengeMode,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="runs",
+    )
+    challenge_id = models.CharField(max_length=160, blank=True)
+    challenge_game_mode = models.CharField(max_length=255, blank=True)
+    starting_challenge_mode = models.ForeignKey(
+        ChallengeMode,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="starting_runs",
+    )
+    starting_challenge_id = models.CharField(max_length=160, blank=True)
+    starting_challenge_game_mode = models.CharField(max_length=255, blank=True)
     lifecycle_status = models.CharField(
         max_length=16, choices=Lifecycle.choices, default=Lifecycle.ACTIVE
     )
@@ -319,6 +381,14 @@ class ChallengeRun(models.Model):
             for submission in self.submissions.all()
         )
 
+    @property
+    def challenge_mode_display(self):
+        if self.challenge_mode_id:
+            return self.challenge_mode.display_name
+        if self.challenge_id:
+            return f"{self.challenge_id} (Unmapped)"
+        return "Legacy / Unspecified"
+
 
 class RunSubmission(models.Model):
     class Status(models.TextChoices):
@@ -355,6 +425,15 @@ class RunSubmission(models.Model):
     event_sequence = models.PositiveBigIntegerField(default=0)
     event_hash = models.CharField(max_length=64)
     projection = models.JSONField(default=dict, blank=True)
+    challenge_mode = models.ForeignKey(
+        ChallengeMode,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="submissions",
+    )
+    challenge_id = models.CharField(max_length=160, blank=True)
+    challenge_game_mode = models.CharField(max_length=255, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
     review_note = models.TextField(blank=True)
@@ -372,3 +451,11 @@ class RunSubmission(models.Model):
 
     def __str__(self):
         return f"{self.run} — {self.get_status_display()}"
+
+    @property
+    def challenge_mode_display(self):
+        if self.challenge_mode_id:
+            return self.challenge_mode.display_name
+        if self.challenge_id:
+            return f"{self.challenge_id} (Unmapped)"
+        return "Legacy / Unspecified"

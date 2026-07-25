@@ -53,6 +53,9 @@ a nickname using a verified email address.
 - Administration editing forms use one **Save** action that saves in place and
   continues editing. It activates only when the form has unsaved changes;
   workflow actions such as submission review remain separate.
+- Registry-backed administration is presented by concern without moving its
+  database models: Participant administration, Challenge configuration, Run
+  moderation, and Platform integrations.
 - Privileged, confirmation-protected closure processing with non-personal
   closure receipts and a documented nullable owner for future independent runs.
 - Cloudflare Turnstile integration using official test credentials locally.
@@ -65,6 +68,11 @@ a nickname using a verified email address.
   alone advances the run's canonical snapshot.
 - Current format-3 mod-export ingestion, including the signed ledger and complete
   character/trait projection, preserved on both the run and immutable submission.
+- Optional raw `challenge.id` and `challenge.gameMode` evidence within the
+  schema-1 projection. Exact IDs map to managed Challenge Modes; unknown IDs are
+  accepted as unmapped, empty IDs may map by the exact game-mode name, and legacy
+  exports remain unspecified. Starting evidence and the current approved
+  snapshot are preserved separately.
 - Independent run lifecycle tracking for active, deceased, abandoned, completed,
   and invalidated runs, presented as Active Runs and Past Runs on the participant
   dashboard. Lifecycle is moderator-managed until the tracker emits a terminal
@@ -137,7 +145,7 @@ under the nearest preceding item and moving left moves the item outward.
 
 ## Recommended next action
 
-Verify the revised navigation tree drag-and-drop interaction with root, second-
-level, and third-level moves before returning to the final mod export.
+Submit real format-3 exports for each seeded Challenge Mode and verify exact ID
+mapping, unknown-ID handling, and the mid-run mode-change review safeguard.
 
 Retention automation and a final pre-launch privacy review remain required.

@@ -122,7 +122,7 @@ SITE_ATTRIBUTION_URL = os.environ.get(
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    'registry.admin_site.RatRaceAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',

@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import (
+    ChallengeMode,
     ChallengeRun,
     Notification,
     Participant,
@@ -67,7 +68,13 @@ def literal_lzss(value):
     return bytes(output)
 
 
-def make_export(run_id="rr-web-test", kills=42, event_specs=None, projection=None):
+def make_export(
+    run_id="rr-web-test",
+    kills=42,
+    event_specs=None,
+    projection=None,
+    challenge=None,
+):
     event_specs = event_specs or [
         ("session.started", {"character": {"displayName": "Test Survivor"}}),
         ("day.started", {"partial": False}),
@@ -93,6 +100,8 @@ def make_export(run_id="rr-web-test", kills=42, event_specs=None, projection=Non
             "currentEffectiveTraits": ["base:Strong"],
         },
     }
+    if challenge is not None:
+        projection["challenge"] = challenge
     canonical = b"".join(
         frame(value)
         for value in (
@@ -126,6 +135,26 @@ class RunExportCodecTests(TestCase):
             decoded.generated_at,
             datetime.fromtimestamp(1784800100, tz=timezone.utc),
         )
+
+    def test_decodes_optional_raw_challenge_evidence(self):
+        decoded = decode_run_export(
+            make_export(
+                challenge={
+                    "id": "TGSRR_CDDA",
+                    "gameMode": "The Great Spiffo's Rat Race - CDDA",
+                }
+            )
+        )
+
+        self.assertEqual(decoded.challenge_id, "TGSRR_CDDA")
+        self.assertEqual(
+            decoded.challenge_game_mode,
+            "The Great Spiffo's Rat Race - CDDA",
+        )
+
+    def test_rejects_malformed_challenge_evidence(self):
+        with self.assertRaisesRegex(InvalidRunExport, "invalid challenge evidence"):
+            decode_run_export(make_export(challenge={"id": "TGSRR_CDDA"}))
 
     def test_rejects_changed_export(self):
         value = make_export()
@@ -178,6 +207,79 @@ class RunSubmissionTests(TestCase):
         dashboard = self.client.get(reverse("registry:account"))
         self.assertContains(dashboard, "Test Survivor")
         self.assertContains(dashboard, "42 kills")
+
+    def test_submission_maps_known_challenge_mode_and_preserves_raw_evidence(self):
+        response = self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    challenge={
+                        "id": "TGSRR_CDDA",
+                        "gameMode": "The Great Spiffo's Rat Race - CDDA",
+                    }
+                )
+            },
+        )
+
+        self.assertRedirects(response, reverse("registry:account"))
+        mode = ChallengeMode.objects.get(key="TGSRR_CDDA")
+        submission = RunSubmission.objects.get()
+        run = ChallengeRun.objects.get()
+        self.assertEqual(submission.challenge_mode, mode)
+        self.assertEqual(submission.challenge_id, "TGSRR_CDDA")
+        self.assertEqual(
+            submission.challenge_game_mode,
+            "The Great Spiffo's Rat Race - CDDA",
+        )
+        self.assertEqual(run.challenge_mode, mode)
+        self.assertEqual(run.challenge_id, "TGSRR_CDDA")
+        self.assertEqual(run.starting_challenge_mode, mode)
+        self.assertEqual(run.starting_challenge_id, "TGSRR_CDDA")
+        self.assertContains(
+            self.client.get(reverse("registry:account")),
+            "TGSRR - CDDA",
+        )
+
+    def test_unknown_challenge_mode_is_preserved_without_rejecting_submission(self):
+        response = self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    challenge={
+                        "id": "TGSRR_FutureMode",
+                        "gameMode": "The Great Spiffo's Rat Race - Future Mode",
+                    }
+                )
+            },
+        )
+
+        self.assertRedirects(response, reverse("registry:account"))
+        submission = RunSubmission.objects.get()
+        self.assertIsNone(submission.challenge_mode)
+        self.assertEqual(submission.challenge_id, "TGSRR_FutureMode")
+        self.assertEqual(
+            submission.challenge_mode_display,
+            "TGSRR_FutureMode (Unmapped)",
+        )
+
+    def test_empty_challenge_id_maps_by_exact_game_mode_name(self):
+        response = self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    challenge={
+                        "id": "",
+                        "gameMode": "The Great Spiffo's Rat Race",
+                    }
+                )
+            },
+        )
+
+        self.assertRedirects(response, reverse("registry:account"))
+        submission = RunSubmission.objects.get()
+        self.assertEqual(submission.challenge_id, "")
+        self.assertEqual(submission.challenge_mode.key, "TGSRR")
+        self.assertEqual(submission.challenge_mode_display, "TGSRR - Standard")
 
     def test_submission_snapshots_selected_stream_evidence(self):
         account = StreamingAccount.objects.create(
@@ -295,7 +397,7 @@ class RunSubmissionTests(TestCase):
         )
         self.client.force_login(self.participant)
         dashboard = self.client.get(reverse("registry:account"))
-        self.assertContains(dashboard, "Official")
+        self.assertContains(dashboard, "Verified")
         self.assertContains(dashboard, "Test Survivor")
         self.assertContains(dashboard, "In-game Day")
         self.assertNotContains(dashboard, "Day 1")
@@ -387,6 +489,56 @@ class RunSubmissionTests(TestCase):
         self.assertContains(response, "Recorded event types")
         self.assertContains(response, "Session started")
         self.assertContains(response, "Raw evidence and identifiers")
+
+    def test_review_and_approval_reject_mid_run_challenge_mode_change(self):
+        cdda = {
+            "id": "TGSRR_CDDA",
+            "gameMode": "The Great Spiffo's Rat Race - CDDA",
+        }
+        sprinters = {
+            "id": "TGSRR_Sprinters",
+            "gameMode": "The Great Spiffo's Rat Race - Sprinters",
+        }
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(challenge=cdda)},
+        )
+        extended_events = [
+            ("session.started", {"character": {"displayName": "Test Survivor"}}),
+            ("day.started", {"partial": False}),
+            ("day.started", {"partial": False}),
+        ]
+        self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    kills=50,
+                    event_specs=extended_events,
+                    challenge=sprinters,
+                )
+            },
+        )
+        changed = RunSubmission.objects.order_by("-submitted_at").first()
+        review = build_run_review(changed)
+        self.assertTrue(
+            any(
+                finding["title"] == "Starting challenge mode changed"
+                and finding["level"] == "danger"
+                for finding in review["findings"]
+            )
+        )
+
+        administrator = Participant.objects.create_superuser(
+            email="challenge-reviewer@example.com",
+            nickname="Challenge Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+        self.client.post(
+            reverse("admin:registry_runsubmission_approve", args=(changed.pk,))
+        )
+        changed.refresh_from_db()
+        self.assertEqual(changed.status, RunSubmission.Status.RECEIVED)
 
     def test_review_compares_pending_snapshot_with_approved_baseline(self):
         initial_specs = [

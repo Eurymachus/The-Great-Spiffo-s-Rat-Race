@@ -20,6 +20,8 @@ from django.conf import settings
 
 from .models import (
     AccountClosureRecord,
+    ChallengeMode,
+    ChallengeModeAlias,
     ChallengeRun,
     Notification,
     Participant,
@@ -33,6 +35,7 @@ from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
 from .notifications import notify
 from .run_review import build_run_review
 from .run_exports import decode_run_export
+from .challenge_modes import resolve_challenge_mode
 
 admin.site.site_header = f"{settings.SITE_SHORT_TITLE} administration"
 admin.site.site_title = f"{settings.SITE_SHORT_TITLE} admin"
@@ -430,18 +433,34 @@ class StreamingMediaAdmin(admin.ModelAdmin):
         return False
 
 
+class ChallengeModeAliasInline(admin.TabularInline):
+    model = ChallengeModeAlias
+    extra = 0
+
+
+@admin.register(ChallengeMode)
+class ChallengeModeAdmin(admin.ModelAdmin):
+    list_display = ("display_name", "key", "game_mode_name", "is_active", "display_order")
+    list_editable = ("is_active", "display_order")
+    search_fields = ("display_name", "key", "game_mode_name", "aliases__key")
+    inlines = (ChallengeModeAliasInline,)
+
+
 @admin.register(ChallengeRun)
 class ChallengeRunAdmin(admin.ModelAdmin):
     list_display = (
-        "run_id", "participant", "character_name", "lifecycle_status", "status",
+        "run_id", "participant", "character_name", "challenge_mode", "lifecycle_status", "status",
         "current_kills", "event_sequence", "updated_at",
     )
     list_filter = (
-        "lifecycle_status", "status", "export_format", "bootstrapped", "updated_at"
+        "challenge_mode", "lifecycle_status", "status", "export_format", "bootstrapped", "updated_at"
     )
     search_fields = ("run_id", "character_name", "participant__nickname", "participant__email")
     readonly_fields = (
-        "participant", "status", "approved_submission",
+        "participant", "status", "approved_submission", "challenge_mode",
+        "challenge_id", "challenge_game_mode",
+        "starting_challenge_mode", "starting_challenge_id",
+        "starting_challenge_game_mode",
         "run_id", "export_format", "generated_at", "current_kills",
         "event_sequence", "event_hash", "character_name", "bootstrapped",
         "latest_projection", "latest_events", "first_submitted_at", "updated_at",
@@ -467,6 +486,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
     readonly_fields = (
         "run", "baseline_submission", "submitter", "checksum", "raw_export", "export_format",
         "generated_at", "current_kills", "event_sequence", "event_hash",
+        "challenge_mode", "challenge_id", "challenge_game_mode",
         "submitted_at", "evidence_provider", "evidence_media_type",
         "evidence_media_id", "evidence_url", "evidence_title",
         "evidence_start_seconds", "evidence_end_seconds", "evidence_clips",
@@ -511,6 +531,21 @@ class RunSubmissionAdmin(admin.ModelAdmin):
             self.message_user(request, "This submission has already been reviewed.", level=messages.WARNING)
             return redirect("admin:registry_runsubmission_change", submission.pk)
         baseline = submission.run.approved_submission
+        starting_challenge_id = submission.run.starting_challenge_id
+        expected_challenge_id = (
+            baseline.challenge_id if baseline and baseline.challenge_id else starting_challenge_id
+        )
+        if (
+            expected_challenge_id
+            and submission.challenge_id
+            and expected_challenge_id != submission.challenge_id
+        ):
+            self.message_user(
+                request,
+                "This submission reports a different challenge mode from the approved baseline.",
+                level=messages.ERROR,
+            )
+            return redirect("admin:registry_runsubmission_change", submission.pk)
         if baseline and submission.event_sequence <= baseline.event_sequence:
             self.message_user(
                 request,
@@ -527,6 +562,11 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         run = submission.run
         run.status = ChallengeRun.Status.OFFICIAL
         run.approved_submission = submission
+        run.challenge_mode = resolve_challenge_mode(
+            decoded.challenge_id, decoded.challenge_game_mode
+        )
+        run.challenge_id = decoded.challenge_id
+        run.challenge_game_mode = decoded.challenge_game_mode
         run.export_format = decoded.format
         run.generated_at = decoded.generated_at
         run.current_kills = decoded.current_kills

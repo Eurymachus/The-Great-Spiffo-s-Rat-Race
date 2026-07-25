@@ -1655,7 +1655,10 @@ class RegistrationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="nav-filter"')
-        self.assertContains(response, "Participant Registry")
+        self.assertContains(response, "Participant administration")
+        self.assertContains(response, "Challenge configuration")
+        self.assertContains(response, "Run moderation")
+        self.assertContains(response, "Platform integrations")
 
     def test_csv_export_contains_selected_registration(self):
         self.client.post(reverse("registry:register"), self.registration_data())

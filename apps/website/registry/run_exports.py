@@ -77,6 +77,16 @@ class DecodedRunExport:
             for event in self.events
         )
 
+    @property
+    def challenge_id(self):
+        challenge = self.projection.get("challenge")
+        return challenge.get("id", "") if isinstance(challenge, dict) else ""
+
+    @property
+    def challenge_game_mode(self):
+        challenge = self.projection.get("challenge")
+        return challenge.get("gameMode", "") if isinstance(challenge, dict) else ""
+
 
 def _read_frame(value, cursor, *, tagged=False):
     if cursor >= len(value):
@@ -251,6 +261,16 @@ def decode_run_export(value):
         or not isinstance(projection.get("character"), dict)
     ):
         raise InvalidRunExport("The export contains an unsupported run projection.")
+    challenge = projection.get("challenge")
+    if challenge is not None and (
+        not isinstance(challenge, dict)
+        or not isinstance(challenge.get("id"), str)
+        or len(challenge["id"]) > 160
+        or not isinstance(challenge.get("gameMode"), str)
+        or not challenge["gameMode"]
+        or len(challenge["gameMode"]) > 255
+    ):
+        raise InvalidRunExport("The export contains invalid challenge evidence.")
 
     bodies = []
     body_cursor = 0

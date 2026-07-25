@@ -41,6 +41,7 @@ from .models import (
     StreamingMedia,
 )
 from .run_exports import InvalidRunExport, decode_run_export
+from .challenge_modes import resolve_challenge_mode
 from .notifications import notify
 from .rate_limit import exceeded, request_ip
 from .tokens import create_verification_token, read_verification_token
@@ -408,7 +409,9 @@ def verify(request, token):
 
 @login_required
 def account(request):
-    runs = request.user.challenge_runs.prefetch_related("submissions")
+    runs = request.user.challenge_runs.select_related("challenge_mode").prefetch_related(
+        "submissions__challenge_mode"
+    )
     return render(
         request,
         "registry/account.html",
@@ -424,7 +427,7 @@ def account(request):
             ),
             "pending_submissions": request.user.run_submissions.filter(
                 status=RunSubmission.Status.RECEIVED
-            ).select_related("run"),
+            ).select_related("run", "challenge_mode"),
         },
     )
 
@@ -439,6 +442,9 @@ def submit_run(request):
         except InvalidRunExport as exc:
             form.add_error("run_export", str(exc))
         else:
+            challenge_mode = resolve_challenge_mode(
+                decoded.challenge_id, decoded.challenge_game_mode
+            )
             existing = ChallengeRun.objects.filter(run_id=decoded.run_id).first()
             if existing and existing.participant_id != request.user.id:
                 form.add_error(
@@ -472,6 +478,12 @@ def submit_run(request):
                             "current_kills": decoded.current_kills,
                             "event_sequence": decoded.event_sequence,
                             "event_hash": decoded.event_hash,
+                            "challenge_mode": challenge_mode,
+                            "challenge_id": decoded.challenge_id,
+                            "challenge_game_mode": decoded.challenge_game_mode,
+                            "starting_challenge_mode": challenge_mode,
+                            "starting_challenge_id": decoded.challenge_id,
+                            "starting_challenge_game_mode": decoded.challenge_game_mode,
                         },
                     )
                     run.participant = request.user
@@ -485,6 +497,9 @@ def submit_run(request):
                         run.bootstrapped = decoded.bootstrapped
                         run.latest_projection = decoded.projection
                         run.latest_events = decoded.events
+                        run.challenge_mode = challenge_mode
+                        run.challenge_id = decoded.challenge_id
+                        run.challenge_game_mode = decoded.challenge_game_mode
                         run.save()
                     selected_media = form.media_by_id.get(
                         form.cleaned_data.get("evidence_video")
@@ -505,6 +520,9 @@ def submit_run(request):
                         event_sequence=decoded.event_sequence,
                         event_hash=decoded.event_hash,
                         projection=decoded.projection,
+                        challenge_mode=challenge_mode,
+                        challenge_id=decoded.challenge_id,
+                        challenge_game_mode=decoded.challenge_game_mode,
                         evidence_provider=(
                             selected_media.account.provider if selected_media else ""
                         ),

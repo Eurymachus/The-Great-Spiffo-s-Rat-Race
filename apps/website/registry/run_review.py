@@ -161,6 +161,74 @@ def build_run_review(current_submission):
         )
 
     baseline = _baseline_for(current_submission)
+    challenge_mode = current_submission.challenge_mode
+    if not decoded.challenge_id and not decoded.challenge_game_mode:
+        findings.append(
+            {
+                "level": "info",
+                "title": "Legacy challenge evidence",
+                "message": "This export predates explicit challenge-mode evidence.",
+            }
+        )
+    elif not challenge_mode:
+        findings.append(
+            {
+                "level": "warning",
+                "title": "Unmapped challenge mode",
+                "message": (
+                    "The website does not currently map "
+                    f'"{decoded.challenge_id or decoded.challenge_game_mode}".'
+                ),
+            }
+        )
+    elif not decoded.challenge_id:
+        findings.append(
+            {
+                "level": "info",
+                "title": "Challenge mode recognised by game-mode name",
+                "message": (
+                    f"{challenge_mode.display_name} matches the exact Project Zomboid "
+                    "game-mode name; this save did not expose a challenge ID."
+                ),
+            }
+        )
+    elif (
+        challenge_mode.game_mode_name
+        and decoded.challenge_game_mode != challenge_mode.game_mode_name
+    ):
+        findings.append(
+            {
+                "level": "warning",
+                "title": "Challenge game-mode name differs",
+                "message": (
+                    f'ID "{decoded.challenge_id}" maps to {challenge_mode.display_name}, '
+                    f'but Project Zomboid reported "{decoded.challenge_game_mode}".'
+                ),
+            }
+        )
+    else:
+        findings.append(
+            {
+                "level": "pass",
+                "title": "Challenge mode recognised",
+                "message": f"{challenge_mode.display_name} matches the exported challenge evidence.",
+            }
+        )
+    if (
+        run.starting_challenge_id
+        and decoded.challenge_id
+        and run.starting_challenge_id != decoded.challenge_id
+    ):
+        findings.append(
+            {
+                "level": "danger",
+                "title": "Starting challenge mode changed",
+                "message": (
+                    f'This run began as "{run.starting_challenge_id}" '
+                    f'but this submission reports "{decoded.challenge_id}".'
+                ),
+            }
+        )
     comparison = None
     baseline_events = []
     if baseline:
@@ -176,6 +244,21 @@ def build_run_review(current_submission):
                 }
             )
         else:
+            if (
+                baseline_export.challenge_id
+                and decoded.challenge_id
+                and baseline_export.challenge_id != decoded.challenge_id
+            ):
+                findings.append(
+                    {
+                        "level": "danger",
+                        "title": "Challenge mode changed",
+                        "message": (
+                            f'The approved baseline reports "{baseline_export.challenge_id}" '
+                            f'but this submission reports "{decoded.challenge_id}".'
+                        ),
+                    }
+                )
             common_length = min(len(baseline_events), len(events))
             changed_sequences = [
                 index + 1
@@ -225,6 +308,9 @@ def build_run_review(current_submission):
         "current_submission": current_submission,
         "baseline": baseline,
         "comparison": comparison,
+        "challenge_mode": challenge_mode,
+        "challenge_id": decoded.challenge_id,
+        "challenge_game_mode": decoded.challenge_game_mode,
         "findings": findings,
         "event_counts": [
             {

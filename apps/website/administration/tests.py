@@ -55,6 +55,24 @@ class WebsiteSettingsAdminTests(TestCase):
         self.assertNotContains(response, "Save and continue editing")
         self.assertNotContains(response, "Save and add another")
 
+    def test_registry_models_are_grouped_by_backend_concern(self):
+        response = self.client.get(reverse("admin:index"), follow=True)
+
+        self.assertContains(response, "Participant administration")
+        self.assertContains(response, "Challenge configuration")
+        self.assertContains(response, "Run moderation")
+        self.assertContains(response, "Platform integrations")
+        content = response.content.decode()
+        self.assertLess(
+            content.index("Challenge configuration"),
+            content.index("Challenge modes"),
+        )
+        self.assertLess(content.index("Run moderation"), content.index("Challenge runs"))
+        self.assertLess(
+            content.index("Platform integrations"),
+            content.index("Cached streaming media"),
+        )
+
     def test_image_validator_uses_configured_limit(self):
         settings = WebsiteSettings.current()
         settings.maximum_image_upload_size = 1
