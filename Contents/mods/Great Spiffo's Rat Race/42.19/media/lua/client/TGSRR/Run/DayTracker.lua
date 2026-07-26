@@ -2,6 +2,7 @@ local Identity = require "TGSRR/Run/Identity"
 local Recorder = require "TGSRR/Run/Recorder"
 local DailySnapshot = require "TGSRR/Run/DailySnapshot"
 local AnimalTrapSnapshot = require "TGSRR/Run/AnimalTrapSnapshot"
+local InjurySnapshot = require "TGSRR/Run/InjurySnapshot"
 
 local DayTracker = {}
 
@@ -68,6 +69,12 @@ local function beginDay(initial)
                 deltas(current.animalBirths, previousState.animalBirths),
             animalBirthsPartial =
                 previousState.animalBirthsPartial == true,
+            injuryDeltas = InjurySnapshot.deltaPairs(
+                current.injuries, previousState.injuries),
+            zombieAssociatedInjuryDeltas = InjurySnapshot.deltaPairs(
+                current.zombieAssociatedInjuries,
+                previousState.zombieAssociatedInjuries),
+            injuriesPartial = previousState.injuriesPartial == true,
         }
     end
 
@@ -103,6 +110,11 @@ local function beginDay(initial)
             animalBirths = current.animalBirths,
             animalBirthsPartial =
                 initial == true and activeRun.animalBirthsPartial == true,
+            injuries = current.injuries,
+            zombieAssociatedInjuries =
+                current.zombieAssociatedInjuries,
+            injuriesPartial =
+                initial == true and activeRun.injuriesPartial == true,
         },
         previousDay = previousDay,
     }, {
@@ -139,6 +151,11 @@ local function beginDay(initial)
         animalBirths = current.animalBirths,
         animalBirthsPartial =
             initial == true and activeRun.animalBirthsPartial == true,
+        injuries = current.injuries,
+        zombieAssociatedInjuries =
+            current.zombieAssociatedInjuries,
+        injuriesPartial =
+            initial == true and activeRun.injuriesPartial == true,
     }
     return true
 end
@@ -147,6 +164,13 @@ function DayTracker.initialize(run, player)
     activeRun = run
     activePlayer = player
     if type(run.dailyState) ~= "table" then return beginDay(true) end
+    if type(run.dailyState.injuries) ~= "table" then
+        local current = snapshot(player)
+        run.dailyState.injuries = current.injuries
+        run.dailyState.zombieAssociatedInjuries =
+            current.zombieAssociatedInjuries
+        run.dailyState.injuriesPartial = true
+    end
     return true
 end
 

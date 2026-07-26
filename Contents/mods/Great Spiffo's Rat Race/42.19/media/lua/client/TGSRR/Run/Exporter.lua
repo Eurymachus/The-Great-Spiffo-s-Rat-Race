@@ -17,6 +17,7 @@ local AnimalTrapSnapshot = require "TGSRR/Run/AnimalTrapSnapshot"
 local AnimalBirthSnapshot = require "TGSRR/Run/AnimalBirthSnapshot"
 local GeneratorKnowledgeSnapshot =
     require "TGSRR/Run/GeneratorKnowledgeSnapshot"
+local InjurySnapshot = require "TGSRR/Run/InjurySnapshot"
 
 local Exporter = {}
 
@@ -120,6 +121,14 @@ function Exporter.generate(run, work)
             animalTypes = AnimalBirthSnapshot.list(run.animalBirths),
         },
         generatorKnowledge = GeneratorKnowledgeSnapshot.observe(run),
+        injuries = {
+            partial = run.injuriesPartial == true,
+            all = InjurySnapshot.observe(
+                run.injuries, run.injuriesTotal),
+            zombieAssociated = InjurySnapshot.observe(
+                run.zombieAssociatedInjuries,
+                run.zombieAssociatedInjuriesTotal),
+        },
     }
     if not projection.activeDay then return false, "missing_active_day" end
     local encoded, stats = ExportCodec.encode(
@@ -192,6 +201,16 @@ function Exporter.generate(run, work)
                 projection.generatorKnowledge.known
             or decoded.projection.generatorKnowledge.recipeId ~=
                 projection.generatorKnowledge.recipeId
+            or decoded.projection.injuries.all.total ~=
+                projection.injuries.all.total
+            or #decoded.projection.injuries.all.pairs ~=
+                #projection.injuries.all.pairs
+            or decoded.projection.injuries.zombieAssociated.total ~=
+                projection.injuries.zombieAssociated.total
+            or #decoded.projection.activeDay.injuryDeltas ~=
+                #projection.activeDay.injuryDeltas
+            or #decoded.projection.activeDay.zombieAssociatedInjuryDeltas ~=
+                #projection.activeDay.zombieAssociatedInjuryDeltas
             or decoded.projection.challengeProgress.rulesVersion ~=
                 projection.challengeProgress.rulesVersion then
         return false, "export_readback_mismatch"

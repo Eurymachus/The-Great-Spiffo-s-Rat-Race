@@ -107,6 +107,19 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   neutral evidence rather than a declared source: vanilla can grant generator
   knowledge through that magazine, the Electrician profession, or Electrical
   level 3 (level 2 with Inventive), while mods or admin tools can add it too.
+- Injuries: TGSRR reconciles the local player's 17 PZ `BodyPart` records during
+  `OnPlayerUpdate`. A false-to-true transition counts one distinct manifestation
+  of bite, scratch, laceration, deep wound, fracture, lodged glass, lodged
+  bullet, or burn. Cumulative and daily aggregates retain both raw injury type
+  and raw body-part ID. Bleeding and wound infection are complications and are
+  not counted separately. PZ gives wounds no identity, so repeated damage into
+  an already-active injury of the same type and body part is not reliably
+  distinguishable and is not claimed.
+- Zombie-associated injuries: a newly observed transition is separately
+  aggregated only when the contemporaneous `attackedBy` object is a zombie and
+  its `AttackDidDamage` flag is true. This is strong neutral evidence, not a
+  durable source assertion: PZ stores no wound source and `attackedBy` alone can
+  remain stale.
 - Non-town locations: the collector and export contract are registry-driven,
   but the canonical definition list is deliberately deferred. Registry version
   0 contains no locations and exports an authoritative empty list. When the

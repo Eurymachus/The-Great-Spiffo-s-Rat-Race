@@ -147,6 +147,17 @@ Electrician profession and at Electrical level 3, reduced to level 2 by
 Inventive. TGSRR records one first-observed milestone with contemporaneous
 evidence and does not assert which route caused it.
 
+PZ does not expose a general wound-created Lua event. `OnPlayerGetDamage`
+reports repeated health loss from causes such as bleeding, fire, hunger,
+poison, vehicles, and weapons, and is not emitted by the zombie
+scratch/laceration/bite mutation path. TGSRR therefore reconciles the fixed set
+of `BodyPart` injury flags on `OnPlayerUpdate`. This captures distinct
+false-to-true injury manifestations without wrapping the many unrelated Java
+and Lua creation paths. Zombie association additionally requires a
+contemporaneous zombie `attackedBy` object with `AttackDidDamage`; the exported
+name remains deliberately non-causal because PZ stores neither wound IDs nor
+durable wound-source attribution.
+
 ## Storage conclusion
 
 Global ModData and player ModData are serialized save state, not unbounded databases. There is no useful project-level promise that they may be made arbitrarily large. Large nested histories increase save size, serialization cost, load cost, and multiplayer synchronization risk; large player ModData has also proven fragile in practice.

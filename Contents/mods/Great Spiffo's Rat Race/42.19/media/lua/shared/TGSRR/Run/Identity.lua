@@ -2,7 +2,7 @@ local Identity = {}
 local CharacterSnapshot = require "TGSRR/Run/CharacterSnapshot"
 
 local MOD_DATA_KEY = "TGSRR_Run"
-local SCHEMA_VERSION = 14
+local SCHEMA_VERSION = 15
 
 local CHALLENGE_MODES = {
     TGSRR = "standard",
@@ -132,6 +132,12 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.animalIdentitySequence = 0
         data.animalBirthTrackingInitialized = false
         data.generatorKnowledge = nil
+        data.injuries = {}
+        data.injuriesTotal = 0
+        data.injuriesPartial = data.bootstrapped
+        data.zombieAssociatedInjuries = {}
+        data.zombieAssociatedInjuriesTotal = 0
+        data.injuryObservedState = nil
         data.integrityStatus = "unverified"
         created = true
     end
@@ -247,6 +253,23 @@ function Identity.ensure(player, selectedTraitSnapshot)
         math.floor(tonumber(data.animalIdentitySequence) or 0))
     data.animalBirthTrackingInitialized =
         data.animalBirthTrackingInitialized == true
+    if type(data.injuries) ~= "table" then
+        data.injuries = {}
+        data.injuriesTotal = 0
+        data.injuriesPartial = true
+        data.injuryObservedState = nil
+    else
+        data.injuriesTotal = math.max(0,
+            math.floor(tonumber(data.injuriesTotal) or 0))
+    end
+    data.injuriesPartial = data.injuriesPartial == true
+    data.zombieAssociatedInjuries =
+        type(data.zombieAssociatedInjuries) == "table"
+            and data.zombieAssociatedInjuries or {}
+    data.zombieAssociatedInjuriesTotal = math.max(0,
+        math.floor(tonumber(data.zombieAssociatedInjuriesTotal) or 0))
+    data.injuryObservedState = type(data.injuryObservedState) == "table"
+        and data.injuryObservedState or nil
 
     return data, created
 end
