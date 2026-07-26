@@ -75,6 +75,9 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
   recounts; exports contain only cumulative and daily raw newborn-type totals,
   not animal identities or individual birth events.
 - Saved window position, selected tab, open state, and movable launcher position.
+- Incremental local-player milk collection captured at Build 42.19's
+  authoritative `ISMilkAnimal:milk()` transfer edge, including partial fluid
+  increments, with cumulative raw milk-type totals and daily deltas.
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
 - One-second refresh that updates stable list entries in place.
 - Weighted Outposts percentage derived from the arithmetic mean of the 13 weighted individual percentages.

@@ -6,6 +6,7 @@ local AnimalSlaughterSnapshot = require "TGSRR/Run/AnimalSlaughterSnapshot"
 local AnimalTrapSnapshot = require "TGSRR/Run/AnimalTrapSnapshot"
 local AnimalBirthSnapshot = require "TGSRR/Run/AnimalBirthSnapshot"
 local InjurySnapshot = require "TGSRR/Run/InjurySnapshot"
+local MilkSnapshot = require "TGSRR/Run/MilkSnapshot"
 
 local DailySnapshot = {}
 
@@ -25,6 +26,8 @@ function DailySnapshot.current(player, run)
             AnimalTrapSnapshot.copy(run and run.animalsTrapped),
         animalBirths =
             AnimalBirthSnapshot.copy(run and run.animalBirths),
+        milkCollected =
+            MilkSnapshot.copy(run and run.milkCollected),
         injuries = InjurySnapshot.copy(run and run.injuries),
         zombieAssociatedInjuries =
             InjurySnapshot.copy(run and run.zombieAssociatedInjuries),
@@ -84,6 +87,9 @@ function DailySnapshot.active(run, player)
         animalBirthDeltas =
             DailySnapshot.deltas(current.animalBirths, baseline.animalBirths),
         animalBirthsPartial = baseline.animalBirthsPartial == true,
+        milkCollectedDeltas =
+            DailySnapshot.deltas(current.milkCollected, baseline.milkCollected),
+        milkCollectedPartial = baseline.milkCollectedPartial == true,
         injuryDeltas =
             InjurySnapshot.deltaPairs(current.injuries, baseline.injuries),
         zombieAssociatedInjuryDeltas = InjurySnapshot.deltaPairs(

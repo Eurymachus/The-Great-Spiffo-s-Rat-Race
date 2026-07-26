@@ -69,6 +69,10 @@ local function beginDay(initial)
                 deltas(current.animalBirths, previousState.animalBirths),
             animalBirthsPartial =
                 previousState.animalBirthsPartial == true,
+            milkCollectedDeltas = deltas(
+                current.milkCollected, previousState.milkCollected),
+            milkCollectedPartial =
+                previousState.milkCollectedPartial == true,
             injuryDeltas = InjurySnapshot.deltaPairs(
                 current.injuries, previousState.injuries),
             zombieAssociatedInjuryDeltas = InjurySnapshot.deltaPairs(
@@ -110,6 +114,9 @@ local function beginDay(initial)
             animalBirths = current.animalBirths,
             animalBirthsPartial =
                 initial == true and activeRun.animalBirthsPartial == true,
+            milkCollected = current.milkCollected,
+            milkCollectedPartial =
+                initial == true and activeRun.milkCollectedPartial == true,
             injuries = current.injuries,
             zombieAssociatedInjuries =
                 current.zombieAssociatedInjuries,
@@ -151,6 +158,9 @@ local function beginDay(initial)
         animalBirths = current.animalBirths,
         animalBirthsPartial =
             initial == true and activeRun.animalBirthsPartial == true,
+        milkCollected = current.milkCollected,
+        milkCollectedPartial =
+            initial == true and activeRun.milkCollectedPartial == true,
         injuries = current.injuries,
         zombieAssociatedInjuries =
             current.zombieAssociatedInjuries,
@@ -170,6 +180,11 @@ function DayTracker.initialize(run, player)
         run.dailyState.zombieAssociatedInjuries =
             current.zombieAssociatedInjuries
         run.dailyState.injuriesPartial = true
+    end
+    if type(run.dailyState.milkCollected) ~= "table" then
+        local current = snapshot(player)
+        run.dailyState.milkCollected = current.milkCollected
+        run.dailyState.milkCollectedPartial = true
     end
     return true
 end

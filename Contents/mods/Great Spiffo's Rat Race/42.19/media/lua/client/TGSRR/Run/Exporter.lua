@@ -18,6 +18,7 @@ local AnimalBirthSnapshot = require "TGSRR/Run/AnimalBirthSnapshot"
 local GeneratorKnowledgeSnapshot =
     require "TGSRR/Run/GeneratorKnowledgeSnapshot"
 local InjurySnapshot = require "TGSRR/Run/InjurySnapshot"
+local MilkSnapshot = require "TGSRR/Run/MilkSnapshot"
 
 local Exporter = {}
 
@@ -146,6 +147,14 @@ local function verifyReadback(decoded, ledger, projection)
         { "activeDay.animalBirthDeltas.count",
             count(actual.activeDay.animalBirthDeltas),
             count(projection.activeDay.animalBirthDeltas) },
+        { "milkCollected.total", actual.milkCollected.total,
+            projection.milkCollected.total },
+        { "milkCollected.milkTypes.count",
+            count(actual.milkCollected.milkTypes),
+            count(projection.milkCollected.milkTypes) },
+        { "activeDay.milkCollectedDeltas.count",
+            count(actual.activeDay.milkCollectedDeltas),
+            count(projection.activeDay.milkCollectedDeltas) },
         { "generatorKnowledge.known", actual.generatorKnowledge.known,
             projection.generatorKnowledge.known },
         { "generatorKnowledge.recipeId", actual.generatorKnowledge.recipeId,
@@ -246,6 +255,12 @@ function Exporter.generate(run, work)
                 tonumber(run.animalBirthsTotal) or 0)),
             partial = run.animalBirthsPartial == true,
             animalTypes = AnimalBirthSnapshot.list(run.animalBirths),
+        },
+        milkCollected = {
+            unit = "liter",
+            total = math.max(0, tonumber(run.milkCollectedTotal) or 0),
+            partial = run.milkCollectedPartial == true,
+            milkTypes = MilkSnapshot.list(run.milkCollected),
         },
         generatorKnowledge = GeneratorKnowledgeSnapshot.observe(run),
         injuries = {

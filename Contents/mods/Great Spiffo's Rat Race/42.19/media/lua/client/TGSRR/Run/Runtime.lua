@@ -17,6 +17,7 @@ local BrokenWeaponTracker = require "TGSRR/Run/BrokenWeaponTracker"
 local AnimalSlaughterTracker = require "TGSRR/Run/AnimalSlaughterTracker"
 local AnimalTrapTracker = require "TGSRR/Run/AnimalTrapTracker"
 local AnimalBirthTracker = require "TGSRR/Run/AnimalBirthTracker"
+local MilkTracker = require "TGSRR/Run/MilkTracker"
 local GeneratorKnowledgeTracker = require "TGSRR/Run/GeneratorKnowledgeTracker"
 local InjuryTracker = require "TGSRR/Run/InjuryTracker"
 require "TGSRR/Run/ExportMenu"
@@ -202,6 +203,7 @@ local function initialize()
     AnimalSlaughterTracker.initialize(run, player)
     AnimalTrapTracker.initialize(run, player)
     AnimalBirthTracker.initialize(run, player)
+    MilkTracker.initialize(run, player)
     InjuryTracker.initialize(run, player)
     local literatureReady, literatureError =
         LiteratureTracker.initialize(run, player, created)

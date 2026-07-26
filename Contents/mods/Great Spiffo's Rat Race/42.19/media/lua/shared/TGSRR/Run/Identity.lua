@@ -127,6 +127,9 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.animalBirths = {}
         data.animalBirthsTotal = 0
         data.animalBirthsPartial = data.bootstrapped
+        data.milkCollected = {}
+        data.milkCollectedTotal = 0
+        data.milkCollectedPartial = data.bootstrapped
         data.animalIdentities = {}
         data.animalIdentityByPzId = {}
         data.animalIdentitySequence = 0
@@ -244,6 +247,15 @@ function Identity.ensure(player, selectedTraitSnapshot)
             math.floor(tonumber(data.animalBirthsTotal) or 0))
     end
     data.animalBirthsPartial = data.animalBirthsPartial == true
+    if type(data.milkCollected) ~= "table" then
+        data.milkCollected = {}
+        data.milkCollectedTotal = 0
+        data.milkCollectedPartial = true
+    else
+        data.milkCollectedTotal =
+            math.max(0, tonumber(data.milkCollectedTotal) or 0)
+    end
+    data.milkCollectedPartial = data.milkCollectedPartial == true
     data.animalIdentities = type(data.animalIdentities) == "table"
         and data.animalIdentities or {}
     data.animalIdentityByPzId =
