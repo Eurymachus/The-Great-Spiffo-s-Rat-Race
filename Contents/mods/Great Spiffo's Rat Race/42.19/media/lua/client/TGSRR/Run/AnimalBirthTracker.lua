@@ -14,8 +14,13 @@ end
 
 local function javaValues(values, result, seen)
     if not values then return end
-    for index = 0, values:size() - 1 do
-        local value = values:get(index)
+    -- IsoCell:getAnimals() is declared as java.util.List and currently returns
+    -- a LinkedList. Kahlua can receive it but cannot expose size/get through
+    -- that interface-backed value. Copy every incoming Collection into the
+    -- concrete ArrayList class that PZ exposes to Lua.
+    local accessible = ArrayList.new(values)
+    for index = 0, accessible:size() - 1 do
+        local value = accessible:get(index)
         if value and not seen[value] then
             seen[value] = true
             result[#result + 1] = value
