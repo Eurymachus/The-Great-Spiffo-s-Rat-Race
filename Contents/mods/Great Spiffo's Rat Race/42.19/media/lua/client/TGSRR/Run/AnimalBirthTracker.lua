@@ -5,7 +5,12 @@ local SCAN_INTERVAL_SECONDS = 5
 
 local activeRun = nil
 local activePlayer = nil
-local secondsUntilScan = 0
+local nextScanMilliseconds = 0
+
+local function milliseconds()
+    if getTimestampMs then return tonumber(getTimestampMs()) or 0 end
+    return os.clock() * 1000
+end
 
 local function javaValues(values, result, seen)
     if not values then return end
@@ -176,21 +181,22 @@ local function reconcile(baseline)
     activeRun.animalBirthTrackingInitialized = true
 end
 
-function AnimalBirthTracker.onSecond()
-    if not activeRun then return end
-    secondsUntilScan = secondsUntilScan - 1
-    if secondsUntilScan > 0 then return end
-    secondsUntilScan = SCAN_INTERVAL_SECONDS
+function AnimalBirthTracker.onPlayerUpdate(player)
+    if not activeRun or player ~= activePlayer then return end
+    local now = milliseconds()
+    if now < nextScanMilliseconds then return end
+    nextScanMilliseconds = now + SCAN_INTERVAL_SECONDS * 1000
     reconcile(false)
 end
 
 function AnimalBirthTracker.initialize(run, player)
     activeRun = run
     activePlayer = player
-    secondsUntilScan = SCAN_INTERVAL_SECONDS
+    nextScanMilliseconds = milliseconds()
+        + SCAN_INTERVAL_SECONDS * 1000
     reconcile(run.animalBirthTrackingInitialized ~= true)
 end
 
-Events.EveryOneSecond.Add(AnimalBirthTracker.onSecond)
+Events.OnPlayerUpdate.Add(AnimalBirthTracker.onPlayerUpdate)
 
 return AnimalBirthTracker

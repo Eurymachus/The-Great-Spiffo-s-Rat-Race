@@ -9,6 +9,12 @@ local MAGAZINE_ID = "Base.ElectronicsMag4"
 local activeRun = nil
 local activePlayer = nil
 local installed = false
+local nextCheckMilliseconds = 0
+
+local function milliseconds()
+    if getTimestampMs then return tonumber(getTimestampMs()) or 0 end
+    return os.clock() * 1000
+end
 
 local function contains(values, wanted)
     for _, value in ipairs(values or {}) do
@@ -85,8 +91,11 @@ local function observeKnown(run, player, knownAtTrackingStart, partial)
     return true
 end
 
-local function check()
-    if not activeRun or not activePlayer then return end
+local function check(player)
+    if not activeRun or player ~= activePlayer then return end
+    local now = milliseconds()
+    if now < nextCheckMilliseconds then return end
+    nextCheckMilliseconds = now + 1000
     local state = activeRun.generatorKnowledge
     if type(state) == "table" and state.known == true then return end
     if activePlayer:isRecipeActuallyKnown(RECIPE_ID) then
@@ -104,12 +113,13 @@ end
 local function install()
     if installed then return end
     installed = true
-    Events.EveryOneSecond.Add(check)
+    Events.OnPlayerUpdate.Add(check)
 end
 
 function GeneratorKnowledgeTracker.initialize(run, player, created)
     activeRun = run
     activePlayer = player
+    nextCheckMilliseconds = milliseconds() + 1000
     install()
 
     if type(run.generatorKnowledge) == "table" then
