@@ -18,6 +18,95 @@ The **Code effect** column combines the vanilla tooltip with implementation trac
 - XP has several layers: base `XPmultiplier`, `XPBoost`, global/per-skill `MultiplierConfig.*`, plus profession/trait and literature bonuses.
 - Many world-generation settings only affect newly generated or not-yet-seen cells/buildings/vehicles. Changing them cannot reliably rewrite already-generated world state.
 
+## Loot-age mechanisms: exact Build 42.19 calculations
+
+These are two separate systems. **Pre-looted/trashed buildings** choose and transform a whole building through randomized-building stories. **Diminished generated loot** reduces ordinary item-generation probability in containers. Enabling one does not enable the other.
+
+### Shared apocalypse-age input
+
+Both calculations start with:
+
+```text
+ElapsedApocalypseDays = floor(GameTime.worldAgeHours / 24)
+                     + ((TimeSinceApo - 1) * 30)
+EffectiveElapsedApocalypseDays = max(1, ElapsedApocalypseDays)
+```
+
+`TimeSinceApo` therefore contributes a 30-day offset for every enum step after its first value. The minimum effective day is 1, so an enabled ramp begins slightly above zero rather than at exactly zero.
+
+### Pre-looted and trashed building calculation
+
+The base value returned by `SandboxOptions.getCurrentLootedChance(IsoGridSquare)` is:
+
+```text
+if MaximumLooted <= 0:
+    CurrentLootedChance = 0
+else if DaysUntilMaximumLooted <= 0:
+    CurrentLootedChance = MaximumLooted
+else:
+    LootedRampDay = min(EffectiveElapsedApocalypseDays, DaysUntilMaximumLooted)
+    CurrentLootedChance = floor(MaximumLooted * LootedRampDay
+                                / DaysUntilMaximumLooted)
+```
+
+When an `IsoGridSquare` is supplied, Build 42.19 then applies:
+
+```text
+if ItemPickerJava.getSquareRegion(IsoGridSquare) == null:
+    CurrentLootedChance = CurrentLootedChance * floor(RuralLooted)
+
+if IsoGridSquare.getSquareZombiesType() == "Rich":
+    CurrentLootedChance = floor(CurrentLootedChance * 1.5)
+
+if CurrentLootedChance <= 0:
+    CurrentLootedChance = 1
+```
+
+Consequences:
+
+- `RuralLooted` is stored as a double but cast to an integer: values from 0.0 through 0.999… multiply by 0, values from 1.0 through 1.999… multiply by 1, and 2.0 multiplies by 2. Because the final positive-setting floor is 1, a rural result reduced to 0 becomes 1 rather than disabling the story.
+- `MaximumLootedBuildingRooms` is checked separately. `RBLooted` and `RBTrashed` reject the entire building when its room count is greater than `MaximumLootedBuildingRooms`; they do not process only the first N rooms.
+- `RBShopLooted` accepts a real shop before reaching its non-shop room-count check, so the room ceiling principally governs houses/trashed buildings and non-shop candidates.
+- The computed value is consumed as the dynamic chance for the **Trashed Building** story and as a severity/eligibility input by related randomized-building stories. It is not itself a universal per-building dice roll applied to every building type.
+
+### Diminished generated-loot calculation
+
+`SandboxOptions.getCurrentDiminishedLootPercentage(IsoGridSquare)` calculates:
+
+```text
+if MaximumDiminishedLoot <= 0:
+    CurrentDiminishedLootPercentage = 0
+else if DaysUntilMaximumDiminishedLoot <= 0:
+    CurrentDiminishedLootPercentage = MaximumDiminishedLoot
+else:
+    DiminishedRampDay = min(EffectiveElapsedApocalypseDays,
+                            DaysUntilMaximumDiminishedLoot)
+    CurrentDiminishedLootPercentage =
+        floor(MaximumDiminishedLoot * DiminishedRampDay
+              / DaysUntilMaximumDiminishedLoot)
+
+if ItemPickerJava.getSquareRegion(IsoGridSquare) == null:
+    CurrentDiminishedLootPercentage =
+        CurrentDiminishedLootPercentage * floor(RuralLooted)
+
+CurrentDiminishedLootPercentage =
+    clamp(CurrentDiminishedLootPercentage, 0, 100)
+
+CurrentLootMultiplier =
+    1.0 - (CurrentDiminishedLootPercentage / 100.0)
+```
+
+`ItemPickerJava` applies that multiplier after the item's base chance, category loot modifier, and zombie-density addition have been combined:
+
+```text
+FinalItemSpawnChance =
+    ((BaseItemChance * 100 * CategoryLootModifier)
+      + AdjustedZombieDensity)
+    * CurrentLootMultiplier
+```
+
+Thus `MaximumDiminishedLoot = 20` eventually multiplies the combined chance by 0.80; `MaximumDiminishedLoot = 100` reduces it to zero. In a rural square, `RuralLooted = 2.0` doubles the diminished percentage before the 100% clamp. Unlike the pre-looted calculation, a fractional `RuralLooted` cast to 0 leaves the diminished percentage at 0.
+
 ## Complete option catalogue
 
 ### Population
@@ -139,12 +228,22 @@ The **Code effect** column combines the vanilla tooltip with implementation trac
 | **Hours for Loot Respawn**<br>`HoursForLootRespawn` | integer 0–Integer.MAX_VALUE; code default `0`; Apocalypse `0` | Interval in world hours between loot-restock attempts. `0` disables loot respawn, making the other loot-respawn controls inert. | Independent/no hard gate identified |
 | **Max Items For Loot Respawn**<br>`MaxItemsForLootRespawn` | integer 0–Integer.MAX_VALUE; code default `5`; Apocalypse `5` | Containers at or above this item count are not topped up during loot respawn. | `HoursForLootRespawn` |
 | **Construction Prevents Loot Respawn**<br>`ConstructionPreventsLootRespawn` | boolean; code default `true`; Apocalypse `true` | When enabled, player construction in the area prevents loot respawn there. | `HoursForLootRespawn` |
-| **Maximum Looted Building Rooms**<br>`MaximumLootedBuildingRooms` | integer 0–200; code default `50`; Apocalypse `50` | Caps how many rooms the pre-looted-building process may affect. | `MaximumLooted` |
-| **Maximum Looted Building Chance**<br>`MaximumLooted` | integer 0–200; code default `50`; Apocalypse `25` | Maximum chance value for selecting an eligible building as pre-looted. Current chance is `maximum × elapsed apocalypse days / ramp days`; values at/above 100 are effectively certain once fully ramped. | `DaysUntilMaximumLooted`, `RuralLooted`, `MaximumLootedBuildingRooms` |
-| **Days Until Max Looted Building Chance**<br>`DaysUntilMaximumLooted` | integer 0–3650; code default `90`; Apocalypse `90` | Ramp duration for `MaximumLooted`. `0` applies the maximum immediately; otherwise the code counts world age plus the `TimeSinceApo` starting offset and clamps at this day. | `MaximumLooted` |
-| **Rural Building Looted Chance Multiplier**<br>`RuralLooted` | double 0.0–2.0; code default `0.5`; Apocalypse `0.5` | Applied in rural squares to both pre-looted-building chance and diminished-loot percentage. Build 42.19 casts this double to an integer before multiplying, so 0.5 becomes 0, 1.x becomes 1, and 2.0 becomes 2. | `MaximumLooted`, `DaysUntilMaximumLooted` |
-| **Maximum Diminished Loot Percentage**<br>`MaximumDiminishedLoot` | integer 0–100; code default `0`; Apocalypse `20` | Maximum percentage removed multiplicatively from generated loot (`final × (1 - percentage/100)`). It ramps with apocalypse age and is clamped to 0–100. | `DaysUntilMaximumDiminishedLoot` |
-| **Days Until Maximum Diminished Loot**<br>`DaysUntilMaximumDiminishedLoot` | integer 0–3650; code default `3650`; Apocalypse `3650` | Ramp duration for `MaximumDiminishedLoot`. `0` applies the maximum immediately; otherwise world age plus `TimeSinceApo` is used. | `MaximumDiminishedLoot` |
+
+### Pre-looted and trashed buildings
+
+| UI name / raw ID | Type, range and default | Code effect | Related / gated by |
+|---|---|---|---|
+| **Maximum Looted Building Rooms**<br>`MaximumLootedBuildingRooms` | integer 0–200; code default `50`; Apocalypse `50` | Eligibility ceiling, not a partial-room cap. `RBLooted` and `RBTrashed` reject the entire building when `BuildingDef.getRooms().size()` exceeds `MaximumLootedBuildingRooms`; `RBShopLooted` accepts actual shops before its non-shop room-limit check. | `MaximumLooted`, `DaysUntilMaximumLooted` |
+| **Maximum Looted Building Chance**<br>`MaximumLooted` | integer 0–200; code default `50`; Apocalypse `25` | Upper value used by `SandboxOptions.getCurrentLootedChance()`. When positive, it ramps using `DaysUntilMaximumLooted`; it drives the Trashed Building story chance and the severity of some looted/trashed stories. Values at or above 100 saturate percentage-style chance checks. | `DaysUntilMaximumLooted`, `RuralLooted`, `MaximumLootedBuildingRooms`, `TimeSinceApo` |
+| **Days Until Max Looted Building Chance**<br>`DaysUntilMaximumLooted` | integer 0–3650; code default `90`; Apocalypse `90` | Number of apocalypse days over which `MaximumLooted` ramps to its configured value. `0` returns `MaximumLooted` immediately. | `MaximumLooted`, `RuralLooted`, `TimeSinceApo` |
+| **Rural Building Looted Chance Multiplier**<br>`RuralLooted` | double 0.0–2.0; code default `0.5`; Apocalypse `0.5` | Shared rural multiplier used by both `SandboxOptions.getCurrentLootedChance(IsoGridSquare)` and `SandboxOptions.getCurrentDiminishedLootPercentage(IsoGridSquare)`. Build 42.19 casts it to an integer before multiplication. | `MaximumLooted`, `DaysUntilMaximumLooted`, `MaximumDiminishedLoot`, `DaysUntilMaximumDiminishedLoot` |
+
+### Diminished generated loot
+
+| UI name / raw ID | Type, range and default | Code effect | Related / gated by |
+|---|---|---|---|
+| **Maximum Diminished Loot Percentage**<br>`MaximumDiminishedLoot` | integer 0–100; code default `0`; Apocalypse `20` | Upper percentage removed from ordinary generated loot by `SandboxOptions.getCurrentLootMultiplier(IsoGridSquare)`. It does not mark a building as pre-looted. | `DaysUntilMaximumDiminishedLoot`, `RuralLooted`, `TimeSinceApo` |
+| **Days Until Maximum Diminished Loot**<br>`DaysUntilMaximumDiminishedLoot` | integer 0–3650; code default `3650`; Apocalypse `3650` | Number of apocalypse days over which `MaximumDiminishedLoot` ramps to its configured percentage. `0` applies `MaximumDiminishedLoot` immediately. | `MaximumDiminishedLoot`, `RuralLooted`, `TimeSinceApo` |
 
 ### Utilities
 
