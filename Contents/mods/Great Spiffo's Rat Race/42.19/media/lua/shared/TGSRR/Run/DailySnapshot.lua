@@ -37,7 +37,8 @@ function DailySnapshot.deltas(current, baseline)
     for id in pairs(current or {}) do keys[id] = true end
     for id in pairs(baseline or {}) do keys[id] = true end
     for id in pairs(keys) do
-        local delta = (tonumber(current[id]) or 0) - (tonumber(baseline[id]) or 0)
+        local delta = (tonumber(current and current[id]) or 0)
+            - (tonumber(baseline and baseline[id]) or 0)
         if delta ~= 0 then result[id] = delta end
     end
     return result
