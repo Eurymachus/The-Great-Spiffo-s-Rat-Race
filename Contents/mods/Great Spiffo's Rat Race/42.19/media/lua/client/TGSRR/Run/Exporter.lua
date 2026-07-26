@@ -48,6 +48,133 @@ local function characterProjection(run, player)
     }
 end
 
+local function verifyReadback(decoded, ledger, projection)
+    if type(decoded.projection) ~= "table" then
+        return false, "export_readback_mismatch:projection:missing"
+    end
+    local actual = decoded.projection
+    if type(actual.challenge) ~= "table" then
+        return false, "export_readback_mismatch:challenge:missing"
+    end
+    if type(actual.activeDay) ~= "table" then
+        return false, "export_readback_mismatch:activeDay:missing"
+    end
+
+    local function count(values)
+        return type(values) == "table" and #values or -1
+    end
+    local function check(field, observed, expected)
+        if observed == expected then return nil end
+        if type(observed) == "number" and type(expected) == "number" then
+            local scale = math.max(1, math.abs(observed), math.abs(expected))
+            if math.abs(observed - expected) <= scale * 1e-12 then
+                return nil
+            end
+        end
+        return "export_readback_mismatch:" .. field
+            .. ":decoded=" .. tostring(observed)
+            .. ":source=" .. tostring(expected)
+    end
+
+    local comparisons = {
+        { "runId", decoded.runId, ledger.runId },
+        { "eventSequence", decoded.eventSequence, ledger.eventSequence },
+        { "eventHash", decoded.eventHash, ledger.eventHash },
+        { "currentKills", decoded.currentKills, projection.currentKills },
+        { "schema", actual.schema, projection.schema },
+        { "challenge.id", actual.challenge.id, projection.challenge.id },
+        { "challenge.gameMode", actual.challenge.gameMode,
+            projection.challenge.gameMode },
+        { "skills.count", count(actual.skills), count(projection.skills) },
+        { "outposts.count", count(actual.outposts), count(projection.outposts) },
+        { "activeMods.count", count(actual.activeMods),
+            count(projection.activeMods) },
+        { "activeDay.dayIndex", actual.activeDay.dayIndex,
+            projection.activeDay.dayIndex },
+        { "weaponKills.sources.count", count(actual.weaponKills.sources),
+            count(projection.weaponKills.sources) },
+        { "fireDeaths.count", actual.fireDeaths.count,
+            projection.fireDeaths.count },
+        { "townVisits.towns.count", count(actual.townVisits.towns),
+            count(projection.townVisits.towns) },
+        { "literature.currentItemIds.count",
+            count(actual.literature.currentItemIds),
+            count(projection.literature.currentItemIds) },
+        { "locations.entries.count", count(actual.locations.entries),
+            count(projection.locations.entries) },
+        { "milestones.outpostCompletions.count",
+            count(actual.milestones.outpostCompletions),
+            count(projection.milestones.outpostCompletions) },
+        { "milestones.killMilestones.count",
+            count(actual.milestones.killMilestones),
+            count(projection.milestones.killMilestones) },
+        { "milestones.outpostDeliverableMilestones.count",
+            count(actual.milestones.outpostDeliverableMilestones),
+            count(projection.milestones.outpostDeliverableMilestones) },
+        { "distance.travelledMeters", actual.distance.travelledMeters,
+            projection.distance.travelledMeters },
+        { "activeDay.distanceDeltaMeters",
+            actual.activeDay.distanceDeltaMeters,
+            projection.activeDay.distanceDeltaMeters },
+        { "brokenWeapons.total", actual.brokenWeapons.total,
+            projection.brokenWeapons.total },
+        { "brokenWeapons.weapons.count",
+            count(actual.brokenWeapons.weapons),
+            count(projection.brokenWeapons.weapons) },
+        { "animalsSlaughtered.total", actual.animalsSlaughtered.total,
+            projection.animalsSlaughtered.total },
+        { "animalsSlaughtered.animalTypes.count",
+            count(actual.animalsSlaughtered.animalTypes),
+            count(projection.animalsSlaughtered.animalTypes) },
+        { "animalsTrapped.total", actual.animalsTrapped.total,
+            projection.animalsTrapped.total },
+        { "animalsTrapped.animalTypes.count",
+            count(actual.animalsTrapped.animalTypes),
+            count(projection.animalsTrapped.animalTypes) },
+        { "animalsTrapped.traps.count", count(actual.animalsTrapped.traps),
+            count(projection.animalsTrapped.traps) },
+        { "animalsTrapped.pairs.count", count(actual.animalsTrapped.pairs),
+            count(projection.animalsTrapped.pairs) },
+        { "activeDay.animalTrapDeltas.count",
+            count(actual.activeDay.animalTrapDeltas),
+            count(projection.activeDay.animalTrapDeltas) },
+        { "animalBirths.total", actual.animalBirths.total,
+            projection.animalBirths.total },
+        { "animalBirths.animalTypes.count",
+            count(actual.animalBirths.animalTypes),
+            count(projection.animalBirths.animalTypes) },
+        { "activeDay.animalBirthDeltas.count",
+            count(actual.activeDay.animalBirthDeltas),
+            count(projection.activeDay.animalBirthDeltas) },
+        { "generatorKnowledge.known", actual.generatorKnowledge.known,
+            projection.generatorKnowledge.known },
+        { "generatorKnowledge.recipeId", actual.generatorKnowledge.recipeId,
+            projection.generatorKnowledge.recipeId },
+        { "injuries.all.total", actual.injuries.all.total,
+            projection.injuries.all.total },
+        { "injuries.all.pairs.count", count(actual.injuries.all.pairs),
+            count(projection.injuries.all.pairs) },
+        { "injuries.zombieAssociated.total",
+            actual.injuries.zombieAssociated.total,
+            projection.injuries.zombieAssociated.total },
+        { "activeDay.injuryDeltas.count",
+            count(actual.activeDay.injuryDeltas),
+            count(projection.activeDay.injuryDeltas) },
+        { "activeDay.zombieAssociatedInjuryDeltas.count",
+            count(actual.activeDay.zombieAssociatedInjuryDeltas),
+            count(projection.activeDay.zombieAssociatedInjuryDeltas) },
+        { "challengeProgress.rulesVersion",
+            actual.challengeProgress.rulesVersion,
+            projection.challengeProgress.rulesVersion },
+    }
+    for _, comparison in ipairs(comparisons) do
+        local reason = check(
+            comparison[1], comparison[2], comparison[3])
+        if reason then return false, reason end
+    end
+    return true
+end
+
 function Exporter.generate(run, work)
     run = run or Identity.get()
     if not run or not run.runId then return false, "missing_active_run" end
@@ -141,80 +268,9 @@ function Exporter.generate(run, work)
     )
     local decoded, decodeError = ExportCodec.decode(encoded, work)
     if not decoded then return false, decodeError end
-    if decoded.runId ~= ledger.runId or decoded.eventSequence ~= ledger.eventSequence
-            or decoded.eventHash ~= ledger.eventHash
-            or decoded.currentKills ~= projection.currentKills
-            or not decoded.projection or decoded.projection.schema ~= projection.schema
-            or not decoded.projection.challenge
-            or decoded.projection.challenge.id ~= projection.challenge.id
-            or decoded.projection.challenge.gameMode ~= projection.challenge.gameMode
-            or #decoded.projection.skills ~= #projection.skills
-            or #decoded.projection.outposts ~= #projection.outposts
-            or #decoded.projection.activeMods ~= #projection.activeMods
-            or not decoded.projection.activeDay
-            or decoded.projection.activeDay.dayIndex ~= projection.activeDay.dayIndex
-            or #decoded.projection.weaponKills.sources ~=
-                #projection.weaponKills.sources
-            or decoded.projection.fireDeaths.count ~=
-                projection.fireDeaths.count
-            or #decoded.projection.townVisits.towns ~=
-                #projection.townVisits.towns
-            or #decoded.projection.literature.currentItemIds ~=
-                #projection.literature.currentItemIds
-            or #decoded.projection.locations.entries ~=
-                #projection.locations.entries
-            or #decoded.projection.milestones.outpostCompletions ~=
-                #projection.milestones.outpostCompletions
-            or #decoded.projection.milestones.killMilestones ~=
-                #projection.milestones.killMilestones
-            or #decoded.projection.milestones.outpostDeliverableMilestones ~=
-                #projection.milestones.outpostDeliverableMilestones
-            or decoded.projection.distance.travelledMeters ~=
-                projection.distance.travelledMeters
-            or decoded.projection.activeDay.distanceDeltaMeters ~=
-                projection.activeDay.distanceDeltaMeters
-            or decoded.projection.brokenWeapons.total ~=
-                projection.brokenWeapons.total
-            or #decoded.projection.brokenWeapons.weapons ~=
-                #projection.brokenWeapons.weapons
-            or decoded.projection.animalsSlaughtered.total ~=
-                projection.animalsSlaughtered.total
-            or #decoded.projection.animalsSlaughtered.animalTypes ~=
-                #projection.animalsSlaughtered.animalTypes
-            or decoded.projection.animalsTrapped.total ~=
-                projection.animalsTrapped.total
-            or #decoded.projection.animalsTrapped.animalTypes ~=
-                #projection.animalsTrapped.animalTypes
-            or #decoded.projection.animalsTrapped.traps ~=
-                #projection.animalsTrapped.traps
-            or #decoded.projection.animalsTrapped.pairs ~=
-                #projection.animalsTrapped.pairs
-            or #decoded.projection.activeDay.animalTrapDeltas ~=
-                #projection.activeDay.animalTrapDeltas
-            or decoded.projection.animalBirths.total ~=
-                projection.animalBirths.total
-            or #decoded.projection.animalBirths.animalTypes ~=
-                #projection.animalBirths.animalTypes
-            or #decoded.projection.activeDay.animalBirthDeltas ~=
-                #projection.activeDay.animalBirthDeltas
-            or decoded.projection.generatorKnowledge.known ~=
-                projection.generatorKnowledge.known
-            or decoded.projection.generatorKnowledge.recipeId ~=
-                projection.generatorKnowledge.recipeId
-            or decoded.projection.injuries.all.total ~=
-                projection.injuries.all.total
-            or #decoded.projection.injuries.all.pairs ~=
-                #projection.injuries.all.pairs
-            or decoded.projection.injuries.zombieAssociated.total ~=
-                projection.injuries.zombieAssociated.total
-            or #decoded.projection.activeDay.injuryDeltas ~=
-                #projection.activeDay.injuryDeltas
-            or #decoded.projection.activeDay.zombieAssociatedInjuryDeltas ~=
-                #projection.activeDay.zombieAssociatedInjuryDeltas
-            or decoded.projection.challengeProgress.rulesVersion ~=
-                projection.challengeProgress.rulesVersion then
-        return false, "export_readback_mismatch"
-    end
+    local verified, verifyError =
+        verifyReadback(decoded, ledger, projection)
+    if not verified then return false, verifyError end
 
     local filename = ROOT .. "/" .. ledger.runId .. "/run.export"
     local writer = getFileWriter(filename, true, false)
