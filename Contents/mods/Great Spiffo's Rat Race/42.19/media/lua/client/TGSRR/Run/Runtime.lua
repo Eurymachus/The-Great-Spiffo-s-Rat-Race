@@ -4,6 +4,9 @@ local EventCodec = require "TGSRR/Run/EventCodec"
 local Ledger = require "TGSRR/Run/Ledger"
 local Recorder = require "TGSRR/Run/Recorder"
 local TrackingHealth = require "TGSRR/Run/TrackingHealth"
+local RecoveryPrompt = require "TGSRR/Run/RecoveryPrompt"
+local DevelopmentResetPrompt =
+    require "TGSRR/Run/DevelopmentResetPrompt"
 local EventBridge = require "TGSRR/Run/EventBridge"
 local DayTracker = require "TGSRR/Run/DayTracker"
 local Exporter = require "TGSRR/Run/Exporter"
@@ -14,6 +17,9 @@ local TownTracker = require "TGSRR/Run/TownTracker"
 local LiteratureTracker = require "TGSRR/Run/LiteratureTracker"
 local LocationTracker = require "TGSRR/Run/LocationTracker"
 local DistanceTracker = require "TGSRR/Run/DistanceTracker"
+local NimbleStanceTracker = require "TGSRR/Run/NimbleStanceTracker"
+local ActiveGameplayTracker =
+    require "TGSRR/Run/ActiveGameplayTracker"
 local BrokenWeaponTracker = require "TGSRR/Run/BrokenWeaponTracker"
 local AnimalSlaughterTracker = require "TGSRR/Run/AnimalSlaughterTracker"
 local AnimalTrapTracker = require "TGSRR/Run/AnimalTrapTracker"
@@ -39,6 +45,8 @@ TGSRR.Run.export = function()
 end
 
 local initialized = false
+local pendingDeclaredRecovery = nil
+local initialize
 
 local function activeMods()
     local mods = ModSnapshot.observe()
@@ -94,11 +102,21 @@ local function modReferenceDelta(previous, current)
     return added, removed, changed
 end
 
-local function initialize()
+initialize = function()
     if initialized then return end
     local player = getSpecificPlayer(0)
     if not player then return end
-    local existingRun = Identity.get()
+    local existingRun, existingError = Identity.get()
+    if existingError then
+        initialized = true
+        print("[TGSRR Run] Initialization halted: "
+            .. tostring(existingError))
+        TrackingHealth.stop(
+            existingError,
+            "The saved run uses an unsupported development contract."
+        )
+        return
+    end
     if not existingRun and not Identity.isRatRaceChallenge() then return end
     initialized = true
 
@@ -110,8 +128,19 @@ local function initialize()
     end
 
     local selectedTraitSnapshot = existingRun and nil or PendingTraitSelection.consume(player)
-    local run, created = Identity.ensure(player, selectedTraitSnapshot)
-    if not run then return end
+    local run, created, identityError =
+        Identity.ensure(player, selectedTraitSnapshot)
+    if not run then
+        if identityError then
+            print("[TGSRR Run] Initialization halted: "
+                .. tostring(identityError))
+            TrackingHealth.stop(
+                identityError,
+                "The saved run uses an unsupported development schema."
+            )
+        end
+        return
+    end
 
     local ok, state = FileStore.initialize(run, created)
     if not ok then
@@ -141,6 +170,64 @@ local function initialize()
         end
     end
     if not ledgerOk then
+        if ledgerError == "rollback_requires_declared_recovery"
+                or ledgerError == "event_segment_ahead_of_save" then
+            local ahead = Ledger.inspectAhead(run)
+            if ahead then
+                print("[TGSRR Run] Gameplay rollback requires a decision: "
+                    .. tostring(ahead.checkpointSequence) .. " -> "
+                    .. tostring(ahead.supersededEventSequence))
+                RecoveryPrompt.show(ahead, function(shouldContinue)
+                    if not shouldContinue then
+                        run.integrityStatus = "rollback_recovery_declined"
+                        TrackingHealth.stop(
+                            "rollback_recovery_declined",
+                            "Tracking remains stopped because the recovered run was not continued."
+                        )
+                        return
+                    end
+                    local branchCreated, branchResult, branchReused =
+                        Ledger.beginRecovery(run, {
+                            utc = Identity.utcSeconds(),
+                            reason = "save_rollback",
+                            deciderType = "player",
+                            deciderId = "local_player",
+                            authorizationStatus = "unapproved",
+                            selectedAction = "resume",
+                        })
+                    if not branchCreated then
+                        run.integrityStatus = branchResult
+                        TrackingHealth.stop(
+                            branchResult,
+                            "The recovery branch could not be created."
+                        )
+                        return
+                    end
+                    local sessionHead = FileStore.sessionHead(run.runId)
+                    if sessionHead then run.sessionSequence = sessionHead end
+                    local decisionExists, decisionError =
+                        Ledger.hasRecoveryDecision(
+                            run, branchResult.epoch)
+                    if decisionExists == nil then
+                        run.integrityStatus = decisionError
+                        TrackingHealth.stop(
+                            decisionError,
+                            "The resumed recovery branch could not be verified."
+                        )
+                        return
+                    end
+                    pendingDeclaredRecovery =
+                        decisionExists and nil or branchResult
+                    if branchReused then
+                        print("[TGSRR Run] Resuming existing recovery epoch "
+                            .. tostring(branchResult.epoch))
+                    end
+                    initialized = false
+                    initialize()
+                end)
+                return
+            end
+        end
         run.integrityStatus = ledgerError
         print("[TGSRR Run] Initialization halted: " .. tostring(ledgerError))
         TrackingHealth.stop(ledgerError, "Event-ledger verification failed.")
@@ -193,6 +280,37 @@ local function initialize()
             )
             return
         end
+    end
+
+    if pendingDeclaredRecovery then
+        local metadata = pendingDeclaredRecovery
+        local recoveryRecorded, recoveryError =
+            Recorder.record("run.recovery.decided", {
+                reason = metadata.reason,
+                decider = metadata.decider,
+                authorizationStatus = metadata.authorizationStatus,
+                selectedAction = metadata.selectedAction,
+                previousEpoch = metadata.parentEpoch,
+                epoch = metadata.epoch,
+                savedEventSequence = metadata.checkpointSequence,
+                savedEventHash = metadata.checkpointHash,
+                supersededEventSequence =
+                    metadata.supersededEventSequence,
+                supersededEventHash = metadata.supersededEventHash,
+                supersededEventTypes =
+                    metadata.supersededEventTypes,
+                supersededEventTypeCounts =
+                    metadata.supersededEventTypeCounts,
+            })
+        if not recoveryRecorded then
+            run.integrityStatus = recoveryError
+            TrackingHealth.stop(
+                recoveryError,
+                "Declared recovery evidence could not be recorded."
+            )
+            return
+        end
+        pendingDeclaredRecovery = nil
     end
 
     local current = activeMods()
@@ -260,6 +378,8 @@ local function initialize()
     TownTracker.initialize(run, player)
     LocationTracker.initialize(run, player, created)
     DistanceTracker.initialize(run, player)
+    NimbleStanceTracker.initialize(run, player)
+    ActiveGameplayTracker.initialize(run, player)
     BrokenWeaponTracker.initialize(run, player)
     AnimalSlaughterTracker.initialize(run, player)
     AnimalTrapTracker.initialize(run, player)
@@ -301,6 +421,15 @@ local function initialize()
     end
     print("[TGSRR Run] " .. (created and "Created" or "Loaded") .. " run " .. tostring(run.runId)
         .. ", session " .. tostring(nextSequence) .. (run.bootstrapped and " (bootstrapped)" or ""))
+    local developmentReset = Identity.consumeDevelopmentReset()
+    if developmentReset then
+        print("[TGSRR Run] TEMPORARY RESET COMPLETE: old run "
+            .. tostring(developmentReset.oldRunId)
+            .. " replaced by bootstrapped run "
+            .. tostring(run.runId)
+            .. " (" .. tostring(developmentReset.reason) .. ")")
+        DevelopmentResetPrompt.show(developmentReset, run.runId)
+    end
 end
 
 Events.OnGameStart.Add(initialize)

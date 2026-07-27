@@ -185,9 +185,9 @@ local function parseEnvelope(value)
     local formatText, nextCursor, formatError = readFrame(value, cursor)
     if not formatText then return nil, formatError end
     local format = tonumber(formatText)
-    if format ~= 1 and format ~= 2 and format ~= FORMAT then return nil, "unsupported_export_format" end
+    if format ~= FORMAT then return nil, "unsupported_export_format" end
     fields[1], cursor = formatText, nextCursor
-    local fieldCount = format >= 2 and 7 or 6
+    local fieldCount = 7
     for index = 2, fieldCount do
         local field, nextCursor, readError = readFrame(value, cursor)
         if not field then return nil, readError end
@@ -204,22 +204,13 @@ local function parseEnvelope(value)
     if not count or count < 0 or count % 1 ~= 0 then return nil, "invalid_export_event_count" end
     local currentKills = nil
     local projection = {}
-    local bodiesField = 6
-    if format == 2 then
-        currentKills = tonumber(fields[6])
-        if not currentKills or currentKills < 0 or currentKills % 1 ~= 0 then
-            return nil, "invalid_export_current_kills"
-        end
-        bodiesField = 7
-    elseif format >= 3 then
-        local projectionError
-        projection, projectionError = EventCodec.decodePayload(fields[6])
-        if not projection then return nil, projectionError end
-        currentKills = tonumber(projection.currentKills)
-        if not currentKills or currentKills < 0 or currentKills % 1 ~= 0 then
-            return nil, "invalid_export_current_kills"
-        end
-        bodiesField = 7
+    local bodiesField = 7
+    local projectionError
+    projection, projectionError = EventCodec.decodePayload(fields[6])
+    if not projection then return nil, projectionError end
+    currentKills = tonumber(projection.currentKills)
+    if not currentKills or currentKills < 0 or currentKills % 1 ~= 0 then
+        return nil, "invalid_export_current_kills"
     end
     local bodies = {}
     local bodyCursor = 1
@@ -308,7 +299,13 @@ function ExportCodec.selfTest(work)
                 gameMode = "The Great Spiffo's Rat Race - CDDA",
             },
             currentKills = 42,
+            weight = {
+                unit = "kilogram",
+                currentKilograms = 78.25,
+            },
             character = {
+                starting = { professionId = "carpenter" },
+                current = { professionId = "carpenter" },
                 selectedStartingTraits = { "base:Brave", "base:Strong" },
                 currentEffectiveTraits = { "base:Brave" },
             },
@@ -379,6 +376,7 @@ function ExportCodec.selfTest(work)
                 observedWorldAgeHours = 79.5,
                 elapsedWorldHours = 7.5,
                 killDelta = 87,
+                weightDeltaKilograms = -0.75,
                 xpDeltas = { Fitness = 45.25, Sprinting = 12 },
                 weaponKillDeltas = { ["Base.Axe"] = 3, __VEHICLE__ = 2 },
                 weaponKillsPartial = false,
@@ -401,6 +399,14 @@ function ExportCodec.selfTest(work)
                 },
             },
             fireDeaths = { count = 19, partial = false },
+            zombieKillTypes = {
+                standing = 10,
+                onfront = 11,
+                onback = 12,
+                fenceAssist = 8,
+                windowAssist = 1,
+                partial = false,
+            },
             milestones = {
                 schema = 1,
                 partial = false,
@@ -433,6 +439,16 @@ function ExportCodec.selfTest(work)
                 rejectedSamples = 2,
                 partial = false,
             },
+            nimbleStance = {
+                unit = "millisecond",
+                movementMilliseconds = 98765,
+                partial = false,
+            },
+            activeGameplay = {
+                unit = "millisecond",
+                milliseconds = 456789,
+                partial = false,
+            },
             brokenWeapons = {
                 total = 3,
                 partial = false,
@@ -451,6 +467,8 @@ function ExportCodec.selfTest(work)
             or decoded.projection.challenge.gameMode ~=
                 "The Great Spiffo's Rat Race - CDDA"
             or decoded.projection.character.selectedStartingTraits[2] ~= "base:Strong"
+            or decoded.projection.character.starting.professionId ~= "carpenter"
+            or decoded.projection.character.current.professionId ~= "carpenter"
             or decoded.projection.skills[2].id ~= "Sprinting"
             or decoded.projection.skills[2].level ~= 4
             or decoded.projection.skills[2].xp ~= 678.25
@@ -460,10 +478,17 @@ function ExportCodec.selfTest(work)
             or decoded.projection.challengeProgress.categories.skills.progress ~= 0.55
             or decoded.projection.activeMods[1].modId ~= "TGSRR"
             or decoded.projection.activeMods[2].workshopId ~= ""
+            or decoded.projection.weight.unit ~= "kilogram"
+            or decoded.projection.weight.currentKilograms ~= 78.25
             or decoded.projection.milestones.outpostCompletions[1].completionOrder ~= 1
             or decoded.projection.milestones.killMilestones[1].threshold ~= 1000
             or decoded.projection.distance.travelledMeters ~= 12345.75
+            or decoded.projection.nimbleStance.unit ~= "millisecond"
+            or decoded.projection.nimbleStance.movementMilliseconds ~= 98765
+            or decoded.projection.activeGameplay.unit ~= "millisecond"
+            or decoded.projection.activeGameplay.milliseconds ~= 456789
             or decoded.projection.activeDay.distanceDeltaMeters ~= 1250.5
+            or decoded.projection.activeDay.weightDeltaKilograms ~= -0.75
             or decoded.projection.brokenWeapons.total ~= 3
             or decoded.projection.brokenWeapons.weapons[2].breaks ~= 2
             or decoded.projection.activeDay.brokenWeaponDeltas["Base.Axe"] ~= 1
@@ -473,6 +498,11 @@ function ExportCodec.selfTest(work)
             or decoded.projection.weaponKills.sources[1].id ~= "Base.Axe"
             or decoded.projection.weaponKills.sources[1].kills ~= 12
             or decoded.projection.fireDeaths.count ~= 19
+            or decoded.projection.zombieKillTypes.standing ~= 10
+            or decoded.projection.zombieKillTypes.onfront ~= 11
+            or decoded.projection.zombieKillTypes.onback ~= 12
+            or decoded.projection.zombieKillTypes.fenceAssist ~= 8
+            or decoded.projection.zombieKillTypes.windowAssist ~= 1
             or decoded.projection.activeDay.fireDeathDelta ~= 6
             or decoded.eventHash ~= previousHash or decoded.bodies[2] ~= records[2].body then
         return false, "export_round_trip_mismatch"

@@ -2,7 +2,9 @@ local Identity = {}
 local CharacterSnapshot = require "TGSRR/Run/CharacterSnapshot"
 
 local MOD_DATA_KEY = "TGSRR_Run"
-local SCHEMA_VERSION = 15
+local SCHEMA_VERSION = 19
+local CONTRACT_VERSION = 1
+local pendingDevelopmentReset = nil
 
 local CHALLENGE_MODES = {
     TGSRR = "standard",
@@ -29,8 +31,31 @@ end
 
 local function root()
     local data = ModData.getOrCreate(MOD_DATA_KEY)
-    if data.schemaVersion ~= SCHEMA_VERSION then
+    local incompatible = nil
+    if nonEmpty(data.runId)
+            and tonumber(data.schemaVersion) ~= SCHEMA_VERSION then
+        incompatible = "unsupported_run_schema:"
+            .. tostring(data.schemaVersion)
+    elseif nonEmpty(data.runId)
+            and tonumber(data.contractVersion) ~= CONTRACT_VERSION then
+        incompatible = "unsupported_run_contract:"
+            .. tostring(data.contractVersion)
+    end
+    if incompatible then
+        local oldRunId = tostring(data.runId)
+        ModData.remove(MOD_DATA_KEY)
+        data = ModData.getOrCreate(MOD_DATA_KEY)
+        pendingDevelopmentReset = {
+            reason = incompatible,
+            oldRunId = oldRunId,
+        }
+        print("[TGSRR Run] TEMPORARY RESET: removed incompatible TGSRR_Run "
+            .. oldRunId .. " (" .. incompatible .. ")")
+    end
+    if not nonEmpty(data.runId) then
+        for key in pairs(data) do data[key] = nil end
         data.schemaVersion = SCHEMA_VERSION
+        data.contractVersion = CONTRACT_VERSION
     end
     data.sessionSequence = tonumber(data.sessionSequence) or 0
     data.lastModIds = type(data.lastModIds) == "table" and data.lastModIds or {}
@@ -39,7 +64,6 @@ local function root()
     data.eventSequence = tonumber(data.eventSequence) or 0
     data.eventHash = nonEmpty(data.eventHash) or string.rep("0", 64)
     data.dailyState = type(data.dailyState) == "table" and data.dailyState or nil
-    data.providerIds = nil -- discard obsolete pre-release integration state
     return data
 end
 
@@ -73,7 +97,8 @@ end
 
 function Identity.ensure(player, selectedTraitSnapshot)
     if not player then return nil, false end
-    local data = root()
+    local data, rootError = root()
+    if not data then return nil, false, rootError end
     if not nonEmpty(data.runId) and not Identity.isRatRaceChallenge() then
         return nil, false
     end
@@ -90,7 +115,7 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.lifecycle = "active"
         data.epoch = 1
         data.startingChallenge = challenge
-        data.startingCharacter = character.name
+        data.startingCharacter = character.identity
         data.selectedStartingTraits = selectedTraitSnapshot
             and selectedTraitSnapshot.traits or character.traits
         data.selectedStartingTraitsPartial = selectedTraitSnapshot == nil
@@ -103,6 +128,9 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.lastModRefs = {}
         data.eventSequence = 0
         data.eventHash = string.rep("0", 64)
+        data.parentEpoch = nil
+        data.branchCheckpointSequence = nil
+        data.branchCheckpointHash = nil
         data.dailyState = nil
         data.weaponKills = {}
         data.weaponKillsPartial = data.bootstrapped
@@ -110,11 +138,17 @@ function Identity.ensure(player, selectedTraitSnapshot)
             math.max(0, tonumber(player:getZombieKills()) or 0)
         data.fireDeaths = 0
         data.fireDeathsPartial = data.bootstrapped
+        data.zombieKillTypes = {}
+        data.zombieKillTypesPartial = data.bootstrapped
         data.townVisits = {}
         data.townVisitsPartial = data.bootstrapped
         data.distanceTravelledMeters = 0
         data.distanceRejectedSamples = 0
         data.distanceTravelledPartial = data.bootstrapped
+        data.nimbleStanceMovementMilliseconds = 0
+        data.nimbleStanceMovementPartial = data.bootstrapped
+        data.activeGameplayMilliseconds = 0
+        data.activeGameplayPartial = data.bootstrapped
         data.brokenWeapons = {}
         data.brokenWeaponsTotal = 0
         data.brokenWeaponsPartial = data.bootstrapped
@@ -152,11 +186,7 @@ function Identity.ensure(player, selectedTraitSnapshot)
     end
 
     if type(data.startingChallenge) ~= "table" then
-        data.startingChallenge = {
-            id = nonEmpty(data.challengeId) or "",
-            gameMode = nonEmpty(data.gameMode) or "",
-        }
-        data.startingChallengePartial = true
+        return nil, false, "invalid_current_run_state:startingChallenge"
     end
     local observedChallenge = challengeEvidence()
     if not nonEmpty(data.startingChallenge.id)
@@ -167,24 +197,14 @@ function Identity.ensure(player, selectedTraitSnapshot)
             and nonEmpty(observedChallenge.gameMode) then
         data.startingChallenge.gameMode = observedChallenge.gameMode
     end
-    data.classification = nil
-    data.challengeId = nil
-    data.challengeMode = nil
-    data.gameMode = nil
-
     if type(data.selectedStartingTraits) ~= "table" then
-        local legacy = type(data.startingTraits) == "table"
-            and data.startingTraits or CharacterSnapshot.traits(player)
-        data.selectedStartingTraits = legacy
-        data.selectedStartingTraitsPartial = true
-        data.selectedStartingTraitsCapturedUtc = data.createdUtc
+        return nil, false,
+            "invalid_current_run_state:selectedStartingTraits"
     end
     if type(data.startingEffectiveTraits) ~= "table" then
-        data.startingEffectiveTraits = type(data.startingTraits) == "table"
-            and data.startingTraits or CharacterSnapshot.traits(player)
+        return nil, false,
+            "invalid_current_run_state:startingEffectiveTraits"
     end
-    data.startingTraits = nil
-    data.startingTraitsPartial = nil
 
     if type(data.weaponKills) ~= "table" then
         data.weaponKills = {}
@@ -199,6 +219,11 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.fireDeaths = math.max(0,
             math.floor(tonumber(data.fireDeaths) or 0))
     end
+    if type(data.zombieKillTypes) ~= "table" then
+        data.zombieKillTypes = {}
+        data.zombieKillTypesPartial = true
+    end
+    data.zombieKillTypesPartial = data.zombieKillTypesPartial == true
     if type(data.townVisits) ~= "table" then
         data.townVisits = {}
         data.townVisitsPartial = true
@@ -215,6 +240,23 @@ function Identity.ensure(player, selectedTraitSnapshot)
             math.floor(tonumber(data.distanceRejectedSamples) or 0))
     end
     data.distanceTravelledPartial = data.distanceTravelledPartial == true
+    if data.nimbleStanceMovementMilliseconds == nil then
+        data.nimbleStanceMovementMilliseconds = 0
+        data.nimbleStanceMovementPartial = true
+    else
+        data.nimbleStanceMovementMilliseconds = math.max(0,
+            tonumber(data.nimbleStanceMovementMilliseconds) or 0)
+    end
+    data.nimbleStanceMovementPartial =
+        data.nimbleStanceMovementPartial == true
+    if data.activeGameplayMilliseconds == nil then
+        data.activeGameplayMilliseconds = 0
+        data.activeGameplayPartial = true
+    else
+        data.activeGameplayMilliseconds = math.max(0,
+            tonumber(data.activeGameplayMilliseconds) or 0)
+    end
+    data.activeGameplayPartial = data.activeGameplayPartial == true
     if type(data.brokenWeapons) ~= "table" then
         data.brokenWeapons = {}
         data.brokenWeaponsTotal = 0
@@ -308,11 +350,26 @@ function Identity.ensure(player, selectedTraitSnapshot)
     data.injuryObservedState = type(data.injuryObservedState) == "table"
         and data.injuryObservedState or nil
 
+    data.epoch = math.max(1,
+        math.floor(tonumber(data.epoch) or 1))
+    if data.epoch > 1 then
+        data.parentEpoch = math.max(1,
+            math.floor(tonumber(data.parentEpoch) or (data.epoch - 1)))
+        data.branchCheckpointSequence = math.max(0,
+            math.floor(tonumber(data.branchCheckpointSequence) or 0))
+        data.branchCheckpointHash =
+            tostring(data.branchCheckpointHash or ""):lower()
+    else
+        data.parentEpoch = nil
+        data.branchCheckpointSequence = nil
+        data.branchCheckpointHash = nil
+    end
+
     return data, created
 end
 
 function Identity.observeCharacter(player)
-    return CharacterSnapshot.name(player)
+    return CharacterSnapshot.identity(player)
 end
 
 function Identity.observeTraits(player)
@@ -320,9 +377,16 @@ function Identity.observeTraits(player)
 end
 
 function Identity.get()
-    local data = root()
+    local data, rootError = root()
+    if not data then return nil, rootError end
     if not nonEmpty(data.runId) then return nil end
     return data
+end
+
+function Identity.consumeDevelopmentReset()
+    local value = pendingDevelopmentReset
+    pendingDevelopmentReset = nil
+    return value
 end
 
 function Identity.observeChallenge()

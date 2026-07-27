@@ -1,4 +1,5 @@
 local AnimalBirthTracker = {}
+local TrackingHealth = require "TGSRR/Run/TrackingHealth"
 
 local MOD_DATA_ID = "TGSRR_RunAnimalId"
 local SCAN_INTERVAL_SECONDS = 5
@@ -6,6 +7,7 @@ local SCAN_INTERVAL_SECONDS = 5
 local activeRun = nil
 local activePlayer = nil
 local nextScanMilliseconds = 0
+local reconcile
 
 local function milliseconds()
     if getTimestampMs then return tonumber(getTimestampMs()) or 0 end
@@ -36,8 +38,12 @@ local function loadedAnimals()
     javaValues(cell:getAnimals(), result, seen)
     local vehicles = cell:getVehicles()
     if vehicles then
-        for index = 0, vehicles:size() - 1 do
-            javaValues(vehicles:get(index):getAnimals(), result, seen)
+        local accessibleVehicles = ArrayList.new(vehicles)
+        for index = 0, accessibleVehicles:size() - 1 do
+            local vehicle = accessibleVehicles:get(index)
+            if vehicle and vehicle.getAnimals then
+                javaValues(vehicle:getAnimals(), result, seen)
+            end
         end
     end
     local zones = DesignationZoneAnimal
@@ -149,7 +155,7 @@ local function recordBirth(animal)
     return true
 end
 
-local function reconcile(baseline)
+reconcile = function(baseline)
     if not activeRun or not activePlayer then return end
     local animals = loadedAnimals()
     local knownBefore = {}
@@ -186,12 +192,26 @@ local function reconcile(baseline)
     activeRun.animalBirthTrackingInitialized = true
 end
 
+local function safeReconcile(baseline)
+    local ok, failure = pcall(reconcile, baseline)
+    if ok then return true end
+    activeRun = nil
+    activePlayer = nil
+    local reason = "animal_birth_collector_failed:"
+        .. tostring(failure or "unknown_error")
+    TrackingHealth.stop(
+        reason,
+        "Domestic-animal birth tracking raised an unexpected error."
+    )
+    return false
+end
+
 function AnimalBirthTracker.onPlayerUpdate(player)
     if not activeRun or player ~= activePlayer then return end
     local now = milliseconds()
     if now < nextScanMilliseconds then return end
     nextScanMilliseconds = now + SCAN_INTERVAL_SECONDS * 1000
-    reconcile(false)
+    safeReconcile(false)
 end
 
 function AnimalBirthTracker.initialize(run, player)
@@ -199,7 +219,7 @@ function AnimalBirthTracker.initialize(run, player)
     activePlayer = player
     nextScanMilliseconds = milliseconds()
         + SCAN_INTERVAL_SECONDS * 1000
-    reconcile(run.animalBirthTrackingInitialized ~= true)
+    safeReconcile(run.animalBirthTrackingInitialized ~= true)
 end
 
 Events.OnPlayerUpdate.Add(AnimalBirthTracker.onPlayerUpdate)

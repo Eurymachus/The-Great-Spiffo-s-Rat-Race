@@ -84,6 +84,22 @@ local function verifyReadback(decoded, ledger, projection)
         { "eventHash", decoded.eventHash, ledger.eventHash },
         { "currentKills", decoded.currentKills, projection.currentKills },
         { "schema", actual.schema, projection.schema },
+        { "recovery.schema", actual.recovery.schema,
+            projection.recovery.schema },
+        { "recovery.present", actual.recovery.present,
+            projection.recovery.present },
+        { "recovery.hasBranches", actual.recovery.hasBranches,
+            projection.recovery.hasBranches },
+        { "recovery.status", actual.recovery.status,
+            projection.recovery.status },
+        { "recovery.activeEpoch", actual.recovery.activeEpoch,
+            projection.recovery.activeEpoch },
+        { "recovery.recoveries.count",
+            count(actual.recovery.recoveries),
+            count(projection.recovery.recoveries) },
+        { "recovery.decisions.count",
+            count(actual.recovery.decisions),
+            count(projection.recovery.decisions) },
         { "challenge.id", actual.challenge.id, projection.challenge.id },
         { "challenge.gameMode", actual.challenge.gameMode,
             projection.challenge.gameMode },
@@ -93,10 +109,27 @@ local function verifyReadback(decoded, ledger, projection)
             count(projection.activeMods) },
         { "activeDay.dayIndex", actual.activeDay.dayIndex,
             projection.activeDay.dayIndex },
+        { "weight.currentKilograms", actual.weight.currentKilograms,
+            projection.weight.currentKilograms },
+        { "activeDay.weightDeltaKilograms",
+            actual.activeDay.weightDeltaKilograms,
+            projection.activeDay.weightDeltaKilograms },
         { "weaponKills.sources.count", count(actual.weaponKills.sources),
             count(projection.weaponKills.sources) },
         { "fireDeaths.count", actual.fireDeaths.count,
             projection.fireDeaths.count },
+        { "zombieKillTypes.standing", actual.zombieKillTypes.standing,
+            projection.zombieKillTypes.standing },
+        { "zombieKillTypes.onfront", actual.zombieKillTypes.onfront,
+            projection.zombieKillTypes.onfront },
+        { "zombieKillTypes.onback", actual.zombieKillTypes.onback,
+            projection.zombieKillTypes.onback },
+        { "zombieKillTypes.fenceAssist",
+            actual.zombieKillTypes.fenceAssist,
+            projection.zombieKillTypes.fenceAssist },
+        { "zombieKillTypes.windowAssist",
+            actual.zombieKillTypes.windowAssist,
+            projection.zombieKillTypes.windowAssist },
         { "townVisits.towns.count", count(actual.townVisits.towns),
             count(projection.townVisits.towns) },
         { "literature.currentItemIds.count",
@@ -118,6 +151,12 @@ local function verifyReadback(decoded, ledger, projection)
         { "activeDay.distanceDeltaMeters",
             actual.activeDay.distanceDeltaMeters,
             projection.activeDay.distanceDeltaMeters },
+        { "nimbleStance.movementMilliseconds",
+            actual.nimbleStance.movementMilliseconds,
+            projection.nimbleStance.movementMilliseconds },
+        { "activeGameplay.milliseconds",
+            actual.activeGameplay.milliseconds,
+            projection.activeGameplay.milliseconds },
         { "brokenWeapons.total", actual.brokenWeapons.total,
             projection.brokenWeapons.total },
         { "brokenWeapons.weapons.count",
@@ -198,19 +237,29 @@ local function verifyReadback(decoded, ledger, projection)
 end
 
 function Exporter.generate(run, work)
-    run = run or Identity.get()
-    if not run or not run.runId then return false, "missing_active_run" end
+    if not run then
+        local identityError
+        run, identityError = Identity.get()
+        if not run then
+            return false, identityError or "missing_active_run"
+        end
+    end
+    if not run.runId then return false, "missing_active_run" end
     local codecOk, codecError = ExportCodec.selfTest(work)
     if not codecOk then return false, codecError end
 
     local ledger, ledgerError = Ledger.readAll(run, work)
     if not ledger then return false, ledgerError end
     local player = getSpecificPlayer and getSpecificPlayer(0) or nil
+    local recovery, recoveryError =
+        Ledger.recoveryEvidence(run, work, ledger.records)
+    if not recovery then return false, recoveryError end
     local milestones, milestoneError =
         MilestoneSnapshot.observe(run, ledger.records)
     if not milestones then return false, milestoneError end
     local projection = {
         schema = 1,
+        recovery = recovery,
         challenge = Identity.exportChallenge(run),
         currentKills = math.max(0, tonumber(player and player:getZombieKills()) or 0),
         character = characterProjection(run, player),
@@ -219,6 +268,11 @@ function Exporter.generate(run, work)
         challengeProgress = ChallengeProgressSnapshot.observe(player),
         activeMods = ModSnapshot.observe(),
         activeDay = DailySnapshot.active(run, player),
+        weight = {
+            unit = "kilogram",
+            currentKilograms = DailySnapshot.current(
+                player, run).weightKilograms,
+        },
         weaponKills = {
             partial = run.weaponKillsPartial == true,
             baselineTotal = math.max(0,
@@ -228,6 +282,24 @@ function Exporter.generate(run, work)
         fireDeaths = {
             count = math.max(0, math.floor(tonumber(run.fireDeaths) or 0)),
             partial = run.fireDeathsPartial == true,
+        },
+        zombieKillTypes = {
+            standing = math.max(0, math.floor(tonumber(
+                run.zombieKillTypes and
+                run.zombieKillTypes.standing) or 0)),
+            onfront = math.max(0, math.floor(tonumber(
+                run.zombieKillTypes and
+                run.zombieKillTypes.onfront) or 0)),
+            onback = math.max(0, math.floor(tonumber(
+                run.zombieKillTypes and
+                run.zombieKillTypes.onback) or 0)),
+            fenceAssist = math.max(0, math.floor(tonumber(
+                run.zombieKillTypes and
+                run.zombieKillTypes.fenceAssist) or 0)),
+            windowAssist = math.max(0, math.floor(tonumber(
+                run.zombieKillTypes and
+                run.zombieKillTypes.windowAssist) or 0)),
+            partial = run.zombieKillTypesPartial == true,
         },
         townVisits = TownSnapshot.observe(run),
         literature = LiteratureSnapshot.observe(run),
@@ -240,6 +312,18 @@ function Exporter.generate(run, work)
             rejectedSamples = math.max(0, math.floor(
                 tonumber(run.distanceRejectedSamples) or 0)),
             partial = run.distanceTravelledPartial == true,
+        },
+        nimbleStance = {
+            unit = "millisecond",
+            movementMilliseconds = math.max(0,
+                tonumber(run.nimbleStanceMovementMilliseconds) or 0),
+            partial = run.nimbleStanceMovementPartial == true,
+        },
+        activeGameplay = {
+            unit = "millisecond",
+            milliseconds = math.max(0,
+                tonumber(run.activeGameplayMilliseconds) or 0),
+            partial = run.activeGameplayPartial == true,
         },
         brokenWeapons = {
             total = math.max(0, math.floor(
@@ -346,8 +430,11 @@ end
 
 function Exporter.step(job)
     if not job or job.done then return job and job.ok, job and job.result end
+    if job.stepping then return nil, nil end
+    job.stepping = true
     job.sliceStarted = milliseconds()
     local resumed, errorMessage = coroutine.resume(job.thread)
+    job.stepping = false
     if not resumed then
         job.ok, job.result, job.done = false, tostring(errorMessage), true
     elseif coroutine.status(job.thread) == "dead" and not job.done then

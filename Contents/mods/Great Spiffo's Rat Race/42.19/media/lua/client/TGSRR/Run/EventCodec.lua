@@ -2,7 +2,7 @@ local Hash = require "TGSRR/Run/Hash"
 
 local EventCodec = {}
 
-EventCodec.SCHEMA = 1
+EventCodec.SCHEMA = 2
 EventCodec.GENESIS_HASH = string.rep("0", 64)
 
 local function frame(tag, value)

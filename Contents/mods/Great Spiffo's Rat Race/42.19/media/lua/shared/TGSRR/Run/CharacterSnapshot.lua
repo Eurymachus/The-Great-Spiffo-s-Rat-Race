@@ -44,6 +44,22 @@ function CharacterSnapshot.name(player)
     )
 end
 
+function CharacterSnapshot.professionId(player)
+    local descriptor = player and player.getDescriptor
+        and player:getDescriptor() or nil
+    local profession = descriptor and descriptor.getCharacterProfession
+        and descriptor:getCharacterProfession() or nil
+    local id = profession and profession.getName
+        and profession:getName() or nil
+    return nonEmpty(id) or ""
+end
+
+function CharacterSnapshot.identity(player)
+    local result = CharacterSnapshot.name(player)
+    result.professionId = CharacterSnapshot.professionId(player)
+    return result
+end
+
 function CharacterSnapshot.traits(player)
     local result = {}
     local characterTraits = player and player.getCharacterTraits
@@ -54,21 +70,13 @@ function CharacterSnapshot.traits(player)
         for index = 0, knownTraits:size() - 1 do
             result[#result + 1] = tostring(knownTraits:get(index))
         end
-    elseif player and player.getTraits then
-        -- Compatibility for older pre-release Build 42 saves.
-        local traits = player:getTraits()
-        if traits then
-            for index = 0, traits:size() - 1 do
-                result[#result + 1] = tostring(traits:get(index))
-            end
-        end
     end
     return sortedUnique(result)
 end
 
 function CharacterSnapshot.observe(player)
     return {
-        name = CharacterSnapshot.name(player),
+        identity = CharacterSnapshot.identity(player),
         traits = CharacterSnapshot.traits(player),
     }
 end

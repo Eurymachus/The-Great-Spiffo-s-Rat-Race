@@ -34,3 +34,13 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
 - Use external workshop, local workshop, Project Zomboid, and Java paths as read-only references by default.
 - Preserve existing mod structure and Project Zomboid conventions.
 - Keep edits focused and avoid unrelated refactors.
+
+## Project Zomboid Lua Restrictions
+
+- Project Zomboid's restricted Kahlua environment does **not** expose the
+  standard Lua `next()` global. Never use `next(table)` in shipped mod Lua.
+  Test table emptiness with a `pairs()` loop instead.
+- Desktop Lua tests do not reproduce every missing Kahlua global. Before
+  handing off Lua changes, run:
+  `rg -n "\bnext\s*\(" "Contents/mods/Great Spiffo's Rat Race" --glob "*.lua"`
+  and require zero matches.

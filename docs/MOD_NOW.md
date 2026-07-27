@@ -27,18 +27,31 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Generic `ChallengeDeliverables` provider registry and normalized Overview record boundary.
 - Overview summaries for Outposts, Skills, and Kills.
 - Event-driven Kills deliverable and detail tab using `OnZombieDead` and the persisted Character Info zombie-kill counter with a `1,000,000` target.
+- Cumulative player-credited zombie kill classification for standing, face-down,
+  face-up, fence-assisted, and window-assisted deaths. Fence/window traversal is
+  tagged on zombie ModData through prone/get-up recovery and produces a
+  debug-console classification at death.
 - Generic challenge event bus, persistent milestone ledger, registry-driven awards, and localized halo notification presenter.
 - Kill milestones at 1,000, 10,000, 25,000, 50,000, 100,000, 250,000, 500,000, 750,000, and 1,000,000, shown on the Kills tab and emitted only when thresholds are crossed.
 - Dynamic all-skills level-10 deliverable grouped by vanilla skill category, with ten-segment per-skill progress, aggregate fractional progress, and event-driven refresh.
 - World-scoped Rat Race run identity foundation with immutable `runId`, starting-character metadata, versioned `run.meta`, and timestamped session/mod-list history.
-- Canonical schema-1 event codec, SHA-256 hash-chained ledger, append-safe segmented storage, lifecycle verification, and migration support for pre-release test ledgers.
+- Canonical schema-2 event codec, SHA-256 hash-chained ledger, append-safe
+  segmented storage, and lifecycle verification. Unsupported development run
+  schemas are rejected rather than migrated.
 - Interrupted session commits are recovered automatically when the external
   ledger and session log are ahead of the save by session-boundary records
   only. The full tail is hash-verified, adopted without rewriting it, and a
   `run.recovery.decided` evidence event records the saved and adopted cursors,
   plus `decider = { type = "system", id = "tgsrr" }` so exports identify the
   automatic decision authority without website-side inference.
-  Ahead gameplay events remain a declared rollback and halt initialization.
+  Ahead gameplay events open a paused recovery decision. Continuing freezes the
+  verified ahead tail as immutable superseded evidence, advances to a new epoch,
+  and resumes from the restored save checkpoint; declining leaves tracking
+  stopped. Recovery-epoch creation is idempotent across another crash.
+- Format-3 projections expose neutral recovery status, the active epoch, all
+  recovery decisions, immutable recovery metadata, and the complete superseded
+  event bodies. Accepted totals follow only the active branch; the website owns
+  moderator approval or denial.
 - Run-wide initialization, integrity, event-recording, and asynchronous
   collector failures display an always-on-top in-game warning explaining that
   tracking stopped, the exact machine-readable reason, and the risk to progress.
@@ -50,7 +63,8 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
   that never contribute to vanilla or weapon-kill totals.
 - Permanent first-visit tracking for 12 canonical towns using stable TGSRR IDs,
   map-reviewed multi-point coverage with per-point radii, hash-chained
-  `town.visited` events, and partial-history disclosure for migrated runs.
+  `town.visited` events, and partial-history disclosure for runs bootstrapped
+  on an existing game save.
 - Immutable skill-book and recipe-magazine read-state baseline plus hash-chained
   successful-reading deltas from PZ's authoritative `ISReadABook.complete()`
   edge. Leisure and generic print media are excluded.
@@ -67,7 +81,9 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
   recipe-magazine baseline/current/completion state; rules-versioned Tracker summaries; current
   active mods; cumulative filtered distance travelled; and a non-mutating
   active-day snapshot with live kill, per-skill XP, and distance deltas.
-- Cooperative pause-menu export flow with progress presentation, read-back verification, explicit clipboard copy, and format-1 export compatibility.
+- Cooperative pause-menu export flow with progress presentation, read-back
+  verification, and explicit clipboard copy. Only the current development
+  export format is accepted.
 - Generic `skill.level.reached` events containing the skill, parent category, and reached level; award policy remains intentionally undecided.
 - Rising-edge events for individual outpost deliverable completion and whole-outpost completion; initial observations do not retroactively award milestones.
 - Local-player broken weapons captured through Build 42 `OnBreak` callbacks plus

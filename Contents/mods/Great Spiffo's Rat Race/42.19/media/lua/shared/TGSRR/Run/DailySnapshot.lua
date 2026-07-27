@@ -11,9 +11,17 @@ local FishCaughtSnapshot = require "TGSRR/Run/FishCaughtSnapshot"
 
 local DailySnapshot = {}
 
+local function weightKilograms(player)
+    local nutrition = player and player.getNutrition
+        and player:getNutrition() or nil
+    return math.max(0,
+        tonumber(nutrition and nutrition:getWeight()) or 0)
+end
+
 function DailySnapshot.current(player, run)
     return {
         kills = math.max(0, tonumber(player and player:getZombieKills()) or 0),
+        weightKilograms = weightKilograms(player),
         skills = SkillSnapshot.totals(player),
         weaponKills = WeaponKillSnapshot.copy(run and run.weaponKills),
         fireDeaths = math.max(0, tonumber(run and run.fireDeaths) or 0),
@@ -67,6 +75,8 @@ function DailySnapshot.active(run, player)
         observedWorldAgeHours = currentWorldAgeHours,
         elapsedWorldHours = math.max(0, currentWorldAgeHours - startedWorldAgeHours),
         killDelta = current.kills - (tonumber(baseline.kills) or 0),
+        weightDeltaKilograms = current.weightKilograms
+            - (tonumber(baseline.weightKilograms) or 0),
         xpDeltas = DailySnapshot.deltas(current.skills, baseline.skills),
         weaponKillDeltas =
             DailySnapshot.deltas(current.weaponKills, baseline.weaponKills),

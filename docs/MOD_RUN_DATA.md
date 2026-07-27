@@ -197,6 +197,26 @@ Suggested streams:
 
 Keep only compact recovery state and gameplay aggregates needed by TGSRR in ModData.
 
+During development, run-state schemas are hard boundaries. TGSRR requires both
+the current `TGSRR_Run.schemaVersion` (currently 19) and an explicit current
+`contractVersion`; this prevents schema numbers previously rewritten by
+development builds from masquerading as a compatible run. It does not migrate
+an existing run with either marker missing or mismatched, nor does it decode
+obsolete export or ledger formats. Testing
+may deliberately clear both the world-scoped `TGSRR_Run` ModData and that
+run ID's external `TGSRR/Runs/<runId>` directory. Loading the existing game save
+after that reset creates a new current-schema run marked bootstrapped/partial.
+This is suitable for rapid collector and UI testing. Authoritative lifecycle,
+starting-character, recovery, and eligibility tests must use a brand-new Rat
+Race challenge save.
+
+Temporary development convenience: detecting an incompatible `TGSRR_Run`
+automatically removes only that ModData entry and creates a new
+bootstrapped/partial run, including in an ordinary non-debug live test. The old
+external run directory is not deleted and cannot collide because the
+replacement receives a new run ID. Remove this automatic reset and restore
+strict rejection before the data contract is released.
+
 Writes should be append/change based, remain off hot presentation paths, and flush at controlled lifecycle points. Runtime consumers should read hydrated RAM projections.
 
 ## File encoding and integrity model
@@ -213,7 +233,7 @@ Use a versioned binary record format rather than editable text. Each event recor
 - The preceding accepted record hash.
 - A SHA-256 hash of the preceding hash plus the canonical current record.
 
-The canonical event codec is now implemented as schema 1. Values are explicitly
+The canonical event codec is now implemented as schema 2. Values are explicitly
 type-tagged and length-framed, map keys are sorted, arrays retain their order,
 and non-finite numbers or unsupported value types are rejected. SHA-256 is
 implemented within TGSRR so it works in Build 42's restricted client Lua
@@ -254,22 +274,23 @@ observation timestamps, elapsed world hours, live kill delta, and non-zero
 per-skill XP deltas without prematurely sealing a historical day event.
 The current projection also includes every registered town ID and its permanent
 first-visit state. Visits carry their original UTC time, world age, activation
-point ID, and observed coordinates; migrated runs explicitly disclose a partial
+point ID, and observed coordinates; bootstrapped runs explicitly disclose a partial
 town-history baseline.
 Literature export schema 1 contains the immutable filtered starting baseline,
 sorted current sets of full skill-book and recipe-magazine item IDs, plus sorted
 per-item first/last completion times and completion counts.
-Runs migrated after collection begins disclose a partial baseline rather than
+Runs bootstrapped after collection begins disclose a partial baseline rather than
 inventing historical read timestamps.
 Non-town location export schema 1 is already present with the registry version,
 partial-history flag, and registered first-visit entries. At registry version 0
 the entries array is intentionally empty.
 Selected traits are captured from the character-creation UI before Project
 Zomboid applies spawn-time mutations. A missing capture on an already-running
-or migrated save uses a clearly marked partial fallback rather than claiming
+or bootstrapped save uses a clearly marked partial fallback rather than claiming
 that the effective spawned set was the player's original selection.
 The exporter reads its generated envelope back before presenting it to the
-player. Format 1 and 2 envelopes remain decodable for pre-release test runs.
+player. Only the current development envelope format is accepted; unsupported
+formats are rejected rather than migrated.
 
 Ledger segment format 1 stores up to 256 canonical events per
 `segments/events-NNNNNN.bin` file. Records are byte-length framed and hex encoded
@@ -278,9 +299,7 @@ A full segment receives a terminal seal containing its count, final sequence,
 and final hash and is never opened again. The current segment remains appendable.
 On every run load TGSRR verifies every record, segment boundary, seal, and chain
 link; its final hash must match the world-scoped saved cursor, and disk may not
-be missing or ahead of the save. The earlier one-record binary prototype is
-verified and packed automatically for pre-release test runs without changing
-event hashes.
+be missing or ahead of the save. Pre-release ledger layouts are not migrated.
 
 Gameplay systems submit history through `TGSRR/Run/Recorder`; they do not write
 files, construct sequence numbers, or manage hashes. The recorder accepts only
@@ -296,12 +315,46 @@ measurements only; localized labels, player objects, complete live records, and
 other presentation/runtime structures are intentionally excluded.
 
 Daily history uses one atomic `day.started` event at each `Events.EveryDays`
-transition. It timestamps the new day in UTC and world age while carrying the
-just-completed day's kill delta and non-zero XP deltas keyed by the same internal
-perk IDs used by the Skills tracker. The first event establishes absolute kill
-and per-skill XP baselines and is marked partial when TGSRR was introduced to an
-already-running challenge. Baselines live in world-scoped run state; the ledger
-remains the authoritative exported history.
+transition. It timestamps the new day in UTC and world age. From the second
+marker onward, `completedDay` identifies the just-finished day and contains only
+its non-zero scalar deltas and non-empty ID-keyed delta maps. Missing delta
+fields mean zero; they do not mean unknown. `partial` and `partialMetrics` appear
+only when the sealed interval began from an incomplete baseline. The first
+marker has no `completedDay`; it establishes the baseline only in world-scoped
+ModData and is marked partial when TGSRR was introduced to an already-running
+challenge. Absolute skill/stat baselines are never repeated in ledger events.
+The ledger remains the authoritative exported daily history.
+
+Format-3 also exports the character's current authoritative Nutrition weight as
+`weight.currentKilograms` with `unit = "kilogram"`. The active-day projection
+contains signed `weightDeltaKilograms` from its saved day baseline, and each
+`completedDay` seals the same signed delta for the preceding day. A missing
+completed-day weight delta means zero. Weight is an instantaneous measurement,
+so it does not carry a partial-history flag.
+
+Nimble-stance evidence is a cumulative real-time measurement only. TGSRR adds
+short consecutive wall-clock sample intervals to
+`nimbleStance.movementMilliseconds` when the local player changes position on
+foot while `isAiming()` is true. Standing aim, vehicles, paused play, loading
+gaps, and `FishingState` are excluded; intervals over one second are discarded
+rather than guessed. Bootstrapped runs mark the cumulative value partial. The
+measurement has no active-day or completed-day delta.
+
+Zombie kills credited to the local player are also classified in cumulative
+`zombieKillTypes` counters: `standing`, `onfront`, `onback`, `fenceAssist`, and
+`windowAssist`. Fence/window assists use a transient marker on zombie ModData
+from traversal until the zombie finishes getting up; an assist overrides the
+ordinary posture classification. Existing runs mark this history partial. These
+counters have no daily delta.
+
+Active run time is exported cumulatively as
+`activeGameplay.milliseconds`. Following the audited Twist Stats model, TGSRR
+uses a wall-clock `OnTick` accumulator and treats the visible in-game pause
+menu, `isGamePaused()`, or either exposed game-speed control reporting zero as
+paused. Loading, suspension, and long hitches are rejected by discarding
+intervals over five seconds. Time acceleration does not multiply real time.
+Bootstrapped runs mark the value partial. The value has no daily delta and does
+not claim that external streaming software was broadcasting.
 
 Completed segments are never rewritten. Periodic state snapshots contain the accepted ledger cursor/head hash and can be cross-anchored into compact global ModData. Export verifies framing, record checks, the complete hash chain, snapshot agreement, sequence continuity, and branch selection before producing a submission. Any failure is exported as an explicit integrity condition rather than silently repaired away.
 
@@ -309,9 +362,25 @@ This raises the effort needed to fabricate a consistent history and gives stream
 
 ## Rollback, corruption, and approved recovery
 
-Recovery creates a new declared timeline branch; it never erases or overwrites existing history.
+Recovery creates a new declared timeline branch; it never erases or overwrites
+existing history. Epoch 1 retains the original segment layout. Each later epoch
+has immutable metadata at
+`branches/epoch-NNNNNN.meta` and its own event segments under
+`branches/epoch-NNNNNN/segments/`. The metadata binds the parent epoch, restored
+checkpoint sequence/hash, superseded head sequence/hash, reason, decider,
+authorization status, selected action, and a summary of superseded event types.
+Its canonical payload is protected by a SHA-256 checksum.
 
-If the external ledger head is ahead of the checkpoint embedded in a restored save, the load is a detected rollback. Normal play may need to pause until a recovery decision is recorded. The existing later records remain preserved as a superseded branch and are not counted again in accepted aggregates. The mod exports the rollback and recovery evidence; the website and moderator determine any eligibility consequence.
+If the external ledger head is ahead of the checkpoint embedded in a restored
+save, the load is a detected rollback. Session-boundary-only tails may be
+adopted automatically when the independent session cursor agrees. A tail
+containing gameplay events pauses the game and presents the player with the
+saved and superseded cursors plus an event-type summary. Continuing freezes the
+later records as a superseded branch and starts a new epoch from the restored
+checkpoint; declining leaves tracking stopped and displays the reason. Epoch
+creation is idempotent, so a crash between writing immutable recovery metadata
+and saving the new epoch resumes the same branch rather than inventing another.
+The superseded records are not counted in the active projection.
 
 An accepted recovery record contains at least:
 
@@ -353,6 +422,21 @@ Exports distinguish at least:
 - Organizer-authorized recovery with superseded history retained.
 - Player choice to continue after the detected condition.
 
+Format-3 places recovery evidence in `projection.recovery`:
+
+- `present`, `hasBranches`, and neutral `status` (`uninterrupted` or
+  `recovery_present`);
+- `activeEpoch`;
+- `decisions`, derived from active-chain `run.recovery.decided` records;
+- `recoveries`, containing each immutable metadata record and
+  `supersededBodies`, the complete canonical event bodies after its checkpoint.
+
+This is evidence, not a verdict. The first website submission containing a new
+recovery can be flagged for moderator approval or denial. Once the website
+accepts that report as its new comparison baseline, later exports continue from
+the same active epoch and need no further recovery review unless another
+recovery appears.
+
 ## Loaded-mod session history
 
 At run creation, write sorted full sets of active mod IDs and unique Workshop
@@ -370,8 +454,7 @@ record containing:
 
 Every load retains a timestamped session-start record, but unchanged sessions
 do not repeat the complete identifier sets. The latest complete mapping is kept
-in world-scoped run state and reconstructed from legacy full session records
-when migrating a pre-release test run.
+in world-scoped run state.
 
 Global ModData should retain only the run ID, latest session sequence, latest mod set or hash, and file cursor needed to recover an interrupted append. The full session history belongs in the file stream.
 

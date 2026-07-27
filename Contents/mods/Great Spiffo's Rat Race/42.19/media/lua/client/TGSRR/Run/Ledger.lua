@@ -1,34 +1,24 @@
 local EventCodec = require "TGSRR/Run/EventCodec"
+local RecoveryStore = require "TGSRR/Run/RecoveryStore"
 
 local Ledger = {}
 
 local ROOT = "TGSRR/Runs"
 local SEGMENT_FORMAT = 1
 local EVENTS_PER_SEGMENT = 256
-local LEGACY_MAGIC = 1413960530 -- TGSR
-local LEGACY_FORMAT = 1
 
-local function segmentPath(runId, index)
+local function segmentPath(runId, index, epoch)
+    if tonumber(epoch) and tonumber(epoch) > 1 then
+        return RecoveryStore.segmentPath(runId, epoch, index)
+    end
     return ROOT .. "/" .. tostring(runId) .. "/segments/events-"
         .. string.format("%06d", index) .. ".bin"
-end
-
-local function legacyPath(runId, sequence)
-    return ROOT .. "/" .. tostring(runId) .. "/events-"
-        .. string.format("%06d", sequence) .. ".bin"
 end
 
 local function textExists(filename)
     local reader = getFileReader(filename, false)
     if not reader then return false end
     reader:close()
-    return true
-end
-
-local function binaryExists(filename)
-    local input = getFileInput(filename)
-    if not input then return false end
-    input:close()
     return true
 end
 
@@ -55,8 +45,9 @@ local function sealLine(count, sequence, hash)
     return table.concat({ "S", tostring(count), tostring(sequence), hash }, "|") .. "\n"
 end
 
-local function readSegment(runId, index, expectedPreviousHash, verifyHashes, collectRecords, work)
-    local reader = getFileReader(segmentPath(runId, index), false)
+local function readSegment(runId, index, expectedPreviousHash,
+        verifyHashes, collectRecords, work, epoch)
+    local reader = getFileReader(segmentPath(runId, index, epoch), false)
     if not reader then return nil, "missing_event_segment:" .. tostring(index) end
 
     local line = reader:readLine()
@@ -136,67 +127,16 @@ local function readSegment(runId, index, expectedPreviousHash, verifyHashes, col
     }
 end
 
-local function readLegacyRecord(runId, sequence)
-    local input = getFileInput(legacyPath(runId, sequence))
-    if not input then return nil, "missing_legacy_event:" .. tostring(sequence) end
-    local ok, result = pcall(function()
-        local magic = input:readInt()
-        local format = input:readShort()
-        local storedSequence = input:readInt()
-        local previousHash = tostring(input:readUTF())
-        local hash = tostring(input:readUTF())
-        local body = tostring(input:readUTF())
-        if magic ~= LEGACY_MAGIC or format ~= LEGACY_FORMAT then error("invalid_legacy_event") end
-        if storedSequence ~= sequence then error("legacy_event_sequence_mismatch") end
-        return { previousHash = previousHash, hash = hash, body = body }
-    end)
-    input:close()
-    if not ok then return nil, tostring(result) end
-    return result
-end
-
-local function migrateLegacy(run, sequence)
-    if sequence == 0 or not binaryExists(legacyPath(run.runId, 1)) then return true end
-    -- A legacy record beyond the save's cursor means this save predates data
-    -- already written by a later timeline. Never silently absorb that history.
-    if binaryExists(legacyPath(run.runId, sequence + 1)) then
-        return false, "legacy_event_ahead_of_save"
-    end
-    local previousHash = EventCodec.GENESIS_HASH
-    local writer = nil
-    for eventSequence = 1, sequence do
-        local record, readError = readLegacyRecord(run.runId, eventSequence)
-        if not record then if writer then writer:close() end; return false, readError end
-        local verified, verifyError = EventCodec.verify(record, previousHash)
-        if not verified then if writer then writer:close() end; return false, verifyError end
-
-        local segmentIndex = math.floor((eventSequence - 1) / EVENTS_PER_SEGMENT) + 1
-        local position = ((eventSequence - 1) % EVENTS_PER_SEGMENT) + 1
-        if position == 1 then
-            local filename = segmentPath(run.runId, segmentIndex)
-            if textExists(filename) then return false, "migration_segment_already_exists" end
-            writer = getFileWriter(filename, true, false)
-            if not writer then return false, "unable_to_create_event_segment" end
-            writer:write(table.concat({
-                "H", tostring(SEGMENT_FORMAT), tostring(segmentIndex), tostring(eventSequence), previousHash,
-            }, "|") .. "\n")
-        end
-        writer:write(recordLine(eventSequence, record))
-        if position == EVENTS_PER_SEGMENT then
-            writer:write(sealLine(position, eventSequence, record.hash))
-            writer:close()
-            writer = nil
-        end
-        previousHash = record.hash
-    end
-    if writer then writer:close() end
-    return true
-end
-
-local function appendRecord(runId, sequence, record)
-    local segmentIndex = math.floor((sequence - 1) / EVENTS_PER_SEGMENT) + 1
-    local position = ((sequence - 1) % EVENTS_PER_SEGMENT) + 1
-    local filename = segmentPath(runId, segmentIndex)
+local function appendRecord(runId, sequence, record, epoch, checkpointSequence)
+    epoch = math.max(1, math.floor(tonumber(epoch) or 1))
+    checkpointSequence = epoch > 1
+        and math.max(0, math.floor(tonumber(checkpointSequence) or 0)) or 0
+    local branchSequence = sequence - checkpointSequence
+    if branchSequence < 1 then return false, "invalid_branch_event_sequence" end
+    local segmentIndex =
+        math.floor((branchSequence - 1) / EVENTS_PER_SEGMENT) + 1
+    local position = ((branchSequence - 1) % EVENTS_PER_SEGMENT) + 1
+    local filename = segmentPath(runId, segmentIndex, epoch)
     local writer = nil
 
     if position == 1 then
@@ -207,7 +147,8 @@ local function appendRecord(runId, sequence, record)
             "H", tostring(SEGMENT_FORMAT), tostring(segmentIndex), tostring(sequence), record.previousHash,
         }, "|") .. "\n")
     else
-        local segment, readError = readSegment(runId, segmentIndex, nil, false)
+        local segment, readError = readSegment(
+            runId, segmentIndex, nil, false, nil, nil, epoch)
         if not segment then return false, readError end
         if segment.sealed or segment.count ~= position - 1 or segment.finalHash ~= record.previousHash then
             return false, "active_segment_cursor_mismatch"
@@ -220,7 +161,8 @@ local function appendRecord(runId, sequence, record)
     if position == EVENTS_PER_SEGMENT then writer:write(sealLine(position, sequence, record.hash)) end
     writer:close()
 
-    local written, verifyError = readSegment(runId, segmentIndex, nil, false)
+    local written, verifyError = readSegment(
+        runId, segmentIndex, nil, false, nil, nil, epoch)
     if not written then return false, verifyError end
     if written.count ~= position or written.finalSequence ~= sequence or written.finalHash ~= record.hash then
         return false, "event_segment_readback_mismatch"
@@ -228,17 +170,195 @@ local function appendRecord(runId, sequence, record)
     return true
 end
 
+local function readRootPrefix(runId, sequence, work)
+    if sequence == 0 then
+        return {
+            records = {},
+            eventHash = EventCodec.GENESIS_HASH,
+        }
+    end
+    local records = {}
+    local previousHash = EventCodec.GENESIS_HASH
+    local index = 1
+    while #records < sequence do
+        local segment, readError = readSegment(
+            runId, index, previousHash, true, true, work, 1)
+        if not segment then return nil, readError end
+        for _, record in ipairs(segment.records) do
+            records[#records + 1] = record
+        end
+        previousHash = segment.finalHash
+        index = index + 1
+    end
+    local prefix = {}
+    for recordIndex = 1, sequence do
+        prefix[recordIndex] = records[recordIndex]
+    end
+    return {
+        records = prefix,
+        eventHash = prefix[sequence].hash,
+    }
+end
+
+local function readBranch(run, collectRecords, work)
+    local epoch = math.max(1, math.floor(tonumber(run.epoch) or 1))
+    local checkpointSequence = math.max(0,
+        math.floor(tonumber(run.branchCheckpointSequence) or 0))
+    local checkpointHash = tostring(
+        run.branchCheckpointHash or EventCodec.GENESIS_HASH):lower()
+    local sequence = math.max(0, math.floor(tonumber(run.eventSequence) or 0))
+    local expectedCount = sequence - checkpointSequence
+    if expectedCount < 0 then return nil, "invalid_branch_cursor" end
+
+    local previousHash = checkpointHash
+    local consumed = 0
+    local records = collectRecords and {} or nil
+    local segmentCount = math.ceil(expectedCount / EVENTS_PER_SEGMENT)
+    for index = 1, segmentCount do
+        local segment, readError = readSegment(
+            run.runId, index, previousHash, true,
+            collectRecords, work, epoch)
+        if not segment then return nil, readError end
+        local expectedStart = checkpointSequence
+            + (index - 1) * EVENTS_PER_SEGMENT + 1
+        if segment.startSequence ~= expectedStart then
+            return nil, "branch_segment_sequence_mismatch:" .. tostring(index)
+        end
+        consumed = consumed + segment.count
+        previousHash = segment.finalHash
+        if records then
+            for _, record in ipairs(segment.records) do
+                records[#records + 1] = record
+            end
+        end
+    end
+    if consumed ~= expectedCount then
+        return nil, "event_segment_ahead_of_save"
+    end
+    if textExists(segmentPath(run.runId, segmentCount + 1, epoch)) then
+        return nil, "event_segment_ahead_of_save"
+    end
+    return {
+        records = records,
+        eventHash = previousHash,
+        eventSequence = sequence,
+    }
+end
+
+local function readStoredEpoch(run, work)
+    local epoch = math.max(1, math.floor(tonumber(run.epoch) or 1))
+    local checkpointSequence = epoch > 1 and math.max(0,
+        math.floor(tonumber(run.branchCheckpointSequence) or 0)) or 0
+    local previousHash = epoch > 1
+        and tostring(run.branchCheckpointHash or ""):lower()
+        or EventCodec.GENESIS_HASH
+    local records = {}
+    local index = 1
+    while textExists(segmentPath(run.runId, index, epoch)) do
+        local segment, readError = readSegment(
+            run.runId, index, previousHash, true, true, work, epoch)
+        if not segment then return nil, readError end
+        local expectedStart = checkpointSequence
+            + (index - 1) * EVENTS_PER_SEGMENT + 1
+        if segment.startSequence ~= expectedStart then
+            return nil, "branch_segment_sequence_mismatch:" .. tostring(index)
+        end
+        for _, record in ipairs(segment.records) do
+            records[#records + 1] = record
+        end
+        previousHash = segment.finalHash
+        index = index + 1
+    end
+    return {
+        epoch = epoch,
+        checkpointSequence = checkpointSequence,
+        checkpointHash = epoch > 1
+            and tostring(run.branchCheckpointHash):lower()
+            or EventCodec.GENESIS_HASH,
+        records = records,
+        eventSequence = checkpointSequence + #records,
+        eventHash = previousHash,
+    }
+end
+
+local function readEpochPrefix(runId, epoch, sequence, work)
+    if epoch == 1 then return readRootPrefix(runId, sequence, work) end
+    local metadata, metadataError =
+        RecoveryStore.read(runId, epoch, work)
+    if not metadata then return nil, metadataError end
+    if sequence < metadata.checkpointSequence then
+        return readEpochPrefix(
+            runId, metadata.parentEpoch, sequence, work)
+    end
+    local parent, parentError = readEpochPrefix(
+        runId,
+        metadata.parentEpoch,
+        metadata.checkpointSequence,
+        work
+    )
+    if not parent then return nil, parentError end
+    if parent.eventHash ~= metadata.checkpointHash then
+        return nil, "recovery_checkpoint_hash_mismatch"
+    end
+    local stored, storedError = readStoredEpoch({
+        runId = runId,
+        epoch = epoch,
+        branchCheckpointSequence = metadata.checkpointSequence,
+        branchCheckpointHash = metadata.checkpointHash,
+    }, work)
+    if not stored then return nil, storedError end
+    local required = sequence - metadata.checkpointSequence
+    if required > #stored.records then
+        return nil, "event_segment_behind_save"
+    end
+    local records = parent.records
+    for position = 1, required do
+        records[#records + 1] = stored.records[position]
+    end
+    return {
+        records = records,
+        eventHash = required == 0
+            and metadata.checkpointHash
+            or stored.records[required].hash,
+    }
+end
+
 function Ledger.initialize(run, work)
     local sequence = tonumber(run.eventSequence) or 0
     local expectedHash = tostring(run.eventHash or EventCodec.GENESIS_HASH):lower()
+    local epoch = math.max(1, math.floor(tonumber(run.epoch) or 1))
     if sequence < 0 or sequence % 1 ~= 0 then return false, "invalid_event_cursor" end
     if #expectedHash ~= 64 or not expectedHash:match("^[0-9a-f]+$") then
         return false, "invalid_event_hash_cursor"
     end
 
-    if sequence > 0 and not textExists(segmentPath(run.runId, 1)) then
-        local migrated, migrationError = migrateLegacy(run, sequence)
-        if not migrated then return false, migrationError end
+    if epoch > 1 then
+        local metadata, metadataError =
+            RecoveryStore.read(run.runId, epoch, work)
+        if not metadata then return false, metadataError end
+        local checkpointSequence = math.max(0,
+            math.floor(tonumber(run.branchCheckpointSequence) or -1))
+        local checkpointHash = tostring(run.branchCheckpointHash or ""):lower()
+        if checkpointSequence ~= metadata.checkpointSequence
+                or checkpointHash ~= metadata.checkpointHash then
+            return false, "recovery_checkpoint_cursor_mismatch"
+        end
+        local prefix, prefixError = readEpochPrefix(
+            run.runId,
+            metadata.parentEpoch,
+            checkpointSequence,
+            work
+        )
+        if not prefix then return false, prefixError end
+        if prefix.eventHash ~= checkpointHash then
+            return false, "recovery_checkpoint_hash_mismatch"
+        end
+        local branch, branchError = readBranch(run, false, work)
+        if not branch then return false, branchError end
+        if branch.eventHash ~= expectedHash then
+            return false, "event_hash_cursor_mismatch"
+        end
+        return true
     end
 
     local previousHash = EventCodec.GENESIS_HASH
@@ -252,8 +372,227 @@ function Ledger.initialize(run, work)
     end
     if consumed ~= sequence then return false, "event_segment_ahead_of_save" end
     if previousHash ~= expectedHash then return false, "event_hash_cursor_mismatch" end
-    if textExists(segmentPath(run.runId, segmentCount + 1)) then return false, "event_segment_ahead_of_save" end
+    if textExists(segmentPath(run.runId, segmentCount + 1, 1)) then return false, "event_segment_ahead_of_save" end
     return true
+end
+
+function Ledger.inspectAhead(run, work)
+    local stored, storedError = readStoredEpoch(run, work)
+    if not stored then return nil, storedError end
+    local savedSequence = math.max(0,
+        math.floor(tonumber(run.eventSequence) or 0))
+    local savedHash = tostring(
+        run.eventHash or EventCodec.GENESIS_HASH):lower()
+    if savedSequence < stored.checkpointSequence then
+        return nil, "save_predates_active_branch_checkpoint"
+    end
+    local savedPosition = savedSequence - stored.checkpointSequence
+    if savedPosition > #stored.records then
+        return nil, "event_segment_behind_save"
+    end
+    local observedSavedHash = savedPosition == 0
+        and stored.checkpointHash
+        or stored.records[savedPosition].hash
+    if observedSavedHash ~= savedHash then
+        return nil, "event_hash_cursor_mismatch"
+    end
+    if stored.eventSequence <= savedSequence then
+        return nil, "no_event_tail_ahead_of_save"
+    end
+
+    local tail = {}
+    local eventTypes = {}
+    local eventTypeCounts = {}
+    for position = savedPosition + 1, #stored.records do
+        local record = stored.records[position]
+        local inspected, inspectError = EventCodec.inspectBody(record.body)
+        if not inspected then return nil, inspectError end
+        tail[#tail + 1] = record
+        if not eventTypeCounts[inspected.eventType] then
+            eventTypes[#eventTypes + 1] = inspected.eventType
+            eventTypeCounts[inspected.eventType] = 0
+        end
+        eventTypeCounts[inspected.eventType] =
+            eventTypeCounts[inspected.eventType] + 1
+    end
+    table.sort(eventTypes)
+    return {
+        epoch = stored.epoch,
+        checkpointSequence = savedSequence,
+        checkpointHash = savedHash,
+        supersededEventSequence = stored.eventSequence,
+        supersededEventHash = stored.eventHash,
+        tail = tail,
+        eventTypes = eventTypes,
+        eventTypeCounts = eventTypeCounts,
+    }
+end
+
+function Ledger.beginRecovery(run, decision, work)
+    decision = decision or {}
+    local ahead, aheadError = Ledger.inspectAhead(run, work)
+    if not ahead then return false, aheadError end
+    local existing, continuationError = RecoveryStore.findContinuation(
+        run.runId, ahead.epoch, ahead.checkpointSequence,
+        ahead.checkpointHash, ahead.supersededEventSequence,
+        ahead.supersededEventHash, work)
+    if existing == nil then return false, continuationError end
+    local epoch, epochError
+    if existing then
+        epoch = existing.epoch
+    else
+        epoch, epochError = RecoveryStore.nextEpoch(run.runId, work)
+        if not epoch then return false, epochError end
+    end
+    local metadata = {
+        epoch = epoch,
+        parentEpoch = ahead.epoch,
+        checkpointSequence = ahead.checkpointSequence,
+        checkpointHash = ahead.checkpointHash,
+        supersededEventSequence = ahead.supersededEventSequence,
+        supersededEventHash = ahead.supersededEventHash,
+        createdUtc = math.max(0,
+            math.floor(tonumber(decision.utc) or 0)),
+        reason = tostring(decision.reason or "save_rollback"),
+        decider = {
+            type = tostring(decision.deciderType or "player"),
+            id = tostring(decision.deciderId or "local_player"),
+        },
+        authorizationStatus = tostring(
+            decision.authorizationStatus or "unapproved"),
+        selectedAction = tostring(decision.selectedAction or "resume"),
+        supersededEventTypes = ahead.eventTypes,
+        supersededEventTypeCounts = ahead.eventTypeCounts,
+    }
+    local writeResult = existing
+    if not existing then
+        local written
+        written, writeResult =
+            RecoveryStore.write(run.runId, metadata, work)
+        if not written then return false, writeResult end
+    end
+
+    run.epoch = epoch
+    run.parentEpoch = ahead.epoch
+    run.branchCheckpointSequence = ahead.checkpointSequence
+    run.branchCheckpointHash = ahead.checkpointHash
+    run.eventSequence = ahead.checkpointSequence
+    run.eventHash = ahead.checkpointHash
+    run.integrityStatus = "recovery_pending"
+    return true, writeResult, existing and true or false
+end
+
+function Ledger.hasRecoveryDecision(run, epoch, work)
+    local stored, storedError = readStoredEpoch(run, work)
+    if not stored then return nil, storedError end
+    epoch = tonumber(epoch) or tonumber(run.epoch) or 1
+    for _, record in ipairs(stored.records) do
+        local inspected, inspectError = EventCodec.inspectBody(record.body)
+        if not inspected then return nil, inspectError end
+        if inspected.eventType == "run.recovery.decided"
+                and inspected.epoch == epoch then
+            return true
+        end
+    end
+    return false
+end
+
+local function epochRun(runId, epoch, work)
+    if epoch == 1 then
+        return {
+            runId = runId,
+            epoch = 1,
+            branchCheckpointSequence = 0,
+            branchCheckpointHash = EventCodec.GENESIS_HASH,
+        }
+    end
+    local metadata, metadataError =
+        RecoveryStore.read(runId, epoch, work)
+    if not metadata then return nil, metadataError end
+    return {
+        runId = runId,
+        epoch = epoch,
+        branchCheckpointSequence = metadata.checkpointSequence,
+        branchCheckpointHash = metadata.checkpointHash,
+    }
+end
+
+function Ledger.recoveryEvidence(run, work, activeRecords)
+    local metadataList, metadataError =
+        RecoveryStore.readAll(run.runId, work)
+    if not metadataList then return nil, metadataError end
+    local recoveries = {}
+    for _, metadata in ipairs(metadataList) do
+        local parentRun, parentError =
+            epochRun(run.runId, metadata.parentEpoch, work)
+        if not parentRun then return nil, parentError end
+        local stored, storedError = readStoredEpoch(parentRun, work)
+        if not stored then return nil, storedError end
+        if stored.eventSequence ~= metadata.supersededEventSequence
+                or stored.eventHash ~= metadata.supersededEventHash then
+            return nil, "superseded_branch_head_mismatch:"
+                .. tostring(metadata.epoch)
+        end
+        local startPosition = metadata.checkpointSequence
+            - stored.checkpointSequence + 1
+        if startPosition < 1 then
+            return nil, "superseded_branch_checkpoint_mismatch"
+        end
+        local bodies = {}
+        for position = startPosition, #stored.records do
+            bodies[#bodies + 1] = stored.records[position].body
+        end
+        recoveries[#recoveries + 1] = {
+            epoch = metadata.epoch,
+            parentEpoch = metadata.parentEpoch,
+            checkpointSequence = metadata.checkpointSequence,
+            checkpointHash = metadata.checkpointHash,
+            supersededEventSequence =
+                metadata.supersededEventSequence,
+            supersededEventHash = metadata.supersededEventHash,
+            supersededBodies = bodies,
+            createdUtc = metadata.createdUtc,
+            reason = metadata.reason,
+            decider = metadata.decider,
+            authorizationStatus = metadata.authorizationStatus,
+            selectedAction = metadata.selectedAction,
+            supersededEventTypes = metadata.supersededEventTypes,
+            supersededEventTypeCounts =
+                metadata.supersededEventTypeCounts,
+            metadataChecksum = metadata.checksum,
+        }
+    end
+    local decisions = {}
+    for sequence, record in ipairs(activeRecords or {}) do
+        local inspected, inspectError = EventCodec.inspectBody(record.body)
+        if not inspected then return nil, inspectError end
+        if inspected.eventType == "run.recovery.decided" then
+            local payload, payloadError =
+                EventCodec.decodePayload(inspected.canonicalPayload)
+            if not payload then return nil, payloadError end
+            decisions[#decisions + 1] = {
+                sequence = sequence,
+                epoch = inspected.epoch,
+                utc = inspected.utc,
+                worldAgeHours = inspected.worldAgeHours,
+                reason = payload.reason,
+                decider = payload.decider,
+                authorizationStatus = payload.authorizationStatus,
+                selectedAction = payload.selectedAction,
+            }
+        end
+    end
+    local present = #recoveries > 0 or #decisions > 0
+    return {
+        schema = 1,
+        present = present,
+        hasBranches = #recoveries > 0,
+        status = present and "recovery_present" or "uninterrupted",
+        activeEpoch = math.max(1,
+            math.floor(tonumber(run.epoch) or 1)),
+        recoveries = recoveries,
+        decisions = decisions,
+    }
 end
 
 function Ledger.reconcileInterruptedSessions(run, fileSessionSequence, work)
@@ -269,34 +608,15 @@ function Ledger.reconcileInterruptedSessions(run, fileSessionSequence, work)
         return false, "interrupted_session_history_mismatch"
     end
 
-    local previousHash = EventCodec.GENESIS_HASH
-    local records = {}
-    local index = 1
-    while textExists(segmentPath(run.runId, index)) do
-        local segment, readError = readSegment(
-            run.runId, index, previousHash, true, true, work)
-        if not segment then return false, readError end
-        for _, record in ipairs(segment.records) do
-            records[#records + 1] = record
-        end
-        previousHash = segment.finalHash
-        index = index + 1
-    end
-
-    if #records <= savedSequence then
-        return false, "no_interrupted_session_tail"
-    end
-    local checkpointHash = savedSequence == 0
-        and EventCodec.GENESIS_HASH or records[savedSequence].hash
-    if checkpointHash ~= savedHash then
-        return false, "interrupted_session_checkpoint_mismatch"
-    end
+    local ahead, aheadError = Ledger.inspectAhead(run, work)
+    if not ahead then return false, aheadError end
 
     local observedSessionSequence = savedSessionSequence
     local recoveredSessions = 0
-    for recordIndex = savedSequence + 1, #records do
+    for offset, record in ipairs(ahead.tail) do
+        local recordIndex = savedSequence + offset
         local inspected, inspectError =
-            EventCodec.inspectBody(records[recordIndex].body)
+            EventCodec.inspectBody(record.body)
         if not inspected then return false, inspectError end
         if inspected.runId ~= tostring(run.runId)
                 or inspected.sequence ~= recordIndex then
@@ -323,15 +643,15 @@ function Ledger.reconcileInterruptedSessions(run, fileSessionSequence, work)
         return false, "interrupted_session_file_cursor_mismatch"
     end
 
-    run.eventSequence = #records
-    run.eventHash = records[#records].hash
+    run.eventSequence = ahead.supersededEventSequence
+    run.eventHash = ahead.supersededEventHash
     run.sessionSequence = observedSessionSequence
     run.integrityStatus = "ok"
     return true, {
         savedEventSequence = savedSequence,
         savedEventHash = savedHash,
-        adoptedEventSequence = #records,
-        adoptedEventHash = records[#records].hash,
+        adoptedEventSequence = ahead.supersededEventSequence,
+        adoptedEventHash = ahead.supersededEventHash,
         savedSessionSequence = savedSessionSequence,
         adoptedSessionSequence = observedSessionSequence,
         recoveredSessions = recoveredSessions,
@@ -347,7 +667,13 @@ function Ledger.append(run, event)
     local previousHash = tostring(run.eventHash or EventCodec.GENESIS_HASH):lower()
     local record, encodeError = EventCodec.encode(event, previousHash)
     if not record then return false, encodeError end
-    local written, writeError = appendRecord(run.runId, sequence, record)
+    local written, writeError = appendRecord(
+        run.runId,
+        sequence,
+        record,
+        tonumber(run.epoch) or 1,
+        tonumber(run.branchCheckpointSequence) or 0
+    )
     if not written then return false, writeError end
     return true, { sequence = sequence, hash = record.hash }
 end
@@ -357,6 +683,22 @@ function Ledger.readAll(run, work)
     if not initialized then return nil, initializeError end
 
     local sequence = tonumber(run.eventSequence) or 0
+    local epoch = math.max(1, math.floor(tonumber(run.epoch) or 1))
+    if epoch > 1 then
+        local active, activeError =
+            readEpochPrefix(run.runId, epoch, sequence, work)
+        if not active then return nil, activeError end
+        if #active.records ~= sequence then
+            return nil, "export_event_count_mismatch"
+        end
+        return {
+            runId = tostring(run.runId),
+            eventSequence = sequence,
+            eventHash = active.eventHash,
+            records = active.records,
+        }
+    end
+
     local previousHash = EventCodec.GENESIS_HASH
     local records = {}
     local segmentCount = math.ceil(sequence / EVENTS_PER_SEGMENT)

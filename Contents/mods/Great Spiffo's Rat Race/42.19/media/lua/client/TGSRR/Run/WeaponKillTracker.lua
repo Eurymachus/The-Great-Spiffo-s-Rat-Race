@@ -1,4 +1,5 @@
 local WeaponKillSnapshot = require "TGSRR/Run/WeaponKillSnapshot"
+local ZombieKillTypeTracker = require "TGSRR/Run/ZombieKillTypeTracker"
 
 local WeaponKillTracker = {}
 
@@ -88,6 +89,7 @@ local function onZombieDead(zombie)
             or WeaponKillSnapshot.UNKNOWN
     end
     record(sourceId or WeaponKillSnapshot.UNKNOWN)
+    ZombieKillTypeTracker.record(zombie)
     lastHit[zombie] = nil
 end
 
@@ -96,6 +98,7 @@ function WeaponKillTracker.initialize(run, player)
     activePlayer = player
     run.weaponKills = type(run.weaponKills) == "table" and run.weaponKills or {}
     run.fireDeaths = math.max(0, math.floor(tonumber(run.fireDeaths) or 0))
+    ZombieKillTypeTracker.initialize(run, player)
     local dailyState = run.dailyState
     if type(dailyState) == "table" and type(dailyState.weaponKills) ~= "table" then
         dailyState.weaponKills = WeaponKillSnapshot.copy(run.weaponKills)

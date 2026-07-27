@@ -13,7 +13,12 @@ function AnimalTrapSnapshot.copy(values)
                 count = positiveInteger(count)
                 if count > 0 then copied[tostring(trapId)] = count end
             end
-            if next(copied) then result[tostring(animalType)] = copied end
+            local hasValues = false
+            for _ in pairs(copied) do
+                hasValues = true
+                break
+            end
+            if hasValues then result[tostring(animalType)] = copied end
         end
     end
     return result

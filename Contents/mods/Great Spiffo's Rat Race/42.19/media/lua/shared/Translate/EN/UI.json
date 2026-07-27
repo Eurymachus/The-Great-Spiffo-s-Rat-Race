@@ -131,5 +131,20 @@
     "UI_TGSRR_TrackingStopped_Title": "Rat Race tracking has stopped",
     "UI_TGSRR_TrackingStopped_Body": "This session is no longer being recorded by the Rat Race tracker.",
     "UI_TGSRR_TrackingStopped_Reason": "Reason:",
-    "UI_TGSRR_TrackingStopped_Advice": "Save and quit if possible, then report this message.\nProgress made while tracking is stopped may not be recorded."
+    "UI_TGSRR_TrackingStopped_Advice": "Save and quit if possible, then report this message.\nProgress made while tracking is stopped may not be recorded.",
+    "UI_TGSRR_Recovery_Title": "Save rollback detected",
+    "UI_TGSRR_Recovery_Body": "The external run ledger contains gameplay recorded after this save checkpoint.",
+    "UI_TGSRR_Recovery_SaveCursor": "Save checkpoint:",
+    "UI_TGSRR_Recovery_LedgerCursor": "Ledger head:",
+    "UI_TGSRR_Recovery_AheadEvents": "Ahead events:",
+    "UI_TGSRR_Recovery_UnknownEvents": "Unknown events",
+    "UI_TGSRR_Recovery_Choice": "Continue creates a declared recovery branch and preserves the later history for moderator review.",
+    "UI_TGSRR_Recovery_Continue": "Continue as Recovered Run",
+  "UI_TGSRR_Recovery_Quit": "Do Not Continue",
+  "UI_TGSRR_DevelopmentReset_Title": "Rat Race development data reset",
+  "UI_TGSRR_DevelopmentReset_Body": "This save used an incompatible development data contract. Its TGSRR run state was reset and tracking restarted as a bootstrapped partial run.",
+  "UI_TGSRR_DevelopmentReset_OldRun": "Previous run:",
+  "UI_TGSRR_DevelopmentReset_NewRun": "Replacement run:",
+  "UI_TGSRR_DevelopmentReset_Reason": "Reason:",
+  "UI_TGSRR_DevelopmentReset_Preserved": "The previous external run files were preserved and are no longer used by this save."
 }

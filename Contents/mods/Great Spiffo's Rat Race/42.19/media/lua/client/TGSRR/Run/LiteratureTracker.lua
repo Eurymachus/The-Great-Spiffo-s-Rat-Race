@@ -124,32 +124,6 @@ local function recordCompletion(action, item, wasComplete)
     end
 end
 
-local function sanitizeExisting(state)
-    local baselineValue = state.baseline
-    local filteredIds = {}
-    for _, id in ipairs(baselineValue.itemIds or {}) do
-        id = tostring(id)
-        local item = getScriptManager():FindItem(id)
-        if classification(item) then filteredIds[#filteredIds + 1] = id end
-    end
-    table.sort(filteredIds)
-    baselineValue.itemIds = filteredIds
-    baselineValue.literatureTitles = {}
-    baselineValue.printMediaIds = {}
-
-    local filteredCompleted = {}
-    for id, record in pairs(state.completed or {}) do
-        if type(record) == "table"
-                and (record.classification == "skill_book"
-                    or record.classification == "recipe_literature") then
-            record.literatureTitles = {}
-            record.printMediaIds = {}
-            filteredCompleted[tostring(id)] = record
-        end
-    end
-    state.completed = filteredCompleted
-end
-
 local function install()
     if installed then return end
     installed = true
@@ -180,7 +154,6 @@ function LiteratureTracker.initialize(run, player, created)
             and type(run.literature.baseline) == "table" then
         run.literature.completed = type(run.literature.completed) == "table"
             and run.literature.completed or {}
-        sanitizeExisting(run.literature)
         return true
     end
 
