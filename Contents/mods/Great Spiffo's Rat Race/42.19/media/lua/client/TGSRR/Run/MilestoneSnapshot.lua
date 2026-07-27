@@ -39,10 +39,12 @@ function MilestoneSnapshot.observe(run, records)
         partial = type(run) ~= "table" or run.bootstrapped == true,
         outpostCompletions = {},
         killMilestones = {},
+        skillMilestones = {},
         outpostDeliverableMilestones = {},
     }
     local completedOutposts = {}
     local completedDeliverables = {}
+    local completedSkills = {}
 
     for _, record in ipairs(records or {}) do
         local event, eventError = eventFromRecord(record)
@@ -74,6 +76,22 @@ function MilestoneSnapshot.observe(run, records)
                         math.floor(tonumber(payload.current) or 0)),
                     characterId = tostring(payload.characterId or "player"),
                 }, run, event)
+        elseif event.eventType == "skill.level.reached" then
+            local skillId = tostring(payload.skillId or "")
+            local level = math.max(0,
+                math.floor(tonumber(payload.level) or 0))
+            if skillId ~= "" and level == 10
+                    and not completedSkills[skillId] then
+                completedSkills[skillId] = true
+                result.skillMilestones[#result.skillMilestones + 1] =
+                    appendTiming({
+                        skillId = skillId,
+                        categoryId = payload.categoryId
+                            and tostring(payload.categoryId) or nil,
+                        level = level,
+                        completionOrder = #result.skillMilestones + 1,
+                    }, run, event)
+            end
         elseif event.eventType == "outpost.deliverable.completed" then
             local outpostId = tostring(payload.outpostId or "")
             local deliverableId = tostring(payload.deliverableId or "")

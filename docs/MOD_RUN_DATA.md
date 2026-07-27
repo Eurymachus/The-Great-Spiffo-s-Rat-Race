@@ -347,6 +347,13 @@ from traversal until the zombie finishes getting up; an assist overrides the
 ordinary posture classification. Existing runs mark this history partial. These
 counters have no daily delta.
 
+Skill milestones are derived without adding another event type. The first
+`skill.level.reached` record at exactly level 10 for each stable skill ID is
+projected with its category ID, chronological completion order, event sequence,
+UTC, world age, and elapsed days since run creation. Earlier levels remain in
+the ledger but are not milestones. Bootstrapped runs mark milestone history
+partial because already-completed level-10 transitions cannot be reconstructed.
+
 Active run time is exported cumulatively as
 `activeGameplay.milliseconds`. Following the audited Twist Stats model, TGSRR
 uses a wall-clock `OnTick` accumulator and treats the visible in-game pause

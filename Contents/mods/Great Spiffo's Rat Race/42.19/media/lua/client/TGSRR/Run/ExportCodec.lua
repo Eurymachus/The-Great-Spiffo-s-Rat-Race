@@ -431,6 +431,18 @@ function ExportCodec.selfTest(work)
                         elapsedDays = 3,
                     },
                 },
+                skillMilestones = {
+                    {
+                        skillId = "Fitness",
+                        categoryId = "Passive",
+                        level = 10,
+                        completionOrder = 1,
+                        sequence = 19,
+                        utc = 1234567850,
+                        worldAgeHours = 84,
+                        elapsedDays = 3.5,
+                    },
+                },
                 outpostDeliverableMilestones = {},
             },
             distance = {
@@ -482,6 +494,9 @@ function ExportCodec.selfTest(work)
             or decoded.projection.weight.currentKilograms ~= 78.25
             or decoded.projection.milestones.outpostCompletions[1].completionOrder ~= 1
             or decoded.projection.milestones.killMilestones[1].threshold ~= 1000
+            or decoded.projection.milestones.skillMilestones[1].skillId ~= "Fitness"
+            or decoded.projection.milestones.skillMilestones[1].level ~= 10
+            or decoded.projection.milestones.skillMilestones[1].completionOrder ~= 1
             or decoded.projection.distance.travelledMeters ~= 12345.75
             or decoded.projection.nimbleStance.unit ~= "millisecond"
             or decoded.projection.nimbleStance.movementMilliseconds ~= 98765
