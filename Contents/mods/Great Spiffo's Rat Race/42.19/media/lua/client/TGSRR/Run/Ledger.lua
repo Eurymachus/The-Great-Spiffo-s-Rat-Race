@@ -256,6 +256,88 @@ function Ledger.initialize(run, work)
     return true
 end
 
+function Ledger.reconcileInterruptedSessions(run, fileSessionSequence, work)
+    local savedSequence = math.max(0,
+        math.floor(tonumber(run.eventSequence) or 0))
+    local savedHash = tostring(
+        run.eventHash or EventCodec.GENESIS_HASH):lower()
+    local savedSessionSequence = math.max(0,
+        math.floor(tonumber(run.sessionSequence) or 0))
+    fileSessionSequence = tonumber(fileSessionSequence)
+    if not fileSessionSequence or fileSessionSequence < savedSessionSequence
+            or fileSessionSequence % 1 ~= 0 then
+        return false, "interrupted_session_history_mismatch"
+    end
+
+    local previousHash = EventCodec.GENESIS_HASH
+    local records = {}
+    local index = 1
+    while textExists(segmentPath(run.runId, index)) do
+        local segment, readError = readSegment(
+            run.runId, index, previousHash, true, true, work)
+        if not segment then return false, readError end
+        for _, record in ipairs(segment.records) do
+            records[#records + 1] = record
+        end
+        previousHash = segment.finalHash
+        index = index + 1
+    end
+
+    if #records <= savedSequence then
+        return false, "no_interrupted_session_tail"
+    end
+    local checkpointHash = savedSequence == 0
+        and EventCodec.GENESIS_HASH or records[savedSequence].hash
+    if checkpointHash ~= savedHash then
+        return false, "interrupted_session_checkpoint_mismatch"
+    end
+
+    local observedSessionSequence = savedSessionSequence
+    local recoveredSessions = 0
+    for recordIndex = savedSequence + 1, #records do
+        local inspected, inspectError =
+            EventCodec.inspectBody(records[recordIndex].body)
+        if not inspected then return false, inspectError end
+        if inspected.runId ~= tostring(run.runId)
+                or inspected.sequence ~= recordIndex then
+            return false, "interrupted_session_event_identity_mismatch"
+        end
+        if inspected.eventType == "session.started" then
+            local payload, payloadError =
+                EventCodec.decodePayload(inspected.canonicalPayload)
+            if not payload then return false, payloadError end
+            local sessionSequence = tonumber(payload.sessionSequence)
+            if not sessionSequence
+                    or sessionSequence ~= observedSessionSequence + 1 then
+                return false, "interrupted_session_sequence_mismatch"
+            end
+            observedSessionSequence = sessionSequence
+            recoveredSessions = recoveredSessions + 1
+        elseif inspected.eventType ~= "run.recovery.decided" then
+            -- Gameplay-bearing tails are genuine rollback branches and must
+            -- never be silently adopted as an interrupted session commit.
+            return false, "rollback_requires_declared_recovery"
+        end
+    end
+    if observedSessionSequence ~= fileSessionSequence then
+        return false, "interrupted_session_file_cursor_mismatch"
+    end
+
+    run.eventSequence = #records
+    run.eventHash = records[#records].hash
+    run.sessionSequence = observedSessionSequence
+    run.integrityStatus = "ok"
+    return true, {
+        savedEventSequence = savedSequence,
+        savedEventHash = savedHash,
+        adoptedEventSequence = #records,
+        adoptedEventHash = records[#records].hash,
+        savedSessionSequence = savedSessionSequence,
+        adoptedSessionSequence = observedSessionSequence,
+        recoveredSessions = recoveredSessions,
+    }
+end
+
 function Ledger.append(run, event)
     local sequence = (tonumber(run.eventSequence) or 0) + 1
     event.sequence = sequence

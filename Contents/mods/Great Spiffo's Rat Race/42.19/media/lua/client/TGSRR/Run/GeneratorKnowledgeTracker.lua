@@ -1,5 +1,6 @@
 local Identity = require "TGSRR/Run/Identity"
 local Recorder = require "TGSRR/Run/Recorder"
+local TrackingHealth = require "TGSRR/Run/TrackingHealth"
 
 local GeneratorKnowledgeTracker = {}
 
@@ -106,6 +107,10 @@ local function check(player)
             activeRun.integrityStatus = reason
             print("[TGSRR Run] Generator knowledge tracking failed: "
                 .. tostring(reason))
+            TrackingHealth.stop(
+                reason,
+                "Generator-knowledge tracking stopped."
+            )
         end
     end
 end

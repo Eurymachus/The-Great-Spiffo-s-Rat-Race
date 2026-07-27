@@ -3,6 +3,7 @@ local FileStore = require "TGSRR/Run/FileStore"
 local EventCodec = require "TGSRR/Run/EventCodec"
 local Ledger = require "TGSRR/Run/Ledger"
 local Recorder = require "TGSRR/Run/Recorder"
+local TrackingHealth = require "TGSRR/Run/TrackingHealth"
 local EventBridge = require "TGSRR/Run/EventBridge"
 local DayTracker = require "TGSRR/Run/DayTracker"
 local Exporter = require "TGSRR/Run/Exporter"
@@ -18,6 +19,8 @@ local AnimalSlaughterTracker = require "TGSRR/Run/AnimalSlaughterTracker"
 local AnimalTrapTracker = require "TGSRR/Run/AnimalTrapTracker"
 local AnimalBirthTracker = require "TGSRR/Run/AnimalBirthTracker"
 local MilkTracker = require "TGSRR/Run/MilkTracker"
+local ButterTracker = require "TGSRR/Run/ButterTracker"
+local FishCaughtTracker = require "TGSRR/Run/FishCaughtTracker"
 local GeneratorKnowledgeTracker = require "TGSRR/Run/GeneratorKnowledgeTracker"
 local InjuryTracker = require "TGSRR/Run/InjuryTracker"
 require "TGSRR/Run/ExportMenu"
@@ -102,6 +105,7 @@ local function initialize()
     local codecOk, codecError = EventCodec.selfTest()
     if not codecOk then
         print("[TGSRR Run] Initialization halted: " .. tostring(codecError))
+        TrackingHealth.stop(codecError, "Run initialization failed.")
         return
     end
 
@@ -113,13 +117,33 @@ local function initialize()
     if not ok then
         run.integrityStatus = state
         print("[TGSRR Run] Initialization halted: " .. tostring(state))
+        TrackingHealth.stop(state, "Run-file initialization failed.")
         return
     end
 
+    local recovered = nil
     local ledgerOk, ledgerError = Ledger.initialize(run)
+    if not ledgerOk and ledgerError == "event_segment_ahead_of_save"
+            and not created then
+        local fileSequence = FileStore.sessionHead(run.runId)
+        local reconciled, reconciliation = Ledger.reconcileInterruptedSessions(
+            run, fileSequence)
+        if reconciled then
+            recovered = reconciliation
+            ledgerOk, ledgerError = Ledger.initialize(run)
+            print("[TGSRR Run] Reconciled interrupted session commit: events "
+                .. tostring(recovered.savedEventSequence) .. " -> "
+                .. tostring(recovered.adoptedEventSequence) .. ", sessions "
+                .. tostring(recovered.savedSessionSequence) .. " -> "
+                .. tostring(recovered.adoptedSessionSequence))
+        else
+            ledgerError = reconciliation
+        end
+    end
     if not ledgerOk then
         run.integrityStatus = ledgerError
         print("[TGSRR Run] Initialization halted: " .. tostring(ledgerError))
+        TrackingHealth.stop(ledgerError, "Event-ledger verification failed.")
         return
     end
     Recorder.activate(run)
@@ -131,6 +155,42 @@ local function initialize()
             run.integrityStatus = sequenceError or "session_cursor_mismatch"
             print("[TGSRR Run] Initialization halted: " .. tostring(run.integrityStatus)
                 .. " (save=" .. tostring(run.sessionSequence) .. ", file=" .. tostring(fileSequence) .. ")")
+            TrackingHealth.stop(
+                run.integrityStatus,
+                "Session cursor mismatch: save=" .. tostring(run.sessionSequence)
+                    .. ", file=" .. tostring(fileSequence) .. "."
+            )
+            return
+        end
+    end
+
+    if recovered and recovered.recoveredSessions > 0 then
+        local recoveryRecorded, recoveryError =
+            Recorder.record("run.recovery.decided", {
+                reason = "interrupted_session_commit",
+                decider = {
+                    type = "system",
+                    id = "tgsrr",
+                },
+                authorizationStatus = "automatic",
+                selectedAction = "resume",
+                previousEpoch = tonumber(run.epoch) or 1,
+                epoch = tonumber(run.epoch) or 1,
+                savedEventSequence = recovered.savedEventSequence,
+                savedEventHash = recovered.savedEventHash,
+                adoptedEventSequence = recovered.adoptedEventSequence,
+                adoptedEventHash = recovered.adoptedEventHash,
+                savedSessionSequence = recovered.savedSessionSequence,
+                adoptedSessionSequence = recovered.adoptedSessionSequence,
+            })
+        if not recoveryRecorded then
+            run.integrityStatus = recoveryError
+            print("[TGSRR Run] Recovery evidence append failed: "
+                .. tostring(recoveryError))
+            TrackingHealth.stop(
+                recoveryError,
+                "Crash-recovery evidence could not be recorded."
+            )
             return
         end
     end
@@ -187,6 +247,7 @@ local function initialize()
         Recorder.deactivate()
         run.integrityStatus = appendError
         print("[TGSRR Run] Session append failed: " .. tostring(appendError))
+        TrackingHealth.stop(appendError, "Session history could not be recorded.")
         return
     end
 
@@ -204,6 +265,8 @@ local function initialize()
     AnimalTrapTracker.initialize(run, player)
     AnimalBirthTracker.initialize(run, player)
     MilkTracker.initialize(run, player)
+    ButterTracker.initialize(run, player)
+    FishCaughtTracker.initialize(run, player)
     InjuryTracker.initialize(run, player)
     local literatureReady, literatureError =
         LiteratureTracker.initialize(run, player, created)
@@ -211,6 +274,10 @@ local function initialize()
         run.integrityStatus = literatureError
         print("[TGSRR Run] Literature tracking initialization failed: "
             .. tostring(literatureError))
+        TrackingHealth.stop(
+            literatureError,
+            "Literature tracking initialization failed."
+        )
         return
     end
     local generatorReady, generatorError =
@@ -219,12 +286,17 @@ local function initialize()
         run.integrityStatus = generatorError
         print("[TGSRR Run] Generator knowledge tracking initialization failed: "
             .. tostring(generatorError))
+        TrackingHealth.stop(
+            generatorError,
+            "Generator-knowledge tracking initialization failed."
+        )
         return
     end
     local dayReady, dayError = DayTracker.initialize(run, player)
     if not dayReady then
         run.integrityStatus = dayError
         print("[TGSRR Run] Daily tracking initialization failed: " .. tostring(dayError))
+        TrackingHealth.stop(dayError, "Daily tracking initialization failed.")
         return
     end
     print("[TGSRR Run] " .. (created and "Created" or "Loaded") .. " run " .. tostring(run.runId)

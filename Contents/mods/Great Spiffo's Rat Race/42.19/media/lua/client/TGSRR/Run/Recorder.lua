@@ -1,6 +1,7 @@
 local Identity = require "TGSRR/Run/Identity"
 local EventTypes = require "TGSRR/Run/EventTypes"
 local Ledger = require "TGSRR/Run/Ledger"
+local TrackingHealth = require "TGSRR/Run/TrackingHealth"
 
 local Recorder = {}
 
@@ -13,6 +14,7 @@ local function halt(reason)
     haltedReason = reason
     if activeRun then activeRun.integrityStatus = reason end
     print("[TGSRR Run] Event recording halted: " .. reason)
+    TrackingHealth.stop(reason, "Event recording halted.")
     return false, reason
 end
 

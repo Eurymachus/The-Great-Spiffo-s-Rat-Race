@@ -130,6 +130,12 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.milkCollected = {}
         data.milkCollectedTotal = 0
         data.milkCollectedPartial = data.bootstrapped
+        data.butterProduced = 0
+        data.butterProducedPartial = data.bootstrapped
+        data.butterChurns = {}
+        data.fishCaught = {}
+        data.fishCaughtTotal = 0
+        data.fishCaughtPartial = data.bootstrapped
         data.animalIdentities = {}
         data.animalIdentityByPzId = {}
         data.animalIdentitySequence = 0
@@ -256,6 +262,25 @@ function Identity.ensure(player, selectedTraitSnapshot)
             math.max(0, tonumber(data.milkCollectedTotal) or 0)
     end
     data.milkCollectedPartial = data.milkCollectedPartial == true
+    if data.butterProduced == nil then
+        data.butterProduced = 0
+        data.butterProducedPartial = true
+    else
+        data.butterProduced = math.max(0,
+            math.floor(tonumber(data.butterProduced) or 0))
+    end
+    data.butterProducedPartial = data.butterProducedPartial == true
+    data.butterChurns = type(data.butterChurns) == "table"
+        and data.butterChurns or {}
+    if type(data.fishCaught) ~= "table" then
+        data.fishCaught = {}
+        data.fishCaughtTotal = 0
+        data.fishCaughtPartial = true
+    else
+        data.fishCaughtTotal = math.max(0,
+            math.floor(tonumber(data.fishCaughtTotal) or 0))
+    end
+    data.fishCaughtPartial = data.fishCaughtPartial == true
     data.animalIdentities = type(data.animalIdentities) == "table"
         and data.animalIdentities or {}
     data.animalIdentityByPzId =

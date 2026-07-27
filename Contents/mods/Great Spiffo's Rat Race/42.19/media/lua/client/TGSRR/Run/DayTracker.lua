@@ -73,6 +73,15 @@ local function beginDay(initial)
                 current.milkCollected, previousState.milkCollected),
             milkCollectedPartial =
                 previousState.milkCollectedPartial == true,
+            butterProducedDelta = current.butterProduced
+                - math.max(0, math.floor(tonumber(
+                    previousState.butterProduced) or 0)),
+            butterProducedPartial =
+                previousState.butterProducedPartial == true,
+            fishCaughtDeltas =
+                deltas(current.fishCaught, previousState.fishCaught),
+            fishCaughtPartial =
+                previousState.fishCaughtPartial == true,
             injuryDeltas = InjurySnapshot.deltaPairs(
                 current.injuries, previousState.injuries),
             zombieAssociatedInjuryDeltas = InjurySnapshot.deltaPairs(
@@ -117,6 +126,12 @@ local function beginDay(initial)
             milkCollected = current.milkCollected,
             milkCollectedPartial =
                 initial == true and activeRun.milkCollectedPartial == true,
+            butterProduced = current.butterProduced,
+            butterProducedPartial =
+                initial == true and activeRun.butterProducedPartial == true,
+            fishCaught = current.fishCaught,
+            fishCaughtPartial =
+                initial == true and activeRun.fishCaughtPartial == true,
             injuries = current.injuries,
             zombieAssociatedInjuries =
                 current.zombieAssociatedInjuries,
@@ -161,6 +176,12 @@ local function beginDay(initial)
         milkCollected = current.milkCollected,
         milkCollectedPartial =
             initial == true and activeRun.milkCollectedPartial == true,
+        butterProduced = current.butterProduced,
+        butterProducedPartial =
+            initial == true and activeRun.butterProducedPartial == true,
+        fishCaught = current.fishCaught,
+        fishCaughtPartial =
+            initial == true and activeRun.fishCaughtPartial == true,
         injuries = current.injuries,
         zombieAssociatedInjuries =
             current.zombieAssociatedInjuries,
@@ -185,6 +206,16 @@ function DayTracker.initialize(run, player)
         local current = snapshot(player)
         run.dailyState.milkCollected = current.milkCollected
         run.dailyState.milkCollectedPartial = true
+    end
+    if run.dailyState.butterProduced == nil then
+        local current = snapshot(player)
+        run.dailyState.butterProduced = current.butterProduced
+        run.dailyState.butterProducedPartial = true
+    end
+    if type(run.dailyState.fishCaught) ~= "table" then
+        local current = snapshot(player)
+        run.dailyState.fishCaught = current.fishCaught
+        run.dailyState.fishCaughtPartial = true
     end
     return true
 end

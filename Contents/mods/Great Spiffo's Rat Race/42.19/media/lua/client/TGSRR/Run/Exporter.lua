@@ -19,6 +19,7 @@ local GeneratorKnowledgeSnapshot =
     require "TGSRR/Run/GeneratorKnowledgeSnapshot"
 local InjurySnapshot = require "TGSRR/Run/InjurySnapshot"
 local MilkSnapshot = require "TGSRR/Run/MilkSnapshot"
+local FishCaughtSnapshot = require "TGSRR/Run/FishCaughtSnapshot"
 
 local Exporter = {}
 
@@ -155,6 +156,18 @@ local function verifyReadback(decoded, ledger, projection)
         { "activeDay.milkCollectedDeltas.count",
             count(actual.activeDay.milkCollectedDeltas),
             count(projection.activeDay.milkCollectedDeltas) },
+        { "butterProduced.count", actual.butterProduced.count,
+            projection.butterProduced.count },
+        { "activeDay.butterProducedDelta",
+            actual.activeDay.butterProducedDelta,
+            projection.activeDay.butterProducedDelta },
+        { "fishCaught.total", actual.fishCaught.total,
+            projection.fishCaught.total },
+        { "fishCaught.fish.count", count(actual.fishCaught.fish),
+            count(projection.fishCaught.fish) },
+        { "activeDay.fishCaughtDeltas.count",
+            count(actual.activeDay.fishCaughtDeltas),
+            count(projection.activeDay.fishCaughtDeltas) },
         { "generatorKnowledge.known", actual.generatorKnowledge.known,
             projection.generatorKnowledge.known },
         { "generatorKnowledge.recipeId", actual.generatorKnowledge.recipeId,
@@ -261,6 +274,18 @@ function Exporter.generate(run, work)
             total = math.max(0, tonumber(run.milkCollectedTotal) or 0),
             partial = run.milkCollectedPartial == true,
             milkTypes = MilkSnapshot.list(run.milkCollected),
+        },
+        butterProduced = {
+            itemId = "Base.Butter",
+            count = math.max(0,
+                math.floor(tonumber(run.butterProduced) or 0)),
+            partial = run.butterProducedPartial == true,
+        },
+        fishCaught = {
+            total = math.max(0,
+                math.floor(tonumber(run.fishCaughtTotal) or 0)),
+            partial = run.fishCaughtPartial == true,
+            fish = FishCaughtSnapshot.list(run.fishCaught),
         },
         generatorKnowledge = GeneratorKnowledgeSnapshot.observe(run),
         injuries = {

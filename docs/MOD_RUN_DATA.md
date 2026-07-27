@@ -320,8 +320,18 @@ An accepted recovery record contains at least:
 - Hash of the restored normalized state.
 - UTC and game-time recovery observation where available.
 - Recovery reason and approval/reference ID.
+- Structured decision authority as `decider.type` and `decider.id`. Automatic
+  tracker recovery uses `{ type = "system", id = "tgsrr" }`; future player,
+  moderator, or signed-authorization decisions retain their distinct authority.
 - Previous and newly assigned epoch/branch IDs.
 - Authorization status and the player's selected action.
+
+`decider` identifies who or what selected the action; it is not an eligibility
+verdict. Defined authority types are `system`, `player`, `moderator`, and
+`authorization`. The `id` is a stable identifier within that type. Recovery
+records created before this field was introduced remain valid and may omit it;
+consumers should display their decision authority as unknown rather than infer
+one from `authorizationStatus`.
 
 For example, restoring checkpoint `C` after records `D` and `E` produces:
 

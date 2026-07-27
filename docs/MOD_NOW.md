@@ -32,6 +32,16 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Dynamic all-skills level-10 deliverable grouped by vanilla skill category, with ten-segment per-skill progress, aggregate fractional progress, and event-driven refresh.
 - World-scoped Rat Race run identity foundation with immutable `runId`, starting-character metadata, versioned `run.meta`, and timestamped session/mod-list history.
 - Canonical schema-1 event codec, SHA-256 hash-chained ledger, append-safe segmented storage, lifecycle verification, and migration support for pre-release test ledgers.
+- Interrupted session commits are recovered automatically when the external
+  ledger and session log are ahead of the save by session-boundary records
+  only. The full tail is hash-verified, adopted without rewriting it, and a
+  `run.recovery.decided` evidence event records the saved and adopted cursors,
+  plus `decider = { type = "system", id = "tgsrr" }` so exports identify the
+  automatic decision authority without website-side inference.
+  Ahead gameplay events remain a declared rollback and halt initialization.
+- Run-wide initialization, integrity, event-recording, and asynchronous
+  collector failures display an always-on-top in-game warning explaining that
+  tracking stopped, the exact machine-readable reason, and the risk to progress.
 - TGSRR-owned daily history with UTC/world-age day boundaries, daily kill deltas, and non-zero per-skill XP deltas.
 - TGSRR-owned weapon-kill attribution keyed by full item type or explicit
   non-item pseudo ID, with cumulative totals, completed-day deltas, active-day
@@ -78,6 +88,13 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Incremental local-player milk collection captured at Build 42.19's
   authoritative `ISMilkAnimal:milk()` transfer edge, including partial fluid
   increments, with cumulative raw milk-type totals and daily deltas.
+- Successful `Base.churn_butter` production observed through Build 42.19's
+  `ISWidgetHandCraftControl` action start/completion/cancellation callbacks,
+  after `ISHandcraftAction:performRecipe()` creates and awards `Base.Butter`,
+  with cumulative totals and daily deltas.
+- Local-player fishing catches captured from the landed-fish pickup action,
+  excluding trash and fishing nets, with cumulative full-item-ID totals and
+  daily deltas.
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
 - One-second refresh that updates stable list entries in place.
 - Weighted Outposts percentage derived from the arithmetic mean of the 13 weighted individual percentages.

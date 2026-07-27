@@ -127,5 +127,9 @@
     "UI_TGSRR_Tracker_MilestoneLocked": "Locked",
     "UI_TGSRR_Milestone_KillsReached": "Zombie kill milestone reached",
     "UI_TGSRR_Milestone_OutpostDeliverable": "Outpost requirement completed",
-    "UI_TGSRR_Milestone_OutpostComplete": "Outpost completed"
+    "UI_TGSRR_Milestone_OutpostComplete": "Outpost completed",
+    "UI_TGSRR_TrackingStopped_Title": "Rat Race tracking has stopped",
+    "UI_TGSRR_TrackingStopped_Body": "This session is no longer being recorded by the Rat Race tracker.",
+    "UI_TGSRR_TrackingStopped_Reason": "Reason:",
+    "UI_TGSRR_TrackingStopped_Advice": "Save and quit if possible, then report this message.\nProgress made while tracking is stopped may not be recorded."
 }
