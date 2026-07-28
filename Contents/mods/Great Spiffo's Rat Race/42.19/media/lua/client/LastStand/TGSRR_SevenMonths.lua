@@ -1,6 +1,7 @@
 local Challenge = {}
 
 local TGSRR_SandboxBase = require("LastStand/TGSRR_SandboxBase")
+local TGSRR_SelectedChallenge = require("TGSRR/Run/SelectedChallenge")
 
 Challenge.id = "TGSRR_SevenMonths"
 Challenge.completionText =
@@ -9,6 +10,7 @@ Challenge.image = "media/lua/client/LastStand/outpostmap.png"
 Challenge.gameMode =
     "The Great Spiffo's Rat Race - Seven Months Later (Test)"
 Challenge.world = "DEFAULT"
+TGSRR_SelectedChallenge.register(Challenge)
 
 Challenge.Add = function()
     addChallenge(Challenge)

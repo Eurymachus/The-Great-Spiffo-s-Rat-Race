@@ -9,6 +9,8 @@ local Inspector = require "TGSRR/Outposts/Debug/InspectorWindow"
 TGSRROutpostSurveyWindow = ISCollapsableWindow:derive("TGSRROutpostSurveyWindow")
 TGSRROutpostSurveyWindow.instance = nil
 TGSRROutpostSurveyWindow.launcher = nil
+local TGSRROutpostSurveyLauncher =
+    ISButton:derive("TGSRROutpostSurveyLauncher")
 
 local OUTPOSTS = {
     { id = "Louisville", name = "Louisville" },
@@ -270,10 +272,12 @@ local function createSurveyWindow()
     window:addToUIManager()
 
     if not TGSRROutpostSurveyWindow.launcher then
-        local width, height = 130, 26
+        local width, height = 150, 26
         local x = math.max(10, getCore():getScreenWidth() - width - 12)
         local y = math.max(10, getCore():getScreenHeight() - height - 12)
-        local launcher = ISButton:new(x, y, width, height, "TGSRR Outposts", nil, toggleSurveyWindow)
+        local launcher = TGSRROutpostSurveyLauncher:new(
+            x, y, width, height, "TGSRR Outposts",
+            nil, toggleSurveyWindow)
         launcher:initialise()
         launcher.backgroundColor = { r = 0.12, g = 0.12, b = 0.12, a = 0.9 }
         launcher:addToUIManager()

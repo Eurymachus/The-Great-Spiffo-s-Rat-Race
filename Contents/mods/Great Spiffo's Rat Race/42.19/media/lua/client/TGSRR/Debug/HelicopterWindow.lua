@@ -9,6 +9,8 @@ TGSRRHelicopterDebugWindow =
     ISCollapsableWindow:derive("TGSRRHelicopterDebugWindow")
 TGSRRHelicopterDebugWindow.instance = nil
 TGSRRHelicopterDebugWindow.launcher = nil
+local TGSRRHelicopterDebugLauncher =
+    ISButton:derive("TGSRRHelicopterDebugLauncher")
 
 local function clockText(timeOfDay)
     local hour = math.floor(timeOfDay)
@@ -243,7 +245,7 @@ local function createLauncher()
         10, getCore():getScreenWidth() - width - 12)
     local y = math.max(
         10, getCore():getScreenHeight() - height - 45)
-    local launcher = ISButton:new(
+    local launcher = TGSRRHelicopterDebugLauncher:new(
         x, y, width, height, "TGSRR Helicopter",
         nil, toggleWindow)
     launcher:initialise()

@@ -1,6 +1,7 @@
 local Challenge = {}
 
 local TGSRR_SandboxBase = require("LastStand/TGSRR_SandboxBase")
+local TGSRR_SelectedChallenge = require("TGSRR/Run/SelectedChallenge")
 
 Challenge.id = "TGSRR_CDDA";
 Challenge.completionText = "Survive a night to unlock next challenge.";
@@ -9,6 +10,7 @@ Challenge.video = "CDDA.bik";
 Challenge.gameMode = "The Great Spiffo's Rat Race - CDDA";
 Challenge.world = "DEFAULT";
 Challenge.hourOfDay = 7;
+TGSRR_SelectedChallenge.register(Challenge)
 
 Challenge.Add = function()
 	addChallenge(Challenge);

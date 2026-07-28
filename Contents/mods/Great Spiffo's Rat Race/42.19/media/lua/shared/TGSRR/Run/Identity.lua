@@ -1,5 +1,6 @@
 local Identity = {}
 local CharacterSnapshot = require "TGSRR/Run/CharacterSnapshot"
+local SelectedChallenge = require "TGSRR/Run/SelectedChallenge"
 
 local MOD_DATA_KEY = "TGSRR_Run"
 local SCHEMA_VERSION = 19
@@ -72,9 +73,22 @@ end
 
 local function challengeEvidence()
     local core = getCore and getCore() or nil
+    local gameMode =
+        core and core.getGameMode and nonEmpty(core:getGameMode()) or ""
+    local captured = SelectedChallenge.observe(gameMode)
+    local selected = LastStandData
+        and type(LastStandData.chosenChallenge) == "table"
+        and LastStandData.chosenChallenge or nil
+    local selectedGameMode = selected and nonEmpty(selected.gameMode)
+    local selectedId = selectedGameMode
+        and selectedGameMode == nonEmpty(gameMode)
+        and nonEmpty(selected.id) or nil
     return {
-        id = core and core.getChallengeID and nonEmpty(core:getChallengeID()) or "",
-        gameMode = core and core.getGameMode and nonEmpty(core:getGameMode()) or "",
+        id = (captured and nonEmpty(captured.id))
+            or selectedId
+            or (core and core.getChallengeID
+                and nonEmpty(core:getChallengeID()) or ""),
+        gameMode = gameMode,
     }
 end
 

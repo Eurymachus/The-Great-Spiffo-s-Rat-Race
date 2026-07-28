@@ -1,12 +1,14 @@
 local Challenge = {}
 
 local TGSRR_SandboxBase = require("LastStand/TGSRR_SandboxBase")
+local TGSRR_SelectedChallenge = require("TGSRR/Run/SelectedChallenge")
 
 Challenge.id = "TGSRR_Sprinters";
 Challenge.completionText = "Survive a night to unlock next challenge.";
 Challenge.image = "media/lua/client/LastStand/outpostmap.png";
 Challenge.gameMode = "The Great Spiffo's Rat Race - Sprinters";
 Challenge.world = "DEFAULT";
+TGSRR_SelectedChallenge.register(Challenge)
 
 Challenge.Add = function()
 	addChallenge(Challenge);
