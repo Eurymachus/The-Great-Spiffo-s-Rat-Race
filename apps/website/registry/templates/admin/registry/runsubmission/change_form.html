@@ -115,8 +115,22 @@
             <div><dt>Submitted</dt><dd>{{ run_review.current_submission.submitted_at|date:"j M Y, H:i:s" }}</dd></div>
           {% endif %}
         </dl>
-        <h3>Decoded event JSON</h3>
-        <pre>{{ run_review.raw_json }}</pre>
+        <div class="run-review-json-group">
+          <details class="run-review-json">
+            <summary>
+              <span>Decoded run snapshot JSON</span>
+              <small>Current and cumulative state at export time</small>
+            </summary>
+            <pre>{{ run_review.snapshot_json }}</pre>
+          </details>
+          <details class="run-review-json">
+            <summary>
+              <span>Decoded event history JSON</span>
+              <small>Complete verified hash-chained chronology</small>
+            </summary>
+            <pre>{{ run_review.event_history_json }}</pre>
+          </details>
+        </div>
       </details>
     </div>
   {% else %}

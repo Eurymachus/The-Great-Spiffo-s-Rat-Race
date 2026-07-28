@@ -70,6 +70,10 @@ a nickname using a verified email address.
   discarded merely because no new semantic event occurred.
 - Current format-3 mod-export ingestion, including the signed ledger and complete
   character/trait projection, preserved on both the run and immutable submission.
+  Current event-schema 2 ledgers are accepted; legacy and unknown event schemas
+  are rejected. The run-snapshot projection remains schema 1. Decoder parity
+  covers the mod's canonical number, map, event-metadata, framing, integrity and
+  size rules, with a real current-contract mod export retained as a golden test.
 - Optional raw `challenge.id` and `challenge.gameMode` evidence within the
   schema-1 projection. Exact IDs map to managed Challenge Modes; unknown IDs are
   accepted as unmapped, empty IDs may map by the exact game-mode name, and legacy

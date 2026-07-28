@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import math
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -7,9 +8,15 @@ from datetime import datetime, timezone
 
 PREFIX = "TGSRR1.LZ1."
 GENESIS_HASH = "0" * 64
-MAX_ENCODED_CHARACTERS = 24 * 1024 * 1024
+SUPPORTED_EVENT_SCHEMAS = {2}
 MAX_DECOMPRESSED_BYTES = 16 * 1024 * 1024
+MAX_ENCODED_CHARACTERS = 24 * 1024 * 1024 + len(PREFIX) + 65
+MAX_RUN_ID_CHARACTERS = 160
+MAX_DATABASE_INTEGER = 2**63 - 1
 ENVELOPE_RE = re.compile(r"^TGSRR1\.LZ1\.([A-Za-z0-9_-]+)\.([0-9a-f]{64})$")
+CANONICAL_NUMBER_RE = re.compile(
+    rb"^(?:0|-?(?:[1-9]\d*(?:\.\d+)?(?:e[+-]?\d+)?|0\.\d+))$"
+)
 
 
 class InvalidRunExport(ValueError):
@@ -150,11 +157,15 @@ def _decode_value(value, cursor=0):
             raise InvalidRunExport("The export contains an invalid boolean value.")
         result = content == b"1"
     elif tag == "n":
-        text = content.decode("ascii")
+        if not CANONICAL_NUMBER_RE.fullmatch(content):
+            raise InvalidRunExport("The export contains an invalid number.")
         try:
-            result = float(text) if any(marker in text for marker in ".eE") else int(text)
-        except ValueError as exc:
+            text = content.decode("ascii")
+            result = float(text) if any(marker in text for marker in ".e") else int(text)
+        except (OverflowError, UnicodeDecodeError, ValueError) as exc:
             raise InvalidRunExport("The export contains an invalid number.") from exc
+        if isinstance(result, float) and not math.isfinite(result):
+            raise InvalidRunExport("The export contains an invalid number.")
     elif tag == "s":
         result = content.decode("utf-8")
     elif tag == "a":
@@ -168,10 +179,16 @@ def _decode_value(value, cursor=0):
         inner = 0
         while inner < len(content):
             key_tag, key, inner = _read_frame(content, inner, tagged=True)
-            if key_tag != "k":
+            if key_tag != "k" or not key:
                 raise InvalidRunExport("The export contains an invalid map key.")
             item, inner = _decode_value(content, inner)
-            result[key.decode("utf-8")] = item
+            try:
+                decoded_key = key.decode("utf-8")
+            except UnicodeDecodeError as exc:
+                raise InvalidRunExport("The export contains an invalid map key.") from exc
+            if decoded_key in result:
+                raise InvalidRunExport("The export contains a duplicate map key.")
+            result[decoded_key] = item
     else:
         raise InvalidRunExport("The export contains an unsupported value type.")
     return result, next_cursor
@@ -186,13 +203,18 @@ def _decode_event(body):
         if tag != expected_tag:
             raise InvalidRunExport("The export contains an invalid event record.")
         values[tag] = content
-    if cursor != len(body) or values["v"] != b"1":
+    try:
+        event_schema = int(values["v"])
+    except ValueError as exc:
+        raise InvalidRunExport("The export contains an unsupported event record.") from exc
+    if cursor != len(body) or event_schema not in SUPPORTED_EVENT_SCHEMAS:
         raise InvalidRunExport("The export contains an unsupported event record.")
     payload, payload_cursor = _decode_value(values["p"])
     if payload_cursor != len(values["p"]) or not isinstance(payload, dict):
         raise InvalidRunExport("The export contains an invalid event payload.")
     try:
-        return {
+        event = {
+            "schema": event_schema,
             "run_id": values["r"].decode("utf-8"),
             "epoch": int(values["e"]),
             "sequence": int(values["q"]),
@@ -203,6 +225,16 @@ def _decode_event(body):
         }
     except (UnicodeDecodeError, ValueError) as exc:
         raise InvalidRunExport("The export contains invalid event metadata.") from exc
+    if (
+        not event["run_id"]
+        or event["epoch"] < 1
+        or event["sequence"] < 1
+        or event["utc"] < 0
+        or not math.isfinite(event["world_age_hours"])
+        or not event["event_type"]
+    ):
+        raise InvalidRunExport("The export contains invalid event metadata.")
+    return event
 
 
 def decode_run_export(value):
@@ -244,7 +276,13 @@ def decode_run_export(value):
         event_hash = fields[4].decode("ascii")
     except (UnicodeDecodeError, ValueError) as exc:
         raise InvalidRunExport("The export header is invalid.") from exc
-    if not run_id or generated_utc < 0 or event_count < 0:
+    if (
+        not run_id
+        or len(run_id) > MAX_RUN_ID_CHARACTERS
+        or generated_utc < 0
+        or event_count < 0
+        or event_count > MAX_DATABASE_INTEGER
+    ):
         raise InvalidRunExport("The export header contains invalid values.")
     if not re.fullmatch(r"[0-9a-f]{64}", event_hash):
         raise InvalidRunExport("The export ledger head is invalid.")
@@ -258,6 +296,7 @@ def decode_run_export(value):
         or isinstance(current_kills, bool)
         or not isinstance(current_kills, int)
         or current_kills < 0
+        or current_kills > MAX_DATABASE_INTEGER
         or not isinstance(projection.get("character"), dict)
     ):
         raise InvalidRunExport("The export contains an unsupported run projection.")

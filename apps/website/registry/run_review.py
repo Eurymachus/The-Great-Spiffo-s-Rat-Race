@@ -326,5 +326,10 @@ def build_run_review(current_submission):
         "first_event_at": first_time,
         "last_event_at": last_time,
         "generated_span": generated_span,
-        "raw_json": json.dumps(events, indent=2, ensure_ascii=False, sort_keys=True),
+        "snapshot_json": json.dumps(
+            decoded.projection, indent=2, ensure_ascii=False, sort_keys=True
+        ),
+        "event_history_json": json.dumps(
+            events, indent=2, ensure_ascii=False, sort_keys=True
+        ),
     }

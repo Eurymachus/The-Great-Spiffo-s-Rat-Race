@@ -1,7 +1,31 @@
 (() => {
     "use strict";
 
+    const localDateTimeFormatter = (includeSeconds = false) => new Intl.DateTimeFormat(
+        undefined,
+        {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            ...(includeSeconds ? {second: "2-digit"} : {}),
+        }
+    );
+
+    const localiseDateTimes = (root = document) => {
+        root.querySelectorAll("[data-local-datetime]").forEach((time) => {
+            const value = new Date(time.dateTime);
+            if (Number.isNaN(value.getTime())) return;
+            time.textContent = localDateTimeFormatter(
+                time.hasAttribute("data-local-seconds")
+            ).format(value);
+            time.title = value.toLocaleString();
+        });
+    };
+
     const initialiseRunDialogs = (root = document) => {
+        localiseDateTimes(root);
         root.querySelectorAll(".run-detail-modal").forEach((dialog) => {
             if (dialog.dataset.runDetailReady || typeof dialog.showModal !== "function") return;
             dialog.dataset.runDetailReady = "true";

@@ -75,7 +75,7 @@
     <div class="dashboard-run-list">
       {% for submission in pending_submissions %}
       <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ submission.run.pk }}" aria-haspopup="dialog">
-        <div><strong>{{ submission.run.character_name|default:"Rat Race export" }}</strong><small>{{ submission.challenge_mode_display }} · {{ submission.submitted_at|date:"j M Y, H:i" }}</small></div>
+        <div><strong>{{ submission.run.character_name|default:"Rat Race export" }}</strong><small>{{ submission.challenge_mode_display }} · <time datetime="{{ submission.submitted_at|date:'c' }}" data-local-datetime>{{ submission.submitted_at|date:"j M Y, H:i" }}</time></small></div>
         <div><strong>{{ submission.current_kills }} kills</strong><small>Awaiting review</small></div>
       </button>
       {% endfor %}

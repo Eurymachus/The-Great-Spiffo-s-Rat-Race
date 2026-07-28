@@ -34,16 +34,13 @@
         if (newNotifications.length === 1) {
             heading.textContent = "New notification received";
             detail.textContent = newNotifications[0].title;
-            toast.addEventListener("click", () => {
-                window.location.assign(newNotifications[0].open_url);
-            });
         } else {
             heading.textContent = `${newNotifications.length} new notifications received`;
             detail.textContent = "Open notifications to view them.";
-            toast.addEventListener("click", () => {
-                window.location.assign(allUrl);
-            });
         }
+        toast.addEventListener("click", () => {
+            window.location.assign(allUrl);
+        });
         toast.append(heading, detail);
         notificationToastRegion.replaceChildren(toast);
         requestAnimationFrame(() => toast.classList.add("is-visible"));

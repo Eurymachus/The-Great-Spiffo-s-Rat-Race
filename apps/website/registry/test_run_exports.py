@@ -1,6 +1,7 @@
 import base64
 import hashlib
 from datetime import datetime, timezone
+from pathlib import Path
 
 from django.test import TestCase
 from django.urls import reverse
@@ -44,15 +45,25 @@ def canonical_value(value):
     return tagged("m", content)
 
 
-def event_body(run_id, sequence, event_type, payload):
+def event_body(
+    run_id,
+    sequence,
+    event_type,
+    payload,
+    event_schema=2,
+    *,
+    epoch=1,
+    utc=None,
+    world_age_hours=None,
+):
     return b"".join(
         (
-            tagged("v", 1),
+            tagged("v", event_schema),
             tagged("r", run_id),
-            tagged("e", 1),
+            tagged("e", epoch),
             tagged("q", sequence),
-            tagged("t", 1784800000 + sequence),
-            tagged("w", sequence),
+            tagged("t", 1784800000 + sequence if utc is None else utc),
+            tagged("w", sequence if world_age_hours is None else world_age_hours),
             tagged("y", event_type),
             tagged("p", canonical_value(payload)),
         )
@@ -68,6 +79,34 @@ def literal_lzss(value):
     return bytes(output)
 
 
+def make_export_from_bodies(
+    bodies,
+    *,
+    run_id="rr-web-test",
+    generated_at=1784800100,
+    projection_bytes=None,
+):
+    previous_hash = "0" * 64
+    for body in bodies:
+        previous_hash = hashlib.sha256(previous_hash.encode() + body).hexdigest()
+    body_frames = b"".join(frame(body) for body in bodies)
+    canonical = b"".join(
+        frame(value)
+        for value in (
+            3,
+            run_id,
+            generated_at,
+            len(bodies),
+            previous_hash,
+            projection_bytes,
+            body_frames,
+        )
+    )
+    checksum = hashlib.sha256(canonical).hexdigest()
+    payload = base64.urlsafe_b64encode(literal_lzss(canonical)).decode().rstrip("=")
+    return f"TGSRR1.LZ1.{payload}.{checksum}"
+
+
 def make_export(
     run_id="rr-web-test",
     kills=42,
@@ -75,19 +114,25 @@ def make_export(
     projection=None,
     challenge=None,
     generated_at=1784800100,
+    event_schema=2,
+    event_options=None,
 ):
     event_specs = event_specs or [
         ("session.started", {"character": {"displayName": "Test Survivor"}}),
         ("day.started", {"partial": False}),
     ]
+    event_options = event_options or {}
     bodies = [
-        event_body(run_id, sequence, event_type, payload)
+        event_body(
+            run_id,
+            sequence,
+            event_type,
+            payload,
+            event_schema,
+            **event_options,
+        )
         for sequence, (event_type, payload) in enumerate(event_specs, start=1)
     ]
-    previous_hash = "0" * 64
-    for body in bodies:
-        previous_hash = hashlib.sha256(previous_hash.encode() + body).hexdigest()
-    body_frames = b"".join(frame(body) for body in bodies)
     projection = projection or {
         "schema": 1,
         "currentKills": kills,
@@ -103,24 +148,88 @@ def make_export(
     }
     if challenge is not None:
         projection["challenge"] = challenge
-    canonical = b"".join(
-        frame(value)
-        for value in (
-            3,
-            run_id,
-            generated_at,
-            len(bodies),
-            previous_hash,
-            canonical_value(projection),
-            body_frames,
-        )
+    return make_export_from_bodies(
+        bodies,
+        run_id=run_id,
+        generated_at=generated_at,
+        projection_bytes=canonical_value(projection),
     )
-    checksum = hashlib.sha256(canonical).hexdigest()
-    payload = base64.urlsafe_b64encode(literal_lzss(canonical)).decode().rstrip("=")
-    return f"TGSRR1.LZ1.{payload}.{checksum}"
 
 
 class RunExportCodecTests(TestCase):
+    def test_decodes_real_current_contract_export(self):
+        fixture = (
+            Path(__file__).with_name("testdata")
+            / "format3_event2_projection1.txt"
+        )
+
+        decoded = decode_run_export(fixture.read_text(encoding="utf-8"))
+
+        self.assertEqual(decoded.format, 3)
+        self.assertEqual(
+            decoded.run_id,
+            "rr-1785152260-1785152260039-225317-444485",
+        )
+        self.assertEqual(decoded.event_sequence, 21)
+        self.assertEqual(
+            decoded.event_hash,
+            "08a2fc2c61ac86b72d6e8234acc12bc080e156ffb5e01a7d96e36c627d8eca43",
+        )
+        self.assertEqual(
+            decoded.checksum,
+            "ab96abe36f137b2376549f2731f8140044217a97fb1868495cd836df40188d0a",
+        )
+        self.assertEqual({event["schema"] for event in decoded.events}, {2})
+        self.assertEqual(decoded.projection["schema"], 1)
+        self.assertEqual(
+            decoded.projection["challenge"],
+            {
+                "id": "TGSRR",
+                "gameMode": "The Great Spiffo's Rat Race",
+            },
+        )
+        self.assertEqual(decoded.current_kills, 6124)
+        self.assertEqual(len(decoded.projection["skills"]), 35)
+        self.assertEqual(len(decoded.projection["outposts"]), 13)
+        self.assertEqual(len(decoded.projection["townVisits"]["towns"]), 12)
+        self.assertEqual(
+            decoded.events[-1]["payload"]["challenge"]["id"],
+            "TGSRR",
+        )
+        expected_contract_sections = {
+            "activeDay",
+            "activeGameplay",
+            "activeMods",
+            "animalBirths",
+            "animalsSlaughtered",
+            "animalsTrapped",
+            "brokenWeapons",
+            "butterProduced",
+            "challenge",
+            "challengeProgress",
+            "character",
+            "currentKills",
+            "distance",
+            "fireDeaths",
+            "fishCaught",
+            "generatorKnowledge",
+            "injuries",
+            "literature",
+            "locations",
+            "milestones",
+            "milkCollected",
+            "nimbleStance",
+            "outposts",
+            "recovery",
+            "schema",
+            "skills",
+            "townVisits",
+            "weaponKills",
+            "weight",
+            "zombieKillTypes",
+        }
+        self.assertEqual(set(decoded.projection), expected_contract_sections)
+
     def test_decodes_and_verifies_format_three_export(self):
         decoded = decode_run_export(make_export())
         self.assertEqual(decoded.run_id, "rr-web-test")
@@ -136,6 +245,67 @@ class RunExportCodecTests(TestCase):
             decoded.generated_at,
             datetime.fromtimestamp(1784800100, tz=timezone.utc),
         )
+
+    def test_accepts_current_event_schema_two(self):
+        decoded = decode_run_export(make_export(event_schema=2))
+
+        self.assertEqual([event["schema"] for event in decoded.events], [2, 2])
+
+    def test_rejects_legacy_event_schema_one(self):
+        with self.assertRaisesRegex(InvalidRunExport, "unsupported event record"):
+            decode_run_export(make_export(event_schema=1))
+
+    def test_rejects_unknown_event_schema(self):
+        with self.assertRaisesRegex(InvalidRunExport, "unsupported event record"):
+            decode_run_export(make_export(event_schema=3))
+
+    def test_rejects_invalid_event_epoch(self):
+        with self.assertRaisesRegex(InvalidRunExport, "invalid event metadata"):
+            decode_run_export(make_export(event_options={"epoch": 0}))
+
+    def test_rejects_negative_event_timestamp(self):
+        with self.assertRaisesRegex(InvalidRunExport, "invalid event metadata"):
+            decode_run_export(make_export(event_options={"utc": -1}))
+
+    def test_rejects_non_finite_event_world_age(self):
+        with self.assertRaisesRegex(InvalidRunExport, "invalid event metadata"):
+            decode_run_export(make_export(event_options={"world_age_hours": "1e999"}))
+
+    def test_rejects_noncanonical_number(self):
+        projection = tagged(
+            "m",
+            tagged("k", "schema")
+            + tagged("n", "01")
+            + tagged("k", "currentKills")
+            + tagged("n", 42)
+            + tagged("k", "character")
+            + canonical_value({}),
+        )
+        bodies = [event_body("rr-web-test", 1, "session.started", {})]
+
+        with self.assertRaisesRegex(InvalidRunExport, "invalid number"):
+            decode_run_export(
+                make_export_from_bodies(bodies, projection_bytes=projection)
+            )
+
+    def test_rejects_duplicate_map_key(self):
+        projection = tagged(
+            "m",
+            tagged("k", "schema")
+            + tagged("n", 1)
+            + tagged("k", "schema")
+            + tagged("n", 1),
+        )
+        bodies = [event_body("rr-web-test", 1, "session.started", {})]
+
+        with self.assertRaisesRegex(InvalidRunExport, "duplicate map key"):
+            decode_run_export(
+                make_export_from_bodies(bodies, projection_bytes=projection)
+            )
+
+    def test_rejects_run_id_that_cannot_be_stored(self):
+        with self.assertRaisesRegex(InvalidRunExport, "header contains invalid"):
+            decode_run_export(make_export(run_id="r" * 161))
 
     def test_decodes_optional_raw_challenge_evidence(self):
         decoded = decode_run_export(
@@ -549,6 +719,11 @@ class RunSubmissionTests(TestCase):
         self.assertContains(response, "Recorded event types")
         self.assertContains(response, "Session started")
         self.assertContains(response, "Raw evidence and identifiers")
+        self.assertContains(response, "Decoded run snapshot JSON")
+        self.assertContains(response, "Decoded event history JSON")
+        self.assertContains(response, '<details class="run-review-json">', count=2)
+        self.assertNotContains(response, '<details class="run-review-json" open>')
+        self.assertContains(response, "&quot;currentKills&quot;: 42")
         event_ledger = response.content.decode().split("Event ledger", 1)[1]
         self.assertLess(event_ledger.index("<td>2</td>"), event_ledger.index("<td>1</td>"))
 

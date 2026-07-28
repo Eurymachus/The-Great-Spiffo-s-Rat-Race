@@ -193,19 +193,40 @@
 .run-event-table td { padding: .7rem .85rem; border-bottom: 1px solid var(--hairline-color); vertical-align: top; }
 .run-event-table tbody tr:hover { background: var(--selected-row); }
 
-.run-review-evidence summary {
+.run-review-evidence > summary {
     padding: 1rem;
     cursor: pointer;
     font-weight: 700;
 }
-.run-review-evidence[open] summary { border-bottom: 1px solid var(--hairline-color); }
-.run-review-evidence h3 { padding: 1rem 1rem 0; }
-.run-review-evidence pre {
+.run-review-evidence[open] > summary { border-bottom: 1px solid var(--hairline-color); }
+.run-review-json-group {
+    display: grid;
+    gap: .75rem;
+    padding: 1rem;
+    border-top: 1px solid var(--hairline-color);
+}
+.run-review-json {
+    border: 1px solid var(--hairline-color);
+    background: var(--body-bg);
+}
+.run-review-json > summary {
+    display: grid;
+    gap: .2rem;
+    padding: .85rem 1rem;
+    cursor: pointer;
+    font-weight: 700;
+}
+.run-review-json > summary small {
+    color: var(--body-quiet-color);
+    font-weight: 400;
+}
+.run-review-json[open] > summary { border-bottom: 1px solid var(--hairline-color); }
+.run-review-json pre {
     max-height: 38rem;
-    margin: 1rem;
+    margin: 0;
     padding: 1rem;
     overflow: auto;
-    background: var(--body-bg);
+    background: var(--darkened-bg);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
