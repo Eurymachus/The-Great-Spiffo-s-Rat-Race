@@ -7,6 +7,7 @@ require "ISUI/ISButton"
 local Identity = require "TGSRR/Run/Identity"
 local Exporter = require "TGSRR/Run/Exporter"
 local L = require "TGSRR/Core/Localization"
+local ModalLayout = require "TGSRR/Run/ModalLayout"
 
 local ExportOverlay = ISPanel:derive("TGSRRExportOverlay")
 local activeExport = nil
@@ -66,10 +67,11 @@ end
 
 function ExportOverlay:new()
     local width, height = 440, 110
+    local x, y = ModalLayout.center(width, height, 0)
     local o = ISPanel.new(
         self,
-        math.floor((getCore():getScreenWidth() - width) / 2),
-        math.floor((getCore():getScreenHeight() - height) / 2),
+        x,
+        y,
         width,
         height
     )
@@ -79,9 +81,12 @@ end
 
 local function showMessage(message, buttonText, onclick, param1)
     local width, height = 440, 180
+    local x, y
+    x, y, width, height =
+        ModalLayout.fitAndCenter(width, height, message, 0)
     local modal = ISModalDialog:new(
-        math.floor((getCore():getScreenWidth() - width) / 2),
-        math.floor((getCore():getScreenHeight() - height) / 2),
+        x,
+        y,
         width, height, message, false, nil, onclick, nil, param1
     )
     modal:initialise()

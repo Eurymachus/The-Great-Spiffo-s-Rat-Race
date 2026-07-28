@@ -1,6 +1,7 @@
 require "ISUI/ISModalDialog"
 
 local L = require "TGSRR/Core/Localization"
+local ModalLayout = require "TGSRR/Run/ModalLayout"
 
 local RecoveryPrompt = {}
 
@@ -49,12 +50,16 @@ function RecoveryPrompt.show(recovery, callback)
     if activeModal then return false, "recovery_prompt_already_open" end
     local target = { callback = callback }
     local width, height = 680, 300
+    local text = message(recovery)
+    local x, y
+    x, y, width, height =
+        ModalLayout.fitAndCenter(width, height, text, 0)
     local modal = ISModalDialog:new(
-        math.floor((getCore():getScreenWidth() - width) / 2),
-        math.floor((getCore():getScreenHeight() - height) / 2),
+        x,
+        y,
         width,
         height,
-        message(recovery),
+        text,
         true,
         target,
         clicked,
@@ -71,7 +76,7 @@ function RecoveryPrompt.show(recovery, callback)
         getTextManager():MeasureStringX(UIFont.Small, modal.no:getTitle()) + 24)
     modal.yes:setWidth(yesWidth)
     modal.no:setWidth(noWidth)
-    modal.yes:setX((width - yesWidth - noWidth - 10) / 2)
+    modal.yes:setX((modal:getWidth() - yesWidth - noWidth - 10) / 2)
     modal.no:setX(modal.yes:getRight() + 10)
     modal:setAlwaysOnTop(true)
     modal:addToUIManager()

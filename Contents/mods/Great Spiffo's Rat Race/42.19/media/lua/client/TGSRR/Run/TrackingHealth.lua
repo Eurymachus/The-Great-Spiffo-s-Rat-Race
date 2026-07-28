@@ -1,6 +1,7 @@
 require "ISUI/ISModalDialog"
 
 local L = require "TGSRR/Core/Localization"
+local ModalLayout = require "TGSRR/Run/ModalLayout"
 
 local TrackingHealth = {}
 
@@ -33,18 +34,25 @@ end
 
 local function closed()
     activeModal = nil
+    -- ISModalDialog:destroy() resumes the game before invoking this callback.
+    -- A stopped tracker must not silently return the player to unrecorded play.
+    if setGameSpeed then setGameSpeed(0) end
 end
 
 local function showNext()
     if activeModal or #pending == 0 or not getCore() then return end
     local alert = table.remove(pending, 1)
     local width, height = 620, 250
+    local text = message(alert)
+    local x, y
+    x, y, width, height =
+        ModalLayout.fitAndCenter(width, height, text, 0)
     local modal = ISModalDialog:new(
-        math.floor((getCore():getScreenWidth() - width) / 2),
-        math.floor((getCore():getScreenHeight() - height) / 2),
+        x,
+        y,
         width,
         height,
-        message(alert),
+        text,
         false,
         nil,
         closed,
@@ -54,6 +62,7 @@ local function showNext()
     modal:setAlwaysOnTop(true)
     modal:addToUIManager()
     activeModal = modal
+    if setGameSpeed then setGameSpeed(0) end
 end
 
 function TrackingHealth.stop(reason, detail)

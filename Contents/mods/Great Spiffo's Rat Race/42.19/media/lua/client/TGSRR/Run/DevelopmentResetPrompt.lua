@@ -1,6 +1,7 @@
 require "ISUI/ISModalDialog"
 
 local L = require "TGSRR/Core/Localization"
+local ModalLayout = require "TGSRR/Run/ModalLayout"
 
 local DevelopmentResetPrompt = {}
 
@@ -30,9 +31,12 @@ function DevelopmentResetPrompt.show(reset, newRunId)
         ),
     }, "\n")
     local width, height = 720, 300
+    local x, y
+    x, y, width, height =
+        ModalLayout.fitAndCenter(width, height, message, 0)
     local modal = ISModalDialog:new(
-        math.floor((getCore():getScreenWidth() - width) / 2),
-        math.floor((getCore():getScreenHeight() - height) / 2),
+        x,
+        y,
         width,
         height,
         message,

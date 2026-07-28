@@ -97,6 +97,27 @@ local mismatch = ClockReconciler.inspect({
 }, player, anchor, corruptGame)
 assert(mismatch.status == "checkpoint_cursor_mismatch")
 
+local recoveredValues = {
+    year = 1993,
+    month = 1,
+    day = 1,
+    timeOfDay = 9,
+    nightsSurvived = 0,
+}
+local recoveredGame = game(recoveredValues)
+local recovered = ClockReconciler.inspect(
+    run, player, anchor, recoveredGame, {
+        declaredRecovery = true,
+    })
+assert(recovered.status == "declared_recovery_skipped")
+local recoveryApplied = ClockReconciler.apply(recovered, recoveredGame)
+assert(recoveryApplied == false)
+assert(recoveredValues.year == 1993)
+assert(recoveredValues.month == 1)
+assert(recoveredValues.day == 1)
+assert(recoveredValues.timeOfDay == 9)
+assert(recoveredValues.nightsSurvived == 0)
+
 playerHours = 40
 local ambiguous = ClockReconciler.inspect(
     run, player, anchor, corruptGame)

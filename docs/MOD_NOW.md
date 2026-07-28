@@ -66,6 +66,8 @@ the export contract; their policy and test surfaces are documented in
 - Run-wide initialization, integrity, event-recording, and asynchronous
   collector failures display an always-on-top in-game warning explaining that
   tracking stopped, the exact machine-readable reason, and the risk to progress.
+  The warning pauses gameplay and reasserts the pause after dismissal so
+  vanilla modal cleanup cannot silently resume an unrecorded session.
 - Power-cut clock reconciliation uses two alternating checksummed files written
   after successful save attempts. A checkpoint binds the saved ledger cursor to
   calendar, world age, time of day, nights survived, and character survival
@@ -164,6 +166,12 @@ the export contract; their policy and test surfaces are documented in
 ## Not implemented
 
 - Zombie count, last visited, or last-observed population in tracker snapshots.
+- Accepted planned export collectors for completed animal pets by raw animal
+  type, actual fluid litres consumed by canonical fluid type (including
+  Java auto-drink), calories consumed, and generator repair count plus actual
+  condition restored.
+- Hunger fulfilled remains explicitly deferred because it overlaps calories
+  consumed without a current scoring or presentation use.
 - Skill milestone award selection (individual skills, categories, or selected levels).
 - Default-enabled danger auto-close for the Challenge Tracker and Outpost Overview using vanilla Foraging/Search Mode zombie proximity.
 

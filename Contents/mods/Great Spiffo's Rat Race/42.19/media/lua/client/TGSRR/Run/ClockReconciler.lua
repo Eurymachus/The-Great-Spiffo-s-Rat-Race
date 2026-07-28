@@ -79,7 +79,10 @@ function ClockReconciler.expected(anchor, playerHours)
     }
 end
 
-function ClockReconciler.inspect(run, player, anchor, gameTime)
+function ClockReconciler.inspect(run, player, anchor, gameTime, context)
+    if context and context.declaredRecovery == true then
+        return { status = "declared_recovery_skipped" }
+    end
     if not anchor then return { status = "unanchored" } end
     if tonumber(anchor.eventSequence) ~= tonumber(run.eventSequence)
             or tostring(anchor.eventHash or ""):lower()

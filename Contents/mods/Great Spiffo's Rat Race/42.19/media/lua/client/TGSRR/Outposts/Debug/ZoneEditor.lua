@@ -1,6 +1,7 @@
 require "ISUI/Animal/ISAddDesignationAnimalZoneUI"
 
 local SurveyIO = require "TGSRR/Outposts/Debug/SurveyIO"
+local ModalLayout = require "TGSRR/Run/ModalLayout"
 
 local OutpostZoneEditor = ISAddDesignationAnimalZoneUI:derive("TGSRROutpostZoneEditor")
 
@@ -72,8 +73,13 @@ function OutpostZoneEditor:askCreateZone()
     end
     self.drawTileMouse = false
     self.waitingConfirm = true
-    local modal = ISModalDialog:new(0, 0, 380, 150,
-        "Save the " .. self.outpost.name .. " core outpost zone?",
+    local width, height = 380, 150
+    local text = "Save the " .. self.outpost.name .. " core outpost zone?"
+    local x, y
+    x, y, width, height =
+        ModalLayout.fitAndCenter(width, height, text, self.playerNum)
+    local modal = ISModalDialog:new(x, y, width, height,
+        text,
         true, self, ISAddDesignationAnimalZoneUI.onCreateZone)
     modal:initialise()
     modal:addToUIManager()

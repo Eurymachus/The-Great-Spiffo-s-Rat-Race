@@ -49,6 +49,7 @@ end
 
 local initialized = false
 local pendingDeclaredRecovery = nil
+local skipClockReconciliationForRecovery = false
 local initialize
 
 local function activeMods()
@@ -225,6 +226,7 @@ initialize = function()
                     end
                     pendingDeclaredRecovery =
                         decisionExists and nil or branchResult
+                    skipClockReconciliationForRecovery = true
                     if branchReused then
                         print("[TGSRR Run] Resuming existing recovery epoch "
                             .. tostring(branchResult.epoch))
@@ -244,7 +246,10 @@ initialize = function()
     local clockAnchor = ClockCheckpoint.initialize(run, player)
     local clockState, clockError =
         ClockReconciler.inspect(
-            loadedClockCursor, player, clockAnchor)
+            loadedClockCursor, player, clockAnchor, nil, {
+                declaredRecovery =
+                    skipClockReconciliationForRecovery,
+            })
     if not clockState then
         run.integrityStatus = clockError
         Recorder.deactivate()
@@ -417,6 +422,7 @@ initialize = function()
         end
         pendingDeclaredRecovery = nil
     end
+    skipClockReconciliationForRecovery = false
 
     local current = activeMods()
     local currentMods = current.modIds

@@ -463,7 +463,12 @@ the new write. The slot is read back and verified immediately. These raw local
 recovery files are not included in the submission export.
 
 Reconciliation is eligible only when the loaded run cursor exactly matches the
-checkpoint cursor and character hours have not regressed. Expected world age is
+checkpoint cursor, character hours have not regressed, and the current load is
+not entering a declared gameplay-rollback recovery. A recovered save's older
+calendar and world age belong to its selected branch and are never advanced to
+the abandoned branch's clock. The next successful save writes a fresh
+checkpoint anchored to the recovered branch, after which future genuine clock
+corruption can be detected normally. For eligible loads, expected world age is
 the anchored world age plus the increase in character hours; expected calendar
 and time of day are advanced by the same delta. A two-in-game-minute tolerance
 absorbs adjacent-frame floating-point sampling. Exact agreement is a read-only
@@ -472,7 +477,8 @@ no-op and normal initialization continues unchanged.
 Any independently proven disagreement pauses before the new `session.started`
 event. The player may apply the reconstructed year, month, day, time of day,
 and nights-survived values, with immediate readback verification, or decline
-and leave tracking stopped. A successful repair appends `run.clock.repaired`
+and leave tracking stopped with gameplay paused for a deliberate save/quit
+decision. A successful repair appends `run.clock.repaired`
 with observed/restored clocks, checkpoint cursor/checksum, reason, and player
 decision authority. The complete event is exported for moderator review. A
 checkpoint cursor mismatch is never used to alter the clock; character-hours
