@@ -444,6 +444,39 @@ accepts that report as its new comparison baseline, later exports continue from
 the same active epoch and need no further recovery review unless another
 recovery appears.
 
+## Power-cut clock reconciliation
+
+Project Zomboid persists the visible calendar separately from its world-age
+clock. `worldAgeHours` is derived from `nightsSurvived` and `timeOfDay`, while
+the character's `hoursSurvived` counter is stored independently. A power-cut
+failure can therefore reset year/month/day without resetting character survival
+time, and may or may not also reset world age.
+
+TGSRR writes two alternating local files,
+`TGSRR/Runs/<runId>/clock-a.checkpoint` and `clock-b.checkpoint`, only from
+`OnPostSave`. Each canonical, SHA-256-checksummed slot contains a monotonically
+increasing slot sequence, the saved event sequence/hash, UTC, calendar,
+time of day, nights survived, world age, and character hours survived. Writing
+the older slot preserves the preceding valid checkpoint if power fails during
+the new write. The slot is read back and verified immediately. These raw local
+recovery files are not included in the submission export.
+
+Reconciliation is eligible only when the loaded run cursor exactly matches the
+checkpoint cursor and character hours have not regressed. Expected world age is
+the anchored world age plus the increase in character hours; expected calendar
+and time of day are advanced by the same delta. A two-in-game-minute tolerance
+absorbs adjacent-frame floating-point sampling. Exact agreement is a read-only
+no-op and normal initialization continues unchanged.
+
+Any independently proven disagreement pauses before the new `session.started`
+event. The player may apply the reconstructed year, month, day, time of day,
+and nights-survived values, with immediate readback verification, or decline
+and leave tracking stopped. A successful repair appends `run.clock.repaired`
+with observed/restored clocks, checkpoint cursor/checksum, reason, and player
+decision authority. The complete event is exported for moderator review. A
+checkpoint cursor mismatch is never used to alter the clock; character-hours
+regression is ambiguous and stops tracking rather than guessing.
+
 ## Loaded-mod session history
 
 At run creation, write sorted full sets of active mod IDs and unique Workshop

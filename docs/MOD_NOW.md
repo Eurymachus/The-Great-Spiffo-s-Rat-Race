@@ -20,8 +20,19 @@ See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD
 
 Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md](MOD_RUN_DATA.md), with implementation status maintained in [MOD_EXPORT_CHECKLIST.md](MOD_EXPORT_CHECKLIST.md). Techniques audited from unrelated mods are retained strictly as implementation research in [MOD_REFERENCE_DATA_COLLECTORS.md](MOD_REFERENCE_DATA_COLLECTORS.md).
 
+Custom helicopter scheduling and ranch mortality are gameplay systems outside
+the export contract; their policy and test surfaces are documented in
+[MOD_GAMEPLAY_SYSTEMS.md](MOD_GAMEPLAY_SYSTEMS.md).
+
 ## Implemented on the development branch
 
+- Persistent, sandbox-configurable custom helicopter scheduling across nine
+  challenge years, retaining the vanilla helicopter event while replacing its
+  recurrence and exposing a debug schedule/jump window.
+- Server-authoritative ranch-zone interception and one-time population with
+  configurable vanilla-shaped sex-specific mortality, adjacent-zone grouping,
+  persistent spawn results, clean vanilla fallback, and a seven-month test
+  challenge.
 - Generic `TGSRR.ChallengeTracker.registerModule()` registry.
 - Overview, Kills, Skills, and Outposts modules in a fixed-size `800x650` tabbed window.
 - Generic `ChallengeDeliverables` provider registry and normalized Overview record boundary.
@@ -55,6 +66,11 @@ Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md]
 - Run-wide initialization, integrity, event-recording, and asynchronous
   collector failures display an always-on-top in-game warning explaining that
   tracking stopped, the exact machine-readable reason, and the risk to progress.
+- Power-cut clock reconciliation uses two alternating checksummed files written
+  after successful save attempts. A checkpoint binds the saved ledger cursor to
+  calendar, world age, time of day, nights survived, and character survival
+  hours. Matching clocks do nothing; independently provable disagreement pauses
+  for an explicit repair decision and records `run.clock.repaired` evidence.
 - TGSRR-owned daily history with UTC/world-age day boundaries, daily kill deltas, and non-zero per-skill XP deltas.
 - TGSRR-owned weapon-kill attribution keyed by full item type or explicit
   non-item pseudo ID, with cumulative totals, completed-day deltas, active-day

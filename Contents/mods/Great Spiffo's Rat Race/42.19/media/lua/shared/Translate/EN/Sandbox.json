@@ -1,0 +1,42 @@
+{
+    "Sandbox_TGSRRRanchMortality": "TGSRR Ranch Mortality",
+    "Sandbox_TGSRRRanchMortality.Enabled": "Enable custom ranch mortality",
+    "Sandbox_TGSRRRanchMortality.Enabled_tooltip": "When disabled, ranch spawning uses vanilla's day 60 mortality start, day 190 female deadline, and day 250 male deadline.",
+    "Sandbox_TGSRRRanchMortality.RollStartDay": "Mortality roll start day",
+    "Sandbox_TGSRRRanchMortality.RollStartDay_tooltip": "Used only when custom ranch mortality is enabled. Ranch animals spawned on or before this elapsed world day are always alive. Vanilla uses day 60.",
+    "Sandbox_TGSRRRanchMortality.FemaleDeathDay": "Female guaranteed-death day",
+    "Sandbox_TGSRRRanchMortality.FemaleDeathDay_tooltip": "Used only when custom ranch mortality is enabled. Female ranch animals use vanilla's increasing mortality roll and are guaranteed dead by this day. Use -1 to disable female mortality.",
+    "Sandbox_TGSRRRanchMortality.MaleDeathDay": "Male guaranteed-death day",
+    "Sandbox_TGSRRRanchMortality.MaleDeathDay_tooltip": "Used only when custom ranch mortality is enabled. Male ranch animals use vanilla's increasing mortality roll and are guaranteed dead by this day. Use -1 to disable male mortality.",
+
+    "Sandbox_TGSRRHelicopter": "TGSRR Helicopter Schedule",
+    "Sandbox_TGSRRHelicopter.Enabled": "Enable custom helicopter schedule",
+    "Sandbox_TGSRRHelicopter.Enabled_tooltip": "Replaces vanilla helicopter recurrence with this schedule. The vanilla helicopter event itself is retained.",
+
+    "Sandbox_TGSRRHelicopter.Year1Months": "Year 1 months",
+    "Sandbox_TGSRRHelicopter.Year2Months": "Year 2 months",
+    "Sandbox_TGSRRHelicopter.Year3Months": "Year 3 months",
+    "Sandbox_TGSRRHelicopter.Year4Months": "Year 4 months",
+    "Sandbox_TGSRRHelicopter.Year5Months": "Year 5 months",
+    "Sandbox_TGSRRHelicopter.Year6Months": "Year 6 months",
+    "Sandbox_TGSRRHelicopter.Year7Months": "Year 7 months",
+    "Sandbox_TGSRRHelicopter.Year8Months": "Year 8 months",
+    "Sandbox_TGSRRHelicopter.Year9Months": "Year 9 months",
+
+    "Sandbox_TGSRRHelicopter.Year1Months_tooltip": "Comma-separated calendar month numbers only, for example 7,1 for July and January. Leave empty for no custom events in this challenge year.",
+    "Sandbox_TGSRRHelicopter.Year2Months_tooltip": "Comma-separated calendar month numbers only, for example 7,1 for July and January. Leave empty for no custom events.",
+    "Sandbox_TGSRRHelicopter.Year3Months_tooltip": "Comma-separated calendar month numbers only, for example 7,11,3. Leave empty for no custom events.",
+    "Sandbox_TGSRRHelicopter.Year4Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
+    "Sandbox_TGSRRHelicopter.Year5Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
+    "Sandbox_TGSRRHelicopter.Year6Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
+    "Sandbox_TGSRRHelicopter.Year7Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
+    "Sandbox_TGSRRHelicopter.Year8Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
+    "Sandbox_TGSRRHelicopter.Year9Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
+
+    "Sandbox_TGSRRHelicopter.DayMinimum": "Earliest day of month",
+    "Sandbox_TGSRRHelicopter.DayMaximum": "Latest day of month",
+    "Sandbox_TGSRRHelicopter.StartHourMinimum": "Earliest start hour",
+    "Sandbox_TGSRRHelicopter.StartHourMaximum": "Latest start hour",
+    "Sandbox_TGSRRHelicopter.DurationMinimum": "Minimum event-window hours",
+    "Sandbox_TGSRRHelicopter.DurationMaximum": "Maximum event-window hours"
+}

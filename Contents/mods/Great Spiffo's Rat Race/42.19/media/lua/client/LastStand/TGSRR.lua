@@ -1,6 +1,10 @@
 local Challenge = {}
 
 local TGSRR_SandboxBase = require("LastStand/TGSRR_SandboxBase")
+local TGSRR_CHALLENGE_IDS = {
+    TGSRR = true,
+    TGSRR_SevenMonths = true,
+}
 
 Challenge.id = "TGSRR";
 Challenge.completionText = "Survive a night to unlock next challenge.";
@@ -49,7 +53,7 @@ local function TGSRR_shouldShowMapSpawnInfo(info)
         return false
     end
 
-    if getCore():getChallengeID() ~= Challenge.id then
+    if not TGSRR_CHALLENGE_IDS[getCore():getChallengeID()] then
         return false
     end
 

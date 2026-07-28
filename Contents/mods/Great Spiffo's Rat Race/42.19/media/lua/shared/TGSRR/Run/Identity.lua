@@ -10,12 +10,15 @@ local CHALLENGE_MODES = {
     TGSRR = "standard",
     TGSRR_CDDA = "cdda",
     TGSRR_Sprinters = "sprinters",
+    TGSRR_SevenMonths = "standard",
 }
 
 local GAME_MODE_IDS = {
     ["The Great Spiffo's Rat Race"] = "TGSRR",
     ["The Great Spiffo's Rat Race - CDDA"] = "TGSRR_CDDA",
     ["The Great Spiffo's Rat Race - Sprinters"] = "TGSRR_Sprinters",
+    ["The Great Spiffo's Rat Race - Seven Months Later (Test)"] =
+        "TGSRR_SevenMonths",
 }
 
 local function nonEmpty(value)

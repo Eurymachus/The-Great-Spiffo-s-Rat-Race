@@ -157,7 +157,25 @@ TGSRR_SandboxBase.apply = function()
 
 	SandboxVars.PlantAbundance = 3;
 	SandboxVars.EndRegen = 3;
-	SandboxVars.Helicopter = 2;
+	SandboxVars.Helicopter = 1;
+	SandboxVars.TGSRRHelicopter = {
+		Enabled = true,
+		Year1Months = "7",
+		Year2Months = "7,1",
+		Year3Months = "7,11,3",
+		Year4Months = "7,10,1,4",
+		Year5Months = "7,9,11,1,3",
+		Year6Months = "7,10,1,4",
+		Year7Months = "7,11,3",
+		Year8Months = "7,1",
+		Year9Months = "7",
+		DayMinimum = 8,
+		DayMaximum = 14,
+		StartHourMinimum = 9,
+		StartHourMaximum = 18,
+		DurationMinimum = 1,
+		DurationMaximum = 4,
+	};
 
 	SandboxVars.MetaEvent = 1;
 
@@ -257,6 +275,12 @@ TGSRR_SandboxBase.apply = function()
 	SandboxVars.AnimalMatingSeason = true;
 	SandboxVars.AnimalSoundAttractZombies = true;
 	SandboxVars.AnimalEggHatch = 4;
+	SandboxVars.TGSRRRanchMortality = {
+		Enabled = true,
+		RollStartDay = 60,
+		FemaleDeathDay = -1,
+		MaleDeathDay = -1,
+	};
 
 	SandboxVars.MaximumRatIndex = 50;
 	SandboxVars.DaysUntilMaximumRatIndex = 90;

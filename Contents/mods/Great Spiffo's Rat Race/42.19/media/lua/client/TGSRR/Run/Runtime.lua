@@ -5,6 +5,9 @@ local Ledger = require "TGSRR/Run/Ledger"
 local Recorder = require "TGSRR/Run/Recorder"
 local TrackingHealth = require "TGSRR/Run/TrackingHealth"
 local RecoveryPrompt = require "TGSRR/Run/RecoveryPrompt"
+local ClockReconciler = require "TGSRR/Run/ClockReconciler"
+local ClockRepairPrompt = require "TGSRR/Run/ClockRepairPrompt"
+local ClockCheckpoint = require "TGSRR/Run/ClockCheckpoint"
 local DevelopmentResetPrompt =
     require "TGSRR/Run/DevelopmentResetPrompt"
 local EventBridge = require "TGSRR/Run/EventBridge"
@@ -142,6 +145,10 @@ initialize = function()
         return
     end
 
+    local loadedClockCursor = {
+        eventSequence = tonumber(run.eventSequence) or 0,
+        eventHash = tostring(run.eventHash or ""),
+    }
     local ok, state = FileStore.initialize(run, created)
     if not ok then
         run.integrityStatus = state
@@ -234,6 +241,104 @@ initialize = function()
         return
     end
     Recorder.activate(run)
+    local clockAnchor = ClockCheckpoint.initialize(run, player)
+    local clockState, clockError =
+        ClockReconciler.inspect(
+            loadedClockCursor, player, clockAnchor)
+    if not clockState then
+        run.integrityStatus = clockError
+        Recorder.deactivate()
+        TrackingHealth.stop(
+            clockError,
+            "The independent game-clock checkpoint could not be evaluated."
+        )
+        return
+    end
+    if isDebugEnabled and isDebugEnabled() then
+        print("[TGSRR Clock] Reconciliation status: "
+            .. tostring(clockState.status))
+    end
+    if clockState.status == "ambiguous" then
+        local reason = "clock_reconciliation_ambiguous:"
+            .. tostring(clockState.reason or "unknown")
+        run.integrityStatus = reason
+        Recorder.deactivate()
+        ClockCheckpoint.reset()
+        TrackingHealth.stop(
+            reason,
+            "Character survival time regressed relative to the independent clock checkpoint."
+        )
+        return
+    end
+    if clockState.status == "repair_required" then
+        local shown, showError =
+            ClockRepairPrompt.show(clockState, function(shouldRepair)
+            if not shouldRepair then
+                run.integrityStatus = "clock_repair_declined"
+                Recorder.deactivate()
+                ClockCheckpoint.reset()
+                TrackingHealth.stop(
+                    "clock_repair_declined",
+                    "Tracking remains stopped because the corrupted game clock was not repaired."
+                )
+                return
+            end
+            local repaired, repairResult =
+                ClockReconciler.apply(clockState)
+            if not repaired then
+                run.integrityStatus = repairResult
+                Recorder.deactivate()
+                ClockCheckpoint.reset()
+                TrackingHealth.stop(
+                    repairResult,
+                    "The independently reconstructed game clock could not be applied."
+                )
+                return
+            end
+            local recorded, recordResult =
+                Recorder.record("run.clock.repaired", {
+                    reason = "game_clock_regression",
+                    decider = {
+                        type = "player",
+                        id = "local_player",
+                    },
+                    checkpoint = {
+                        slotSequence =
+                            tonumber(clockState.anchor.slotSequence) or 0,
+                        checksum =
+                            tostring(clockState.anchor.checksum or ""),
+                        eventSequence =
+                            tonumber(clockState.anchor.eventSequence) or 0,
+                        eventHash =
+                            tostring(clockState.anchor.eventHash or ""),
+                    },
+                    observed = clockState.observed,
+                    restored = clockState.expected,
+                })
+            if not recorded then
+                run.integrityStatus = recordResult
+                Recorder.deactivate()
+                ClockCheckpoint.reset()
+                TrackingHealth.stop(
+                    recordResult,
+                    "Clock-repair evidence could not be recorded."
+                )
+                return
+            end
+            initialized = false
+            initialize()
+        end)
+        if not shown then
+            run.integrityStatus = showError
+            Recorder.deactivate()
+            ClockCheckpoint.reset()
+            TrackingHealth.stop(
+                showError,
+                "The clock-repair decision could not be presented."
+            )
+        end
+        return
+    end
     EventBridge.install()
 
     if not created then

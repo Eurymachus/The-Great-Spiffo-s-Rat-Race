@@ -146,5 +146,12 @@
   "UI_TGSRR_DevelopmentReset_OldRun": "Previous run:",
   "UI_TGSRR_DevelopmentReset_NewRun": "Replacement run:",
   "UI_TGSRR_DevelopmentReset_Reason": "Reason:",
-  "UI_TGSRR_DevelopmentReset_Preserved": "The previous external run files were preserved and are no longer used by this save."
+  "UI_TGSRR_DevelopmentReset_Preserved": "The previous external run files were preserved and are no longer used by this save.",
+  "UI_TGSRR_ClockRepair_Title": "Game clock corruption detected",
+  "UI_TGSRR_ClockRepair_Body": "The saved character survival clock matches an independent TGSRR checkpoint, but the world calendar or world-age clock does not.",
+  "UI_TGSRR_ClockRepair_Observed": "Observed:",
+  "UI_TGSRR_ClockRepair_Expected": "Expected:",
+  "UI_TGSRR_ClockRepair_Choice": "Repair restores the independently reconstructed clock and records moderator-visible recovery evidence.",
+  "UI_TGSRR_ClockRepair_Repair": "Repair Clock",
+  "UI_TGSRR_ClockRepair_Stop": "Do Not Continue"
 }

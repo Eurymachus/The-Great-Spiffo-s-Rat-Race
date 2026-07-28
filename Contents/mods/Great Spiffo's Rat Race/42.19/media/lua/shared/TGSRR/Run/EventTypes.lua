@@ -14,6 +14,7 @@ local registered = {
     ["literature.read"] = true,
     ["knowledge.generator.first_observed"] = true,
     ["run.recovery.decided"] = true,
+    ["run.clock.repaired"] = true,
 }
 
 local function validName(name)
