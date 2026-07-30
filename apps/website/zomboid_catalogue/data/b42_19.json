@@ -38,6 +38,12 @@
     {"kind":"skill","stable_id":"Trapping","display_name":"Trapping","category":"Survivalist"},
     {"kind":"skill","stable_id":"PlantScavenging","display_name":"Foraging","category":"Survivalist"},
 
+    {"kind":"animal","stable_id":"rabbitkit","display_name":"Rabbit, baby","category":"Mammal","species_id":"rabbit","species_name":"Rabbit","life_stage":"baby"},
+    {"kind":"animal","stable_id":"chick","display_name":"Chicken, baby","category":"Bird","species_id":"chicken","species_name":"Chicken","life_stage":"baby"},
+    {"kind":"animal","stable_id":"lamb","display_name":"Sheep, baby","category":"Mammal","species_id":"sheep","species_name":"Sheep","life_stage":"baby"},
+    {"kind":"animal","stable_id":"piglet","display_name":"Pig, baby","category":"Mammal","species_id":"pig","species_name":"Pig","life_stage":"baby"},
+    {"kind":"animal","stable_id":"calf","display_name":"Cow, baby","category":"Mammal","species_id":"cow","species_name":"Cow","life_stage":"baby"},
+
     {"kind":"outpost","stable_id":"brandenburg","display_name":"Brandenburg","category":"Outpost"},
     {"kind":"outpost","stable_id":"echo_creek","display_name":"Echo Creek","category":"Outpost"},
     {"kind":"outpost","stable_id":"ekron","display_name":"Ekron","category":"Outpost"},

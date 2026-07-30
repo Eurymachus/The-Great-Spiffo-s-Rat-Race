@@ -283,7 +283,7 @@ intended implementation order are recorded in `docs/STREAMING_INTEGRATIONS.md`.
 ## 2026-07-24 - Versioned Project Zomboid catalogue
 
 Stable identifiers in run exports remain immutable evidence. Human-readable
-names, categories, icons, aliases and game-version applicability live in a
+names, typed metadata, icons, aliases and game-version applicability live in a
 separate website catalogue and may be corrected without rewriting submissions.
 Unknown or ambiguous identifiers remain visible and are never guessed.
 
@@ -292,6 +292,58 @@ A scoped **Zomboid Integration** role may maintain it without participant or
 website-configuration permissions. The catalogue schema is recreated by Django
 migrations, while the maintained Build 42.19 baseline is stored as versioned
 JSON and imported idempotently with `manage.py import_zomboid_catalogue`.
+
+## 2026-07-28 - Import typed catalogue data from the installed game
+
+The common Catalogue Entry is deliberately a lean versioned identity and
+resolver layer. It owns kind, stable ID, display name, version applicability,
+activation and shared presentation identity. Kind-specific classification and
+gameplay metadata belong to one-to-one detail records; aliases and assets remain
+shared relationships. A detail table is added when a kind has meaningful
+structured metadata, not merely to mirror every possible kind.
+
+Traits, occupations, skills, animals and Rat Race deliverables currently have
+typed detail records. In particular, Project Zomboid's internal skill parent is
+stored as the skill's `category` on Skill Details rather than as a generic
+Catalogue Entry category or a misleading website `parent_skill_id`.
+
+`manage.py import_pz_catalogue --game-version <version>` reads Project Zomboid's
+generated character definitions, English translations and decompiled perk
+registration data from an explicitly selected installed build. It updates the
+catalogue idempotently and never infers a display identity from an image
+filename. Every discovered icon receives a deterministic asset relationship.
+Loose source images are copied into managed deployment media; texture-pack-only
+art retains its exact PZ texture key until an approved pack-extraction or
+supplied-asset workflow exists. Contextual screenshots remain editorial media,
+not automatically guessed catalogue icons.
+
+## 2026-07-28 - Keep animal evidence raw and taxonomy website-owned
+
+The mod exports Project Zomboid's authoritative raw animal type without
+normalising its species or life stage. The website catalogue maps known raw
+identifiers to a display name, stable species identity and optional life stage.
+This permits species- and stage-based presentation without changing historical
+evidence or the export contract.
+
+Unknown and modded animal identifiers remain valid raw evidence and resolve as
+unclassified; the website must not guess a species from an unfamiliar name.
+The maintained Build 42.19 catalogue initially includes the known baby-animal
+identifiers `rabbitkit`, `chick`, `lamb`, `piglet` and `calf`.
+
+## 2026-07-28 - Keep Steam authentication outside the web process
+
+The authoritative catalogue source is a full authenticated Project Zomboid
+installation maintained by a restricted host service account. SteamCMD's cached
+login session remains in its protected `config.vdf`; Steam passwords, Steam
+Guard codes and persistent login material are never stored in Django or Git.
+
+The super-admin records source health and auditable update jobs and receives
+notifications for build changes, failures and required reauthentication.
+An HTTP admin action and the scheduler may only enqueue an auditable update job.
+A separately supervised worker claims jobs and runs SteamCMD through fixed
+host-side arguments. Duplicate queued/running work is suppressed. Updated game
+files produce a reviewable catalogue proposal rather than silently changing
+live catalogue presentation.
 
 ## 2026-07-24 - Use official streaming-provider brand assets
 
@@ -352,3 +404,75 @@ eligibility decision.
   `config.asgi:application`.
 - The initial database-checking stream is limited to local/small single-process
   use. Multi-worker production requires a shared event bus such as Redis.
+# Website-triggered decompilation uses validated immutable outputs
+
+- The super-admin website queues decompilation; the web process does not run
+  Java or Vineflower inline.
+- A separately supervised operations worker runs a pinned Vineflower release.
+- Every result is written to a new build/job directory and validated before the
+  reference source points to it. The previous output remains available for
+  rollback.
+- The installed Steam build and active decompiled build are tracked separately,
+  making a required rebuild explicit after a game update.
+- The decompiler JAR is provisioned and checksum-verified on each host rather
+  than committed to Git.
+
+## 2026-07-29 - Keep destructive run-data reset explicit and isolated
+
+Pre-launch contract changes may invalidate all development run records. A
+superuser-only System Operations danger zone may therefore purge the complete
+run-data graph after an exact typed confirmation. The transaction removes
+challenge runs, their immutable submissions, and submission-category
+notifications together. It must not remove participants, authentication data,
+platform integrations, challenge configuration, catalogue data, website
+content, or site configuration. This is an explicit maintenance operation, not
+a normal run-moderation bulk action.
+
+## 2026-07-29 - Reconcile catalogue artwork after approved imports
+
+- Installed Project Zomboid data remains authoritative for catalogue identity,
+  typed details and deterministic texture keys.
+- Approving a reviewed catalogue snapshot queues PZwiki artwork reconciliation
+  in the existing background operations worker; HTTP requests do not perform
+  network downloads.
+- PZWiki is the presentation authority for supported catalogue artwork,
+  including traits, occupations and item artwork such as weapons, tools, books
+  and magazines. Missing artwork is reported rather than guessed.
+- Asset records keep the authoritative game texture evidence separate from the
+  provenance of the image currently served. A packed texture reference records
+  that the game asset exists but does not displace a usable PZwiki image.
+- Project Zomboid updater runs record unpacked or packed game provenance but do
+  not replace PZWiki presentation artwork. The PZWiki reconciliation may replace
+  provisional game-sourced presentation files. Manual overrides remain
+  protected and require an explicit administrator decision to replace.
+- The reconciliation may be queued automatically after catalogue approval or
+  manually from the Project Zomboid reference source admin page. Shared Wiki
+  filenames are downloaded once per run and reused across matching entries.
+- Catalogue approval and artwork enrichment use separate records. Catalogue
+  import reviews record only the reviewed game-data decision. Each PZWiki
+  reconciliation is a dedicated background job with its own trigger, requester,
+  lifecycle timestamps, status and summary. A wiki failure is visible and
+  retryable without changing or rolling back the approved catalogue review.
+
+## 2026-07-29 - Model Project Zomboid items by evidence and capabilities
+
+- Every Project Zomboid item is one `item` catalogue entry identified by its
+  exact full item type, such as `Base.BoneClub`.
+- `ItemDetails` owns item-specific data; the shared catalogue entry remains the
+  lean identity, version, alias and asset lookup layer.
+- Exact Project Zomboid `DisplayCategory` identifiers resolve through the
+  dedicated `ItemDisplayCategory` table, which owns their translated display
+  names. Items reference those records rather than copying category strings.
+- A deterministically identified weapon skill references the existing
+  `SkillDetails` record. Unknown or insufficient weapon evidence leaves the
+  relationship empty; it is never guessed from a display label.
+- Exact generated item fields are retained as raw evidence. Website
+  capabilities are deterministic interpretations of that evidence and may
+  overlap: an item can simultaneously be a tool and weapon, and literature can
+  additionally be a book or magazine.
+- Separate weapon, tool, literature or collectible catalogue entries are not
+  created for the same item. Future presentation and statistics query item
+  capabilities and detailed fields instead.
+- Better Item Info is a useful behavioural reference, but the website derives
+  its catalogue from the installed Project Zomboid definitions rather than
+  importing another mod's authored output.

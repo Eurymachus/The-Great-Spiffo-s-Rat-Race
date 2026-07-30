@@ -4,8 +4,9 @@
     const menu = document.querySelector("[data-site-menu]");
     if (!toggle || !menu) return;
 
-    const submenuToggles = [...menu.querySelectorAll("[data-nav-submenu-toggle]")];
-    const notificationItem = menu.querySelector("[data-notification-live]");
+    const headerControls = toggle.closest(".site-header-controls") || document;
+    const submenuToggles = [...headerControls.querySelectorAll("[data-nav-submenu-toggle]")];
+    const notificationItem = headerControls.querySelector("[data-notification-live]");
     const notificationToggle = notificationItem?.querySelector(".notification-menu-toggle");
     const notificationList = notificationItem?.querySelector(".notification-preview-list");
     const notificationsReadForm = notificationItem?.querySelector("[data-notifications-read-form]");
@@ -168,12 +169,17 @@
             }
             const item = submenuToggle.closest(".site-nav-item");
             const opening = submenuToggle.getAttribute("aria-expanded") !== "true";
-            item?.parentElement?.querySelectorAll(":scope > .site-nav-item.is-open").forEach((sibling) => {
-                if (sibling !== item) {
+            headerControls.querySelectorAll(".site-nav-item.is-open").forEach((sibling) => {
+                const isAncestorOfItem = item && sibling.contains(item);
+                if (sibling !== item && !isAncestorOfItem) {
                     sibling.classList.remove("is-open");
                     sibling.querySelector(":scope > .site-nav-entry [data-nav-submenu-toggle]")?.setAttribute("aria-expanded", "false");
                 }
             });
+            if (utilityItem && opening) {
+                menu.classList.remove("is-open");
+                toggle.setAttribute("aria-expanded", "false");
+            }
             item?.classList.toggle("is-open", opening);
             submenuToggle.setAttribute("aria-expanded", String(opening));
         });
@@ -192,13 +198,13 @@
             });
             if (!response.ok) throw new Error("Unable to mark notifications as read.");
             await response.json();
-            menu.querySelectorAll(".notification-preview.is-unread").forEach((notification) => {
+            headerControls.querySelectorAll(".notification-preview.is-unread").forEach((notification) => {
                 notification.classList.remove("is-unread");
             });
             document.querySelectorAll(".notification-history-item.is-unread").forEach((notification) => {
                 notification.classList.remove("is-unread");
             });
-            menu.querySelector(".notification-count")?.remove();
+            headerControls.querySelector(".notification-count")?.remove();
             notificationToggle?.setAttribute("aria-label", "Notifications");
             notificationsReadForm.hidden = true;
             await refreshNotificationSummary(false);
@@ -230,11 +236,15 @@
 
     toggle.addEventListener("click", () => {
         const opening = !menu.classList.contains("is-open");
+        closeSubmenus();
         menu.classList.toggle("is-open", opening);
         toggle.setAttribute("aria-expanded", String(opening));
     });
     document.addEventListener("click", (event) => {
-        if (!menu.contains(event.target) && !toggle.contains(event.target)) closeMenu();
+        if (!headerControls.contains(event.target)) {
+            closeMenu();
+            closeSubmenus();
+        }
     });
     document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && menu.classList.contains("is-open")) {

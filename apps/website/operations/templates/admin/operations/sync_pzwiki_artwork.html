@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div id="content-main">
+    <fieldset class="module aligned">
+      <h2>PZWiki artwork</h2>
+      <div class="form-row">
+        <p>
+          This refreshes managed presentation artwork for the approved catalogue,
+          including traits, occupations, skills where PZWiki artwork is available,
+          and items such as weapons, tools, books, and magazines.
+        </p>
+        <p>
+          Project Zomboid files remain provenance evidence. They do not replace
+          PZWiki presentation artwork. Manual artwork remains protected.
+        </p>
+        <p><strong>Approved catalogue:</strong> {{ review }}</p>
+      </div>
+    </fieldset>
+    <form method="post">
+      {% csrf_token %}
+      <div class="submit-row">
+        <input type="submit" value="Queue PZWiki artwork sync" class="default">
+        <a href="{% url 'admin:operations_referencesource_change' source.pk %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

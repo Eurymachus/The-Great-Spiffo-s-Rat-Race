@@ -1,0 +1,16 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <div id="content-main">
+    <form method="post">
+      {% csrf_token %}
+      <fieldset class="module aligned">
+        <h2>Catalogue source</h2>
+        <p><strong>Installed build:</strong> {{ source.installed_build_id }}</p>
+        <p><strong>Decompiled build:</strong> {{ source.decompiled_build_id }}</p>
+        {{ form.as_div }}
+      </fieldset>
+      <p>This only creates a review. No catalogue records are changed until a super-administrator explicitly approves it.</p>
+      <div class="submit-row"><input type="submit" value="Generate catalogue review" class="default"></div>
+    </form>
+  </div>
+{% endblock %}

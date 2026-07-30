@@ -1,0 +1,29 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="{% static 'operations/js/clickable-operation-rows.js' %}" defer></script>
+{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    #result_list tbody tr.operation-row-link {
+      cursor: pointer;
+      transition: background-color 120ms ease;
+    }
+
+    #result_list tbody tr.operation-row-link:hover > th,
+    #result_list tbody tr.operation-row-link:hover > td,
+    #result_list tbody tr.operation-row-link:focus-visible > th,
+    #result_list tbody tr.operation-row-link:focus-visible > td {
+      background-color: rgba(65, 118, 144, 0.42) !important;
+    }
+
+    #result_list tbody tr.operation-row-link:focus-visible {
+      outline: 2px solid var(--primary, #79aec8);
+      outline-offset: -2px;
+    }
+  </style>
+{% endblock %}

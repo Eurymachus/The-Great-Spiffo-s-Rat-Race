@@ -1,0 +1,146 @@
+{% extends "registry/base.html" %}
+{% load static %}
+{% block title_suffix %} | {{ run.character_name|default:"Rat Race run" }}{% endblock %}
+{% block extra_head %}
+<script src="{% static 'registry/run_details.js' %}?v=20260728-1" defer></script>
+{% endblock %}
+{% block content %}
+<article class="run-public-page">
+  <header class="run-public-hero">
+    <div>
+      <p class="dashboard-panel-kicker">Verified Rat Race run</p>
+      <h2>{{ run.character_name|default:"Rat Race survivor" }}</h2>
+      <p>Run by <strong>{{ rat_racer }}</strong> in {{ run.challenge_mode_display }}.</p>
+    </div>
+    <span class="run-public-status">{{ run.get_lifecycle_status_display }}</span>
+  </header>
+
+  <section class="run-public-summary" aria-label="Run summary">
+    <div><small>Zombie kills</small><strong>{{ current_kills_display }}</strong></div>
+    <div><small>In-game day</small><strong>{{ run.in_game_day|default:"Not recorded" }}</strong></div>
+    <div><small>Challenge mode</small><strong>{{ run.challenge_mode_display }}</strong></div>
+    <div>
+      <small>Profession</small>
+      <strong class="run-catalogue-label">
+        {% if profession_icon_url %}<img src="{{ profession_icon_url }}" alt="" width="32" height="32">{% endif %}
+        {{ profession }}
+      </strong>
+    </div>
+    <div><small>Current weight</small><strong>{{ weight }}</strong></div>
+    <div><small>Approved updates</small><strong>{{ run.approved_submission_count }}</strong></div>
+  </section>
+
+  {% if progress %}
+  <section class="run-public-section">
+    <header><p class="dashboard-panel-kicker">Challenge progress</p><h3>The long road</h3></header>
+    <div class="run-progress-grid">
+      {% for item in progress %}
+      <article class="run-progress-card">
+        <div><strong>{{ item.name }}</strong><span>{{ item.current_display }} / {{ item.target_display }}</span></div>
+        <progress value="{{ item.percent }}" max="100">{{ item.percent }}%</progress>
+        <small>{{ item.percent }}% · {{ item.status }}</small>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="run-public-section run-public-traits-section">
+    <header><p class="dashboard-panel-kicker">Character</p><h3>Traits</h3></header>
+    <div class="run-trait-columns">
+      <div>
+        <h4>Selected at the start</h4>
+        <ul class="run-trait-icon-list">{% for trait in selected_traits %}<li class="run-trait-icon" tabindex="0" aria-label="{{ trait.name }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="" width="40" height="40">{% else %}<span class="run-trait-icon-fallback" aria-hidden="true">{{ trait.name|first }}</span>{% endif %}<span class="run-trait-tooltip" role="tooltip">{{ trait.name }}</span></li>{% empty %}<li class="run-traits-empty">Not recorded</li>{% endfor %}</ul>
+      </div>
+      <div>
+        <h4>Currently effective</h4>
+        <ul class="run-trait-icon-list">{% for trait in current_traits %}<li class="run-trait-icon" tabindex="0" aria-label="{{ trait.name }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="" width="40" height="40">{% else %}<span class="run-trait-icon-fallback" aria-hidden="true">{{ trait.name|first }}</span>{% endif %}<span class="run-trait-tooltip" role="tooltip">{{ trait.name }}</span></li>{% empty %}<li class="run-traits-empty">Not recorded</li>{% endfor %}</ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="run-public-section run-public-skills-section">
+    <header><p class="dashboard-panel-kicker">Skills</p><h3>Current levels</h3></header>
+    <div class="pz-skills-panel">
+      <div class="pz-skill-columns" aria-hidden="true">
+        <strong>Skill</strong><strong>Level</strong><strong>Progress</strong>
+      </div>
+      {% for group in skill_groups %}
+      <section class="pz-skill-group">
+        <header class="pz-skill-group-row">
+          <strong><span class="pz-skill-category-icon" aria-hidden="true"></span>{{ group.name }}</strong>
+          <span>{{ group.mastered }} / {{ group.count }}</span>
+          <div class="pz-skill-category-progress">
+            <span style="width: {{ group.percent }}%"></span>
+            <strong>{{ group.progress_display }} / {{ group.target }} ({{ group.percent }}%)</strong>
+          </div>
+        </header>
+        {% for skill in group.skills %}
+        <div class="pz-skill-row{% if skill.mastered %} is-mastered{% endif %}" tabindex="0" title="{{ skill.name }} — Level {{ skill.level }} / 10 — Recorded XP: {{ skill.xp|default:'Not recorded' }}">
+          <strong>
+            {% if skill.icon_url %}<img class="pz-skill-icon" src="{{ skill.icon_url }}" alt="" width="24" height="24">{% endif %}
+            {{ skill.name }}
+          </strong>
+          <span>{{ skill.level }} / 10</span>
+          <div class="pz-skill-segments" aria-label="{{ skill.level }} of 10 levels">
+            {% for segment in skill.segments %}<span class="{% if segment.filled %}is-filled{% endif %}"></span>{% endfor %}
+          </div>
+          <aside class="pz-skill-tooltip" role="tooltip">
+            <strong>{{ skill.name }}</strong>
+            <span>Level: {{ skill.level }} / 10</span>
+            <span>Recorded XP: {{ skill.xp|default:"Not recorded" }}</span>
+          </aside>
+        </div>
+        {% empty %}
+        <p>No skills recorded in this category.</p>
+        {% endfor %}
+      </section>
+      {% empty %}
+      <p class="pz-skills-empty">No skill data recorded.</p>
+      {% endfor %}
+      {% if skills %}
+      <footer class="pz-skills-total">
+        <span style="width: {{ overall_skill_percent }}%"></span>
+        <strong>{{ mastered_skills }} of {{ overall_skill_count }} skills mastered ({{ overall_skill_percent }}%)</strong>
+      </footer>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="run-public-section">
+    <header><p class="dashboard-panel-kicker">World progress</p><h3>Outposts</h3></header>
+    <div class="run-outpost-grid">
+      {% for outpost in outposts %}
+      <article class="run-outpost-card{% if outpost.complete %} is-complete{% endif %}">
+        <div><strong>{{ outpost.name }}</strong><span>{{ outpost.stage }}</span></div>
+        <progress value="{{ outpost.percent }}" max="100">{{ outpost.percent }}%</progress>
+        <small>{{ outpost.passed }} of {{ outpost.total }} requirements · {{ outpost.percent }}%</small>
+      </article>
+      {% empty %}<p>No outpost data recorded.</p>{% endfor %}
+    </div>
+  </section>
+
+  <section class="run-public-section">
+    <header><p class="dashboard-panel-kicker">Exploration</p><h3>Town visits</h3><p>{{ visited_town_count }} of {{ towns|length }} tracked towns visited.</p></header>
+    <ul class="run-town-grid">
+      {% for town in towns %}<li class="{% if town.visited %}is-visited{% endif %}"><span aria-hidden="true">{% if town.visited %}✓{% else %}–{% endif %}</span>{{ town.name }}</li>{% empty %}
+      <li>No town data recorded.</li>{% endfor %}
+    </ul>
+  </section>
+
+  <section class="run-public-section">
+    <header><p class="dashboard-panel-kicker">Activity</p><h3>Recorded totals</h3></header>
+    <dl class="run-activity-grid">
+      {% for item in activity %}<div><dt>{{ item.label }}</dt><dd>{{ item.value|default_if_none:"Not recorded" }}</dd></div>{% endfor %}
+    </dl>
+  </section>
+
+  <footer class="run-public-footer">
+    <p>This public record reflects the latest moderator-approved export.</p>
+    <dl>
+      <div><dt>Export generated in-game</dt><dd><time datetime="{{ run.generated_at|date:'c' }}" data-local-datetime data-local-seconds>{{ run.generated_at|date:"j M Y, H:i:s" }}</time></dd></div>
+      <div><dt>First received by website</dt><dd><time datetime="{{ run.first_submitted_at|date:'c' }}" data-local-datetime data-local-seconds>{{ run.first_submitted_at|date:"j M Y, H:i:s" }}</time></dd></div>
+    </dl>
+  </footer>
+</article>
+{% endblock %}

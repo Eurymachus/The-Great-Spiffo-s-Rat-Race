@@ -26,7 +26,13 @@ SECRET_KEY = 'django-insecure-e1_m0ype1#@%bpq1xhi$uq*lm66oj5v^3exvp+1q-1z6amm=+v
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]"
+    ).split(",")
+    if host.strip()
+]
 
 # Public operator identity. These values are not secrets, but production may
 # override them without changing source code or participant data.
@@ -133,6 +139,7 @@ INSTALLED_APPS = [
     'pages',
     'registry',
     'zomboid_catalogue',
+    'operations',
 ]
 
 AUTH_USER_MODEL = 'registry.Participant'
@@ -280,3 +287,22 @@ TRUST_CLOUDFLARE_CONNECTING_IP = False
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# The full Project Zomboid reference installation is maintained by a scheduled,
+# host-level command. Steam's cached session remains in SteamCMD's protected
+# config directory and is never stored by Django.
+STEAMCMD_EXECUTABLE = os.environ.get("STEAMCMD_EXECUTABLE", "")
+STEAMCMD_USERNAME = os.environ.get("STEAMCMD_USERNAME", "")
+PZ_REFERENCE_ROOT = os.environ.get("PZ_REFERENCE_ROOT", "")
+STEAMCMD_UPDATE_TIMEOUT_SECONDS = int(
+    os.environ.get("STEAMCMD_UPDATE_TIMEOUT_SECONDS", "1800")
+)
+STEAMCMD_AUTH_TIMEOUT_SECONDS = int(
+    os.environ.get("STEAMCMD_AUTH_TIMEOUT_SECONDS", "15")
+)
+JAVA_EXECUTABLE = os.environ.get("JAVA_EXECUTABLE", "java")
+VINEFLOWER_JAR = os.environ.get("VINEFLOWER_JAR", "")
+PZ_DECOMPILED_ROOT = os.environ.get("PZ_DECOMPILED_ROOT", "")
+PZ_DECOMPILATION_TIMEOUT_SECONDS = int(
+    os.environ.get("PZ_DECOMPILATION_TIMEOUT_SECONDS", "3600")
+)

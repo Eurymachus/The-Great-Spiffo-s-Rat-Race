@@ -4,7 +4,13 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from zomboid_catalogue.models import CatalogueAlias, CatalogueEntry
+from zomboid_catalogue.models import (
+    AnimalDetails,
+    CatalogueAlias,
+    CatalogueEntry,
+    DeliverableDetails,
+    SkillDetails,
+)
 
 
 DEFAULT_SOURCE = Path(__file__).resolve().parents[2] / "data" / "b42_19.json"
@@ -39,12 +45,12 @@ class Command(BaseCommand):
                 raise CommandError(f"Invalid catalogue entry at position {index}.")
             defaults = {
                 "display_name": display_name,
-                "category": str(definition.get("category") or ""),
                 "removed_in": str(definition.get("removed_in") or ""),
-                "icon_key": str(definition.get("icon_key") or ""),
                 "is_active": bool(definition.get("is_active", True)),
                 "notes": str(definition.get("notes") or ""),
             }
+            if "icon_key" in definition:
+                defaults["icon_key"] = str(definition.get("icon_key") or "")
             entry, was_created = CatalogueEntry.objects.get_or_create(
                 kind=kind,
                 stable_id=stable_id,
@@ -73,6 +79,40 @@ class Command(BaseCommand):
                         "removed_in": str(alias.get("removed_in") or ""),
                         "notes": str(alias.get("notes") or ""),
                     },
+                )
+            if kind == CatalogueEntry.Kind.ANIMAL:
+                species_id = str(definition.get("species_id") or "").strip()
+                species_name = str(definition.get("species_name") or "").strip()
+                life_stage = str(definition.get("life_stage") or "").strip()
+                valid_life_stages = {
+                    value for value, _label in AnimalDetails.LifeStage.choices
+                }
+                if (
+                    not species_id
+                    or not species_name
+                    or (life_stage and life_stage not in valid_life_stages)
+                ):
+                    raise CommandError(
+                        f"Invalid animal taxonomy on catalogue entry {stable_id}."
+                    )
+                AnimalDetails.objects.update_or_create(
+                    entry=entry,
+                    defaults={
+                        "species_id": species_id,
+                        "species_name": species_name,
+                        "category": str(definition.get("category") or ""),
+                        "life_stage": life_stage,
+                    },
+                )
+            elif kind == CatalogueEntry.Kind.SKILL:
+                SkillDetails.objects.update_or_create(
+                    entry=entry,
+                    defaults={"category": str(definition.get("category") or "")},
+                )
+            elif kind == CatalogueEntry.Kind.DELIVERABLE:
+                DeliverableDetails.objects.update_or_create(
+                    entry=entry,
+                    defaults={"category": str(definition.get("category") or "")},
                 )
         self.stdout.write(self.style.SUCCESS(
             f"Catalogue {game_version}: {created} created, "

@@ -1,0 +1,51 @@
+{% extends "admin/base_site.html" %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    <fieldset class="module aligned">
+      <h2>Permanent run-data purge</h2>
+      <div class="form-row">
+        <p>
+          This permanently removes every challenge run, every run submission,
+          and all submission notifications.
+        </p>
+        <p>
+          Participants, sign-in accounts, platform integrations, challenge modes,
+          catalogue records, website content, and configuration are preserved.
+        </p>
+        <table>
+          <tbody>
+            <tr><th scope="row">Challenge runs</th><td>{{ counts.runs }}</td></tr>
+            <tr><th scope="row">Run submissions</th><td>{{ counts.submissions }}</td></tr>
+            <tr>
+              <th scope="row">Submission notifications</th>
+              <td>{{ counts.notifications }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </fieldset>
+
+    {% if counts.runs or counts.submissions or counts.notifications %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <fieldset class="module aligned">
+          <h2>Confirm purge</h2>
+          <div class="form-row{% if form.confirmation.errors %} errors{% endif %}">
+            {{ form.confirmation.errors }}
+            {{ form.confirmation.label_tag }}
+            {{ form.confirmation }}
+            <div class="help">This action cannot be undone.</div>
+          </div>
+        </fieldset>
+        <div class="submit-row">
+          <input type="submit" value="Purge all run data" class="deletelink">
+        </div>
+      </form>
+    {% else %}
+      <p>There is no run data to purge.</p>
+    {% endif %}
+  </div>
+{% endblock %}

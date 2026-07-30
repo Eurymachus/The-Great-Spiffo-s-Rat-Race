@@ -1,0 +1,10 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+{% block submit_buttons_bottom %}
+  {% if original.status == "ready" %}
+    <div class="submit-row">
+      <button type="submit" class="default" formaction="{% url 'admin:operations_catalogueimportreview_approve' original.pk %}">Approve and apply catalogue</button>
+      <button type="submit" formaction="{% url 'admin:operations_catalogueimportreview_reject' original.pk %}">Reject review</button>
+    </div>
+  {% endif %}
+{% endblock %}

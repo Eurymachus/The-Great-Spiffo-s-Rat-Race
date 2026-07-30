@@ -225,6 +225,76 @@ body .submit-row input[name="_continue"],
     .submit-row .admin-close-button { margin-right: auto; }
 }
 
+/* Django removes its navigation entirely below 768px. Preserve the familiar
+   sidebar as an off-canvas drawer so administration remains usable on phones. */
+@media (max-width: 767px) {
+    #toggle-nav-sidebar {
+        position: fixed;
+        z-index: 1201;
+        right: max(1rem, env(safe-area-inset-right));
+        bottom: max(1rem, env(safe-area-inset-bottom));
+        left: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 3.25rem;
+        height: 3.25rem;
+        padding: 0;
+        border: 1px solid var(--hairline-color);
+        border-radius: 50%;
+        background: var(--button-bg);
+        color: var(--button-fg);
+        box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .4);
+    }
+
+    #toggle-nav-sidebar::before {
+        content: "\2630";
+        font-size: 1.45rem;
+        line-height: 1;
+    }
+
+    .main.shifted #toggle-nav-sidebar::before {
+        content: "\00d7";
+        font-size: 2rem;
+    }
+
+    .main > #nav-sidebar {
+        position: fixed;
+        z-index: 1200;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        display: block;
+        width: min(86vw, 20rem);
+        max-height: none;
+        margin: 0;
+        padding-top: max(.75rem, env(safe-area-inset-top));
+        border-right: 1px solid var(--hairline-color);
+        background: var(--body-bg);
+        box-shadow: 1rem 0 2.5rem rgba(0, 0, 0, .55);
+        overflow: auto;
+        visibility: hidden;
+        transform: translateX(-105%);
+        transition: transform .2s ease, visibility 0s linear .2s;
+    }
+
+    .main.shifted > #nav-sidebar {
+        margin: 0;
+        visibility: visible;
+        transform: translateX(0);
+        transition-delay: 0s;
+    }
+
+    .main > #nav-sidebar + .content,
+    .main.shifted > #nav-sidebar + .content {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+    .main > #nav-sidebar { transition: none; }
+}
+
 .admin-viewport-gate {
     position: fixed;
     z-index: 100000;
@@ -269,4 +339,25 @@ body .submit-row input[name="_continue"],
 .admin-viewport-gate.is-compact .admin-viewport-gate-actions button {
     justify-content: center;
     width: 100%;
+}
+
+/* Changelist rows with a record link behave as one clear, accessible target. */
+#result_list tbody tr.operation-row-link {
+    cursor: pointer;
+    transition: background-color 120ms ease;
+}
+#result_list tbody tr.operation-row-link:hover > th,
+#result_list tbody tr.operation-row-link:hover > td,
+#result_list tbody tr.operation-row-link:focus > th,
+#result_list tbody tr.operation-row-link:focus > td,
+#result_list tbody tr.operation-row-link:focus-visible > th,
+#result_list tbody tr.operation-row-link:focus-visible > td {
+    background: rgba(65, 118, 144, .42) !important;
+}
+#result_list tbody tr.operation-row-link:focus {
+    outline: none;
+}
+#result_list tbody tr.operation-row-link:focus-visible {
+    outline: 2px solid var(--link-fg, #79aec8);
+    outline-offset: -2px;
 }

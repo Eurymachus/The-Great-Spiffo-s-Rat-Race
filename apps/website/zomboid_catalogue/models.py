@@ -6,10 +6,12 @@ class CatalogueEntry(models.Model):
     class Kind(models.TextChoices):
         SKILL = "skill", "Skill"
         TRAIT = "trait", "Trait"
+        OCCUPATION = "occupation", "Occupation"
         ITEM = "item", "Item"
         RECIPE = "recipe", "Recipe"
         TOWN = "town", "Town"
         LOCATION = "location", "Location"
+        ANIMAL = "animal", "Animal"
         OUTPOST = "outpost", "Outpost"
         DELIVERABLE = "deliverable", "Deliverable"
         MOD = "mod", "Mod"
@@ -20,7 +22,6 @@ class CatalogueEntry(models.Model):
         help_text="The exact stable identifier exported by Project Zomboid or TGSRR.",
     )
     display_name = models.CharField(max_length=255)
-    category = models.CharField(max_length=120, blank=True)
     introduced_in = models.CharField(
         max_length=32,
         blank=True,
@@ -64,6 +65,271 @@ class CatalogueEntry(models.Model):
 
     def __str__(self):
         return f"{self.display_name} ({self.stable_id})"
+
+
+class TraitDetails(models.Model):
+    entry = models.OneToOneField(
+        CatalogueEntry, on_delete=models.CASCADE, related_name="trait_details"
+    )
+    point_cost = models.SmallIntegerField(default=0)
+    description = models.TextField(blank=True)
+    is_profession_trait = models.BooleanField(default=False)
+    disabled_in_multiplayer = models.BooleanField(default=False)
+    xp_boosts = models.JSONField(default=dict, blank=True)
+    mutually_exclusive_traits = models.JSONField(default=list, blank=True)
+    granted_recipes = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        verbose_name = "trait details"
+        verbose_name_plural = "trait details"
+
+    def __str__(self):
+        return self.entry.display_name
+
+
+class OccupationDetails(models.Model):
+    entry = models.OneToOneField(
+        CatalogueEntry, on_delete=models.CASCADE, related_name="occupation_details"
+    )
+    point_cost = models.SmallIntegerField(default=0)
+    description = models.TextField(blank=True)
+    granted_traits = models.JSONField(default=list, blank=True)
+    xp_boosts = models.JSONField(default=dict, blank=True)
+    granted_recipes = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        verbose_name = "occupation details"
+        verbose_name_plural = "occupation details"
+
+    def __str__(self):
+        return self.entry.display_name
+
+
+class SkillDetails(models.Model):
+    entry = models.OneToOneField(
+        CatalogueEntry, on_delete=models.CASCADE, related_name="skill_details"
+    )
+    description = models.TextField(blank=True)
+    category = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="The Project Zomboid skill category identifier.",
+    )
+    level_xp = models.JSONField(default=list, blank=True)
+    is_passive = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "skill details"
+        verbose_name_plural = "skill details"
+
+    def __str__(self):
+        return self.entry.display_name
+
+
+class ItemDisplayCategory(models.Model):
+    stable_id = models.CharField(
+        max_length=120,
+        unique=True,
+        help_text="The exact Project Zomboid DisplayCategory identifier.",
+    )
+    display_name = models.CharField(max_length=120)
+
+    class Meta:
+        ordering = ("display_name", "stable_id")
+        verbose_name = "item display category"
+        verbose_name_plural = "item display categories"
+
+    def __str__(self):
+        return self.display_name
+
+
+class ItemDetails(models.Model):
+    entry = models.OneToOneField(
+        CatalogueEntry, on_delete=models.CASCADE, related_name="item_details"
+    )
+    pz_item_type = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="The exact Project Zomboid ItemType value.",
+    )
+    display_category = models.ForeignKey(
+        ItemDisplayCategory,
+        on_delete=models.PROTECT,
+        related_name="items",
+        null=True,
+        blank=True,
+    )
+    tags = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Exact Project Zomboid item tags.",
+    )
+    capabilities = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            "Deterministic capabilities derived from Project Zomboid fields, "
+            "such as weapon, tool, literature, book, or magazine."
+        ),
+    )
+    weapon_categories = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Exact Project Zomboid weapon category identifiers.",
+    )
+    weapon_skill = models.ForeignKey(
+        SkillDetails,
+        on_delete=models.PROTECT,
+        related_name="weapon_items",
+        null=True,
+        blank=True,
+        help_text="Skill deterministically resolved from Project Zomboid weapon evidence.",
+    )
+    weight = models.FloatField(null=True, blank=True)
+    raw_properties = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="The complete parsed Project Zomboid item definition.",
+    )
+
+    class Meta:
+        verbose_name = "item details"
+        verbose_name_plural = "item details"
+
+    def __str__(self):
+        return f"{self.entry.display_name}: {', '.join(self.capabilities)}"
+
+
+class AnimalDetails(models.Model):
+    class LifeStage(models.TextChoices):
+        BABY = "baby", "Baby"
+        JUVENILE = "juvenile", "Juvenile"
+        ADULT = "adult", "Adult"
+
+    entry = models.OneToOneField(
+        CatalogueEntry, on_delete=models.CASCADE, related_name="animal_details"
+    )
+    species_id = models.CharField(
+        max_length=120,
+        help_text="Website-owned stable species identifier used for grouping.",
+    )
+    species_name = models.CharField(max_length=120)
+    category = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Website-owned animal grouping, such as Mammal or Bird.",
+    )
+    life_stage = models.CharField(
+        max_length=16, choices=LifeStage.choices, blank=True
+    )
+
+    class Meta:
+        ordering = ("species_name", "life_stage", "entry__display_name")
+        verbose_name = "animal details"
+        verbose_name_plural = "animal details"
+
+    def __str__(self):
+        return f"{self.entry.display_name}: {self.species_name}"
+
+
+class DeliverableDetails(models.Model):
+    entry = models.OneToOneField(
+        CatalogueEntry, on_delete=models.CASCADE, related_name="deliverable_details"
+    )
+    category = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Rat Race grouping for this deliverable or objective.",
+    )
+
+    class Meta:
+        verbose_name = "deliverable details"
+        verbose_name_plural = "deliverable details"
+
+    def __str__(self):
+        return f"{self.entry.display_name}: {self.category}"
+
+
+def catalogue_asset_upload_to(instance, filename):
+    version = instance.entry.introduced_in or "unversioned"
+    return f"catalogue/{version}/{instance.entry.kind}/{filename}"
+
+
+class CatalogueAsset(models.Model):
+    class Role(models.TextChoices):
+        ICON = "icon", "Icon"
+        SCREENSHOT = "screenshot", "Screenshot"
+        ILLUSTRATION = "illustration", "Illustration"
+
+    class Availability(models.TextChoices):
+        IMPORTED = "imported", "Imported"
+        PACKED = "packed", "Packed in game texture archive"
+        MISSING = "missing", "Not found"
+
+    class SourceType(models.TextChoices):
+        UNKNOWN = "unknown", "No served image"
+        GAME = "game", "Project Zomboid"
+        PZWIKI = "pzwiki", "PZwiki"
+        MANUAL = "manual", "Manual override"
+
+    class GameAvailability(models.TextChoices):
+        UNKNOWN = "unknown", "Not checked"
+        UNPACKED = "unpacked", "Unpacked file available"
+        PACKED = "packed", "Packed texture reference only"
+        MISSING = "missing", "Not found"
+
+    entry = models.ForeignKey(
+        CatalogueEntry, on_delete=models.CASCADE, related_name="assets"
+    )
+    role = models.CharField(max_length=24, choices=Role.choices, default=Role.ICON)
+    source_key = models.CharField(
+        max_length=255,
+        help_text="Project Zomboid texture key or other deterministic source identifier.",
+    )
+    source_path = models.CharField(max_length=500, blank=True)
+    source_checksum = models.CharField(max_length=64, blank=True)
+    source_type = models.CharField(
+        max_length=16,
+        choices=SourceType.choices,
+        default=SourceType.UNKNOWN,
+        help_text="Provenance of the image currently served by the website.",
+    )
+    game_availability = models.CharField(
+        max_length=16,
+        choices=GameAvailability.choices,
+        default=GameAvailability.UNKNOWN,
+        help_text="Whether Project Zomboid exposes an accessible file or only a packed reference.",
+    )
+    game_source_path = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="The authoritative loose Project Zomboid file path when available.",
+    )
+    game_source_checksum = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="Checksum of the authoritative loose Project Zomboid file when available.",
+    )
+    file = models.ImageField(upload_to=catalogue_asset_upload_to, blank=True)
+    availability = models.CharField(
+        max_length=16, choices=Availability.choices, default=Availability.MISSING
+    )
+    alt_text = models.CharField(max_length=255, blank=True)
+    caption = models.CharField(max_length=255, blank=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    imported_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("sort_order", "role", "source_key")
+        constraints = (
+            models.UniqueConstraint(
+                fields=("entry", "role", "source_key"),
+                name="unique_catalogue_asset_source",
+            ),
+        )
+
+    def __str__(self):
+        return f"{self.entry.display_name}: {self.get_role_display()}"
 
 
 class CatalogueAlias(models.Model):

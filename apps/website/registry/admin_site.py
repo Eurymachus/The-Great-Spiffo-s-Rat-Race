@@ -18,6 +18,16 @@ class RatRaceAdminSite(AdminSite):
             "Platform integrations",
             ("StreamingAccount", "StreamingMedia"),
         ),
+        (
+            "System operations",
+            (
+                "ReferenceSource",
+                "ReferenceUpdateJob",
+                "CatalogueImportReview",
+                "PZWikiArtworkSyncJob",
+                "RunDataDangerZone",
+            ),
+        ),
     )
 
     def get_app_list(self, request, app_label=None):
@@ -27,7 +37,7 @@ class RatRaceAdminSite(AdminSite):
 
         grouped_apps = []
         for app in app_list:
-            if app["app_label"] != "registry":
+            if app["app_label"] not in {"registry", "operations"}:
                 grouped_apps.append(app)
                 continue
 
@@ -51,4 +61,6 @@ class RatRaceAdminSite(AdminSite):
                         "models": models,
                     }
                 )
+            if app["app_label"] == "operations":
+                continue
         return grouped_apps

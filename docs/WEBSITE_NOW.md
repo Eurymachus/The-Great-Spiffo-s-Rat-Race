@@ -11,6 +11,10 @@
 Launch a small public website where prospective Rat Race participants can reserve
 a nickname using a verified email address.
 
+The Project Zomboid catalogue remains a lean lookup and resolver layer.
+Kind-specific classifications and gameplay fields belong to typed detail
+records, while aliases and assets remain shared catalogue relationships.
+
 ## Done When
 
 - The registration page is publicly available.
@@ -56,6 +60,10 @@ a nickname using a verified email address.
 - Registry-backed administration is presented by concern without moving its
   database models: Participant administration, Challenge configuration, Run
   moderation, and Platform integrations.
+- A superuser-only System Operations danger zone previews and atomically purges
+  every challenge run, run submission, and submission notification after exact
+  typed confirmation. Participant accounts, platform integrations, challenge
+  modes, catalogue data, managed content, and site configuration are preserved.
 - Privileged, confirmation-protected closure processing with non-personal
   closure receipts and a documented nullable owner for future independent runs.
 - Cloudflare Turnstile integration using official test credentials locally.
@@ -83,6 +91,13 @@ a nickname using a verified email address.
   and invalidated runs, presented as Active Runs and Past Runs on the participant
   dashboard. Lifecycle is moderator-managed until the tracker emits a terminal
   run signal.
+- Public, shareable verified-run pages at UUID-based addresses. The initial
+  player-facing view presents challenge progress, character traits, current
+  skills in a grouped Project Zomboid-style panel using the mod's complete
+  35-icon skill set, outposts, town visits, activity totals and clearly
+  distinguished in-game export and website receipt timestamps without exposing
+  raw run IDs, checksums or ledger hashes. Charts remain a later presentation
+  layer.
 - Participant notifications for submission receipt and moderation decisions,
   with ASGI/SSE live invalidation, immediate bell/dropdown refresh, unobtrusive
   title toasts, a visible-tab polling fallback, and in-place refresh of
@@ -90,6 +105,58 @@ a nickname using a verified email address.
 - A dedicated Project Zomboid Catalogue administration section with stable IDs,
   display metadata, version ranges, aliases, a reusable resolver, and a scoped
   Zomboid Integration staff role.
+- Super-admin Project Zomboid reference operations with short-lived Steam
+  authentication, a separately supervised queue worker, installed-build checks,
+  and website-triggered Vineflower decompilation. Decompiled output is generated
+  into immutable build/job directories, validated before activation, and tracked
+  against the installed Steam build so stale Java reference data is visible.
+- Catalogue imports use a two-stage super-admin workflow. A background review
+  stores the exact interpreted snapshot and clearly separates additions,
+  changes, and deactivations without mutating live catalogue data. Explicit
+  approval applies only that reviewed snapshot; changed build IDs or source
+  paths make the review stale and require a new comparison.
+- Automated Catalogue v2 ingestion from an installed Project Zomboid build for
+  traits, occupations, skills and items. Generated game definitions and English
+  translations populate typed detail records (costs, descriptions, XP boosts,
+  exclusions, granted traits and recipes) without manual transcription.
+  Items retain their exact full type (for example `Base.BoneClub`), raw item
+  definition, tags, weight and texture key. Exact display-category identifiers
+  and translated names live in a dedicated table, and deterministically
+  resolved weapon skills reference the existing Skill Details records rather
+  than duplicating strings. A deterministic
+  analysis layer records overlapping capabilities rather than forcing items
+  into one category: the same item may be a weapon and a tool, while literature
+  may additionally be a book or magazine. Weapon categories resolve to their
+  governing skill where Project Zomboid exposes enough evidence.
+  Deterministic texture relationships are retained for every available icon,
+  including shared item texture keys used by weapons, tools, books and magazines.
+  Approval queues a background PZWiki reconciliation which uses those keys to
+  import matching catalogue PNGs into managed media. PZWiki is the presentation
+  authority for supported catalogue artwork; installed Project Zomboid files
+  remain authoritative evidence for identity, details, texture availability and
+  checksums but do not replace a served PZWiki image. Manual overrides remain
+  protected. A super administrator can also queue the same reconciliation from
+  the Project Zomboid reference source page. Catalogue approval and PZWiki
+  reconciliation are separate operational concerns: every reconciliation has
+  its own job record, trigger, lifecycle timestamps, status and final summary.
+  Completed jobs also retain a structured unavailable-artwork report, grouped
+  by catalogue kind and failure reason in administration, so unsupported icon
+  keys and expected PZWiki files that do not exist remain directly inspectable.
+  The approved catalogue review remains immutable and records only the reviewed
+  game-data decision. Shared filenames are fetched once per job and reruns do
+  not duplicate unchanged assets. Missing Wiki artwork is reported rather than
+  guessed.
+- Website-owned animal taxonomy maps known raw Project Zomboid animal
+  identifiers to display names, species and life stages while preserving unknown
+  or modded identifiers as unclassified evidence.
+- A host-managed full Project Zomboid reference source records installed Steam
+  build state and auditable update jobs. Admin and scheduler requests enqueue
+  work without blocking HTTP; a separately supervised worker runs the fixed
+  SteamCMD update using the host's protected cached login. Jobs record their
+  trigger, requester, queue/start/finish times and result, suppress duplicate
+  active work, and notify super-admins when a build changes, an update fails, or
+  authentication must be renewed. Catalogue diff, review and promotion
+  automation remains next.
 - A provider-neutral connected streaming-account foundation for Twitch and
   YouTube, including immutable provider/channel identities, connection state,
   audit timestamps, administration and participant-facing account status.
@@ -154,8 +221,7 @@ under the nearest preceding item and moving left moves the item outward.
 
 ## Recommended next action
 
-Exercise live notifications in two signed-in browser sessions: create or
-moderate a submission in one and confirm the other updates its bell, dropdown,
-and toast without a page refresh.
+Run and review the catalogue-wide PZWiki artwork reconciliation, then extend
+item analysis with the gameplay fields needed by kill and collectible views.
 
 Retention automation and a final pre-launch privacy review remain required.

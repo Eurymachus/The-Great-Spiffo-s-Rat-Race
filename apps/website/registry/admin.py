@@ -496,6 +496,11 @@ class RunSubmissionAdmin(admin.ModelAdmin):
     class Media:
         css = {"all": ("registry/admin_run_review.css",)}
 
+    def changelist_view(self, request, extra_context=None):
+        context = dict(extra_context or {})
+        context["title"] = "Run submission reviews"
+        return super().changelist_view(request, extra_context=context)
+
     def change_view(self, request, object_id, form_url="", extra_context=None):
         submission = self.get_object(request, object_id)
         context = dict(extra_context or {})

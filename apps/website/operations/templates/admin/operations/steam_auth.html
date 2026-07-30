@@ -1,0 +1,68 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div id="content-main">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      <h2>{{ title }}</h2>
+      <div class="description">
+        Credentials are passed to one short-lived SteamCMD process through
+        standard input. They are not stored or logged.
+      </div>
+      {% if poll_for_approval %}
+        <p id="steam-approval-status" class="help">
+          Waiting for approval in the Steam mobile app. The code field remains
+          available as a fallback.
+        </p>
+      {% endif %}
+      {{ form.non_field_errors }}
+      {% for field in form %}
+        <div class="form-row">
+          {{ field.errors }}
+          <div class="flex-container">{{ field.label_tag }} {{ field }}</div>
+          {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </fieldset>
+    <div class="submit-row">
+      <input type="submit" value="{{ title }}">
+      <a class="closelink" href="{% url 'admin:operations_referencesource_change' source.pk %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% if poll_for_approval %}
+<script>
+(() => {
+  const status = document.getElementById("steam-approval-status");
+  const csrf = document.querySelector("[name=csrfmiddlewaretoken]").value;
+  const timer = window.setInterval(async () => {
+    try {
+      const body = new URLSearchParams({ _poll: "1" });
+      const response = await fetch(window.location.href, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrf,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body,
+      });
+      const result = await response.json();
+      if (result.status === "authenticated") {
+        window.clearInterval(timer);
+        status.textContent = "Steam approved. Continuing…";
+        window.location.assign(result.redirect);
+      } else if (result.status === "expired" || result.status === "failed") {
+        window.clearInterval(timer);
+        status.textContent =
+          "The Steam request expired or was declined. Start the connection again.";
+      }
+    } catch (error) {
+      // A transient network interruption is harmless; the next poll retries.
+    }
+  }, 1000);
+})();
+</script>
+{% endif %}
+{% endblock %}

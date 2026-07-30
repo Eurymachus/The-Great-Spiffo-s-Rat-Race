@@ -4,7 +4,10 @@
       <p class="dashboard-panel-kicker">Run details</p>
       <strong id="run-detail-title-{{ run.pk }}">{{ run.character_name|default:"Rat Race run" }}</strong>
     </div>
-    <button type="button" class="run-detail-close" data-run-detail-close aria-label="Close run details">Close</button>
+    <div class="run-detail-header-actions">
+      {% if run.status == "official" %}<a class="run-detail-public-link" href="{% url 'registry:public_run_detail' run.pk %}">View full details</a>{% endif %}
+      <button type="button" class="run-detail-close" data-run-detail-close aria-label="Close run details">Close</button>
+    </div>
   </header>
   <div class="run-detail-content">
     <section class="run-detail-summary" aria-label="Run summary">

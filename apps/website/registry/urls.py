@@ -42,6 +42,7 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("account/", views.account, name="account"),
+    path("runs/<uuid:run_id>/", views.public_run_detail, name="public_run_detail"),
     path(
         "account/dashboard/fragment/",
         views.account_dashboard_fragment,

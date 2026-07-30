@@ -43,6 +43,7 @@ from .models import (
     StreamingMedia,
 )
 from .run_exports import InvalidRunExport, decode_run_export
+from .run_public import build_public_run_context
 from .challenge_modes import resolve_challenge_mode
 from .notifications import notify
 from .rate_limit import exceeded, request_ip
@@ -431,6 +432,23 @@ def account(request):
         request,
         "registry/account.html",
         account_dashboard_context(request.user),
+    )
+
+
+@require_http_methods(["GET"])
+def public_run_detail(request, run_id):
+    run = get_object_or_404(
+        ChallengeRun.objects.select_related(
+            "participant", "challenge_mode", "approved_submission"
+        ),
+        pk=run_id,
+        status=ChallengeRun.Status.OFFICIAL,
+        approved_submission__isnull=False,
+    )
+    return render(
+        request,
+        "registry/public_run_detail.html",
+        build_public_run_context(run),
     )
 
 

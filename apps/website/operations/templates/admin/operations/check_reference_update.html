@@ -1,0 +1,24 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div id="content-main">
+  <fieldset class="module aligned">
+    <h2>{{ source.name }}</h2>
+    <div class="form-row">
+      <p>
+        This queues a build check. A separate background worker will run SteamCMD
+        and record whether every stage completed successfully.
+      </p>
+      <p><strong>Current build:</strong> {{ source.installed_build_id|default:"Not recorded" }}</p>
+    </div>
+  </fieldset>
+  <form method="post">
+    {% csrf_token %}
+    <div class="submit-row">
+      <input type="submit" value="Queue update check" class="default">
+      <a href="{% url 'admin:operations_referencesource_change' source.pk %}" class="closelink">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

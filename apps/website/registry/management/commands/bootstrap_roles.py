@@ -51,6 +51,22 @@ ZOMBOID_INTEGRATION_PERMISSIONS = (
     "view_cataloguealias",
     "change_cataloguealias",
     "delete_cataloguealias",
+    "add_catalogueasset",
+    "view_catalogueasset",
+    "change_catalogueasset",
+    "delete_catalogueasset",
+    "add_traitdetails",
+    "view_traitdetails",
+    "change_traitdetails",
+    "delete_traitdetails",
+    "add_occupationdetails",
+    "view_occupationdetails",
+    "change_occupationdetails",
+    "delete_occupationdetails",
+    "add_skilldetails",
+    "view_skilldetails",
+    "change_skilldetails",
+    "delete_skilldetails",
 )
 
 

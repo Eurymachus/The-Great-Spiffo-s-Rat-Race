@@ -11,6 +11,9 @@ apps/website/media/
 apps/website/private_uploads/
 server-*.log
 website-server*.log
+*.log
+.codex-runtime/
+tempwiki.html
 
 # Editors and operating systems
 .idea/

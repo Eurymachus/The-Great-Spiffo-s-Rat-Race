@@ -6,6 +6,10 @@ it part of the active deliverable.
 
 ## Participant Platform
 
+- Rework the desktop navigation bar and responsive hamburger navigation as one
+  coherent interaction system. Revisit spacing, alignment, hierarchy,
+  open/close behaviour and third-level navigation on both layouts rather than
+  continuing with isolated cosmetic adjustments.
 - Participant accounts and profiles
 - Paste-to-submit encoded run updates
 - Moderator approval, rejection, review, and invalidation tools

@@ -74,9 +74,9 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260725-4">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260728-15">
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
-    <script src="{% static 'registry/site_menu.js' %}?v=20260725-2" defer></script>
+    <script src="{% static 'registry/site_menu.js' %}?v=20260728-3" defer></script>
     <script src="{% static 'registry/account_menu.js' %}?v=20260722-1" defer></script>
     <script src="{% static 'registry/avatar_modal.js' %}?v=20260723-2" defer></script>
     <script src="{% static 'registry/connection_modal.js' %}?v=20260725-1" defer></script>
@@ -144,14 +144,35 @@
             {% endif %}
             <p class="eyebrow">{{ site_tagline }}</p>
             <h1>{{ site_full_title }}</h1>
-            <button class="site-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-menu" data-site-menu-toggle>Menu</button>
-            <nav class="site-nav" id="primary-menu" aria-label="Primary navigation" data-site-menu>
+            <div class="site-header-controls">
+                <button class="site-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-menu" aria-label="Open navigation" data-site-menu-toggle>
+                    <span class="site-menu-toggle-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+                </button>
+                <nav class="site-nav" id="primary-menu" aria-label="Primary navigation" data-site-menu>
                 <ul class="site-nav-list">
                     <li class="site-nav-item">
                     <a href="{% url 'registry:home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a>
                     </li>
                     {% include "registry/_navigation_items.html" with nodes=site_navigation_items %}
+                {% if not request.user.is_authenticated %}
+                    <li class="site-nav-item site-utility-item site-sign-in-item has-children">
+                        <span class="site-nav-entry">
+                            <button class="site-nav-group-toggle sign-in-menu-toggle" type="button" aria-expanded="false" data-nav-submenu-toggle>
+                                <span class="sign-in-prompt">{{ site_sign_in_prompt }}</span><strong>Sign In</strong>
+                            </button>
+                        </span>
+                        <div class="site-nav-submenu site-sign-in-dropdown">
+                            {% include "registry/_sign_in_form.html" with form=header_sign_in_form compact=True %}
+                        </div>
+                    </li>
+                    <li class="site-nav-item site-utility-item site-sign-up-item">
+                    <a href="{% url 'registry:register' %}"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign Up</a>
+                    </li>
+                {% endif %}
+                </ul>
+                </nav>
                 {% if request.user.is_authenticated %}
+                <ul class="site-utility-list" aria-label="Account and notifications">
                     <li class="site-nav-item site-utility-item site-account-item has-children">
                         <span class="site-nav-entry">
                             <button class="site-nav-group-toggle account-menu-toggle" type="button" aria-expanded="false" data-nav-submenu-toggle>
@@ -206,23 +227,9 @@
                             <a class="utility-panel-footer" href="{% url 'registry:notifications' %}">View all notifications</a>
                         </div>
                     </li>
-                {% else %}
-                    <li class="site-nav-item site-utility-item site-sign-in-item has-children">
-                        <span class="site-nav-entry">
-                            <button class="site-nav-group-toggle sign-in-menu-toggle" type="button" aria-expanded="false" data-nav-submenu-toggle>
-                                <span class="sign-in-prompt">{{ site_sign_in_prompt }}</span><strong>Sign In</strong>
-                            </button>
-                        </span>
-                        <div class="site-nav-submenu site-sign-in-dropdown">
-                            {% include "registry/_sign_in_form.html" with form=header_sign_in_form compact=True %}
-                        </div>
-                    </li>
-                    <li class="site-nav-item site-utility-item site-sign-up-item">
-                    <a href="{% url 'registry:register' %}"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign Up</a>
-                    </li>
-                {% endif %}
                 </ul>
-            </nav>
+                {% endif %}
+            </div>
         </header>
         <main id="main-content">
             {% block content %}{% endblock %}
