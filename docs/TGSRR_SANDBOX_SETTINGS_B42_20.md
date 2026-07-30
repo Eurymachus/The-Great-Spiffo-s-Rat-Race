@@ -11,6 +11,20 @@ This table records the canonical shared sandbox baseline used by every TGSRR cha
 - **Stable** is intentionally blank until a replacement value is agreed. Only
   settings selected for the stable ruleset should be populated there.
 
+## World-item removal
+
+`WorldItemRemovalList` is recorded separately because its long value makes the
+comparison table difficult to read.
+
+- **Unstable:** `Base.Hat`, `Base.Glasses`, `Base.Maggots`, `Base.Slug`,
+  `Base.Slug2`, `Base.Snail`, `Base.Worm`, `Base.Dung_Mouse`, `Base.Dung_Rat`
+- **Stable:** To be supplied by a Build 42.20 companion mod that lets players
+  customize their own world-item removal list.
+- **Remarks:** The companion mod and its canonical integration entry still need
+  to be defined.
+
+## Settings comparison
+
 | Setting | Unstable | Stable | Remarks |
 |---|---:|---:|---|
 | `AbundantLootFactor` | `3.0` |  |  |
@@ -248,7 +262,6 @@ This table records the canonical shared sandbox baseline used by every TGSRR cha
 | `WaterShut` | `1` |  |  |
 | `WaterShutModifier` | `-1` |  |  |
 | `WeaponLootNew` | `0.04` |  |  |
-| `WorldItemRemovalList` | <code>Base.Hat,<wbr>Base.Glasses,<wbr>Base.Maggots,<wbr>Base.Slug,<wbr>Base.Slug2,<wbr>Base.Snail,<wbr>Base.Worm,<wbr>Base.Dung_Mouse,<wbr>Base.Dung_Rat</code> |  |  |
 | `WoundInfectionFactor` | `10.0` |  |  |
 | `ZombieAttractionMultiplier` | `10.0` |  |  |
 | `ZombieConfig.FollowSoundDistance` | `1000` |  |  |
