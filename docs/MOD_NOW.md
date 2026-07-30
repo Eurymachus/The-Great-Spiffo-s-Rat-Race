@@ -111,7 +111,7 @@ the export contract; their policy and test surfaces are documented in
   export format is accepted.
 - Generic `skill.level.reached` events contain the skill, parent category, and
   reached level. The first level-10 event per skill is exported as its milestone
-  with completion order and elapsed days; levels 1–9 remain ordinary history.
+  with completion order and elapsed days; levels 1-9 remain ordinary history.
 - Rising-edge events for individual outpost deliverable completion and whole-outpost completion; initial observations do not retroactively award milestones.
 - Local-player broken weapons captured through Build 42 `OnBreak` callbacks plus
   post-swing condition verification, with full item IDs, cumulative totals, and

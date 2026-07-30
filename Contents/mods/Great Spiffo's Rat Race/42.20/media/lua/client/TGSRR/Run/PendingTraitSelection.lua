@@ -3,7 +3,7 @@ local CharacterSnapshot = require "TGSRR/Run/CharacterSnapshot"
 
 local PendingTraitSelection = {}
 
-local FILE = "TGSRR/pending-trait-selection"
+local FILE = "TGSRR/pending-trait-selection.txt"
 local MAX_AGE_SECONDS = 24 * 60 * 60
 
 local function hexEncode(value)

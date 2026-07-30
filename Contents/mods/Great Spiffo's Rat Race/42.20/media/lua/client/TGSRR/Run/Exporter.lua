@@ -448,7 +448,7 @@ function Exporter.generate(run, work)
         verifyReadback(decoded, ledger, projection)
     if not verified then return false, verifyError end
 
-    local filename = ROOT .. "/" .. ledger.runId .. "/run.export"
+    local filename = ROOT .. "/" .. ledger.runId .. "/run.export.txt"
     local writer = getFileWriter(filename, true, false)
     if not writer then return false, "unable_to_write_export" end
     writer:write(encoded)

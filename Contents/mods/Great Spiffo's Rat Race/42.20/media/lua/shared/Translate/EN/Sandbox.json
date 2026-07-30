@@ -9,6 +9,14 @@
     "Sandbox_TGSRRRanchMortality.MaleDeathDay": "Male guaranteed-death day",
     "Sandbox_TGSRRRanchMortality.MaleDeathDay_tooltip": "Used only when custom ranch mortality is enabled. Male ranch animals use vanilla's increasing mortality roll and are guaranteed dead by this day. Use -1 to disable male mortality.",
 
+    "Sandbox_TGSRRAlarmDecay": "TGSRR Alarm Battery Decay",
+    "Sandbox_TGSRRAlarmDecay.Enabled": "Enable custom alarm battery decay",
+    "Sandbox_TGSRRAlarmDecay.Enabled_tooltip": "Replaces vanilla's six alarm battery-decay ranges with the exact minimum and maximum below.",
+    "Sandbox_TGSRRAlarmDecay.MinimumDay": "Earliest battery decay day",
+    "Sandbox_TGSRRAlarmDecay.MinimumDay_tooltip": "Minimum number of days after the power shuts off before a building's alarm battery stops working.",
+    "Sandbox_TGSRRAlarmDecay.MaximumDay": "Latest battery decay day",
+    "Sandbox_TGSRRAlarmDecay.MaximumDay_tooltip": "Maximum number of days after the power shuts off before a building's alarm battery stops working. Use 730 for two years.",
+
     "Sandbox_TGSRRHelicopter": "TGSRR Helicopter Schedule",
     "Sandbox_TGSRRHelicopter.Enabled": "Enable custom helicopter schedule",
     "Sandbox_TGSRRHelicopter.Enabled_tooltip": "Replaces vanilla helicopter recurrence with this schedule. The vanilla helicopter event itself is retained.",

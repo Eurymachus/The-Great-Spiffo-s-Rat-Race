@@ -96,7 +96,7 @@ assert(second.slot == "b")
 assert(second.slotSequence == 2)
 assert(ClockCheckpoint.latest(run.runId).eventSequence == 21)
 
-files["TGSRR/Runs/rr-clock-test/clock-b.checkpoint"] = "truncated\n"
+files["TGSRR/Runs/rr-clock-test/clock-b.checkpoint.txt"] = "truncated\n"
 local recovered = ClockCheckpoint.latest(run.runId)
 assert(recovered.slot == "a")
 assert(recovered.slotSequence == 1)

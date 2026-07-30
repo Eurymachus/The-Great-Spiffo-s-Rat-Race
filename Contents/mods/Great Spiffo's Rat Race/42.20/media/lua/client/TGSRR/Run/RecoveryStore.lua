@@ -9,13 +9,13 @@ local MAX_EPOCHS = 1000
 
 local function metadataPath(runId, epoch)
     return ROOT .. "/" .. tostring(runId) .. "/branches/epoch-"
-        .. string.format("%06d", epoch) .. ".meta"
+        .. string.format("%06d", epoch) .. ".meta.txt"
 end
 
 function RecoveryStore.segmentPath(runId, epoch, index)
     return ROOT .. "/" .. tostring(runId) .. "/branches/epoch-"
         .. string.format("%06d", epoch) .. "/segments/events-"
-        .. string.format("%06d", index) .. ".bin"
+        .. string.format("%06d", index) .. ".log"
 end
 
 local function textExists(filename)

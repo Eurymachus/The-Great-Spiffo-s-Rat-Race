@@ -139,3 +139,24 @@ option TGSRRRanchMortality.MaleDeathDay
     page = TGSRRRanchMortality,
     translation = TGSRRRanchMortality.MaleDeathDay,
 }
+
+option TGSRRAlarmDecay.Enabled
+{
+    type = boolean, default = true,
+    page = TGSRRAlarmDecay,
+    translation = TGSRRAlarmDecay.Enabled,
+}
+
+option TGSRRAlarmDecay.MinimumDay
+{
+    type = integer, min = 0, max = 10000, default = 0,
+    page = TGSRRAlarmDecay,
+    translation = TGSRRAlarmDecay.MinimumDay,
+}
+
+option TGSRRAlarmDecay.MaximumDay
+{
+    type = integer, min = 0, max = 10000, default = 730,
+    page = TGSRRAlarmDecay,
+    translation = TGSRRAlarmDecay.MaximumDay,
+}

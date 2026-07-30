@@ -250,10 +250,10 @@ Suggested run artifacts:
 - `sessions.log`: compact session-start diagnostics; the first entry contains
   the complete Mod ID/Workshop ID baseline and later entries contain only
   additions, removals, and changed Mod ID-to-Workshop ID associations.
-- `segments/events-NNNNNN.bin`: immutable completed event segments and one appendable current segment.
-- `state-current.bin`: atomically replaced canonical current-state snapshot.
-- `recovery-NNNN.bin`: immutable recovery evidence/authorization segments where needed.
-- `run.export`: generated submission envelope containing the data and integrity manifest.
+- `segments/events-NNNNNN.log`: immutable completed event segments and one appendable current segment.
+- `state-current.txt`: atomically replaced canonical current-state snapshot.
+- `recovery-NNNN.txt`: immutable recovery evidence/authorization segments where needed.
+- `run.export.txt`: generated submission envelope containing the data and integrity manifest.
 
 Export format 3 serializes the complete verified ledger history and a
 schema-versioned live-state projection, compresses it with TGSRR's deterministic LZSS codec,
@@ -296,7 +296,7 @@ player. Only the current development envelope format is accepted; unsupported
 formats are rejected rather than migrated.
 
 Ledger segment format 1 stores up to 256 canonical events per
-`segments/events-NNNNNN.bin` file. Records are byte-length framed and hex encoded
+`segments/events-NNNNNN.log` file. Records are byte-length framed and hex encoded
 so Build 42's append-only text writer can safely carry arbitrary canonical bytes.
 A full segment receives a terminal seal containing its count, final sequence,
 and final hash and is never opened again. The current segment remains appendable.
@@ -393,7 +393,7 @@ This raises the effort needed to fabricate a consistent history and gives stream
 Recovery creates a new declared timeline branch; it never erases or overwrites
 existing history. Epoch 1 retains the original segment layout. Each later epoch
 has immutable metadata at
-`branches/epoch-NNNNNN.meta` and its own event segments under
+`branches/epoch-NNNNNN.meta.txt` and its own event segments under
 `branches/epoch-NNNNNN/segments/`. The metadata binds the parent epoch, restored
 checkpoint sequence/hash, superseded head sequence/hash, reason, decider,
 authorization status, selected action, and a summary of superseded event types.
@@ -474,7 +474,7 @@ failure can therefore reset year/month/day without resetting character survival
 time, and may or may not also reset world age.
 
 TGSRR writes two alternating local files,
-`TGSRR/Runs/<runId>/clock-a.checkpoint` and `clock-b.checkpoint`, only from
+`TGSRR/Runs/<runId>/clock-a.checkpoint.txt` and `clock-b.checkpoint.txt`, only from
 `OnPostSave`. Each canonical, SHA-256-checksummed slot contains a monotonically
 increasing slot sequence, the saved event sequence/hash, UTC, calendar,
 time of day, nights survived, world age, and character hours survived. Writing

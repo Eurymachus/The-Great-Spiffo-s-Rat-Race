@@ -2,6 +2,7 @@ require("TGSRR/Run/PendingTraitSelection")
 require("TGSRR/Sandbox/PresetRegistration")
 require("TGSRR/Patches/PostDeathUI")
 require("TGSRR/Animals/RanchRuntime")
+require("TGSRR/Alarms/DecayRuntime")
 require("TGSRR/Helicopter/Runtime")
 require("TGSRR/Outposts/Runtime")
 require("TGSRR/Tracker/Window")
@@ -9,6 +10,7 @@ require("TGSRR/Run/Runtime")
 
 if isDebugEnabled and isDebugEnabled() then
     require("TGSRR/Debug/HelicopterWindow")
+    require("TGSRR/Debug/SoundWindow")
     require("TGSRR/Outposts/Debug/SurveyWindow")
 end
 

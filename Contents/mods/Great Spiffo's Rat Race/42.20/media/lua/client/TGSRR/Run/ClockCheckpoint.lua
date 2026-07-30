@@ -14,7 +14,7 @@ local activePlayer = nil
 
 local function path(runId, slot)
     return ROOT .. "/" .. tostring(runId)
-        .. "/clock-" .. tostring(slot) .. ".checkpoint"
+        .. "/clock-" .. tostring(slot) .. ".checkpoint.txt"
 end
 
 local function readSlot(runId, slot)

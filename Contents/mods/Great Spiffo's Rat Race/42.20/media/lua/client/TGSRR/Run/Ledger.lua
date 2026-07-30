@@ -12,7 +12,7 @@ local function segmentPath(runId, index, epoch)
         return RecoveryStore.segmentPath(runId, epoch, index)
     end
     return ROOT .. "/" .. tostring(runId) .. "/segments/events-"
-        .. string.format("%06d", index) .. ".bin"
+        .. string.format("%06d", index) .. ".log"
 end
 
 local function textExists(filename)
