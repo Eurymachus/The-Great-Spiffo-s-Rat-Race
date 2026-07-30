@@ -5,7 +5,8 @@ This table records the canonical shared sandbox baseline used by every TGSRR cha
 - Canonical source: `Contents/mods/Great Spiffo's Rat Race/42.20/media/lua/shared/TGSRR/Sandbox/Base.lua`
 - Vanilla registry: Project Zomboid Build 42.20, Steam build `24449119`
 - Captured: 2026-07-30
-- Coverage: all 269 vanilla settings plus 20 TGSRR custom settings
+- Coverage: all 269 vanilla settings, plus 20 TGSRR custom settings documented
+  separately as Rat Race Stable additions
 - Challenge-specific deltas are applied after this baseline. For example, TGSRR CDDA changes `TimeSinceApo` from `1` to `13`.
 - **Unstable** records the current Build 42.20 challenge/preset value.
 - **Stable** is intentionally blank until a replacement value is agreed. Only
@@ -23,7 +24,37 @@ comparison table difficult to read.
 - **Remarks:** The companion mod and its canonical integration entry still need
   to be defined.
 
+## Rat Race Stable additions
+
+These settings are owned by TGSRR and are added for Rat Race Stable. They are
+not inherited from the Unstable baseline.
+
+| Setting | Stable | Remarks |
+|---|---:|---|
+| `TGSRRHelicopter.DayMaximum` | `14` | Rat Race Stable addition |
+| `TGSRRHelicopter.DayMinimum` | `8` | Rat Race Stable addition |
+| `TGSRRHelicopter.DurationMaximum` | `4` | Rat Race Stable addition |
+| `TGSRRHelicopter.DurationMinimum` | `1` | Rat Race Stable addition |
+| `TGSRRHelicopter.Enabled` | `true` | Rat Race Stable addition |
+| `TGSRRHelicopter.StartHourMaximum` | `18` | Rat Race Stable addition |
+| `TGSRRHelicopter.StartHourMinimum` | `9` | Rat Race Stable addition |
+| `TGSRRHelicopter.Year1Months` | `7` | Rat Race Stable addition |
+| `TGSRRHelicopter.Year2Months` | `7,1` | Rat Race Stable addition |
+| `TGSRRHelicopter.Year3Months` | `7,11,3` | Rat Race Stable addition |
+| `TGSRRHelicopter.Year4Months` | `7,10,1,4` | Rat Race Stable addition |
+| `TGSRRHelicopter.Year5Months` | `7,9,11,1,3` | Rat Race Stable addition |
+| `TGSRRHelicopter.Year6Months` | `7,10,1,4` | Rat Race Stable addition |
+| `TGSRRHelicopter.Year7Months` | `7,11,3` | Rat Race Stable addition |
+| `TGSRRHelicopter.Year8Months` | `7,1` | Rat Race Stable addition |
+| `TGSRRHelicopter.Year9Months` | `7` | Rat Race Stable addition |
+| `TGSRRRanchMortality.Enabled` | `true` | Rat Race Stable addition |
+| `TGSRRRanchMortality.FemaleDeathDay` | `-1` | Rat Race Stable addition |
+| `TGSRRRanchMortality.MaleDeathDay` | `-1` | Rat Race Stable addition |
+| `TGSRRRanchMortality.RollStartDay` | `60` | Rat Race Stable addition |
+
 ## Settings comparison
+
+This table compares the vanilla Build 42.20 settings inherited by Rat Race.
 
 | Setting | Unstable | Stable | Remarks |
 |---|---:|---:|---|
@@ -234,26 +265,6 @@ comparison table difficult to read.
 | `SurvivalGearsLootNew` | `0.04` |  |  |
 | `SurvivorHouseChance` | `2` |  |  |
 | `Temperature` | `1` |  |  |
-| `TGSRRHelicopter.DayMaximum` | `14` |  | TGSRR custom option |
-| `TGSRRHelicopter.DayMinimum` | `8` |  | TGSRR custom option |
-| `TGSRRHelicopter.DurationMaximum` | `4` |  | TGSRR custom option |
-| `TGSRRHelicopter.DurationMinimum` | `1` |  | TGSRR custom option |
-| `TGSRRHelicopter.Enabled` | `true` |  | TGSRR custom option |
-| `TGSRRHelicopter.StartHourMaximum` | `18` |  | TGSRR custom option |
-| `TGSRRHelicopter.StartHourMinimum` | `9` |  | TGSRR custom option |
-| `TGSRRHelicopter.Year1Months` | `7` |  | TGSRR custom option |
-| `TGSRRHelicopter.Year2Months` | `7,1` |  | TGSRR custom option |
-| `TGSRRHelicopter.Year3Months` | `7,11,3` |  | TGSRR custom option |
-| `TGSRRHelicopter.Year4Months` | `7,10,1,4` |  | TGSRR custom option |
-| `TGSRRHelicopter.Year5Months` | `7,9,11,1,3` |  | TGSRR custom option |
-| `TGSRRHelicopter.Year6Months` | `7,10,1,4` |  | TGSRR custom option |
-| `TGSRRHelicopter.Year7Months` | `7,11,3` |  | TGSRR custom option |
-| `TGSRRHelicopter.Year8Months` | `7,1` |  | TGSRR custom option |
-| `TGSRRHelicopter.Year9Months` | `7` |  | TGSRR custom option |
-| `TGSRRRanchMortality.Enabled` | `true` |  | TGSRR custom option |
-| `TGSRRRanchMortality.FemaleDeathDay` | `-1` |  | TGSRR custom option |
-| `TGSRRRanchMortality.MaleDeathDay` | `-1` |  | TGSRR custom option |
-| `TGSRRRanchMortality.RollStartDay` | `60` |  | TGSRR custom option |
 | `TimeSinceApo` | `1` |  |  |
 | `ToolLootNew` | `0.04` |  |  |
 | `TrafficJam` | `true` |  |  |
