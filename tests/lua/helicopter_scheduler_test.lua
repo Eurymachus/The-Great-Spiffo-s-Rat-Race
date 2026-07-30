@@ -1,4 +1,4 @@
-local sourceRoot = "Contents/mods/Great Spiffo's Rat Race/42.19/media/lua/"
+local sourceRoot = "Contents/mods/Great Spiffo's Rat Race/42.20/media/lua/"
 package.path = sourceRoot .. "shared/?.lua;" .. package.path
 
 local persisted = {}

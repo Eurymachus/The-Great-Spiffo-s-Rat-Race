@@ -3,6 +3,36 @@
 This document covers Rat Race gameplay policy implemented outside the challenge
 tracker and export contract.
 
+The complete shared Build 42.20 sandbox baseline is recorded in
+[`TGSRR_SANDBOX_SETTINGS_B42_20.md`](TGSRR_SANDBOX_SETTINGS_B42_20.md).
+
+## CDDA compatibility
+
+The TGSRR CDDA variant retains the deliberately harder shared Rat Race sandbox,
+adds the vanilla CDDA twelve-month apocalypse age and starting-character
+injuries, and uses unrestricted Rat Race spawn regions. Build 42.20's revised
+fire setup is followed: one explosion is placed in a randomly selected room
+excluding kitchens and garages, replacing the legacy five-room loop inherited
+from vanilla Build 42.18.
+
+The shared sandbox uses Build 42.20's serialized `MultiplierConfig.Global`
+and `GlobalToggle` fields for the intended `0.8` global XP
+multiplier. `FirearmUseDamageChance` is the Build 42.20 enum value `2`
+(`Zombies only`), retaining chance-to-hit behavior for animals so a valid
+aimed shot can still guarantee an animal hit.
+
+The same shared sandbox is shipped as the selectable `Unofficial TGSRR`
+Custom Sandbox preset. The unofficial label makes clear that ordinary sandbox
+games do not qualify as official tracked Rat Race runs. The preset is loaded
+from `media/lua/shared/Sandbox/TGSRR.lua` and applied to a fresh Build 42.20
+`SandboxOptions` object through its public option API. This is necessary because
+Build 42.20's native `loadGameFile()` resolves only presets in the base game
+installation, not active mod files. TGSRR registers the result as a non-user
+preset, so it cannot be mistaken for or deleted as a locally saved `.cfg`
+preset. The shared Lua sandbox definition is the sole canonical settings
+source; automated comparison keeps the shipped preset and challenge runtime
+aligned.
+
 ## Custom helicopter schedule
 
 When `TGSRRHelicopter.Enabled` is true, TGSRR disables vanilla recurrence and
@@ -63,7 +93,7 @@ export contract.
 
 ## Validation
 
-The pure Lua tests cover helicopter date conversion, scheduling and runtime
-ownership; ranch mortality boundaries, zone interception, one-time spawning,
-adjacent-zone grouping, and runtime enable/disable behavior; and the seven-month
-challenge definition.
+The pure Lua tests cover CDDA's Build 42.20 fire and sandbox compatibility;
+helicopter date conversion, scheduling and runtime ownership; ranch mortality
+boundaries, zone interception, one-time spawning, adjacent-zone grouping, and
+runtime enable/disable behavior; and the seven-month challenge definition.

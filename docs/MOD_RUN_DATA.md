@@ -244,7 +244,9 @@ IDs may be interned and numeric values delta encoded. Optional compression is pe
 
 Suggested run artifacts:
 
-- `run.meta`: versioned run identity and format metadata.
+- `run.meta.txt`: versioned run identity and format metadata. Build 42.20
+  restricts `getFileWriter()` to `ini`, `cfg`, `txt`, and `log`, so the final
+  `.txt` suffix is part of the internal storage filename.
 - `sessions.log`: compact session-start diagnostics; the first entry contains
   the complete Mod ID/Workshop ID baseline and later entries contain only
   additions, removals, and changed Mod ID-to-Workshop ID associations.
@@ -332,6 +334,24 @@ contains signed `weightDeltaKilograms` from its saved day baseline, and each
 `completedDay` seals the same signed delta for the preceding day. A missing
 completed-day weight delta means zero. Weight is an instantaneous measurement,
 so it does not carry a partial-history flag.
+
+Format-3 exports four additional cumulative-only activity groups:
+
+- `animalsPetted.total` and ID-sorted `animalTypes` preserve completed petting
+  actions by raw PZ animal type.
+- `fluidConsumed.totalLiters` and ID-sorted `fluidTypes` preserve actual
+  removed litres. Pure fluids use the raw fluid ID; mixtures use
+  `__MIXED__`.
+- `caloriesConsumed.totalKilocalories` preserves calories supplied by food and
+  fluid consumption, including partial consumption and Java's burnt-food
+  reduction.
+- `generatorRepairs.count` and `conditionRestored` preserve completed
+  scrap-consuming repairs and the actual generator-condition gain.
+
+Each group carries `partial` for a collector introduced after a run began.
+These activities do not append individual ledger events and do not add active
+or completed-day deltas, keeping export growth bounded by the number of
+observed animal and fluid types rather than survived days.
 
 Nimble-stance evidence is a cumulative real-time measurement only. TGSRR adds
 short consecutive wall-clock sample intervals to

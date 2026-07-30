@@ -18,6 +18,10 @@ Build a modular, player-facing Rat Race Challenge Tracker with:
 
 See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD_OUTPOSTS.md](MOD_OUTPOSTS.md), [MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md](MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md), and [MOD_DECISION_015_SOURCE_LAYOUT.md](MOD_DECISION_015_SOURCE_LAYOUT.md).
 
+The active implementation and all current tracker work target Project Zomboid
+Build 42.20 under `Contents/mods/Great Spiffo's Rat Race/42.20`. Earlier
+version directories are retained only as historical mod versions.
+
 Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md](MOD_RUN_DATA.md), with implementation status maintained in [MOD_EXPORT_CHECKLIST.md](MOD_EXPORT_CHECKLIST.md). Techniques audited from unrelated mods are retained strictly as implementation research in [MOD_REFERENCE_DATA_COLLECTORS.md](MOD_REFERENCE_DATA_COLLECTORS.md).
 
 Custom helicopter scheduling and ranch mortality are gameplay systems outside
@@ -45,7 +49,10 @@ the export contract; their policy and test surfaces are documented in
 - Generic challenge event bus, persistent milestone ledger, registry-driven awards, and localized halo notification presenter.
 - Kill milestones at 1,000, 10,000, 25,000, 50,000, 100,000, 250,000, 500,000, 750,000, and 1,000,000, shown on the Kills tab and emitted only when thresholds are crossed.
 - Dynamic all-skills level-10 deliverable grouped by vanilla skill category, with ten-segment per-skill progress, aggregate fractional progress, and event-driven refresh.
-- World-scoped Rat Race run identity foundation with immutable `runId`, starting-character metadata, versioned `run.meta`, and timestamped session/mod-list history.
+- World-scoped Rat Race run identity foundation with immutable `runId`,
+  starting-character metadata, versioned `run.meta.txt`, and timestamped
+  session/mod-list history. The `.txt` suffix is required by Build 42.20's
+  Lua file-writer extension allowlist.
 - Canonical schema-2 event codec, SHA-256 hash-chained ledger, append-safe
   segmented storage, and lifecycle verification. Unsupported development run
   schemas are rejected rather than migrated.
@@ -121,16 +128,25 @@ the export contract; their policy and test surfaces are documented in
   recounts; exports contain only cumulative and daily raw newborn-type totals,
   not animal identities or individual birth events.
 - Saved window position, selected tab, open state, and movable launcher position.
-- Incremental local-player milk collection captured at Build 42.19's
+- Incremental local-player milk collection captured at Build 42.20's
   authoritative `ISMilkAnimal:milk()` transfer edge, including partial fluid
   increments, with cumulative raw milk-type totals and daily deltas.
-- Successful `Base.churn_butter` production observed through Build 42.19's
+- Successful `Base.churn_butter` production observed through Build 42.20's
   `ISWidgetHandCraftControl` action start/completion/cancellation callbacks,
   after `ISHandcraftAction:performRecipe()` creates and awards `Base.Butter`,
   with cumulative totals and daily deltas.
 - Local-player fishing catches captured from the landed-fish pickup action,
   excluding trash and fishing nets, with cumulative full-item-ID totals and
   daily deltas.
+- Completed local-player animal pets aggregated cumulatively by raw animal
+  type, separately from cooldown-limited petting benefits.
+- Actual manually and automatically consumed fluid litres aggregated
+  cumulatively by raw fluid type, with mixtures explicitly classified and no
+  daily deltas.
+- Applied food/fluid calories accumulated independently of the continuously
+  changing, clamped Nutrition balance, with no daily deltas.
+- Successful generator repair actions and authoritative condition restored
+  accumulated without per-repair ledger events or daily deltas.
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
 - One-second refresh that updates stable list entries in place.
 - Weighted Outposts percentage derived from the arithmetic mean of the 13 weighted individual percentages.
@@ -166,10 +182,6 @@ the export contract; their policy and test surfaces are documented in
 ## Not implemented
 
 - Zombie count, last visited, or last-observed population in tracker snapshots.
-- Accepted planned export collectors for completed animal pets by raw animal
-  type, actual fluid litres consumed by canonical fluid type (including
-  Java auto-drink), calories consumed, and generator repair count plus actual
-  condition restored.
 - Hunger fulfilled remains explicitly deferred because it overlaps calories
   consumed without a current scoring or presentation use.
 - Skill milestone award selection (individual skills, categories, or selected levels).

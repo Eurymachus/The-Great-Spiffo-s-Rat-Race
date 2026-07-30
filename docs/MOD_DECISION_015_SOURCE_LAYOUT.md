@@ -2,7 +2,7 @@
 
 ## Decision
 
-The active `42.19` implementation uses a feature-oriented `TGSRR` namespace rather than a flat client/shared folder.
+The active `42.20` implementation uses a feature-oriented `TGSRR` namespace rather than a flat client/shared folder.
 
 ## Boundaries
 

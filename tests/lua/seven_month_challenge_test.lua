@@ -3,7 +3,7 @@ local challengeQueryHandler = nil
 local addedChallenge = nil
 local baseApplied = false
 
-package.loaded["LastStand/TGSRR_SandboxBase"] = {
+package.loaded["TGSRR/Sandbox/Base"] = {
     apply = function()
         baseApplied = true
         SandboxVars.TimeSinceApo = 1
