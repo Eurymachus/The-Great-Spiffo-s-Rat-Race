@@ -1312,6 +1312,21 @@ local function updateDisplayedSound(record)
             <= SOUND_BATCH_MS
 
     if not sameBatch then
+        local peakZombieRadius =
+            current
+            and current.zombieRadius
+            or nil
+
+        local peakAnimalRadius =
+            current
+            and current.animalRadius
+            or nil
+
+        local peakEnginePulse =
+            current
+            and current.enginePulse
+            or nil
+
         current = {
             kind = record.kind,
             label = record.label,
@@ -1321,14 +1336,14 @@ local function updateDisplayedSound(record)
             y = record.y,
             z = record.z,
 
-            zombieRadius = nil,
-            animalRadius = nil,
+            zombieRadius = peakZombieRadius,
+            animalRadius = peakAnimalRadius,
 
             volume = record.volume,
             repeating = record.repeating,
 
             vehicle = record.vehicle,
-            enginePulse = record.enginePulse,
+            enginePulse = peakEnginePulse,
             engineData = record.engineData,
 
             lastTime = record.time,

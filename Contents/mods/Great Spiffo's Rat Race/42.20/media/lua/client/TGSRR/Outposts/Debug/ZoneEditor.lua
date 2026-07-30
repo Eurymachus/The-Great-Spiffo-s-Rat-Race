@@ -51,6 +51,26 @@ local function catalogueBuildings(row, minX, minY, maxX, maxY)
     end
 end
 
+function OutpostZoneEditor.refreshSavedZone(row)
+    local minX = tonumber(row and row.zoneMinX)
+    local minY = tonumber(row and row.zoneMinY)
+    local maxX = tonumber(row and row.zoneMaxX)
+    local maxY = tonumber(row and row.zoneMaxY)
+    if not minX or not minY or not maxX or not maxY then
+        return false, "The saved core-zone bounds are incomplete."
+    end
+    if minX > maxX or minY > maxY then
+        return false, "The saved core-zone bounds are inverted."
+    end
+
+    row.zoneMinX, row.zoneMinY = minX, minY
+    row.zoneMaxX, row.zoneMaxY = maxX, maxY
+    row.zoneWidth, row.zoneHeight =
+        maxX - minX + 1, maxY - minY + 1
+    catalogueBuildings(row, minX, minY, maxX, maxY)
+    return true
+end
+
 function OutpostZoneEditor:finish(message)
     self:reset()
     self:setVisible(false)

@@ -44,8 +44,45 @@ local function addLine(lines, text, state, data)
     lines[#lines + 1] = { text = text, state = state or "neutral", data = data }
 end
 
-local function buildLines(result)
+local function savedValue(row, key, fallback)
+    local value = row and row[key] or nil
+    if value == nil or tostring(value) == "" then return fallback or "?" end
+    return tostring(value)
+end
+
+local function savedBounds(row, prefix)
+    if not row then return "not recorded" end
+    return savedValue(row, prefix .. "MinX") .. ","
+        .. savedValue(row, prefix .. "MinY") .. " to "
+        .. savedValue(row, prefix .. "MaxX") .. ","
+        .. savedValue(row, prefix .. "MaxY")
+end
+
+local function buildLines(result, surveyRow)
     local lines = {}
+
+    addLine(lines, "SAVED SURVEY", "neutral")
+    if surveyRow then
+        addLine(lines, "Anchor: "
+            .. savedValue(surveyRow, "playerX") .. ", "
+            .. savedValue(surveyRow, "playerY") .. ", "
+            .. savedValue(surveyRow, "playerZ"), "neutral")
+        addLine(lines, "Building bounds: "
+            .. savedBounds(surveyRow, "building"), "neutral")
+        addLine(lines, "Clearance bounds: "
+            .. savedBounds(surveyRow, "clearance"), "neutral")
+        addLine(lines, "Core-zone bounds: "
+            .. savedBounds(surveyRow, "zone"), "neutral")
+        addLine(lines, "BuildingDef: "
+            .. savedValue(surveyRow, "buildingId"), "neutral")
+        addLine(lines, "Recorded with game version: "
+            .. savedValue(surveyRow, "gameVersion"), "neutral")
+    else
+        addLine(lines, "No saved survey exists for this outpost.", "partial")
+    end
+    addLine(lines, "", "neutral")
+    addLine(lines, "REGISTERED DEFINITION INSPECTION", "neutral")
+
     local activation = result.checks.room_activation
     if not activation then
         addLine(lines, "Room activation check is not registered.", "fail")
@@ -143,6 +180,25 @@ function Inspector:createChildren()
     self.refreshButton.anchorTop = false
     self.refreshButton.anchorBottom = true
     self:addChild(self.refreshButton)
+
+    self.resurveyButton = ISButton:new(8, self.height - footer - 34, 180, 26,
+        "Re-survey Saved Area", self, self.onResurvey)
+    self.resurveyButton:initialise()
+    self.resurveyButton.anchorLeft = true
+    self.resurveyButton.anchorRight = false
+    self.resurveyButton.anchorTop = false
+    self.resurveyButton.anchorBottom = true
+    self:addChild(self.resurveyButton)
+
+    self.newSurveyButton = ISButton:new(8, self.height - footer - 34, 120, 26,
+        "New Survey", self, self.onNewSurvey)
+    self.newSurveyButton:initialise()
+    self.newSurveyButton.anchorLeft = true
+    self.newSurveyButton.anchorRight = false
+    self.newSurveyButton.anchorTop = false
+    self.newSurveyButton.anchorBottom = true
+    self:addChild(self.newSurveyButton)
+    self:updateSurveyButton()
     self:setResult(self.result)
 end
 
@@ -152,6 +208,38 @@ function Inspector:onRefresh()
         player = getSpecificPlayer(0) or getPlayer(),
         includeWindowSurvey = true,
     }))
+end
+
+function Inspector:onResurvey()
+    if not self.resurveyAction then return end
+    self.resurveyAction()
+end
+
+function Inspector:onNewSurvey()
+    if not self.newSurveyAction then return end
+    self.newSurveyAction()
+end
+
+function Inspector:updateSurveyButton()
+    if self.resurveyButton then
+        self.resurveyButton:setVisible(
+            self.resurveyAction ~= nil
+            and self.surveyRow ~= nil)
+    end
+    if self.newSurveyButton then
+        self.newSurveyButton:setVisible(
+            self.newSurveyAction ~= nil)
+    end
+end
+
+function Inspector:setSurveyContext(
+        surveyRow,
+        resurveyAction,
+        newSurveyAction)
+    self.surveyRow = surveyRow
+    self.resurveyAction = resurveyAction
+    self.newSurveyAction = newSurveyAction
+    self:updateSurveyButton()
 end
 
 function Inspector:onResize()
@@ -164,9 +252,34 @@ function Inspector:onResize()
     self.list:setWidth(self.width - 16)
     self.list:setHeight(self.height - top - footer - 42)
     if self.refreshButton then
-        self.refreshButton:setX(8)
+        local hasResurveyButton =
+            self.resurveyAction ~= nil
+            and self.surveyRow ~= nil
+        local hasNewSurveyButton =
+            self.newSurveyAction ~= nil
+        local refreshX = 8
+        if hasResurveyButton then
+            refreshX = refreshX + 188
+        end
+        if hasNewSurveyButton then
+            refreshX = refreshX + 128
+        end
+        self.refreshButton:setX(refreshX)
         self.refreshButton:setY(self.height - footer - 34)
-        self.refreshButton:setWidth(self.width - 16)
+        self.refreshButton:setWidth(self.width - refreshX - 8)
+    end
+    if self.resurveyButton then
+        self.resurveyButton:setX(8)
+        self.resurveyButton:setY(self.height - footer - 34)
+    end
+    if self.newSurveyButton then
+        local newSurveyX =
+            self.resurveyAction ~= nil
+            and self.surveyRow ~= nil
+            and 196
+            or 8
+        self.newSurveyButton:setX(newSurveyX)
+        self.newSurveyButton:setY(self.height - footer - 34)
     end
     saveWindowState(self)
 end
@@ -204,8 +317,33 @@ function Inspector:setResult(result)
     self.title = "TGSRR Inspector - " .. tostring(result and result.name or "Unknown")
     if not self.list then return end
     self.list:clear()
-    for _, line in ipairs(buildLines(result or { checks = {} })) do
+    for _, line in ipairs(buildLines(
+            result or { checks = {} },
+            self.surveyRow)) do
         self.list:addItem(line.text, line)
+    end
+end
+
+function Inspector:prerender()
+    ISCollapsableWindow.prerender(self)
+    local row = self.surveyRow
+    local minX = tonumber(row and row.zoneMinX)
+    local minY = tonumber(row and row.zoneMinY)
+    local maxX = tonumber(row and row.zoneMaxX)
+    local maxY = tonumber(row and row.zoneMaxY)
+    local z = tonumber(row and row.playerZ) or 0
+    if minX and minY and maxX and maxY then
+        addAreaHighlightForPlayer(
+            0,
+            minX,
+            minY,
+            maxX + 1,
+            maxY + 1,
+            z,
+            1.0,
+            0.55,
+            0.1,
+            0.45)
     end
 end
 
@@ -219,7 +357,8 @@ function Inspector:new(x, y, width, height, result)
     return o
 end
 
-function Inspector.showFor(outpost)
+function Inspector.showFor(outpost, options)
+    options = options or {}
     local result = Outposts.inspect(outpost, {
         player = getSpecificPlayer(0) or getPlayer(),
         includeWindowSurvey = true,
@@ -237,12 +376,21 @@ function Inspector.showFor(outpost)
         y = math.max(0, math.min(y, getCore():getScreenHeight() - height))
         window = Inspector:new(x, y, width, height, result)
         window.outpost = outpost
+        window:setSurveyContext(
+            options.surveyRow,
+            options.resurveyAction,
+            options.newSurveyAction)
         window:initialise()
         Inspector.instance = window
     else
         window.outpost = outpost
+        window:setSurveyContext(
+            options.surveyRow,
+            options.resurveyAction,
+            options.newSurveyAction)
         window:setResult(result)
     end
+    window:onResize()
     window:addToUIManager()
     window:setVisible(true)
     window:bringToTop()

@@ -473,12 +473,80 @@ Thus `MaximumDiminishedLoot = 20` eventually multiplies the combined chance by 0
 | **No Black Clothes**<br>`NoBlackClothes` | boolean; code default `true`; Apocalypse `true` | If true clothing with randomized tints will not be so dark to be virtually black. | Independent/no hard gate identified |
 | **Easy Climbing**<br>`EasyClimbing` | boolean; code default `false`; Apocalypse `false` | Disables the failure chances when climbing sheet ropes or over walls. | Independent/no hard gate identified |
 
+### Temperature and Rain cross-comparison
+
+`Temperature` and `Rain` are independent sandbox values, but they feed the
+same climate simulation and therefore interact. Neither option is a hard gate
+for the other.
+
+| Aspect | `Temperature` | `Rain` | Interaction |
+|---|---|---|---|
+| Direct climate input | Changes the minimum and maximum anchors used to build the seasonal temperature curve. | Changes the time scale of the shared air-mass noise and multiplies generated weather-pattern duration. | Both act before the climate manager publishes the current temperature, precipitation, wind, humidity, and cloud values. |
+| Setting 1 | Very Cold: subtracts 10 C from both seasonal anchors. With the default erosion climate configuration, the anchors become approximately -10 C and 15 C. | Very Dry: air-mass noise divisor 300 hours; weather duration multiplier 0.5. | Colder conditions make precipitation more likely to be snow, while the slower air-mass cycle and shorter weather periods reduce precipitation opportunities and duration. |
+| Setting 2 | Cold: subtracts 5 C from both anchors, producing approximately -5 C and 20 C. | Dry: divisor 240 hours; duration multiplier 0.75. | Same relationship, with smaller changes from Normal. |
+| Setting 3 | Normal: no anchor adjustment, approximately 0 C and 25 C. | Normal: divisor 166 hours; duration multiplier 1.0. | Baseline behavior. |
+| Setting 4 | Hot: adds 7 C to the minimum anchor and 4 C to the maximum anchor, producing approximately 7 C and 29 C. The code adds 7.5 before truncating to an integer. | Rainy: divisor 145 hours; duration multiplier 1.25. | Faster air-mass changes create more front changes and longer weather periods, while the warmer seasonal curve makes that precipitation more likely to remain rain. |
+| Setting 5 | Very Hot: adds 15 C to the minimum and 8 C to the maximum, producing approximately 15 C and 33 C. | Very Rainy: divisor 120 hours; duration multiplier 1.5. | The wettest setting produces the fastest air-mass cycle and longest patterns, but high temperature can keep most precipitation as rain and suppress cold-weather patterns. |
+| Character effects | Published air temperature, adjusted for shelter, vehicles, heat sources, and wind chill, feeds thermoregulation, hypothermia, hyperthermia, and thermal damage. | Actual rain intensity wets the character and clothing. Wet clothing then changes insulation and increases the thermal cost of cold conditions. | Cold plus rain is more dangerous than either input alone because rain-induced wetness worsens heat loss. Once precipitation becomes snow, code paths that require `isRaining()` no longer apply. |
+| Weather type | Seasonal mean temperature affects winter blizzard chance. During an active weather period, precipitation is treated as snow when the effective temperature is below 0 C in winter. | Controls how quickly air masses and fronts vary and scales the length of each generated weather pattern. It does not directly set precipitation intensity. | Temperature decides whether precipitation is rain or snow and influences blizzard selection. Rain controls how often the front-driving signal changes and how long the resulting pattern lasts. |
+| World wetness and water | Higher temperature accelerates puddle drying. | Actual precipitation fills exposed fluid containers, creates puddles and wet ground, wets exposed items, interferes with outdoor drying, and can extinguish exposed fires. | Rain adds surface water; temperature controls part of the drying rate. Snow still contributes to precipitation-based container and drying systems, but rain-only systems test `isRaining()` and exclude snow. |
+| Animals, zombies, combat, and sound | No direct use of the sandbox value was identified in these systems beyond the resulting climate temperature and precipitation phase. | Actual rain can stress exposed animals, alter animal shelter behavior, affect zombie behavior and perception, reduce firearm accuracy through the weather penalty, and change rain ambience. | A colder `Temperature` setting can convert precipitation to snow, bypassing consumers that specifically test rain intensity or `isRaining()`. |
+| Visual limits | Temperature affects displayed temperature and some sky parameters. | Does not change `MaxRainFxIntensity`; that separate option caps rendered rain particles only. | A visual rain cap does not reduce gameplay rain intensity, wetness, water collection, or weather penalties. |
+
+#### Shared climate signal
+
+The most important indirect link is the air-mass noise. `Rain` selects a
+divisor from 300 hours at Very Dry to 120 hours at Very Rainy. A smaller
+divisor advances the noise input more quickly. The simulation uses that same
+noise stream for all of the following:
+
+- air-mass and front changes that can start weather periods;
+- a temperature variation of up to approximately 8 C around the seasonal
+  mean before daily cooling and weather-front overrides;
+- humidity;
+- wind intensity;
+- cloudiness.
+
+Consequently, increasing `Rain` does more than lengthen rain. It makes the
+shared air-mass regime change more quickly, indirectly changing the cadence of
+temperature swings, wind, humidity, clouds, and weather fronts. It does not
+apply a simple fixed temperature increase or decrease.
+
+Weather periods then feed back into temperature. A front can override the
+current temperature by up to approximately 7 C in either direction, scaled by
+front strength. This is a runtime weather effect, not an additional sandbox
+temperature modifier.
+
+#### TGSRR setting combination
+
+TGSRR Build 42.20 currently sets both options to `1`:
+
+- `Temperature = 1`, Very Cold, shifts both seasonal temperature anchors down
+  by 10 C.
+- `Rain = 1`, Very Dry, uses the slowest air-mass cycle and halves generated
+  weather-pattern duration.
+
+This combination produces a colder but drier climate, not a perpetually cold
+rain climate. Precipitation periods should be less frequent or slower to arise
+and shorter when generated. When precipitation does occur during sufficiently
+cold winter conditions, it is more likely to be snow. The Very Dry setting
+does not protect the player from cold, and the Very Cold setting does not
+disable rain.
+
 ## Source and audit notes
 
-- Registry and constructor defaults: `C:\Games\Steam\steamapps\common\ProjectZomboid\zombie_decompiled\zombie\SandboxOptions.java`.
+- Registry and constructor defaults:
+  `C:\Games\Steam\steamapps\common\ProjectZomboid\tgsrr_decompiled\build-24449119-job-5\zombie\SandboxOptions.java`.
 - English UI labels, enum names, and tooltips: `C:\Games\Steam\steamapps\common\ProjectZomboid\media\lua\shared\Translate\EN\Sandbox.json`.
 - Apocalypse preset comparison: `C:\Games\Steam\steamapps\common\ProjectZomboid\media\lua\shared\Sandbox\Apocalypse.lua`.
-- Runtime consumers were traced in the installed decompiled Java tree and vanilla Lua. A tooltip is used where it accurately describes the terminal calculation; explicit notes override it where several controls feed one calculation.
+- Runtime consumers were traced in the authoritative Build 42.20 decompile and
+  vanilla Lua. The climate comparison principally follows
+  `zombie/erosion/ErosionMain.java`,
+  `zombie/iso/weather/ClimateValues.java`,
+  `zombie/iso/weather/ClimateManager.java`, and
+  `zombie/iso/weather/WeatherPeriod.java`. A tooltip is used where it
+  accurately describes the terminal calculation; explicit notes override it
+  where several controls feed one calculation.
 - Principal implementation sites include `zombie/inventory/ItemPickerJava.java` (loot multipliers, rolls, diminishing loot and removal), `zombie/randomizedWorld/randomizedBuilding/RBLooted.java` (pre-looted buildings), `zombie/popman/ZombiePopulationManager.java` and `zombie/characters/ZombieGroup.java` (population, respawn, migration and rally groups), and `zombie/characters/animals/datas/AnimalData.java` (animal growth/reproduction products).
 - `SandboxOptions.java` is authoritative for what is a vanilla sandbox option. Third-party `media/sandbox-options.txt` entries are deliberately excluded.
 
@@ -491,4 +559,3 @@ The controls shown in the supplied screenshot are vanilla Build 42.19 controls: 
 - Parsed runtime options: **269**.
 - Rows written: **269**.
 - Unique raw IDs: **269** (duplicates: **0**).
-

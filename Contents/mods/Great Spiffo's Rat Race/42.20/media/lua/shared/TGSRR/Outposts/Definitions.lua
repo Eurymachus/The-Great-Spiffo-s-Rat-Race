@@ -41,11 +41,11 @@ local function add(id, name, anchor, zone, center, buildings, options)
     })
 end
 
-add("brandenburg", "Brandenburg", {2091, 6024, 0}, {2068, 6002, 2099, 6045}, {2083, 6023}, {
+add("brandenburg", "Brandenburg", {2093, 6029, 0}, {2068, 6002, 2099, 6045}, {2083, 6023}, {
     building("6473958824083477"),
 })
 
-add("echo_creek", "Echo Creek", {3541, 11205, 0}, {3531, 11198, 3555, 11224}, {3541, 11211}, {
+add("echo_creek", "Echo Creek", {3538, 11207, 0}, {3531, 11198, 3555, 11224}, {3541, 11211}, {
     building("12103479833133062", {
         excludeRoomIds = {
             "12103479833133143", -- inaccessible decorative bell tower
@@ -53,18 +53,13 @@ add("echo_creek", "Echo Creek", {3541, 11205, 0}, {3531, 11198, 3555, 11224}, {3
     }),
 })
 
-add("ekron", "Ekron", {447, 9933, 0}, {438, 9913, 470, 9942}, {450, 9926}, {
+add("ekron", "Ekron", {443, 9923, 0}, {438, 9913, 470, 9942}, {450, 9926}, {
     building("10696053409972226", { underground = true }),
-    building("10696053409972268", {
-        excludeRoomIds = {
-            "10696053409972614", -- inaccessible decorative bell tower
-            "10696053409972615", -- inaccessible decorative bell tower
-        },
-    }),
+    building("10696053409972269"),
 })
 
-add("fallas_lake", "Fallas Lake", {7388, 8352, 0}, {7379, 8348, 7396, 8359}, {7387, 8353}, {
-    building("9007319513825288"),
+add("fallas_lake", "Fallas Lake", {7222, 8526, 0}, {7217, 8520, 7229, 8539}, {7223, 8529}, {
+    building("9288794490535943"),
 })
 
 add("hog_wallow_military_base", "Hog Wallow Military Base", {5559, 12487, 0}, {5536, 12439, 5583, 12505}, {5560, 12472}, {
@@ -72,7 +67,7 @@ add("hog_wallow_military_base", "Hog Wallow Military Base", {5559, 12487, 0}, {5
     building("13510889076424705"),
 })
 
-add("irvington", "Irvington", {2433, 14232, 0}, {2406, 14211, 2440, 14255}, {2423, 14233}, {
+add("irvington", "Irvington", {2433, 14227, 0}, {2406, 14211, 2440, 14255}, {2423, 14233}, {
     building("15481162373791744", { underground = true }),
     building("15481162373791782", {
         excludeRoomIds = {
@@ -81,37 +76,33 @@ add("irvington", "Irvington", {2433, 14232, 0}, {2406, 14211, 2440, 14255}, {242
     }),
 })
 
-add("louisville", "Louisville", {12609, 3370, 0}, {12599, 3351, 12618, 3384}, {12608, 3368}, {
+add("louisville", "Louisville", {12608, 3369, 0}, {12599, 3353, 12618, 3384}, {12608, 3368}, {
     building("3659385150636034"),
 })
 
-add("march_ridge", "March Ridge", {10322, 12807, 0}, {10317, 12779, 10345, 12816}, {10331, 12797}, {
+add("march_ridge", "March Ridge", {10330, 12788, 0}, {10317, 12779, 10345, 12816}, {10331, 12797}, {
     building("13792445657513985"),
 })
 
-add("muldraugh", "Muldraugh", {10757, 10163, 0}, {10750, 10160, 10773, 10170}, {10761, 10165}, {
-    building("10977700185374752", {
-        excludeRoomIds = {
-            "10977700185374947", -- inaccessible decorative bell tower
-        },
-    }),
+add("muldraugh", "Muldraugh", {10760, 10165, 0}, {10750, 10160, 10773, 10170}, {10761, 10165}, {
+    building("10977700185374723"),
 })
 
-add("riverside", "Riverside", {6579, 5377, 0}, {6555, 5362, 6583, 5383}, {6569, 5373}, {
-    building("5629606908395526"),
+add("riverside", "Riverside", {6549, 5368, 0}, {6542, 5351, 6585, 5387}, {6564, 5369}, {
+    building("5629606908395530"),
 })
 
-add("rosewood", "Rosewood", {8127, 11550, 0}, {8117, 11536, 8144, 11562}, {8130, 11550}, {
-    building("12666507095965713"),
+add("rosewood", "Rosewood", {8134, 11518, 0}, {8118, 11504, 8155, 11525}, {8136, 11514}, {
+    building("12385032119255075"),
 })
 
-add("valley_station", "Valley Station", {12850, 4952, 0}, {12843, 4949, 12869, 4965}, {12848, 4957}, {
+add("valley_station", "Valley Station", {12849, 4953, 0}, {12843, 4949, 12869, 4965}, {12848, 4957}, {
     building("5348239305867264"),
     building("5348239305867265"),
 })
 
-add("west_point", "West Point", {11974, 6996, 0}, {11959, 6975, 11985, 7007}, {11972, 6991}, {
-    building("7600021939683330"),
+add("west_point", "West Point", {11970, 7000, 0}, {11959, 6975, 11985, 7007}, {11971, 6992}, {
+    building("7600021939683331"),
 })
 
 return Outposts

@@ -341,7 +341,7 @@ This table compares the vanilla Build 42.20 settings inherited by Rat Race.
 | `SurvivorHouseChance` | `2` |  |  |
 | `AllClothesUnlocked` | `false` |  |  |
 | `EnableTaintedWaterText` | `true` |  |  |
-| `ZombieAttractionMultiplier` | `10.0` |  |  |
+| `ZombieAttractionMultiplier` | `5.0` |  |  |
 | `PlayerDamageFromCrash` | `true` |  |  |
 | `MultiHitZombies` | `false` |  |  |
 | `RearVulnerability` | `3` |  |  |

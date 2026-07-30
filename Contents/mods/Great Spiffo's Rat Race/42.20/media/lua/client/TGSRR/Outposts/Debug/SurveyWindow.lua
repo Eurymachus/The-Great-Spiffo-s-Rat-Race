@@ -52,7 +52,16 @@ local function javaListToNames(rooms)
     return table.concat(names, ",")
 end
 
-local function captureOutpost(outpost)
+local function copySavedZone(target, source)
+    if not source then return end
+    for key, value in pairs(source) do
+        if tostring(key):match("^zone") then
+            target[key] = value
+        end
+    end
+end
+
+local function captureOutpost(outpost, savedZone)
     local player = getSpecificPlayer(0) or getPlayer()
     if not player then return false, "No player is available." end
     if player:getVehicle() then return false, "Leave the vehicle and stand inside the outpost building." end
@@ -96,10 +105,34 @@ local function captureOutpost(outpost)
         clearanceWidth = 150, clearanceHeight = 150,
     }
 
+    if savedZone then
+        copySavedZone(row, savedZone)
+        local refreshed, refreshError =
+            ZoneEditor.refreshSavedZone(row)
+        if not refreshed then return false, refreshError end
+        if x < row.zoneMinX or x > row.zoneMaxX
+                or y < row.zoneMinY or y > row.zoneMaxY then
+            return false,
+                "The current church anchor is outside the saved core zone. "
+                    .. "Use New Survey instead."
+        end
+        if row.zoneMinX < row.clearanceMinX
+                or row.zoneMinY < row.clearanceMinY
+                or row.zoneMaxX > row.clearanceMaxX
+                or row.zoneMaxY > row.clearanceMaxY then
+            return false,
+                "The saved core zone no longer fits the refreshed clearance "
+                    .. "area. Use New Survey instead."
+        end
+    end
+
     if not SurveyIO.saveSection(outpost.id, row, KEY_ORDER) then
         return false, "Could not write " .. SurveyIO.getFilename() .. "."
     end
-    return true, outpost.name .. " recorded at " .. x .. ", " .. y .. ", " .. z .. "."
+    return true,
+        outpost.name .. " recorded at "
+            .. x .. ", " .. y .. ", " .. z .. ".",
+        row
 end
 
 function TGSRROutpostSurveyWindow:beginZoneEditor(outpost)
@@ -129,6 +162,7 @@ function TGSRROutpostSurveyWindow:createChildren()
         local button = ISButton:new(10, y, self.width - 26 - teleportWidth - inspectWidth, 24, outpost.name, self, self.onOutpostButton)
         button:initialise()
         button.outpost = outpost
+        button.definition = definitionsByName[outpost.name]
         if captured[outpost.id] then
             button.backgroundColor = { r = 0.1, g = 0.45, b = 0.15, a = 1 }
         end
@@ -137,13 +171,16 @@ function TGSRROutpostSurveyWindow:createChildren()
 
         local teleport = ISButton:new(button:getRight() + 3, y, teleportWidth, 24, "TP", self, self.onTeleportButton)
         teleport:initialise()
+        teleport.outpost = outpost
         teleport.definition = definitionsByName[outpost.name]
-        teleport.tooltip = "Teleport to " .. outpost.name .. " anchor"
+        teleport.tooltip = "Teleport to the saved " .. outpost.name
+            .. " survey anchor, or the registered anchor if no survey exists"
         self:addChild(teleport)
 
         local inspect = ISButton:new(teleport:getRight() + 3, y, inspectWidth, 24, "I", self, self.onInspectButton)
         inspect:initialise()
         inspect.definition = definitionsByName[outpost.name]
+        inspect.outpost = outpost
         inspect.tooltip = "Inspect " .. outpost.name
         self:addChild(inspect)
         y = y + 27
@@ -152,28 +189,66 @@ function TGSRROutpostSurveyWindow:createChildren()
         "Inspect Nearest Outpost", self, self.onInspectNearest)
     self.inspectButton:initialise()
     self:addChild(self.inspectButton)
-    self.status = "Stand inside a church, then select its outpost."
+    self.status = "Select an outpost to review its saved survey."
 end
 
-function TGSRROutpostSurveyWindow:onInspectButton(button)
-    if not button.definition then
+function TGSRROutpostSurveyWindow:openInspector(outpost, definition)
+    if not definition then
         self.status = "Inspection target is unavailable."
         return
     end
-    Inspector.showFor(button.definition)
-    self.status = "Inspecting " .. button.definition.name .. "."
+    local surveyRow = SurveyIO.loadAll()[outpost.id]
+    Inspector.showFor(definition, {
+        surveyRow = surveyRow,
+        resurveyAction = function()
+            self:resurveySavedArea(outpost, definition)
+        end,
+        newSurveyAction = function()
+            self:newSurveyOutpost(outpost)
+        end,
+    })
+    self.status = "Reviewing " .. definition.name
+        .. (surveyRow and " saved survey." or " without a saved survey.")
+end
+
+function TGSRROutpostSurveyWindow:onInspectButton(button)
+    self:openInspector(button.outpost, button.definition)
 end
 
 function TGSRROutpostSurveyWindow:onTeleportButton(button)
     local player = getSpecificPlayer(0) or getPlayer()
     local definition = button.definition
-    if not player or not definition then
+    if not player then
         self.status = "Teleport target is unavailable."
         return
     end
-    local anchor = definition.anchor
-    player:teleportTo(anchor.x + 0.5, anchor.y + 0.5, anchor.z)
-    self.status = "Teleported to " .. definition.name .. "."
+
+    local savedRow =
+        button.outpost
+        and SurveyIO.loadAll()[button.outpost.id]
+        or nil
+    local anchorX = tonumber(savedRow and savedRow.playerX)
+    local anchorY = tonumber(savedRow and savedRow.playerY)
+    local anchorZ = tonumber(savedRow and savedRow.playerZ)
+    local source = "saved survey"
+
+    if not anchorX or not anchorY or not anchorZ then
+        local anchor = definition and definition.anchor or nil
+        if not anchor then
+            self.status = "Teleport target is unavailable."
+            return
+        end
+        anchorX, anchorY, anchorZ =
+            anchor.x, anchor.y, anchor.z
+        source = "registered definition"
+    end
+
+    player:teleportTo(
+        anchorX + 0.5,
+        anchorY + 0.5,
+        anchorZ)
+    self.status = "Teleported to " .. button.outpost.name
+        .. " " .. source .. " anchor."
 end
 
 function TGSRROutpostSurveyWindow:onInspectNearest()
@@ -192,11 +267,41 @@ function TGSRROutpostSurveyWindow:onInspectNearest()
 end
 
 function TGSRROutpostSurveyWindow:onOutpostButton(button)
-    local success, message = captureOutpost(button.outpost)
+    self:openInspector(button.outpost, button.definition)
+end
+
+function TGSRROutpostSurveyWindow:updateCapturedButton(outpost)
+    local button = self.buttons[outpost.id]
+    if button then
+        button.backgroundColor = { r = 0.1, g = 0.45, b = 0.15, a = 1 }
+    end
+end
+
+function TGSRROutpostSurveyWindow:resurveySavedArea(outpost, definition)
+    local savedRow = SurveyIO.loadAll()[outpost.id]
+    if not savedRow then
+        self.status = "No saved area exists for " .. outpost.name .. "."
+        return
+    end
+
+    local success, message = captureOutpost(outpost, savedRow)
     self.status = message
     if success then
-        button.backgroundColor = { r = 0.1, g = 0.45, b = 0.15, a = 1 }
-        self:beginZoneEditor(button.outpost)
+        self:updateCapturedButton(outpost)
+        self:openInspector(outpost, definition)
+    end
+    print("[TGSRR Outpost Survey] " .. message)
+end
+
+function TGSRROutpostSurveyWindow:newSurveyOutpost(outpost)
+    local success, message = captureOutpost(outpost)
+    self.status = message
+    if success then
+        self:updateCapturedButton(outpost)
+        if Inspector.instance then
+            Inspector.instance:setVisible(false)
+        end
+        self:beginZoneEditor(outpost)
     end
     print("[TGSRR Outpost Survey] " .. message)
 end

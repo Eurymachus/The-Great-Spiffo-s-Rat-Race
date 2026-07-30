@@ -739,7 +739,7 @@ TGSRR_SandboxBase.apply = function()
 	-- General engine loudness to zombies.
 	-- Allowed range: double 0.0 to 100.0.
 	-- Vanilla default: 1.0.
-	SandboxVars.ZombieAttractionMultiplier = 10.0;
+	SandboxVars.ZombieAttractionMultiplier = 5.0;
 
 	-- Whether found vehicles are locked, need keys to start etc.
 	-- Vanilla default: false.
