@@ -396,6 +396,15 @@ class CatalogueResolverTests(TestCase):
             wiki_filename(claustrophobic),
             "Trait_claustophobic.png",
         )
+        for stable_id, expected_filename in {
+            "Base.Hammer": "Hammer.png",
+            "Base.BallPeenHammer": "BallPeenHammer.png",
+        }.items():
+            entry = CatalogueEntry(
+                kind=CatalogueEntry.Kind.ITEM,
+                stable_id=stable_id,
+            )
+            self.assertEqual(wiki_filename(entry), expected_filename)
         profession_variants = {
             "base:herbalist_prof": "Trait_herbalist.png",
             "base:inventive_prof": "Trait_inventive.png",

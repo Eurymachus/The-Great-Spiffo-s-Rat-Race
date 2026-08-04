@@ -9,6 +9,7 @@ db.sqlite3
 staticfiles/
 apps/website/media/
 apps/website/private_uploads/
+apps/website/tmp/
 server-*.log
 website-server*.log
 *.log

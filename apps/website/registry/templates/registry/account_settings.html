@@ -55,6 +55,21 @@
               {% else %}
                   <a class="streaming-channel-link streaming-provider-action" href="{{ provider.account.channel_url }}" target="_blank" rel="noopener">{% if provider.provider == "discord" %}View profile{% else %}View channel{% endif %}</a>
               {% endif %}
+              {% if provider.can_be_primary and provider.account.status == "connected" %}
+                {% if provider.is_primary %}
+                  <form method="post" action="{% url 'registry:set_primary_streaming_channel' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="account_id" value="">
+                    <button type="submit" class="streaming-primary streaming-provider-action" title="Remove this channel from public rankings">Primary</button>
+                  </form>
+                {% else %}
+                  <form method="post" action="{% url 'registry:set_primary_streaming_channel' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="account_id" value="{{ provider.account.id }}">
+                    <button type="submit" class="streaming-channel-link streaming-provider-action">Set as primary</button>
+                  </form>
+                {% endif %}
+              {% endif %}
               {% if provider.disconnect_url %}
                 <form method="post" action="{{ provider.disconnect_url }}" data-connection-action="disconnect" data-connection-provider="{{ provider.provider }}" data-connection-label="{{ provider.label }}">
                   {% csrf_token %}

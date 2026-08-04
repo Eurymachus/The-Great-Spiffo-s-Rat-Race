@@ -843,6 +843,7 @@ class PZWikiArtworkSyncJobAdmin(admin.ModelAdmin):
                 "No representative artwork found on the PZWiki page"
             ),
             "not_found_on_pzwiki": "Expected file not found on PZWiki",
+            "pzwiki_download_failed": "PZWiki download failed after retries",
         }
         reason_counts = {}
         kind_counts = {}

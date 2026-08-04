@@ -415,12 +415,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 const id = Number(item.dataset.id);
                 const label = item.querySelector("[data-navigation-label]").value.trim();
                 const pageValue = item.querySelector("[data-navigation-page]").value;
+                const [destinationType, destinationId] = pageValue
+                    ? pageValue.split(":", 2)
+                    : ["", null];
                 items.push({
                     id,
                     parent_id: parentId,
                     position: index * 10,
                     label,
-                    page_id: pageValue ? Number(pageValue) : null,
+                    destination_type: destinationType,
+                    destination_id: destinationId ? Number(destinationId) : null,
+                    audience: item.querySelector("[data-navigation-audience]").value,
                     is_visible: item.querySelector("[data-navigation-visible]").checked,
                 });
                 walk(childContainer(item), id);
@@ -446,10 +451,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 const label = item.querySelector("[data-navigation-label]").value.trim();
                 const page = item.querySelector("[data-navigation-page]");
                 const selected = page.selectedOptions[0];
+                const audience = item.querySelector("[data-navigation-audience]");
                 const visible = item.querySelector("[data-navigation-visible]").checked;
                 item.querySelector("[data-navigation-summary-label]").textContent = label;
                 const destination = item.querySelector("[data-navigation-destination]");
-                const destinationDescription = page.value ? `Page · ${selected.dataset.address}` : "Menu group · no page destination";
+                const destinationLabel = selected.dataset.type === "code"
+                    ? "Code-managed page"
+                    : "Editorial page";
+                const destinationDescription = page.value
+                    ? `${destinationLabel}: ${selected.dataset.address}`
+                    : "Menu group: no page destination";
                 destination.dataset.tooltip = destinationDescription;
                 destination.setAttribute("aria-label", `Destination: ${destinationDescription}`);
                 let draft = item.querySelector("[data-navigation-draft]");
@@ -469,6 +480,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     hidden.textContent = "Hidden";
                     item.querySelector("[data-navigation-row]").append(hidden);
                 } else if (visible) hidden?.remove();
+                let audienceBadge = item.querySelector("[data-navigation-audience-badge]");
+                if (audience.value !== "everyone") {
+                    if (!audienceBadge) {
+                        audienceBadge = document.createElement("span");
+                        audienceBadge.className = "navigation-tree-badge";
+                        audienceBadge.dataset.navigationAudienceBadge = "";
+                        item.querySelector("[data-navigation-row]").append(audienceBadge);
+                    }
+                    audienceBadge.textContent = audience.selectedOptions[0].textContent;
+                } else audienceBadge?.remove();
             });
             showToast("Changes saved");
         } catch (error) {

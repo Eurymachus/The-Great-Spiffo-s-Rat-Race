@@ -1,5 +1,6 @@
 import hashlib
 import argparse
+import time
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -16,6 +17,10 @@ PZWIKI_FILE_REDIRECT = "https://pzwiki.net/wiki/Special:Redirect/file/{filename}
 PZWIKI_PAGE = "https://pzwiki.net/wiki/{title}"
 USER_AGENT = "TGSRR catalogue importer/1.0 (Project Zomboid community website)"
 PZWIKI_FILENAME_OVERRIDES = {
+    # These legacy manufactured items share their current forged variants'
+    # catalogue definitions, but PZwiki retains separate artwork filenames.
+    "Base.Hammer": "Hammer.png",
+    "Base.BallPeenHammer": "BallPeenHammer.png",
     # PZwiki preserves this historical filename typo.
     "base:claustrophobic": "Trait_claustophobic.png",
     # The installed game uses profession-trait filenames for these
@@ -137,6 +142,12 @@ class Command(BaseCommand):
             help="Per-image download timeout in seconds (default: 15).",
         )
         parser.add_argument(
+            "--download-attempts",
+            type=int,
+            default=3,
+            help="Attempts for transient PZWiki download failures (default: 3).",
+        )
+        parser.add_argument(
             "--report-output",
             default=None,
             help=argparse.SUPPRESS,
@@ -159,6 +170,7 @@ class Command(BaseCommand):
         imported = unchanged = missing = protected = 0
         unavailable = []
         downloads = {}
+        download_errors = {}
         skill_filenames = {}
         for entry in entries.iterator():
             if entry.kind == CatalogueEntry.Kind.SKILL:
@@ -216,31 +228,43 @@ class Command(BaseCommand):
 
             if filename not in downloads:
                 source_url = PZWIKI_FILE_REDIRECT.format(filename=quote(filename))
-                try:
-                    request = Request(source_url, headers={"User-Agent": USER_AGENT})
-                    with urlopen(request, timeout=options["timeout"]) as response:
-                        content_type = response.headers.get_content_type()
-                        payload = response.read()
-                        resolved_url = response.geturl()
-                except HTTPError as exc:
-                    if exc.code == 404:
-                        downloads[filename] = None
+                attempts = max(1, options["download_attempts"])
+                for attempt in range(1, attempts + 1):
+                    try:
+                        request = Request(source_url, headers={"User-Agent": USER_AGENT})
+                        with urlopen(request, timeout=options["timeout"]) as response:
+                            content_type = response.headers.get_content_type()
+                            payload = response.read()
+                            resolved_url = response.geturl()
+                        if content_type != "image/png" or not payload.startswith(
+                            b"\x89PNG\r\n\x1a\n"
+                        ):
+                            raise ValueError("PZWiki did not return a PNG.")
+                    except HTTPError as exc:
+                        if exc.code == 404:
+                            downloads[filename] = None
+                            break
+                        error = f"HTTP {exc.code}"
+                    except (OSError, URLError, ValueError) as exc:
+                        error = str(exc)
                     else:
-                        raise CommandError(
-                            f"PZwiki returned HTTP {exc.code} for {filename}."
-                        ) from exc
-                except (OSError, URLError) as exc:
-                    raise CommandError(f"Could not download {filename}: {exc}") from exc
-                else:
-                    if content_type != "image/png" or not payload.startswith(
-                        b"\x89PNG\r\n\x1a\n"
-                    ):
-                        raise CommandError(f"PZwiki did not return a PNG for {filename}.")
-                    downloads[filename] = (
-                        payload,
-                        resolved_url,
-                        hashlib.sha256(payload).hexdigest(),
-                    )
+                        downloads[filename] = (
+                            payload,
+                            resolved_url,
+                            hashlib.sha256(payload).hexdigest(),
+                        )
+                        break
+                    if attempt < attempts:
+                        time.sleep(0.5 * attempt)
+                    else:
+                        downloads[filename] = None
+                        download_errors[filename] = error
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f"Could not download {filename} after {attempts} attempts: "
+                                f"{error}"
+                            )
+                        )
 
             download = downloads[filename]
             if download is None:
@@ -252,7 +276,11 @@ class Command(BaseCommand):
                         "display_name": entry.display_name,
                         "icon_key": entry.icon_key or "",
                         "expected_filename": filename,
-                        "reason": "not_found_on_pzwiki",
+                        "reason": (
+                            "pzwiki_download_failed"
+                            if filename in download_errors
+                            else "not_found_on_pzwiki"
+                        ),
                     }
                 )
                 clear_non_wiki_presentation(entry)

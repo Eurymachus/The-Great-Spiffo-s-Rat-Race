@@ -1,0 +1,19 @@
+<dialog class="run-deactivate-modal" id="run-deactivate-{{ run.pk }}" aria-labelledby="run-deactivate-title-{{ run.pk }}">
+  <header>
+    <div>
+      <p class="dashboard-panel-kicker">Irreversible action</p>
+      <strong id="run-deactivate-title-{{ run.pk }}">Deactivate {{ run.character_name|default:"this run" }}?</strong>
+    </div>
+    <button type="button" class="run-detail-close" data-run-deactivate-close>Close</button>
+  </header>
+  <div class="run-deactivate-content">
+    <p><strong>Warning:</strong> deactivating this run is irreversible. It will be moved out of your active runs, and no further updates can be submitted for it.</p>
+    <p>This will free its active-run slot for {{ run.challenge_mode_display }}.</p>
+    <form method="post" action="{% url 'registry:deactivate_run' run.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="confirm_deactivation" value="deactivate">
+      <button type="button" class="button-secondary" data-run-deactivate-close>Keep run active</button>
+      <button type="submit" class="run-deactivate-confirm">Deactivate permanently</button>
+    </form>
+  </div>
+</dialog>

@@ -246,6 +246,10 @@ DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "")
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "")
 DISCORD_REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI", "")
 DISCORD_HTTP_TIMEOUT_SECONDS = 10
+YOUTUBE_CLIENT_ID = os.environ.get("YOUTUBE_CLIENT_ID", "")
+YOUTUBE_CLIENT_SECRET = os.environ.get("YOUTUBE_CLIENT_SECRET", "")
+YOUTUBE_REDIRECT_URI = os.environ.get("YOUTUBE_REDIRECT_URI", "")
+YOUTUBE_HTTP_TIMEOUT_SECONDS = 10
 
 # Local development prints verification emails to the server console. Production
 # will override this with the Microsoft 365 email backend/configuration.
@@ -293,6 +297,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # config directory and is never stored by Django.
 STEAMCMD_EXECUTABLE = os.environ.get("STEAMCMD_EXECUTABLE", "")
 STEAMCMD_USERNAME = os.environ.get("STEAMCMD_USERNAME", "")
+STEAM_WEB_API_KEY = os.environ.get("STEAM_WEB_API_KEY", "")
 PZ_REFERENCE_ROOT = os.environ.get("PZ_REFERENCE_ROOT", "")
 STEAMCMD_UPDATE_TIMEOUT_SECONDS = int(
     os.environ.get("STEAMCMD_UPDATE_TIMEOUT_SECONDS", "1800")

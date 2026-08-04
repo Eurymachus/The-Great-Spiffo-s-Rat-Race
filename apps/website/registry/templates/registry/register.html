@@ -1,16 +1,17 @@
 {% extends "registry/base.html" %}
+{% load static %}
 
 {% block title_suffix %} | Sign Up{% endblock %}
-{% block extra_head %}{% if not show_age_gate %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endif %}{% endblock %}
+{% block extra_head %}{% if not show_age_gate %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><script src="{% static 'registry/registration_validation.js' %}" defer></script>{% endif %}{% endblock %}
 
 {% block content %}
 {% if show_age_gate %}
-<section class="card signup-card age-gate-card">
+<section class="card signup-card age-gate-card" id="sign-up">
     <div class="signup-intro">
         <h2>Sign Up</h2>
-        <p>Already have an account? <a href="{% url 'registry:login' %}">Sign In</a></p>
+        <p>Already have an account? <a href="{% url 'registry:login' %}#sign-in">Sign In</a></p>
     </div>
-    <form method="post" class="age-gate-form">
+    <form method="post" action="{% url 'registry:register' %}#sign-up" class="age-gate-form">
         {% csrf_token %}
         <input type="hidden" name="age_gate_submission" value="1">
         <div>
@@ -28,13 +29,13 @@
     </form>
 </section>
 {% else %}
-<section class="card signup-card">
+<section class="card signup-card" id="sign-up">
     <div class="signup-intro">
         <h2>Sign Up</h2>
-        <p>Already have an account? <a href="{% url 'registry:login' %}">Sign In</a></p>
+        <p>Already have an account? <a href="{% url 'registry:login' %}#sign-in">Sign In</a></p>
     </div>
 
-    <form method="post" class="signup-form">
+    <form method="post" action="{% url 'registry:register' %}#sign-up" class="signup-form" data-registration-form data-validation-url="{% url 'registry:validate_registration_field' %}">
         {% csrf_token %}
         <input type="hidden" name="registration_submission" value="1">
         {% for error in form.non_field_errors %}<p class="error form-error" role="alert">{{ error }}</p>{% endfor %}
@@ -49,9 +50,14 @@
             {% else %}
                 <div class="field{% if field.errors %} field-error{% endif %}">
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
+                    <div class="field-control">
+                        {{ field }}
+                        {% if field.name == "nickname" or field.name == "email" or field.name == "password" or field.name == "password_confirmation" %}
+                            <div class="field-validation" data-validation-for="{{ field.name }}" aria-live="polite"></div>
+                        {% endif %}
+                    </div>
                     {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
-                    {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
+                    {% for error in field.errors %}<p class="error" data-server-field-error>{{ error }}</p>{% endfor %}
                 </div>
             {% endif %}
         {% endfor %}

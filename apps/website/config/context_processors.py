@@ -1,22 +1,31 @@
 from django.conf import settings
 from branding.models import SiteBranding, WebsiteTheme
-from pages.models import NavigationItem
+from pages.models import CodeManagedPage, NavigationItem
 from registry.forms import AvatarUploadForm, SignInForm
 
 
-def navigation_tree():
+def navigation_tree(request):
     items = list(
         NavigationItem.objects.filter(is_visible=True)
-        .select_related("page", "parent")
+        .select_related("page", "code_page", "parent")
         .order_by("parent_id", "position", "label")
     )
     nodes = {}
     for item in items:
-        if item.page_id and not item.page.is_published:
+        if not item.is_visible_to(request.user):
+            continue
+        if item.page_id and (
+            not item.page.is_published or not item.page.is_visible_to(request.user)
+        ):
+            continue
+        if item.code_page_id and (
+            item.code_page.availability != CodeManagedPage.Availability.AVAILABLE
+            or not item.code_page.is_visible_to(request.user)
+        ):
             continue
         nodes[item.pk] = {
             "item": item,
-            "url": item.page.get_absolute_url() if item.page_id else "",
+            "url": item.get_absolute_url(),
             "children": [],
         }
     roots = []
@@ -84,7 +93,7 @@ def site_identity(request):
 
     return {
         **account_context,
-        "site_navigation_items": navigation_tree(),
+        "site_navigation_items": navigation_tree(request),
         "site_legal_name": settings.SITE_LEGAL_NAME,
         "site_company_number": company_number,
         "site_registered_office": settings.SITE_REGISTERED_OFFICE,

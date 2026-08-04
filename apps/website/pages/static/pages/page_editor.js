@@ -13,12 +13,17 @@ document.addEventListener("DOMContentLoaded", () => {
         key === "id" || key.startsWith("_") ? undefined : value
     ));
     try { sections = JSON.parse(payload.value || "[]"); } catch (_) { sections = []; }
+    let rankingOptions = {challenge_modes: [], participants: [], lifecycles: []};
+    try { rankingOptions = JSON.parse(document.querySelector("#ranking-editor-options")?.textContent || "{}"); } catch (_) {}
 
     const choices = {
+        section_type: [["content", "Content section"], ["separator", "Separator"]],
         width: [["inherit", "Use page width"], ["narrow", "Narrow"], ["standard", "Standard"], ["wide", "Wide"], ["full", "Full width"]],
         layout: [["single", "Single column"], ["two", "Two equal columns"], ["wide_left", "Two columns - wide left"], ["wide_right", "Two columns - wide right"], ["three", "Three columns"], ["four", "Four columns"]],
         background: [["default", "Page background"], ["surface", "Raised surface"], ["alternate", "Alternate surface"]],
-        block_type: [["text", "Text"], ["action", "Button or link"], ["card_group", "Card group"], ["image", "Image"], ["gallery", "Gallery"]],
+        separator_style: [["space", "Space only"], ["line", "Subtle line"], ["accent", "Accent line"]],
+        separator_spacing: [["small", "Small"], ["standard", "Standard"], ["large", "Large"]],
+        block_type: [["text", "Text"], ["action", "Button or link"], ["card_group", "Card group"], ["image", "Image"], ["gallery", "Gallery"], ["ranking_table", "Ranking table"]],
         audience: [["everyone", "Everyone"], ["visitors", "Signed-out visitors"], ["signed_in", "Signed-in participants"], ["hidden", "Hidden"]],
         alignment: [["left", "Left"], ["centre", "Centre"], ["right", "Right"]],
         text_role: [["eyebrow", "Eyebrow"], ["heading", "Heading"], ["subheading", "Subheading"], ["paragraph", "Paragraph"]],
@@ -31,12 +36,16 @@ document.addEventListener("DOMContentLoaded", () => {
         image_height: [["standard", "Standard - maximum 24rem"], ["natural", "Natural proportions"], ["short", "Short banner - 12rem"], ["tall", "Tall banner - 32rem"], ["custom", "Custom height"]],
         image_position: [["left top", "Top left"], ["center top", "Top centre"], ["right top", "Top right"], ["left center", "Centre left"], ["center center", "Centre"], ["right center", "Centre right"], ["left bottom", "Bottom left"], ["center bottom", "Bottom centre"], ["right bottom", "Bottom right"]],
         card_columns: [["auto", "Automatic wrapping"], ["1", "1 card per row"], ["2", "2 cards per row"], ["3", "3 cards per row"], ["4", "4 cards per row"]],
+        ranking_selection: [["best_per_participant", "Best eligible run per participant"], ["latest_per_participant", "Latest eligible run per participant"], ["all", "Every eligible run"]],
+        ranking_source: [["verified_runs", "Verified Rat Race runs"], ["legacy_hall_of_fame", "Packaged Legacy Hall of Fame"]],
+        ranking_ordering: [["weighted_completion", "Weighted completion"], ["kills", "Zombie kills"], ["outposts", "Outposts completed"], ["skills", "Maxed skills"], ["verified_at", "Last verified"], ["source_rank", "Imported historical rank"]],
+        ranking_columns: [["participant", "Participant"], ["survivor", "Survivor"], ["build", "Starting build"], ["progress", "Weighted progress"], ["kills", "Zombie kills"], ["outposts", "Outposts"], ["skills", "Maxed skills"], ["day", "In-game day"], ["verified", "Last verified"]],
     };
     let imageLibrary = [];
     let maximumImageSizeMb = 5;
     let maximumImageSizeBytes = 5 * 1024 * 1024;
     const columnCounts = {single: 1, two: 2, wide_left: 2, wide_right: 2, three: 3, four: 4};
-    const labels = {text: "Text", action: "Button or link", card_group: "Card group", image: "Image", gallery: "Gallery"};
+    const labels = {text: "Text", action: "Button or link", card_group: "Card group", image: "Image", gallery: "Gallery", ranking_table: "Ranking table"};
 
     const el = (tag, className = "", text = "") => {
         const node = document.createElement(tag);
@@ -291,10 +300,13 @@ document.addEventListener("DOMContentLoaded", () => {
         name: sectionPanel.dataset.name?.trim() || "Section",
         _saved_name: sectionPanel.dataset.savedName || sectionPanel.dataset.name || "Section",
         is_visible: sectionPanel.querySelector(':scope > .page-section-body [data-key="is_visible"]').checked,
-        width: sectionPanel.querySelector(':scope > .page-section-body [data-key="width"]').value,
-        layout: sectionPanel.querySelector(':scope > .page-section-body [data-key="layout"]').value,
-        background: sectionPanel.querySelector(':scope > .page-section-body [data-key="background"]').value,
-        full_bleed_background: sectionPanel.querySelector(':scope > .page-section-body [data-key="full_bleed_background"]').checked,
+        section_type: sectionPanel.querySelector(':scope > .page-section-body [data-key="section_type"]')?.value || "content",
+        width: sectionPanel.querySelector(':scope > .page-section-body [data-key="width"]')?.value || "inherit",
+        layout: sectionPanel.querySelector(':scope > .page-section-body [data-key="layout"]')?.value || "single",
+        background: sectionPanel.querySelector(':scope > .page-section-body [data-key="background"]')?.value || "default",
+        full_bleed_background: sectionPanel.querySelector(':scope > .page-section-body [data-key="full_bleed_background"]')?.checked || false,
+        separator_style: sectionPanel.querySelector(':scope > .page-section-body [data-key="separator_style"]')?.value || "space",
+        separator_spacing: sectionPanel.querySelector(':scope > .page-section-body [data-key="separator_spacing"]')?.value || "standard",
         blocks: [...sectionPanel.querySelectorAll(":scope .page-block-list > .page-block-editor")].map((blockPanel) => ({
             id: blockPanel.dataset.id ? Number(blockPanel.dataset.id) : null,
             column: Number(blockPanel.closest(".page-column-editor").dataset.column),
@@ -323,11 +335,131 @@ document.addEventListener("DOMContentLoaded", () => {
             gallery_show_controls: blockPanel.querySelector('[data-key="gallery_show_controls"]')?.checked ?? true,
             gallery_show_captions: blockPanel.querySelector('[data-key="gallery_show_captions"]')?.checked ?? true,
             gallery_expandable: blockPanel.querySelector('[data-key="gallery_expandable"]')?.checked ?? true,
+            ranking_config: JSON.parse(blockPanel.querySelector('[data-key="ranking_config"]')?.value || "{}"),
             gallery_images: readGallery(blockPanel),
             items: readCards(blockPanel),
         })),
     }));
     const sync = () => { sections = read(); payload.value = JSON.stringify(sections); };
+
+    const renderRankingEditor = (block) => {
+        const config = JSON.parse(JSON.stringify(block.ranking_config || newBlock("ranking_table", block.column || 0).ranking_config));
+        const wrapper = el("section", "page-ranking-editor page-editor-field-wide");
+        wrapper.append(el("h3", "", "Ranking query and presentation"));
+        const hidden = input("ranking_config", JSON.stringify(config), "hidden");
+        wrapper.append(hidden);
+        const persist = () => { hidden.value = JSON.stringify(config); sync(); updateSummary(); };
+        const optionLabel = (options, value) => options.find((item) => String(item.value ?? item[0]) === String(value))?.label
+            || options.find((item) => String(item[0]) === String(value))?.[1] || String(value);
+        const multiValue = (label, key, options, {custom = false, ordered = false, numeric = false} = {}) => {
+            const fieldset = el("fieldset", "page-ranking-multi");
+            fieldset.append(el("legend", "", label));
+            const controls = el("div", "page-ranking-add");
+            const chooser = custom ? input("", "") : el("select");
+            if (custom) chooser.placeholder = `Add ${label.toLowerCase()}`;
+            else {
+                const placeholder = el("option", "", `Choose ${label.toLowerCase()}`);
+                placeholder.value = "";
+                chooser.append(placeholder);
+                options.forEach((item) => {
+                    const option = el("option", "", item.label ?? item[1]);
+                    option.value = item.value ?? item[0];
+                    chooser.append(option);
+                });
+            }
+            const add = button("Add", "ranking-add");
+            controls.append(chooser, add);
+            const tokens = el("div", "page-ranking-tokens");
+            const draw = () => {
+                tokens.replaceChildren();
+                (config[key] || []).forEach((value, index) => {
+                    const token = el("span", "page-ranking-token");
+                    token.append(el("span", "", optionLabel(options, value)));
+                    if (ordered && index > 0) {
+                        const up = button("↑", "ranking-up");
+                        up.title = "Move earlier";
+                        up.addEventListener("click", () => { [config[key][index - 1], config[key][index]] = [config[key][index], config[key][index - 1]]; draw(); persist(); });
+                        token.append(up);
+                    }
+                    if (ordered && index < config[key].length - 1) {
+                        const down = button("↓", "ranking-down");
+                        down.title = "Move later";
+                        down.addEventListener("click", () => { [config[key][index + 1], config[key][index]] = [config[key][index], config[key][index + 1]]; draw(); persist(); });
+                        token.append(down);
+                    }
+                    const remove = button("×", "ranking-remove");
+                    remove.setAttribute("aria-label", `Remove ${optionLabel(options, value)}`);
+                    remove.addEventListener("click", () => { config[key].splice(index, 1); draw(); persist(); });
+                    token.append(remove);
+                    tokens.append(token);
+                });
+                if (!config[key]?.length) tokens.append(el("span", "page-ranking-empty", "Any"));
+            };
+            add.addEventListener("click", () => {
+                const raw = chooser.value.trim();
+                if (!raw) return;
+                const value = numeric ? Number(raw) : raw;
+                config[key] ||= [];
+                if (!config[key].some((item) => String(item) === String(value))) config[key].push(value);
+                chooser.value = "";
+                draw(); persist();
+            });
+            controls.addEventListener("keydown", (event) => {
+                if (custom && event.key === "Enter") { event.preventDefault(); add.click(); }
+            });
+            fieldset.append(controls, tokens);
+            draw();
+            return fieldset;
+        };
+        const summaryText = el("p", "page-ranking-summary");
+        const updateSummary = () => {
+            const filters = [];
+            if (config.challenge_modes?.length) filters.push(config.challenge_modes.map((value) => optionLabel(rankingOptions.challenge_modes || [], value)).join(" OR "));
+            if (config.lifecycles?.length) filters.push(config.lifecycles.map((value) => optionLabel(rankingOptions.lifecycles || [], value)).join(" OR "));
+            if (config.participants?.length) filters.push(config.participants.map((value) => optionLabel(rankingOptions.participants || [], value)).join(" OR "));
+            if (config.game_builds?.length) filters.push(`game build ${config.game_builds.join(" OR ")}`);
+            if (config.challenge_builds?.length) filters.push(`challenge build ${config.challenge_builds.join(" OR ")}`);
+            summaryText.textContent = config.source === "legacy_hall_of_fame"
+                ? "Effective query: packaged Historical Leaderboard snapshot."
+                : `Effective query: verified approved runs${filters.length ? ` matching (${filters.join(") AND (")})` : ""}.`;
+        };
+        const display = el("div", "page-editor-grid page-ranking-settings");
+        const eyebrow = field("Small heading", "ranking_eyebrow", config.eyebrow || "", "text", true);
+        const heading = field("Heading", "ranking_heading", config.heading, "text", true);
+        const introduction = field("Introduction", "ranking_introduction", config.introduction, "textarea", true);
+        eyebrow.querySelector("input").addEventListener("input", (event) => { config.eyebrow = event.target.value; persist(); });
+        heading.querySelector("input").addEventListener("input", (event) => { config.heading = event.target.value; persist(); });
+        introduction.querySelector("textarea").addEventListener("input", (event) => { config.introduction = event.target.value; persist(); });
+        display.append(eyebrow, heading, introduction);
+        [["Show heading", "show_heading"], ["Show score-weighting note", "show_weighting"], ["Enable starting-build action", "show_build"], ["Enable detailed-run links", "show_details"]].forEach(([label, key]) => {
+            const control = checkboxField(label, key, config[key]);
+            control.querySelector("input").addEventListener("change", (event) => { config[key] = event.target.checked; persist(); });
+            display.append(control);
+        });
+        wrapper.append(
+            display,
+            summaryText,
+            multiValue("Challenge modes", "challenge_modes", rankingOptions.challenge_modes || [], {numeric: true}),
+            multiValue("Run lifecycles", "lifecycles", rankingOptions.lifecycles || []),
+            multiValue("Participants", "participants", rankingOptions.participants || [], {numeric: true}),
+            multiValue("Game builds", "game_builds", [], {custom: true}),
+            multiValue("Challenge builds", "challenge_builds", [], {custom: true}),
+        );
+        const settings = el("div", "page-editor-grid page-ranking-settings");
+        const source = selectField("Data source", "ranking_source", config.source || "verified_runs", choices.ranking_source);
+        const selection = selectField("Result selection", "ranking_selection", config.selection, choices.ranking_selection);
+        const ordering = selectField("Primary ordering", "ranking_ordering", config.ordering, choices.ranking_ordering);
+        const limit = field("Maximum rows", "ranking_limit", config.limit, "number");
+        source.querySelector("select").addEventListener("change", (event) => { config.source = event.target.value; updateSummary(); persist(); });
+        selection.querySelector("select").addEventListener("change", (event) => { config.selection = event.target.value; persist(); });
+        ordering.querySelector("select").addEventListener("change", (event) => { config.ordering = event.target.value; persist(); });
+        limit.querySelector("input").min = "1"; limit.querySelector("input").max = "500";
+        limit.querySelector("input").addEventListener("input", (event) => { config.limit = Number(event.target.value || 100); persist(); });
+        settings.append(source, selection, ordering, limit);
+        wrapper.append(settings, multiValue("Visible columns", "columns", choices.ranking_columns, {ordered: true}));
+        updateSummary();
+        return wrapper;
+    };
 
     const renderCard = (card, index, total) => {
         const panel = el("details", "page-card-editor");
@@ -347,6 +479,15 @@ document.addEventListener("DOMContentLoaded", () => {
         image_position: "center center", gallery_auto_scroll: false, gallery_scroll_speed: 5,
         gallery_loop: true, gallery_show_controls: true, gallery_show_captions: true,
         gallery_expandable: true, gallery_images: [], items: [],
+        ranking_config: {
+            source: "verified_runs", challenge_modes: [], game_builds: [], challenge_builds: [], lifecycles: ["active"], participants: [],
+            selection: "best_per_participant", ordering: "weighted_completion", limit: 100,
+            columns: ["participant", "survivor", "build", "progress", "kills", "outposts", "skills", "day", "verified"],
+            show_heading: true, heading: "Rat Race leaderboard",
+            eyebrow: "Current challenge",
+            introduction: "Each Rat Racer's highest-ranked eligible survivor, calculated from the latest approved run update.",
+            show_weighting: true, show_build: true, show_details: true,
+        },
     });
     const duplicateBlock = (source) => {
         const copy = JSON.parse(JSON.stringify(source));
@@ -363,9 +504,11 @@ document.addEventListener("DOMContentLoaded", () => {
         copy.blocks = (copy.blocks || []).map(duplicateBlock);
         return copy;
     };
-    const newSection = (layout = "single") => ({
-        name: "Section", is_visible: true, width: "inherit", layout,
-        background: "default", full_bleed_background: false, blocks: [],
+    const newSection = (sectionType = "content") => ({
+        name: sectionType === "separator" ? "Separator" : "Section",
+        is_visible: true, section_type: sectionType, width: "inherit", layout: "single",
+        background: "default", full_bleed_background: false,
+        separator_style: "space", separator_spacing: "standard", blocks: [],
     });
     const renderBlock = (block, index, total) => {
         const panel = el("details", "page-block-editor");
@@ -397,7 +540,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 checkboxField("Show captions", "gallery_show_captions", block.gallery_show_captions),
                 checkboxField("Allow expanded view", "gallery_expandable", block.gallery_expandable)
             );
-        } else {
+        } else if (block.block_type !== "ranking_table") {
             const contentLabel = block.block_type === "action" ? "Button or link label" : block.block_type === "card_group" ? "Optional group heading" : "Content";
             const contentField = field(contentLabel, "content", block.content, block.block_type === "text" ? "textarea" : "text", true);
             if (block.block_type === "text") {
@@ -418,6 +561,7 @@ document.addEventListener("DOMContentLoaded", () => {
             grid.append(selectField("Destination", "destination", block.destination || "none", choices.destination), selectField("Appearance", "style", block.style || "default", choices.style));
         }
         body.append(grid);
+        if (block.block_type === "ranking_table") body.append(renderRankingEditor(block));
         if (block.block_type === "gallery") {
             body.append(imagePickerField("Images", "gallery_selection", block.gallery_images || [], true));
         }
@@ -452,12 +596,28 @@ document.addEventListener("DOMContentLoaded", () => {
             const settings = el("div", "page-editor-grid");
             settings.append(
                 checkboxField("Visible publicly", "is_visible", section.is_visible),
-                selectField("Content width", "width", section.width || "inherit", choices.width),
-                selectField("Column layout", "layout", section.layout || "single", choices.layout),
-                selectField("Background", "background", section.background || "default", choices.background),
-                checkboxField("Extend background to screen edges", "full_bleed_background", section.full_bleed_background)
+                selectField("Section type", "section_type", section.section_type || "content", choices.section_type),
+                selectField("Content width", "width", section.width || "inherit", choices.width)
             );
+            if ((section.section_type || "content") === "separator") {
+                settings.append(
+                    selectField("Separator style", "separator_style", section.separator_style || "space", choices.separator_style),
+                    selectField("Spacing", "separator_spacing", section.separator_spacing || "standard", choices.separator_spacing)
+                );
+            } else {
+                settings.append(
+                    selectField("Column layout", "layout", section.layout || "single", choices.layout),
+                    selectField("Background", "background", section.background || "default", choices.background),
+                    checkboxField("Extend background to screen edges", "full_bleed_background", section.full_bleed_background)
+                );
+            }
             body.append(settings);
+            if ((section.section_type || "content") === "separator") {
+                panel.append(body);
+                list.append(panel);
+                updateSectionNameDirty(panel);
+                return;
+            }
             const columns = el("div", `page-columns-editor page-columns-${section.layout || "single"}`);
             const columnCount = columnCounts[section.layout] || 1;
             for (let column = 0; column < columnCount; column += 1) {
@@ -766,7 +926,24 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
     list.addEventListener("change", (event) => {
-        if (event.target.dataset.key === "block_type" || event.target.dataset.key === "layout") preserve(() => {});
+        if (event.target.dataset.key === "section_type") {
+            sync();
+            const sectionPanel = event.target.closest(".page-section-editor");
+            const sectionIndex = [...list.children].indexOf(sectionPanel);
+            const section = sections[sectionIndex];
+            if (event.target.value === "separator" && section.blocks.length) {
+                const confirmed = window.confirm("Changing this to a separator will remove its content blocks. Continue?");
+                if (!confirmed) {
+                    section.section_type = "content";
+                    render();
+                    sync();
+                    return;
+                }
+                section.blocks = [];
+            }
+            preserve(() => {}, false);
+        }
+        else if (["block_type", "layout"].includes(event.target.dataset.key)) preserve(() => {});
         else sync();
     });
     list.addEventListener("input", (event) => {
@@ -813,7 +990,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     const addSectionButton = editor.querySelector("[data-add-section]");
     addSectionButton.addEventListener("click", () => preserve(() => sections.push(newSection())));
-    splitAddButton(addSectionButton, "Section", choices.layout, (layout) => preserve(() => sections.push(newSection(layout))));
+    splitAddButton(addSectionButton, "Section", choices.section_type, (sectionType) => preserve(() => sections.push(newSection(sectionType))));
 
     let dragged = null;
     let pendingPickup = null;

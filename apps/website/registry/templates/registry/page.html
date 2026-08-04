@@ -6,7 +6,11 @@
 <div class="managed-page managed-page-width-{{ managed_page.content_width }}">
     {% for section in managed_page.sections.all %}
         {% if section.is_visible %}
-            {% include "registry/sections/managed.html" %}
+            {% if section.section_type == "separator" %}
+                {% include "registry/sections/separator.html" %}
+            {% else %}
+                {% include "registry/sections/managed.html" %}
+            {% endif %}
         {% endif %}
     {% endfor %}
 </div>

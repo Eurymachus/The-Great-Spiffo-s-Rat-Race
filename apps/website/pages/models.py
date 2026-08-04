@@ -7,7 +7,69 @@ from django.utils.text import slugify
 from branding.models import ManagedImage
 
 
+class CodeManagedPage(models.Model):
+    class Audience(models.TextChoices):
+        PUBLIC = "public", "Public"
+        PARTICIPANT = "participant", "Signed-in participant"
+        STAFF = "staff", "Staff"
+
+    class Availability(models.TextChoices):
+        AVAILABLE = "available", "Available"
+        PLANNED = "planned", "Planned"
+        DISABLED = "disabled", "Disabled"
+
+    key = models.SlugField(
+        max_length=80,
+        unique=True,
+        editable=False,
+        help_text="Stable identity owned by version-controlled website code.",
+    )
+    title = models.CharField(max_length=120, editable=False)
+    description = models.TextField(max_length=500, editable=False)
+    audience = models.CharField(
+        max_length=16, choices=Audience.choices, editable=False
+    )
+    availability = models.CharField(
+        max_length=16, choices=Availability.choices, editable=False
+    )
+    route_name = models.CharField(max_length=160, blank=True, editable=False)
+    address = models.CharField(max_length=240, editable=False)
+
+    class Meta:
+        ordering = ("title",)
+        verbose_name = "code-managed page"
+        verbose_name_plural = "code-managed pages"
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def is_navigation_target(self):
+        return (
+            self.availability == self.Availability.AVAILABLE
+            and bool(self.route_name)
+        )
+
+    def get_absolute_url(self):
+        if not self.is_navigation_target:
+            return ""
+        return reverse(self.route_name)
+
+    def is_visible_to(self, user):
+        if self.audience == self.Audience.PUBLIC:
+            return True
+        if self.audience == self.Audience.PARTICIPANT:
+            return user.is_authenticated
+        return user.is_authenticated and user.is_staff
+
+
 class Page(models.Model):
+    class Audience(models.TextChoices):
+        EVERYONE = "everyone", "Everyone"
+        VISITORS = "visitors", "Signed-out visitors"
+        SIGNED_IN = "signed_in", "Signed-in participants"
+        STAFF = "staff", "Staff"
+
     class ContentWidth(models.TextChoices):
         NARROW = "narrow", "Narrow - focused reading"
         STANDARD = "standard", "Standard - general content"
@@ -35,6 +97,12 @@ class Page(models.Model):
     is_published = models.BooleanField(
         default=True,
         help_text="Only published pages can be shown publicly.",
+    )
+    audience = models.CharField(
+        max_length=16,
+        choices=Audience.choices,
+        default=Audience.EVERYONE,
+        help_text="Choose who can open this page directly or see it in navigation.",
     )
     content_width = models.CharField(
         max_length=16,
@@ -85,13 +153,36 @@ class Page(models.Model):
             return reverse("registry:home")
         return reverse("registry:page", kwargs={"page_path": self.public_path})
 
+    def is_visible_to(self, user):
+        if self.audience == self.Audience.VISITORS:
+            return not user.is_authenticated
+        if self.audience == self.Audience.SIGNED_IN:
+            return user.is_authenticated
+        if self.audience == self.Audience.STAFF:
+            return user.is_authenticated and user.is_staff
+        return True
+
 
 class NavigationItem(models.Model):
+    class Audience(models.TextChoices):
+        EVERYONE = "everyone", "Everyone"
+        VISITORS = "visitors", "Signed-out visitors"
+        SIGNED_IN = "signed_in", "Signed-in participants"
+        STAFF = "staff", "Staff"
+
     label = models.CharField(max_length=80)
     page = models.ForeignKey(
         Page, on_delete=models.CASCADE, related_name="navigation_items",
         blank=True, null=True,
         help_text="Optional. Leave empty to create a non-clickable menu heading.",
+    )
+    code_page = models.ForeignKey(
+        CodeManagedPage,
+        on_delete=models.PROTECT,
+        related_name="navigation_items",
+        blank=True,
+        null=True,
+        help_text="Optional code-managed application destination.",
     )
     parent = models.ForeignKey(
         "self", on_delete=models.CASCADE, related_name="children",
@@ -99,15 +190,35 @@ class NavigationItem(models.Model):
     )
     position = models.PositiveIntegerField(default=0)
     is_visible = models.BooleanField(default=True)
+    audience = models.CharField(
+        max_length=16,
+        choices=Audience.choices,
+        default=Audience.EVERYONE,
+        help_text="Choose who can see this navigation item and its nested branch.",
+    )
 
     class Meta:
         ordering = ("parent_id", "position", "label")
+        constraints = (
+            models.CheckConstraint(
+                condition=~(models.Q(page__isnull=False) & models.Q(code_page__isnull=False)),
+                name="navigation_item_has_one_destination",
+            ),
+        )
 
     def __str__(self):
         return self.label
 
     def clean(self):
         super().clean()
+        if self.page_id and self.code_page_id:
+            raise ValidationError(
+                {"code_page": "Choose either an editorial page or a code-managed page."}
+            )
+        if self.code_page_id and not self.code_page.is_navigation_target:
+            raise ValidationError(
+                {"code_page": "Only available fixed routes can be navigation destinations."}
+            )
         ancestor = self.parent
         depth = 1
         seen = {self.pk} if self.pk else set()
@@ -120,8 +231,28 @@ class NavigationItem(models.Model):
                 raise ValidationError({"parent": "Navigation supports at most three visible levels."})
             ancestor = ancestor.parent
 
+    def get_absolute_url(self):
+        if self.page_id:
+            return self.page.get_absolute_url()
+        if self.code_page_id:
+            return self.code_page.get_absolute_url()
+        return ""
+
+    def is_visible_to(self, user):
+        if self.audience == self.Audience.VISITORS:
+            return not user.is_authenticated
+        if self.audience == self.Audience.SIGNED_IN:
+            return user.is_authenticated
+        if self.audience == self.Audience.STAFF:
+            return user.is_authenticated and user.is_staff
+        return True
+
 
 class PageSection(models.Model):
+    class SectionType(models.TextChoices):
+        CONTENT = "content", "Content section"
+        SEPARATOR = "separator", "Separator"
+
     class Width(models.TextChoices):
         INHERIT = "inherit", "Use page width"
         NARROW = "narrow", "Narrow"
@@ -142,10 +273,23 @@ class PageSection(models.Model):
         SURFACE = "surface", "Raised surface"
         ALTERNATE = "alternate", "Alternate surface"
 
+    class SeparatorStyle(models.TextChoices):
+        SPACE = "space", "Space only"
+        LINE = "line", "Subtle line"
+        ACCENT = "accent", "Accent line"
+
+    class SeparatorSpacing(models.TextChoices):
+        SMALL = "small", "Small"
+        STANDARD = "standard", "Standard"
+        LARGE = "large", "Large"
+
     page = models.ForeignKey(Page, on_delete=models.CASCADE, related_name="sections")
     position = models.PositiveSmallIntegerField(default=0)
     name = models.CharField(max_length=120, default="Section")
     is_visible = models.BooleanField(default=True)
+    section_type = models.CharField(
+        max_length=16, choices=SectionType.choices, default=SectionType.CONTENT
+    )
     width = models.CharField(max_length=16, choices=Width.choices, default=Width.INHERIT)
     layout = models.CharField(max_length=16, choices=Layout.choices, default=Layout.SINGLE)
     background = models.CharField(
@@ -154,6 +298,12 @@ class PageSection(models.Model):
     full_bleed_background = models.BooleanField(
         default=False,
         help_text="Extend the section background to the viewport edges while keeping content constrained.",
+    )
+    separator_style = models.CharField(
+        max_length=16, choices=SeparatorStyle.choices, default=SeparatorStyle.SPACE
+    )
+    separator_spacing = models.CharField(
+        max_length=16, choices=SeparatorSpacing.choices, default=SeparatorSpacing.STANDARD
     )
 
     class Meta:
@@ -172,6 +322,7 @@ class PageBlock(models.Model):
         CARD_GROUP = "card_group", "Card group"
         IMAGE = "image", "Image"
         GALLERY = "gallery", "Gallery"
+        RANKING_TABLE = "ranking_table", "Ranking table"
 
     class TextRole(models.TextChoices):
         EYEBROW = "eyebrow", "Eyebrow"
@@ -286,6 +437,10 @@ class PageBlock(models.Model):
     gallery_show_controls = models.BooleanField("show navigation controls", default=True)
     gallery_show_captions = models.BooleanField("show captions", default=True)
     gallery_expandable = models.BooleanField("allow expanded view", default=True)
+    ranking_config = models.JSONField(
+        "ranking table configuration", default=dict, blank=True,
+        help_text="Validated filters, result selection, ordering, columns and display controls.",
+    )
 
     class Meta:
         ordering = ("column", "position", "pk")
@@ -295,8 +450,18 @@ class PageBlock(models.Model):
     def clean(self):
         if self.block_type == self.BlockType.IMAGE and not self.image_asset_id:
             raise ValidationError({"image_asset": "Choose an image."})
-        if self.block_type not in (self.BlockType.CARD_GROUP, self.BlockType.IMAGE, self.BlockType.GALLERY) and not self.content.strip():
+        if self.block_type not in (
+            self.BlockType.CARD_GROUP, self.BlockType.IMAGE,
+            self.BlockType.GALLERY, self.BlockType.RANKING_TABLE,
+        ) and not self.content.strip():
             raise ValidationError({"content": "This block needs content."})
+        if self.block_type == self.BlockType.RANKING_TABLE:
+            from .ranking_config import validate_ranking_config
+
+            try:
+                self.ranking_config = validate_ranking_config(self.ranking_config)
+            except ValidationError as exc:
+                raise ValidationError({"ranking_config": exc.messages}) from exc
         if self.column > 3:
             raise ValidationError({"column": "A block must be in columns 1 to 4."})
 

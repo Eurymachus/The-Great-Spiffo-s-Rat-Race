@@ -41,6 +41,7 @@
         <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_status_display }}</small></div>
       </button>
       {% include "registry/_run_detail_dialog.html" with run=run %}
+      {% include "registry/_run_deactivate_dialog.html" with run=run %}
       {% endfor %}
     </div>
     {% else %}

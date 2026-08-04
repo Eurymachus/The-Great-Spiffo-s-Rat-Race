@@ -6,8 +6,8 @@
         {% if request.user.is_authenticated %}
             {% if section.signed_in_button %}<a class="primary-link-button" href="{% url 'registry:account' %}">{{ section.signed_in_button }}</a>{% endif %}
         {% else %}
-            {% if section.visitor_primary_button %}<a class="primary-link-button" href="{% url 'registry:register' %}">{{ section.visitor_primary_button }}</a>{% endif %}
-            {% if section.visitor_secondary_link %}<a class="secondary-button" href="{% url 'registry:login' %}">{{ section.visitor_secondary_link }}</a>{% endif %}
+            {% if section.visitor_primary_button %}<a class="primary-link-button" href="{% url 'registry:register' %}#sign-up">{{ section.visitor_primary_button }}</a>{% endif %}
+            {% if section.visitor_secondary_link %}<a class="secondary-button" href="{% url 'registry:login' %}#sign-in">{{ section.visitor_secondary_link }}</a>{% endif %}
         {% endif %}
     </div>
     {% if section.items.all %}

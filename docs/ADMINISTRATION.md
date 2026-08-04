@@ -31,7 +31,8 @@ The Participant Registry list supports:
 - Edit status and private administrator notes
 - Select pending or expired registrations and resend verification
 - Select registrations and export them as CSV
-- Promote participants to Approver, Moderator, or Challenge Administrator
+- Promote participants to Workshop Mod Approver, Run Submission Approver,
+  Moderator, or Challenge Administrator
 - Filter and review participant account-closure requests
 
 Direct ad hoc deletion is disabled. Use Removed status for moderation removals;
@@ -69,7 +70,8 @@ continues to belong to its independent run. Never use cascading deletion for
 historical challenge data.
 
 Promoted participants use their existing participant email and password at
-`/admin/`. Adding an Approver, Moderator, or Challenge Administrator group
+`/admin/`. Adding a Workshop Mod Approver, Run Submission Approver, Moderator,
+or Challenge Administrator group
 automatically enables staff login; removing the final staff role disables it.
 Promotion does not grant superuser access.
 
@@ -137,3 +139,28 @@ sent more than seven days ago. Production will run this command on a schedule.
 This administrator is suitable only for local development. Do not expose it to
 the internet or enter real participant data until the production security and
 operations checklist is complete.
+# Legacy Hall of Fame snapshot
+
+The Legacy Hall of Fame is imported from the Google workbook's `Historical
+Leaderboard` worksheet only. It is stored separately from verified Rat Race
+runs.
+
+Immediately before the production package is built, refresh the committed
+snapshot:
+
+```powershell
+.\.venv\Scripts\python.exe .\apps\website\manage.py snapshot_legacy_leaderboard
+```
+
+Review and commit
+`apps/website/registry/data/legacy_hall_of_fame.json` with the deployment. A
+fresh installation imports that packaged snapshot during migrations, without
+network access. An existing installation can safely refresh it with:
+
+```powershell
+.\.venv\Scripts\python.exe .\apps\website\manage.py import_legacy_leaderboard
+```
+
+The importer is idempotent and does not overwrite a legacy entry's approved
+participant ownership link. Never replace this process with a runtime Google
+Sheets dependency.

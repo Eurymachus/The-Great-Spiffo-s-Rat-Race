@@ -56,3 +56,24 @@ Current known IDs are:
 - **Run eligibility** will be an organiser-owned decision; the mod does not
   classify it.
 - **Lifecycle** is Active, Deceased, Abandoned, Completed, or Invalidated.
+
+## Terminal death evidence
+
+A death export sets `lifecycle` to `deceased` and supplies matching terminal
+projection evidence:
+
+```json
+{
+  "lifecycle": "deceased",
+  "endedReason": "deceased",
+  "endedUtc": 1784800003,
+  "endedWorldAgeHours": 123.5,
+  "endedEventSequence": 42
+}
+```
+
+The signed ledger contains exactly one `run.ended` event at that sequence, UTC
+and world age, with `payload.reason` set to `deceased`. The website rejects
+duplicate or mismatched terminal evidence. Approval automatically changes an
+Active run to Deceased. A later non-terminal export does not reverse an existing
+terminal lifecycle.

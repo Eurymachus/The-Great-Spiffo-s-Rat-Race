@@ -132,6 +132,7 @@ The website does not collect dates of birth or identity documents.
   requests use the privileged, confirmation-protected redaction workflow; use
   Removed status for ordinary moderation removals.
 - See `docs/ADMINISTRATION.md` for the operator procedure.
-- Administrators can promote the same participant account to Approver, Moderator,
-  or Challenge Administrator without changing its email or password.
+- Administrators can promote the same participant account to Workshop Mod
+  Approver, Run Submission Approver, Moderator, or Challenge Administrator
+  without changing its email or password.
 - Signup never grants staff or superuser access automatically.

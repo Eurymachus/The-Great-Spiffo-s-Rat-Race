@@ -1,0 +1,165 @@
+{% extends "registry/base.html" %}
+{% load static %}
+{% block title_suffix %} | Mods{% endblock %}
+{% block extra_head %}<script src="{% static 'registry/mods.js' %}?v=20260802-3" defer></script>{% endblock %}
+{% block content %}
+<section class="mods-page" data-mods-page>
+  <header class="mods-hero">
+    <div>
+      <p class="account-dashboard-kicker">Challenge rules</p>
+      <h2>Mods</h2>
+      <p>Search the current Rat Race rulings before adding a mod to your game.</p>
+    </div>
+    <button type="button" class="mods-submit-action mods-secondary-action" data-mod-submit-open>Submit for review</button>
+  </header>
+
+  {% for message in messages %}<p class="mods-status-message" role="status">{{ message }}</p>{% endfor %}
+
+  <aside class="mods-guidance" aria-label="Mod eligibility guidance">
+    <div>
+      <p>Only mods marked <strong>Allowed</strong> or <strong>Required</strong> in this catalogue may be used in a Rat Race run. <strong>Disallowed</strong> and unlisted mods cannot be used.</p>
+      <p>Not sure whether a mod qualifies? Read the rules, then submit it for review before using it.</p>
+    </div>
+    <button type="button" class="mods-secondary-action" data-mod-rules-open>More Info</button>
+  </aside>
+
+  <form class="mods-controls" method="get" action="{% url 'registry:mods' %}">
+    <input type="hidden" name="view" value="{{ view_mode }}">
+    <label><span>Search mods</span><input type="search" name="q" value="{{ query }}" placeholder="Mod name or Workshop ID"></label>
+    <fieldset>
+      <legend>Ruling</legend>
+      <label><input type="radio" name="ruling" value="all"{% if selected_ruling == 'all' %} checked{% endif %}> All</label>
+      <label><input type="radio" name="ruling" value="allowed"{% if selected_ruling == 'allowed' %} checked{% endif %}> Allowed</label>
+      <label><input type="radio" name="ruling" value="disallowed"{% if selected_ruling == 'disallowed' %} checked{% endif %}> Disallowed</label>
+    </fieldset>
+    <button type="submit" class="mods-secondary-action">Search</button>
+  </form>
+
+  {% for mod in required_mods %}
+  <article class="mod-entry mod-entry-required">
+    {% if mod.preview_url %}<img src="{{ mod.preview_url }}" alt="" width="256" height="256" loading="lazy">{% endif %}
+    <div class="mod-entry-copy">
+      <span class="mod-ruling mod-ruling-required">Required</span>
+      <h3><a href="{{ mod.steam_url }}" target="_blank" rel="noopener noreferrer">{{ mod.title }}</a></h3>
+      <p>The official Rat Race mod is required for challenge runs.</p>
+      <small>Steam Workshop ID: {{ mod.workshop_id }}</small>
+    </div>
+  </article>
+  {% endfor %}
+
+  {% if recommended_mods %}
+  <section class="mods-results mods-recommended">
+    <header><h3>Recommended mods</h3><span>{{ recommended_mods|length }} recommendation{{ recommended_mods|length|pluralize }}</span></header>
+    <div class="mods-list">
+      {% for mod in recommended_mods %}
+      <article class="mod-entry mod-entry-recommended">
+        {% if mod.preview_url %}<img src="{{ mod.preview_url }}" alt="" width="256" height="256" loading="lazy">{% endif %}
+        <div class="mod-entry-copy">
+          <span class="mod-ruling mod-ruling-recommended">Recommended</span>
+          <h3><a href="{{ mod.steam_url }}" target="_blank" rel="noopener noreferrer">{{ mod.title }}</a></h3>
+          {% if mod.public_rationale %}<p>{{ mod.public_rationale }}</p>{% endif %}
+          <small>Steam Workshop ID: {{ mod.workshop_id }}</small>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="mods-results" aria-live="polite">
+    <header>
+      <h3>Mod rulings</h3>
+      <div class="mods-results-actions">
+        <span>{{ mods|length }} result{{ mods|length|pluralize }}</span>
+        <nav class="mods-view-toggle" aria-label="Mod result view">
+          <a href="?q={{ query|urlencode }}&amp;ruling={{ selected_ruling }}&amp;view=cards"{% if view_mode == 'cards' %} class="is-active" aria-current="page"{% endif %}>Illustrated</a>
+          <a href="?q={{ query|urlencode }}&amp;ruling={{ selected_ruling }}&amp;view=list"{% if view_mode == 'list' %} class="is-active" aria-current="page"{% endif %}>List</a>
+        </nav>
+      </div>
+    </header>
+    <div class="mods-list{% if view_mode == 'list' %} mods-list-compact{% endif %}">
+      {% for mod in mods %}
+      <article class="mod-entry">
+        {% if mod.preview_url %}<img src="{{ mod.preview_url }}" alt="" width="256" height="256" loading="lazy">{% endif %}
+        <div class="mod-entry-copy">
+          <span class="mod-ruling mod-ruling-{{ mod.ruling }}">{{ mod.get_ruling_display }}</span>
+          <h3><a href="{{ mod.steam_url }}" target="_blank" rel="noopener noreferrer">{{ mod.title }}</a></h3>
+          {% if mod.public_rationale %}<p>{{ mod.public_rationale }}</p>{% endif %}
+          <small>Steam Workshop ID: {{ mod.workshop_id }}</small>
+        </div>
+      </article>
+      {% empty %}<p class="mods-empty">No mods match this search and ruling filter.</p>{% endfor %}
+    </div>
+  </section>
+
+  <dialog class="mod-submit-modal mod-rules-modal" data-mod-rules-dialog aria-labelledby="mod-rules-title">
+    <header><div><p class="account-dashboard-kicker">Challenge rules</p><h2 id="mod-rules-title">Which mods can be used?</h2></div><button type="button" class="mods-secondary-action" data-mod-rules-close>Close</button></header>
+    <div class="mod-submit-content mod-rules-content">
+      <p><strong>A mod must be listed as Allowed or Required in the catalogue before it can be used in a Rat Race run.</strong> These rules guide the team's decisions and help keep the competition fair.</p>
+
+      <section>
+        <h3>Rule 1: The mod is purely cosmetic</h3>
+        <ul class="mod-rule-examples">
+          <li class="is-allowed"><span class="mod-rule-symbol" aria-hidden="true">✅</span><span class="visually-hidden">Allowed: </span>Changing a vehicle's texture.</li>
+          <li class="is-disallowed"><span class="mod-rule-symbol" aria-hidden="true">❌</span><span class="visually-hidden">Not allowed: </span>Adding new vehicles.</li>
+          <li class="is-allowed"><span class="mod-rule-symbol" aria-hidden="true">✅</span><span class="visually-hidden">Allowed: </span>Adding superficial clothing items.</li>
+          <li class="is-disallowed"><span class="mod-rule-symbol" aria-hidden="true">❌</span><span class="visually-hidden">Not allowed: </span>Adding clothing with improved protection or insulation statistics.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Rule 2: The mod provides no information unavailable in the unmodded game</h3>
+        <ul class="mod-rule-examples">
+          <li class="is-allowed"><span class="mod-rule-symbol" aria-hidden="true">✅</span><span class="visually-hidden">Allowed: </span>Resizing the user interface.</li>
+          <li class="is-allowed"><span class="mod-rule-symbol" aria-hidden="true">✅</span><span class="visually-hidden">Allowed: </span>Changing the appearance of moodles.</li>
+          <li class="is-disallowed"><span class="mod-rule-symbol" aria-hidden="true">❌</span><span class="visually-hidden">Not allowed: </span>Displaying character statistic bars.</li>
+          <li class="is-disallowed"><span class="mod-rule-symbol" aria-hidden="true">❌</span><span class="visually-hidden">Not allowed: </span>Displaying zombies on the minimap.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Previous ruling examples</h3>
+        <div class="mod-ruling-example-columns">
+          <div><h4>Generally allowed</h4><ul><li>Displaying experience earned by an action</li><li>Restyling progress bars</li><li>Showing which watches have alarms set</li><li>Resizing or restyling map symbols and text</li><li>Adding vehicle door animations</li><li>Clarifying existing moodle, trait, or occupation information</li><li>Minor world retextures</li></ul></div>
+          <div><h4>Generally disallowed</h4><ul><li>Displaying item condition outside the inventory</li><li>Automating skill levelling or gameplay</li><li>Adding player models with abilities or statistics</li><li>Adding or changing traits and occupations</li><li>Changing game mechanics, including perceived bug fixes</li></ul></div>
+        </div>
+      </section>
+
+      <p>We want participants to enjoy their preferred mods without overcomplicating setup or creating an uneven competition. If you are unsure, ask publicly in the Discord discussions area so the answer is available to everyone, or use <strong>Submit for review</strong> on this page. Please do not request rulings by direct message.</p>
+    </div>
+  </dialog>
+
+  <dialog class="mod-submit-modal mod-review-submit-modal" data-mod-submit-dialog{% if open_submission_modal %} data-open-on-load{% endif %} aria-labelledby="mod-submit-title">
+    <header><div><p class="account-dashboard-kicker">Team review</p><h2 id="mod-submit-title">Submit a mod for review</h2></div><button type="button" class="mods-secondary-action" data-mod-submit-close>Close</button></header>
+    <div class="mod-submit-content">
+      {% if request.user.is_authenticated %}
+      <p>Find a Project Zomboid Workshop mod by name, Workshop ID or full Steam URL, then tell the team why it should be considered.</p>
+      <form method="post" action="{% url 'registry:mods' %}" novalidate data-mod-review-form data-workshop-lookup-url="{% url 'registry:workshop_mod_lookup' %}">
+        {% csrf_token %}
+        <div class="field mod-workshop-finder{% if submission_form.workshop_id.errors %} has-error{% endif %}">
+          {{ submission_form.workshop_id }}
+          <label for="mod-workshop-search">Find a Workshop mod</label>
+          <div class="field-control mod-workshop-search-control">
+            <input id="mod-workshop-search" type="search" autocomplete="off" placeholder="Mod name, Workshop ID or Steam URL" data-workshop-search value="{% if submission_form.workshop_id.value %}{{ submission_form.workshop_id.value }}{% endif %}" aria-controls="mod-workshop-results" aria-autocomplete="list">
+            <div class="field-validation mod-workshop-status" data-workshop-status role="status" aria-live="polite"></div>
+            <div id="mod-workshop-results" class="mod-workshop-results" data-workshop-results role="listbox" aria-label="Workshop search results"></div>
+          </div>
+          <p class="help">Searches only the Project Zomboid Workshop.</p>
+          <div class="mod-workshop-selection" data-workshop-selection hidden></div>
+          {% for error in submission_form.workshop_id.errors %}<p class="error">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="field mod-review-reason{% if submission_form.reason.errors %} has-error{% endif %}">
+          <label for="{{ submission_form.reason.id_for_label }}">{{ submission_form.reason.label }}</label>
+          {{ submission_form.reason }}
+          {% for error in submission_form.reason.errors %}<p class="error">{{ error }}</p>{% endfor %}
+        </div>
+        <button type="submit" data-mod-review-submit{% if not submission_form.workshop_id.value %} disabled{% endif %}>Submit for review</button>
+      </form>
+      {% else %}
+      <p>Sign in to your participant account to submit a mod for team review.</p>
+      <div class="mod-submit-auth-actions"><a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a><a class="dashboard-header-action" href="{% url 'registry:login' %}?next={% url 'registry:mods' %}">Sign In</a></div>
+      {% endif %}
+    </div>
+  </dialog>
+</section>
+{% endblock %}

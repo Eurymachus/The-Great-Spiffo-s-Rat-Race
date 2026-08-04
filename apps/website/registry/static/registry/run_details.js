@@ -46,6 +46,28 @@
             });
             dialog.addEventListener("close", () => activeTrigger?.focus());
         });
+        root.querySelectorAll(".run-deactivate-modal").forEach((dialog) => {
+            if (dialog.dataset.runDeactivateReady || typeof dialog.showModal !== "function") return;
+            dialog.dataset.runDeactivateReady = "true";
+            const triggers = root.querySelectorAll(
+                `[data-run-deactivate-open="${dialog.id}"]`
+            );
+            let activeTrigger = null;
+            triggers.forEach((trigger) => {
+                trigger.addEventListener("click", () => {
+                    activeTrigger = trigger;
+                    trigger.closest(".run-detail-modal")?.close();
+                    dialog.showModal();
+                });
+            });
+            dialog.querySelectorAll("[data-run-deactivate-close]").forEach((close) => {
+                close.addEventListener("click", () => dialog.close());
+            });
+            dialog.addEventListener("click", (event) => {
+                if (event.target === dialog) dialog.close();
+            });
+            dialog.addEventListener("close", () => activeTrigger?.focus());
+        });
     };
 
     let dashboardRequest = null;

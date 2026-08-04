@@ -1,17 +1,23 @@
 import asyncio
 import logging
+import re
 import uuid
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.contrib.auth.models import Group
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
+from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.http import JsonResponse, StreamingHttpResponse
+from django.db.models import Q
+from django.http import Http404, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.encoding import force_bytes
@@ -19,6 +25,8 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils import timezone
 from django.utils.timesince import timesince
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import never_cache
+from django.views.decorators.debug import sensitive_post_parameters
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from pages.models import Page
@@ -32,6 +40,9 @@ from .forms import (
     ResendVerificationForm,
     SignInForm,
     RunSubmissionForm,
+    ModReviewRequestForm,
+    validate_registration_email,
+    validate_registration_nickname,
 )
 from .avatar_moderation import InvalidAvatar, remove_avatar, submit_avatar
 from .models import (
@@ -41,9 +52,15 @@ from .models import (
     RunSubmission,
     StreamingAccount,
     StreamingMedia,
+    WorkshopMod,
 )
 from .run_exports import InvalidRunExport, decode_run_export
 from .run_public import build_public_run_context
+from .steam_workshop import (
+    SteamWorkshopError,
+    fetch_project_zomboid_workshop_item,
+    search_project_zomboid_workshop_items,
+)
 from .challenge_modes import resolve_challenge_mode
 from .notifications import notify
 from .rate_limit import exceeded, request_ip
@@ -60,6 +77,11 @@ from .streaming import (
     twitch_is_configured,
     validate_twitch_token,
 )
+
+
+class SubmissionBlocked(Exception):
+    """Raised when a valid export cannot enter the submission workflow."""
+
 from .discord_integration import (
     DiscordIntegrationError,
     apply_discord_credentials,
@@ -69,6 +91,18 @@ from .discord_integration import (
     exchange_discord_code,
     fetch_discord_identity,
     revoke_discord_account,
+)
+from .youtube_integration import (
+    YouTubeIntegrationError,
+    apply_youtube_credentials,
+    begin_youtube_authorization,
+    consume_youtube_state,
+    exchange_youtube_code,
+    fetch_google_identity,
+    fetch_youtube_channel,
+    refresh_youtube_media,
+    revoke_youtube_account,
+    youtube_is_configured,
 )
 from .verification_email import send_password_reset_email, send_verification_email
 
@@ -104,7 +138,11 @@ def prepare_managed_page(page):
 
 
 def home(request):
-    page = managed_page_queryset().filter(slug="home", is_published=True).first()
+    page = get_object_or_404(
+        managed_page_queryset(), slug="home", is_published=True
+    )
+    if not page.is_visible_to(request.user):
+        raise Http404
     prepare_managed_page(page)
     return render(request, "registry/home.html", {"managed_page": page})
 
@@ -113,6 +151,8 @@ def page_detail(request, page_path):
     page = get_object_or_404(
         managed_page_queryset(), public_path=page_path.strip("/"), is_published=True
     )
+    if not page.is_visible_to(request.user):
+        raise Http404
     if page.slug == "home":
         return redirect("registry:home")
     prepare_managed_page(page)
@@ -121,6 +161,8 @@ def page_detail(request, page_path):
 
 def legacy_page(request, slug):
     page = get_object_or_404(Page, slug=slug, is_published=True)
+    if not page.is_visible_to(request.user):
+        raise Http404
     return redirect(page.get_absolute_url(), permanent=True)
 
 
@@ -187,6 +229,40 @@ def issue_verification(participant, request):
     participant.verification_sent_at = timezone.now()
     participant.save(update_fields=("verification_sent_at",))
     return verification_url
+
+
+@sensitive_post_parameters("value")
+@never_cache
+@require_http_methods(["POST"])
+def validate_registration_field(request):
+    if not has_current_age_eligibility(request):
+        return JsonResponse({"error": "Registration eligibility has expired."}, status=403)
+    if exceeded("signup-validation-ip", request_ip(request), 120, 60):
+        return JsonResponse({"error": "Too many validation requests."}, status=429)
+
+    field_name = request.POST.get("field", "")
+    value = request.POST.get("value", "")
+    if field_name not in {"nickname", "email", "password"}:
+        return JsonResponse({"error": "Unsupported registration field."}, status=400)
+    if not value:
+        return JsonResponse({"valid": False, "errors": []})
+
+    try:
+        if field_name == "nickname":
+            cleaned_value = RegistrationForm.base_fields["nickname"].clean(value)
+            validate_registration_nickname(cleaned_value)
+            message = "This nickname is available."
+        elif field_name == "email":
+            cleaned_value = RegistrationForm.base_fields["email"].clean(value)
+            validate_registration_email(cleaned_value)
+            message = "This email address is available."
+        else:
+            validate_password(value)
+            message = "This password meets the requirements."
+    except ValidationError as exc:
+        return JsonResponse({"valid": False, "errors": list(exc.messages)})
+
+    return JsonResponse({"valid": True, "errors": [], "message": message})
 
 
 @require_http_methods(["GET", "POST"])
@@ -435,6 +511,7 @@ def account(request):
     )
 
 
+@login_required
 @require_http_methods(["GET"])
 def public_run_detail(request, run_id):
     run = get_object_or_404(
@@ -452,6 +529,130 @@ def public_run_detail(request, run_id):
     )
 
 
+@require_http_methods(["GET"])
+def leaderboard(request):
+    return page_detail(request, "leaderboard")
+
+
+@require_http_methods(["GET", "POST"])
+def mods_catalogue(request):
+    form = ModReviewRequestForm(request.POST or None)
+    open_submission_modal = request.method == "POST"
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect(f"{reverse('registry:login')}?next={reverse('registry:mods')}")
+        if form.is_valid():
+            workshop_id = form.cleaned_data["workshop_id"]
+            existing = WorkshopMod.objects.filter(workshop_id=workshop_id).first()
+            if existing:
+                form.add_error(
+                    "workshop_id",
+                    f"This mod is already {existing.get_ruling_display()}.",
+                )
+            else:
+                try:
+                    steam_item = fetch_project_zomboid_workshop_item(workshop_id)
+                except SteamWorkshopError as exc:
+                    form.add_error("workshop_id", str(exc))
+                else:
+                    try:
+                        WorkshopMod.objects.create(
+                            **steam_item,
+                            ruling=WorkshopMod.Ruling.PENDING,
+                            submission_reason=form.cleaned_data["reason"],
+                            submitted_by=request.user,
+                            steam_checked_at=timezone.now(),
+                        )
+                    except IntegrityError:
+                        form.add_error(
+                            "workshop_id",
+                            "This mod has already been submitted for review.",
+                        )
+                    else:
+                        messages.success(request, "Mod submitted for team review.")
+                        return redirect("registry:mods")
+
+    query = request.GET.get("q", "").strip()[:100]
+    ruling = request.GET.get("ruling", "all")
+    view_mode = request.GET.get("view", "cards")
+    if view_mode not in {"cards", "list"}:
+        view_mode = "cards"
+    if ruling not in {"all", WorkshopMod.Ruling.ALLOWED, WorkshopMod.Ruling.DISALLOWED}:
+        ruling = "all"
+    mods = WorkshopMod.objects.filter(
+        ruling__in=(WorkshopMod.Ruling.ALLOWED, WorkshopMod.Ruling.DISALLOWED)
+    )
+    if ruling != "all":
+        mods = mods.filter(ruling=ruling)
+    if query:
+        mods = mods.filter(Q(title__icontains=query) | Q(workshop_id__icontains=query))
+    recommended_mods = mods.filter(is_recommended=True)
+    mods = mods.filter(is_recommended=False)
+    return render(
+        request,
+        "registry/mods.html",
+        {
+            "required_mods": WorkshopMod.objects.filter(
+                ruling=WorkshopMod.Ruling.REQUIRED
+            ),
+            "recommended_mods": recommended_mods,
+            "mods": mods,
+            "query": query,
+            "selected_ruling": ruling,
+            "view_mode": view_mode,
+            "submission_form": form,
+            "open_submission_modal": open_submission_modal,
+        },
+    )
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET"])
+def workshop_mod_lookup(request):
+    if exceeded(
+        "workshop-search-ip",
+        request_ip(request),
+        30,
+        60,
+    ):
+        return JsonResponse(
+            {"error": "Too many Workshop searches. Please wait and try again."},
+            status=429,
+        )
+    query = request.GET.get("q", "").strip()[:200]
+    match = re.search(r"(?:[?&]id=)?([0-9]{6,20})(?:\D|$)", query)
+    exact_id = match.group(1) if match and (query.isdigit() or "steamcommunity.com" in query) else ""
+    try:
+        items = (
+            [fetch_project_zomboid_workshop_item(exact_id)]
+            if exact_id
+            else search_project_zomboid_workshop_items(query)
+            if len(query) >= 3
+            else []
+        )
+    except SteamWorkshopError as exc:
+        return JsonResponse({"error": str(exc)}, status=503)
+
+    existing = {
+        mod.workshop_id: mod
+        for mod in WorkshopMod.objects.filter(
+            workshop_id__in=[item["workshop_id"] for item in items]
+        )
+    }
+    results = []
+    for item in items:
+        mod = existing.get(item["workshop_id"])
+        results.append(
+            {
+                **item,
+                "existing": bool(mod),
+                "ruling": mod.get_ruling_display() if mod else "",
+            }
+        )
+    return JsonResponse({"results": results})
+
+
 @login_required
 @require_http_methods(["GET"])
 def account_dashboard_fragment(request):
@@ -467,7 +668,27 @@ def account_dashboard_fragment(request):
 @login_required
 @require_http_methods(["GET", "POST"])
 def submit_run(request):
-    form = RunSubmissionForm(request.POST or None, participant=request.user)
+    connected_streaming_accounts = list(
+        request.user.streaming_accounts.filter(
+            status=StreamingAccount.Status.CONNECTED,
+            provider__in=(
+                StreamingAccount.Provider.TWITCH,
+                StreamingAccount.Provider.YOUTUBE,
+            ),
+        ).order_by("provider")
+    )
+    primary = request.user.primary_streaming_account
+    selected_provider = (
+        primary.provider
+        if primary in connected_streaming_accounts
+        else connected_streaming_accounts[0].provider if connected_streaming_accounts else ""
+    )
+    form = RunSubmissionForm(
+        request.POST or None,
+        participant=request.user,
+        selected_provider=selected_provider,
+    )
+    submission_blocked_message = ""
     if request.method == "POST" and form.is_valid():
         try:
             decoded = decode_run_export(form.cleaned_data["run_export"])
@@ -483,6 +704,12 @@ def submit_run(request):
                     "run_export",
                     "This run is already associated with another participant account.",
                 )
+            elif existing and existing.participant_deactivated_at:
+                submission_blocked_message = (
+                    "This run was deactivated and cannot receive further updates. "
+                    "Start a new character to submit another run."
+                )
+                form.add_error(None, submission_blocked_message)
             elif RunSubmission.objects.filter(checksum=decoded.checksum).exists():
                 form.add_error("run_export", "This exact export has already been submitted.")
             elif existing and decoded.event_sequence < existing.event_sequence:
@@ -500,117 +727,185 @@ def submit_run(request):
                     "This export conflicts with the existing ledger for this run.",
                 )
             else:
-                with transaction.atomic():
-                    run, _ = ChallengeRun.objects.get_or_create(
-                        run_id=decoded.run_id,
-                        defaults={
-                            "participant": request.user,
-                            "export_format": decoded.format,
-                            "generated_at": decoded.generated_at,
-                            "current_kills": decoded.current_kills,
-                            "event_sequence": decoded.event_sequence,
-                            "event_hash": decoded.event_hash,
-                            "challenge_mode": challenge_mode,
-                            "challenge_id": decoded.challenge_id,
-                            "challenge_game_mode": decoded.challenge_game_mode,
-                            "starting_challenge_mode": challenge_mode,
-                            "starting_challenge_id": decoded.challenge_id,
-                            "starting_challenge_game_mode": decoded.challenge_game_mode,
-                        },
+                try:
+                    with transaction.atomic():
+                        Participant.objects.select_for_update().get(pk=request.user.pk)
+                        locked_existing = (
+                            ChallengeRun.objects.select_for_update()
+                            .filter(run_id=decoded.run_id)
+                            .first()
+                        )
+                        if locked_existing and locked_existing.participant_deactivated_at:
+                            raise SubmissionBlocked(
+                                "This run was deactivated and cannot receive further updates. "
+                                "Start a new character to submit another run."
+                            )
+                        if not locked_existing and challenge_mode:
+                            active_count = ChallengeRun.objects.filter(
+                                participant=request.user,
+                                challenge_mode=challenge_mode,
+                                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE,
+                            ).count()
+                            limit = challenge_mode.max_active_runs_per_participant
+                            if active_count >= limit:
+                                noun = "run" if limit == 1 else "runs"
+                                raise SubmissionBlocked(
+                                    f"You already have the maximum of {limit} active {noun} "
+                                    f"for {challenge_mode.display_name}. Deactivate an existing "
+                                    "run before submitting a new character."
+                                )
+                        run, _ = ChallengeRun.objects.get_or_create(
+                            run_id=decoded.run_id,
+                            defaults={
+                                "participant": request.user,
+                                "export_format": decoded.format,
+                                "generated_at": decoded.generated_at,
+                                "current_kills": decoded.current_kills,
+                                "event_sequence": decoded.event_sequence,
+                                "event_hash": decoded.event_hash,
+                                "challenge_mode": challenge_mode,
+                                "challenge_id": decoded.challenge_id,
+                                "challenge_game_mode": decoded.challenge_game_mode,
+                                "starting_challenge_mode": challenge_mode,
+                                "starting_challenge_id": decoded.challenge_id,
+                                "starting_challenge_game_mode": decoded.challenge_game_mode,
+                            },
+                        )
+                        run.participant = request.user
+                        if not run.approved_submission_id:
+                            run.export_format = decoded.format
+                            run.generated_at = decoded.generated_at
+                            run.current_kills = decoded.current_kills
+                            run.event_sequence = decoded.event_sequence
+                            run.event_hash = decoded.event_hash
+                            run.character_name = decoded.character_name
+                            run.bootstrapped = decoded.bootstrapped
+                            run.latest_projection = decoded.projection
+                            run.latest_events = decoded.events
+                            run.challenge_mode = challenge_mode
+                            run.challenge_id = decoded.challenge_id
+                            run.challenge_game_mode = decoded.challenge_game_mode
+                            run.save()
+                        selected_media = form.media_by_id.get(
+                            form.cleaned_data.get("evidence_video")
+                        )
+                        selected_clips = [
+                            form.media_by_id[value]
+                            for value in form.cleaned_data.get("evidence_clips", [])
+                        ]
+                        RunSubmission.objects.create(
+                            run=run,
+                            baseline_submission=run.approved_submission,
+                            submitter=request.user,
+                            checksum=decoded.checksum,
+                            raw_export="".join(form.cleaned_data["run_export"].split()),
+                            export_format=decoded.format,
+                            generated_at=decoded.generated_at,
+                            current_kills=decoded.current_kills,
+                            event_sequence=decoded.event_sequence,
+                            event_hash=decoded.event_hash,
+                            projection=decoded.projection,
+                            challenge_mode=challenge_mode,
+                            challenge_id=decoded.challenge_id,
+                            challenge_game_mode=decoded.challenge_game_mode,
+                            evidence_provider=(
+                                selected_media.account.provider if selected_media else ""
+                            ),
+                            evidence_media_type=(
+                                selected_media.kind if selected_media else ""
+                            ),
+                            evidence_media_id=(
+                                selected_media.provider_media_id if selected_media else ""
+                            ),
+                            evidence_url=(
+                                selected_media.canonical_url
+                                if selected_media
+                                else form.cleaned_data.get("manual_evidence_url", "")
+                            ),
+                            evidence_title=selected_media.title if selected_media else "",
+                            evidence_start_seconds=form.cleaned_data.get(
+                                "evidence_start_seconds"
+                            ),
+                            evidence_end_seconds=form.cleaned_data.get(
+                                "evidence_end_seconds"
+                            ),
+                            evidence_clips=[
+                                {
+                                    "provider": clip.account.provider,
+                                    "media_id": clip.provider_media_id,
+                                    "url": clip.canonical_url,
+                                    "title": clip.title,
+                                    "parent_media_id": clip.parent_media_id,
+                                    "vod_offset_seconds": clip.vod_offset_seconds,
+                                }
+                                for clip in selected_clips
+                            ],
+                        )
+                except SubmissionBlocked as exc:
+                    submission_blocked_message = str(exc)
+                    form.add_error(None, submission_blocked_message)
+                else:
+                    notify(
+                        request.user,
+                        category=Notification.Category.SUBMISSION,
+                        title="Submission received",
+                        message="Your Rat Race export passed its integrity checks and is awaiting review.",
+                        destination=reverse("registry:account"),
                     )
-                    run.participant = request.user
-                    if not run.approved_submission_id:
-                        run.export_format = decoded.format
-                        run.generated_at = decoded.generated_at
-                        run.current_kills = decoded.current_kills
-                        run.event_sequence = decoded.event_sequence
-                        run.event_hash = decoded.event_hash
-                        run.character_name = decoded.character_name
-                        run.bootstrapped = decoded.bootstrapped
-                        run.latest_projection = decoded.projection
-                        run.latest_events = decoded.events
-                        run.challenge_mode = challenge_mode
-                        run.challenge_id = decoded.challenge_id
-                        run.challenge_game_mode = decoded.challenge_game_mode
-                        run.save()
-                    selected_media = form.media_by_id.get(
-                        form.cleaned_data.get("evidence_video")
-                    )
-                    selected_clips = [
-                        form.media_by_id[value]
-                        for value in form.cleaned_data.get("evidence_clips", [])
-                    ]
-                    RunSubmission.objects.create(
-                        run=run,
-                        baseline_submission=run.approved_submission,
-                        submitter=request.user,
-                        checksum=decoded.checksum,
-                        raw_export="".join(form.cleaned_data["run_export"].split()),
-                        export_format=decoded.format,
-                        generated_at=decoded.generated_at,
-                        current_kills=decoded.current_kills,
-                        event_sequence=decoded.event_sequence,
-                        event_hash=decoded.event_hash,
-                        projection=decoded.projection,
-                        challenge_mode=challenge_mode,
-                        challenge_id=decoded.challenge_id,
-                        challenge_game_mode=decoded.challenge_game_mode,
-                        evidence_provider=(
-                            selected_media.account.provider if selected_media else ""
-                        ),
-                        evidence_media_type=(
-                            selected_media.kind if selected_media else ""
-                        ),
-                        evidence_media_id=(
-                            selected_media.provider_media_id if selected_media else ""
-                        ),
-                        evidence_url=(
-                            selected_media.canonical_url
-                            if selected_media
-                            else form.cleaned_data.get("manual_evidence_url", "")
-                        ),
-                        evidence_title=selected_media.title if selected_media else "",
-                        evidence_start_seconds=form.cleaned_data.get(
-                            "evidence_start_seconds"
-                        ),
-                        evidence_end_seconds=form.cleaned_data.get(
-                            "evidence_end_seconds"
-                        ),
-                        evidence_clips=[
-                            {
-                                "provider": clip.account.provider,
-                                "media_id": clip.provider_media_id,
-                                "url": clip.canonical_url,
-                                "title": clip.title,
-                                "parent_media_id": clip.parent_media_id,
-                                "vod_offset_seconds": clip.vod_offset_seconds,
-                            }
-                            for clip in selected_clips
-                        ],
-                    )
-                notify(
-                    request.user,
-                    category=Notification.Category.SUBMISSION,
-                    title="Submission received",
-                    message="Your Rat Race export passed its integrity checks and is awaiting review.",
-                    destination=reverse("registry:account"),
-                )
-                return redirect("registry:account")
-    twitch_account = request.user.streaming_accounts.filter(
-        provider=StreamingAccount.Provider.TWITCH,
-        status=StreamingAccount.Status.CONNECTED,
-    ).first()
+                    return redirect("registry:account")
     return render(
         request,
         "registry/submit_run.html",
         {
             "form": form,
-            "twitch_account": twitch_account,
+            "streaming_accounts": connected_streaming_accounts,
+            "selected_provider": form.selected_provider,
             "cached_media_count": (
-                twitch_account.media.count() if twitch_account else 0
+                sum(
+                    account.media.filter(kind=StreamingMedia.Kind.VIDEO).count()
+                    for account in connected_streaming_accounts
+                    if account.provider == form.selected_provider
+                )
             ),
+            "submission_blocked_message": submission_blocked_message,
         },
     )
+
+
+@login_required
+@require_http_methods(["POST"])
+def deactivate_run(request, run_id):
+    if request.POST.get("confirm_deactivation") != "deactivate":
+        messages.error(request, "Run deactivation was not confirmed.")
+        return redirect("registry:account")
+
+    with transaction.atomic():
+        run = get_object_or_404(
+            ChallengeRun.objects.select_for_update(),
+            pk=run_id,
+            participant=request.user,
+        )
+        if run.participant_deactivated_at:
+            messages.info(request, "This run has already been deactivated.")
+            return redirect("registry:account")
+        if run.lifecycle_status != ChallengeRun.Lifecycle.ACTIVE:
+            messages.error(request, "Only an active run can be deactivated.")
+            return redirect("registry:account")
+
+        deactivated_at = timezone.now()
+        run.lifecycle_status = ChallengeRun.Lifecycle.ABANDONED
+        run.participant_deactivated_at = deactivated_at
+        run.save(update_fields=(
+            "lifecycle_status", "participant_deactivated_at", "updated_at"
+        ))
+        run.submissions.filter(status=RunSubmission.Status.RECEIVED).update(
+            status=RunSubmission.Status.DECLINED,
+            reviewed_at=deactivated_at,
+            review_note="Run deactivated by participant.",
+        )
+
+    messages.success(request, "The run has been permanently deactivated.")
+    return redirect("registry:account")
 
 
 @login_required
@@ -631,21 +926,34 @@ def account_settings(request):
             or (
                 provider == StreamingAccount.Provider.DISCORD
                 and discord_is_configured()
+            )
+            or (
+                provider == StreamingAccount.Provider.YOUTUBE
+                and youtube_is_configured()
             ),
             "connect_url": reverse(
                 "registry:connect_discord"
                 if provider == StreamingAccount.Provider.DISCORD
                 else "registry:connect_twitch"
                 if provider == StreamingAccount.Provider.TWITCH
-                else "registry:account_settings"
-            ) if provider != StreamingAccount.Provider.YOUTUBE else "",
+                else "registry:connect_youtube"
+            ),
             "disconnect_url": reverse(
                 "registry:disconnect_discord"
                 if provider == StreamingAccount.Provider.DISCORD
                 else "registry:disconnect_twitch"
                 if provider == StreamingAccount.Provider.TWITCH
-                else "registry:account_settings"
-            ) if provider != StreamingAccount.Provider.YOUTUBE else "",
+                else "registry:disconnect_youtube"
+            ),
+            "can_be_primary": provider in (
+                StreamingAccount.Provider.TWITCH,
+                StreamingAccount.Provider.YOUTUBE,
+            ),
+            "is_primary": bool(
+                accounts.get(provider)
+                and request.user.primary_streaming_account_id
+                == accounts[provider].id
+            ),
         }
         for provider, label in StreamingAccount.Provider.choices
     ]
@@ -723,6 +1031,82 @@ def twitch_callback(request):
             request.user,
             title="Twitch connected",
             message=f"Your Twitch channel, {account.display_name}, is now linked.",
+            destination=reverse("registry:account_settings"),
+        )
+    return redirect("registry:account_settings")
+
+
+@login_required
+def connect_youtube(request):
+    try:
+        return redirect(begin_youtube_authorization(request))
+    except YouTubeIntegrationError as exc:
+        notify(
+            request.user,
+            title="YouTube connection unavailable",
+            message=str(exc),
+            destination=reverse("registry:account_settings"),
+        )
+        return redirect("registry:account_settings")
+
+
+@login_required
+def youtube_callback(request):
+    try:
+        consume_youtube_state(request, request.GET.get("state"))
+        if request.GET.get("error"):
+            raise YouTubeIntegrationError("YouTube access was not granted.")
+        code = request.GET.get("code")
+        if not code:
+            raise YouTubeIntegrationError(
+                "YouTube did not return an authorization code."
+            )
+        token_data = exchange_youtube_code(code)
+        identity = fetch_google_identity(token_data["access_token"])
+        channel = fetch_youtube_channel(token_data["access_token"])
+        owner = StreamingAccount.objects.filter(
+            Q(provider_identity=identity["sub"])
+            | Q(channel_identity=channel["id"]),
+            provider=StreamingAccount.Provider.YOUTUBE,
+        ).exclude(participant=request.user).first()
+        if owner:
+            raise YouTubeIntegrationError(
+                "That YouTube channel is already connected to another Rat Race account."
+            )
+        account = StreamingAccount.objects.filter(
+            participant=request.user,
+            provider=StreamingAccount.Provider.YOUTUBE,
+        ).first()
+        if account is None:
+            account = StreamingAccount(
+                participant=request.user,
+                provider=StreamingAccount.Provider.YOUTUBE,
+                provider_identity=identity["sub"],
+                channel_identity=channel["id"],
+                display_name=channel["snippet"]["title"],
+                channel_url=f"https://www.youtube.com/channel/{channel['id']}",
+            )
+        with transaction.atomic():
+            apply_youtube_credentials(account, token_data, identity, channel)
+    except (IntegrityError, KeyError, YouTubeIntegrationError) as exc:
+        if not isinstance(exc, YouTubeIntegrationError):
+            logger.exception("YouTube callback returned incomplete or conflicting data.")
+        message = (
+            str(exc)
+            if isinstance(exc, YouTubeIntegrationError)
+            else "YouTube returned an incomplete or conflicting account response."
+        )
+        notify(
+            request.user,
+            title="YouTube was not connected",
+            message=message,
+            destination=reverse("registry:account_settings"),
+        )
+    else:
+        notify(
+            request.user,
+            title="YouTube connected",
+            message=f"Your YouTube channel, {account.display_name}, is now linked.",
             destination=reverse("registry:account_settings"),
         )
     return redirect("registry:account_settings")
@@ -842,7 +1226,62 @@ def disconnect_twitch(request):
 
 @login_required
 @require_http_methods(["POST"])
+def disconnect_youtube(request):
+    account = get_object_or_404(
+        StreamingAccount,
+        participant=request.user,
+        provider=StreamingAccount.Provider.YOUTUBE,
+    )
+    revoke_youtube_account(account)
+    account.delete()
+    notify(
+        request.user,
+        title="YouTube disconnected",
+        message="Your YouTube channel is no longer linked to your Rat Race account.",
+        destination=reverse("registry:account_settings"),
+    )
+    return redirect("registry:account_settings")
+
+
+@login_required
+@require_http_methods(["POST"])
+def set_primary_streaming_channel(request):
+    account_id = request.POST.get("account_id", "").strip()
+    if not account_id:
+        request.user.primary_streaming_account = None
+        request.user.save(update_fields=("primary_streaming_account",))
+        notify(
+            request.user,
+            title="Primary channel cleared",
+            message="No streaming channel will be shown on public rankings.",
+            destination=reverse("registry:account_settings"),
+        )
+        return redirect("registry:account_settings")
+    account = get_object_or_404(
+        StreamingAccount,
+        id=account_id,
+        participant=request.user,
+        provider__in=(
+            StreamingAccount.Provider.TWITCH,
+            StreamingAccount.Provider.YOUTUBE,
+        ),
+        status=StreamingAccount.Status.CONNECTED,
+    )
+    request.user.primary_streaming_account = account
+    request.user.save(update_fields=("primary_streaming_account",))
+    notify(
+        request.user,
+        title="Primary channel updated",
+        message=f"{account.display_name} will be shown on public rankings.",
+        destination=reverse("registry:account_settings"),
+    )
+    return redirect("registry:account_settings")
+
+
+@login_required
+@require_http_methods(["POST"])
 def refresh_twitch_media_view(request):
+    asynchronous = request.headers.get("x-requested-with") == "XMLHttpRequest"
     account = get_object_or_404(
         StreamingAccount,
         participant=request.user,
@@ -851,10 +1290,26 @@ def refresh_twitch_media_view(request):
     )
     try:
         videos, clips = refresh_twitch_media(account)
+    except ImproperlyConfigured:
+        message = "The Twitch connection is temporarily unavailable."
+        if asynchronous:
+            return JsonResponse({"ok": False, "message": message}, status=503)
+        notify(
+            request.user,
+            title="Twitch media could not be refreshed",
+            message=message,
+            destination=reverse("registry:submit_run"),
+        )
     except TwitchIntegrationError as exc:
         if exc.status == 401:
             account.status = StreamingAccount.Status.RECONNECT_REQUIRED
             account.save(update_fields=("status",))
+            Participant.objects.filter(
+                pk=request.user.pk,
+                primary_streaming_account=account,
+            ).update(primary_streaming_account=None)
+        if asynchronous:
+            return JsonResponse({"ok": False, "message": str(exc)}, status=502)
         notify(
             request.user,
             title="Twitch media could not be refreshed",
@@ -862,13 +1317,85 @@ def refresh_twitch_media_view(request):
             destination=reverse("registry:submit_run"),
         )
     else:
+        message = f"Found {videos} recent broadcasts and {clips} clips."
+        if asynchronous:
+            form = RunSubmissionForm(participant=request.user)
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "message": message,
+                    "videos": [
+                        {"value": value, "label": label}
+                        for value, label in form.fields["evidence_video"].choices
+                    ],
+                    "clips": [
+                        {"value": value, "label": label}
+                        for value, label in form.fields["evidence_clips"].choices
+                    ],
+                }
+            )
         notify(
             request.user,
             title="Twitch media refreshed",
-            message=f"Found {videos} recent broadcasts and {clips} clips.",
+            message=message,
             destination=reverse("registry:submit_run"),
         )
     return redirect("registry:submit_run")
+
+
+@login_required
+@require_http_methods(["POST"])
+def refresh_streaming_media_view(request):
+    provider = request.POST.get("provider", "")
+    if provider not in {
+        StreamingAccount.Provider.TWITCH,
+        StreamingAccount.Provider.YOUTUBE,
+    }:
+        return JsonResponse({"ok": False, "message": "Choose a connected streaming channel."}, status=400)
+    account = get_object_or_404(
+        StreamingAccount,
+        participant=request.user,
+        provider=provider,
+        status=StreamingAccount.Status.CONNECTED,
+    )
+    try:
+        if provider == StreamingAccount.Provider.TWITCH:
+            video_count, clip_count = refresh_twitch_media(account)
+            label = "Twitch"
+        else:
+            video_count, clip_count = refresh_youtube_media(account)
+            label = "YouTube"
+    except (ImproperlyConfigured, TwitchIntegrationError, YouTubeIntegrationError) as exc:
+        if getattr(exc, "status", None) == 401:
+            account.status = StreamingAccount.Status.RECONNECT_REQUIRED
+            account.save(update_fields=("status",))
+            Participant.objects.filter(
+                pk=request.user.pk,
+                primary_streaming_account=account,
+            ).update(primary_streaming_account=None)
+        message = str(exc) if not isinstance(exc, ImproperlyConfigured) else f"{account.get_provider_display()} is temporarily unavailable."
+        return JsonResponse({"ok": False, "message": message}, status=502)
+
+    form = RunSubmissionForm(
+        participant=request.user,
+        selected_provider=provider,
+    )
+    clip_suffix = f" and {clip_count} clips" if provider == StreamingAccount.Provider.TWITCH else ""
+    return JsonResponse(
+        {
+            "ok": True,
+            "provider": provider,
+            "message": f"Found {video_count} recent {label} videos{clip_suffix}.",
+            "videos": [
+                {"value": value, "label": text}
+                for value, text in form.fields["evidence_video"].choices
+            ],
+            "clips": [
+                {"value": value, "label": text}
+                for value, text in form.fields["evidence_clips"].choices
+            ],
+        }
+    )
 
 
 def avatar_return_url(request):

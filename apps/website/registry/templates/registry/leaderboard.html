@@ -1,0 +1,113 @@
+{% extends "registry/base.html" %}
+{% load static %}
+{% block title_suffix %} | Current leaderboard{% endblock %}
+{% block content %}
+<section class="leaderboard-page" data-leaderboard-page>
+  <header class="leaderboard-hero">
+    <p class="account-dashboard-kicker">Current challenge</p>
+    <h2>Rat Race leaderboard</h2>
+    <p>Each Rat Racer's highest-ranked active survivor, calculated from the latest approved run update.</p>
+    <p class="leaderboard-weighting"><strong>Score weighting:</strong> zombie kills 50%, outposts 25%, skills 25%.</p>
+  </header>
+
+  {% if leaderboard %}
+  <section class="leaderboard-panel" aria-label="Current challenge rankings" tabindex="0">
+    <div class="leaderboard-columns" aria-hidden="true">
+      <strong class="leaderboard-flag-heading" title="Rank">⚑</strong>
+      <strong>Participant</strong>
+      <strong>Survivor</strong>
+      <strong class="leaderboard-build-heading" title="Build"><span class="visually-hidden">Build</span>{% if leaderboard.0.build_header_icon_url %}<img src="{{ leaderboard.0.build_header_icon_url }}" alt="">{% else %}<span aria-hidden="true">Build</span>{% endif %}</strong>
+      <strong class="leaderboard-progress-heading">Progress <small>(weighted)</small></strong>
+      <div class="leaderboard-metric-columns">
+        <strong>Zombie kills</strong><strong>Outposts</strong><strong>Maxed skills</strong><strong>Day</strong><strong>Last verified</strong>
+      </div>
+    </div>
+    <ol class="leaderboard-list">
+      {% for entry in leaderboard %}
+        <li class="leaderboard-row{% if entry.rank == 1 %} is-leading{% endif %}">
+          <div class="leaderboard-rank"><small>Rank</small><strong>{{ entry.rank }}</strong></div>
+          <div class="leaderboard-participant">
+            <span class="leaderboard-provider-slot" aria-hidden="true"></span>
+            <strong>{{ entry.racer }}</strong>
+          </div>
+          <div class="leaderboard-survivor">
+            {% if request.user.is_authenticated %}
+              <a href="{% url 'registry:public_run_detail' entry.run.pk %}">{{ entry.survivor }}</a>
+            {% else %}
+              <button type="button" class="leaderboard-text-action" data-access-prompt-open data-access-title="Sign in to view survivor details" data-access-message="Create a Rat Race account or sign in to view this survivor's detailed character and run information." data-access-destination="{% url 'registry:public_run_detail' entry.run.pk %}">{{ entry.survivor }}</button>
+            {% endif %}
+          </div>
+          <button type="button" class="leaderboard-build-action" data-build-open="leaderboard-build-{{ entry.run.pk }}" aria-label="Show {{ entry.survivor }} build" title="Show Build: {{ entry.profession }}"{% if not request.user.is_authenticated %} data-access-title="Sign in to view survivor builds" data-access-message="Create a Rat Race account or sign in to view this survivor's starting profession and selected traits." data-access-destination="{% url 'registry:public_run_detail' entry.run.pk %}"{% endif %}>{% if entry.profession_icon_url %}<img src="{{ entry.profession_icon_url }}" alt="">{% else %}<span aria-hidden="true">Build</span>{% endif %}</button>
+          <div class="leaderboard-progress">
+            <div><span style="width: {{ entry.completion }}%"></span><strong>{{ entry.completion|floatformat:2 }}%</strong></div>
+          </div>
+          <dl class="leaderboard-metrics">
+            <div><dt>Zombie kills</dt><dd>{{ entry.kills|floatformat:"0g" }}</dd></div>
+            <div><dt>Outposts</dt><dd>{{ entry.outposts_completed }} / {{ entry.outposts_total }}</dd></div>
+            <div><dt>Maxed skills</dt><dd>{{ entry.maxed_skills }} / {{ entry.skills_total }}</dd></div>
+            <div><dt>In-game day</dt><dd>{{ entry.in_game_day|default:"-" }}</dd></div>
+            <div><dt>Last verified</dt><dd>{{ entry.verified_at|date:"j M Y" }}<small>{{ entry.verified_at|date:"H:i" }}</small></dd></div>
+          </dl>
+        </li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% else %}
+    <div class="leaderboard-empty"><h3>No active records yet</h3><p>Verified active runs will appear here.</p></div>
+  {% endif %}
+
+  {% for entry in leaderboard %}
+    {% if request.user.is_authenticated %}
+    <dialog class="leaderboard-build-modal" id="leaderboard-build-{{ entry.run.pk }}" aria-labelledby="leaderboard-build-title-{{ entry.run.pk }}">
+      <header>
+        <div><p class="account-dashboard-kicker">Starting build</p><strong id="leaderboard-build-title-{{ entry.run.pk }}">{{ entry.survivor }}</strong></div>
+        <div class="leaderboard-modal-actions">
+          <a class="dashboard-header-action" href="{% url 'registry:public_run_detail' entry.run.pk %}">View survivor record</a>
+          <button type="button" data-build-close>Close</button>
+        </div>
+      </header>
+      <div class="leaderboard-build-content">
+        <section class="leaderboard-profession">
+          {% if entry.profession_icon_url %}<img src="{{ entry.profession_icon_url }}" alt="">{% endif %}
+          <div><small>Profession</small><strong>{{ entry.profession }}</strong></div>
+        </section>
+        <section>
+          <h3>Selected starting traits</h3>
+          <div class="leaderboard-trait-columns">
+            <div class="leaderboard-trait-column leaderboard-trait-column-negative">
+              <h4>Negative traits</h4>
+              <ul>
+                {% for trait in entry.negative_traits %}
+                <li tabindex="0" aria-describedby="negative-trait-{{ entry.run.pk }}-{{ forloop.counter }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="">{% endif %}<span>{{ trait.name }}</span><strong>{{ trait.point_value }}</strong><span class="leaderboard-trait-tooltip" id="negative-trait-{{ entry.run.pk }}-{{ forloop.counter }}" role="tooltip">{{ trait.description|linebreaksbr }}</span></li>
+                {% empty %}<li class="leaderboard-trait-empty">None selected</li>{% endfor %}
+              </ul>
+            </div>
+            <div class="leaderboard-trait-column leaderboard-trait-column-positive">
+              <h4>Positive traits</h4>
+              <ul>
+                {% for trait in entry.positive_traits %}
+                <li tabindex="0" aria-describedby="positive-trait-{{ entry.run.pk }}-{{ forloop.counter }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="">{% endif %}<span>{{ trait.name }}</span><strong>{{ trait.point_value }}</strong><span class="leaderboard-trait-tooltip" id="positive-trait-{{ entry.run.pk }}-{{ forloop.counter }}" role="tooltip">{{ trait.description|linebreaksbr }}</span></li>
+                {% empty %}<li class="leaderboard-trait-empty">None selected</li>{% endfor %}
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+    </dialog>
+    {% endif %}
+  {% endfor %}
+
+  {% if not request.user.is_authenticated %}
+  <dialog class="leaderboard-build-modal leaderboard-access-modal" data-access-prompt aria-labelledby="leaderboard-access-title">
+    <header><strong id="leaderboard-access-title">Sign in to view survivor details</strong><button type="button" data-access-prompt-close>Close</button></header>
+    <div class="leaderboard-build-content">
+      <p data-access-message>Create a Rat Race account or sign in to view detailed character and run information.</p>
+      <div class="leaderboard-access-actions">
+        <a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a>
+        <a class="dashboard-header-action" data-access-sign-in href="{% url 'registry:login' %}?next={{ request.path|urlencode }}">Sign In</a>
+      </div>
+    </div>
+  </dialog>
+  {% endif %}
+</section>
+{% endblock %}

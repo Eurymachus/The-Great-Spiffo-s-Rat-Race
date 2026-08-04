@@ -4,7 +4,22 @@
   {% for app in app_list %}
     <div class="app-{{ app.app_label }} module{% if app.app_url in request.path|urlencode %} current-app{% endif %}">
       <table>
-        <caption><span class="section">{{ app.name }}</span></caption>
+        <caption>
+          {% if show_changelinks %}
+            <span class="section">{{ app.name }}</span>
+          {% else %}
+            <button
+              type="button"
+              class="section admin-sidebar-section-toggle"
+              data-admin-sidebar-section="{{ app.app_label }}"
+              aria-expanded="true"
+              aria-controls="admin-sidebar-section-{{ app.app_label }}"
+            >
+              <span>{{ app.name }}</span>
+              <span class="admin-sidebar-section-chevron" aria-hidden="true"></span>
+            </button>
+          {% endif %}
+        </caption>
         <thead class="visually-hidden">
           <tr>
             <th scope="col">{% translate 'Model name' %}</th>
@@ -12,6 +27,7 @@
             <th scope="col">{% translate 'Change or view list link' %}</th>
           </tr>
         </thead>
+        <tbody id="admin-sidebar-section-{{ app.app_label }}">
         {% for model in app.models %}
           {% with model_name=model.object_name|lower %}
             <tr class="model-{{ model_name }}{% if model.admin_url in request.path|urlencode %} current-model{% endif %}">
@@ -41,6 +57,7 @@
             </tr>
           {% endwith %}
         {% endfor %}
+        </tbody>
       </table>
     </div>
   {% endfor %}

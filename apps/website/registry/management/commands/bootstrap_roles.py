@@ -9,13 +9,20 @@ from registry.signals import sync_staff_status
 
 ROLE_PERMISSIONS = {
     "Participant": (),
-    "Approver": ("view_participant",),
+    "Workshop Mod Approver": ("view_workshopmod",),
+    "Run Submission Approver": (
+        "view_challengerun",
+        "view_runsubmission",
+        "change_runsubmission",
+    ),
     "Moderator": ("view_participant", "change_participant"),
     "Challenge Administrator": (
         "add_participant",
         "view_participant",
         "change_participant",
         "view_accountclosurerecord",
+        "view_workshopmod",
+        "change_workshopmod",
     ),
     "Branding Administrator": (
         "view_sitebranding",
@@ -41,6 +48,8 @@ ROLE_PERMISSIONS = {
         "delete_sectionitem",
     ),
 }
+
+LEGACY_ROLE_NAMES = ("Approver",)
 
 ZOMBOID_INTEGRATION_PERMISSIONS = (
     "add_catalogueentry",
@@ -74,6 +83,10 @@ class Command(BaseCommand):
     help = "Create or update the standard Rat Race account roles."
 
     def handle(self, *args, **options):
+        for role_name in LEGACY_ROLE_NAMES:
+            legacy_group = Group.objects.filter(name=role_name).first()
+            if legacy_group:
+                legacy_group.permissions.clear()
         for role_name, codenames in ROLE_PERMISSIONS.items():
             group, _ = Group.objects.get_or_create(name=role_name)
             permissions = Permission.objects.filter(

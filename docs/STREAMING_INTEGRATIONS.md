@@ -13,7 +13,14 @@ storage, channel linking, reconnection and revocation. Twitch credentials are
 validated at most hourly when used and refreshed reactively when Twitch rejects
 an expired access token. Participants can explicitly cache their 20 most recent
 broadcasts and 20 recent clips, then attach a broadcast, timestamps and clips to
-a run submission. YouTube remains unconfigured.
+a run submission. YouTube now supports Google-authorised channel linking,
+ownership proof, encrypted credentials, reconnection and disconnect. Recent
+YouTube video and archived livestream retrieval remains pending.
+
+Participants can explicitly select one owned, connected Twitch or YouTube
+account as their primary streaming channel. The current ranking table uses that
+selection for its provider icon and external channel link. The website does not
+guess a replacement when the selection is cleared, disconnected or invalidated.
 
 The participant UI uses the supplied official Twitch Glitch and YouTube icon
 assets in connected-channel rows and provider-specific actions. Shared template
@@ -40,6 +47,37 @@ testing so the registered callback and browser session use the same host.
 The Account Settings control remains visibly unavailable until all four values
 are present. The client secret and encryption key must be injected by the
 deployment environment and must not be committed.
+
+## YouTube configuration
+
+Create a Google OAuth web client, enable the YouTube Data API v3 and register the
+exact callback address used by the deployment. Supply these environment values:
+
+- `YOUTUBE_CLIENT_ID`
+- `YOUTUBE_CLIENT_SECRET`
+- `YOUTUBE_REDIRECT_URI` (for local development:
+  `http://localhost:8000/account/streaming/youtube/callback/`)
+- the shared `STREAMING_TOKEN_ENCRYPTION_KEY`
+
+The connection requests OpenID identity and the read-only YouTube scope. The
+client secret and encryption key must be injected by the deployment environment
+and must not be committed.
+
+### Operational requirements
+
+- Development must use the project's canonical startup command, which loads the
+  local uncommitted `.env` before starting Django. A bare `manage.py runserver`
+  is not an approved project start procedure.
+- Production must inject provider credentials and the Fernet key through the
+  deployment environment. It must not depend on a repository `.env` file.
+- Startup must reject a missing or malformed Fernet key whenever a provider is
+  configured, before the application accepts traffic.
+- The Fernet key is persistent application data. Rotating it requires an
+  explicit migration that decrypts and re-encrypts stored provider credentials.
+- Deployment checks must confirm that existing encrypted credentials can be
+  decrypted without logging their plaintext values.
+- Restart tooling must terminate the complete previous process tree and verify
+  that exactly one process is listening on the intended port.
 
 ## Separate identity from platform connections
 
@@ -109,10 +147,10 @@ Disconnecting a provider must revoke access where supported.
 
 ## Submission journey
 
-The eventual submission UI should:
+The submission UI:
 
-1. Ask which connected streaming platform contains the run.
-2. Offer a cached list of recent VODs from that participant's verified channel.
+1. Uses a compact inline selector for connected Twitch and YouTube channels.
+2. Offers a cached list of recent VODs from that participant's verified channel.
 3. Record the selected video's stable platform ID and canonical URL.
 4. Allow start and end timestamps plus optional supporting clips.
 5. Preserve a human-readable evidence snapshot for moderation and audit.
@@ -141,8 +179,9 @@ unavailable, a VOD is unlisted, or official API support is insufficient.
 2. Twitch linking and ownership proof. **Implemented.**
 3. Twitch token validation/reactive refresh and recent VOD/clip selection.
    **Implemented.**
-4. Google/YouTube linking, ownership proof and recent video/VOD selection.
+4. Google/YouTube linking, ownership proof, token renewal and recent video or
+   archived livestream selection. **Implemented.**
 5. Attach selected evidence to run submissions and moderator review.
-   **Implemented for Twitch and manual URLs.**
+   **Implemented for Twitch, YouTube and manual URLs.**
 6. Consider Twitch and Google as alternative sign-in methods only after linking,
    unlinking, collision handling and account recovery are tested.

@@ -6,6 +6,7 @@
     </div>
     <div class="run-detail-header-actions">
       {% if run.status == "official" %}<a class="run-detail-public-link" href="{% url 'registry:public_run_detail' run.pk %}">View full details</a>{% endif %}
+      {% if run.lifecycle_status == "active" %}<button type="button" class="run-detail-deactivate" data-run-deactivate-open="run-deactivate-{{ run.pk }}">Deactivate run</button>{% endif %}
       <button type="button" class="run-detail-close" data-run-detail-close aria-label="Close run details">Close</button>
     </div>
   </header>

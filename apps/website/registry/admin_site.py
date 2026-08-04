@@ -14,6 +14,7 @@ class RatRaceAdminSite(AdminSite):
         ),
         ("Challenge configuration", ("ChallengeMode",)),
         ("Run moderation", ("ChallengeRun", "RunSubmission")),
+        ("Mod policy", ("WorkshopMod",)),
         (
             "Platform integrations",
             ("StreamingAccount", "StreamingMedia"),

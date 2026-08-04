@@ -63,6 +63,74 @@ body.change-list #result_list tbody tr > td {
     font-weight: 400;
 }
 
+/* Keep the complete navigation reachable independently of short page content. */
+#nav-sidebar {
+    max-height: 100vh;
+    padding-bottom: 1rem;
+    box-sizing: border-box;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+body.change-form #nav-sidebar,
+body.add-form #nav-sidebar {
+    max-height: calc(100vh - 4.75rem);
+}
+
+body.model-codemanagedpage.change-form #nav-sidebar {
+    max-height: 100vh;
+}
+
+body.model-codemanagedpage.change-form #content {
+    padding-bottom: 20px;
+}
+
+#nav-sidebar .module caption {
+    padding: 0;
+}
+
+#nav-sidebar .admin-sidebar-section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 16px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+#nav-sidebar .admin-sidebar-section-toggle:hover,
+#nav-sidebar .admin-sidebar-section-toggle:focus-visible {
+    background: color-mix(in srgb, var(--primary) 82%, white);
+}
+
+#nav-sidebar .admin-sidebar-section-chevron {
+    width: .55rem;
+    height: .55rem;
+    margin-left: .75rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform .14s ease;
+}
+
+#nav-sidebar .module.is-collapsed .admin-sidebar-section-chevron {
+    transform: rotate(-45deg);
+}
+
+#nav-sidebar .module.is-collapsed tbody {
+    display: none;
+}
+
+#nav-sidebar.is-filtering .module tbody {
+    display: table-row-group;
+}
+
 /* Keep form actions available throughout every backend add/change form. */
 body.change-form #content,
 body.add-form #content {

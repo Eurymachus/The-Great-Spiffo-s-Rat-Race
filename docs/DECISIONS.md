@@ -39,6 +39,15 @@ are planned once the final domain is chosen.
 Documentation, reproducible setup, backup and recovery instructions, and a
 plain-language operator guide are completion requirements rather than later work.
 
+## 2026-08-01 - Use tgsrr.com as the public domain
+
+The project has purchased `tgsrr.com` through Spaceship.com. Spaceship is the
+domain registrar, and its website is the current place to manage DNS records and
+other domain settings. This settles the previously pending public-domain choice
+and supersedes the earlier assumption that Cloudflare would necessarily provide
+authoritative DNS. Hosting, HTTPS, traffic protection and other production
+services remain separate deployment decisions.
+
 ## 2026-07-13 — Qualify the word “official”
 
 The website and mod are official to The Great Spiffo's Rat Race community
@@ -49,7 +58,8 @@ Public wording must make that distinction clear and avoid implying endorsement.
 
 Signup creates a participant with a public nickname, private email login, and
 securely hashed password. Verification activates the account. Administrators may
-promote that same account to Approver, Moderator, or Challenge Administrator and
+promote that same account to Workshop Mod Approver, Run Submission Approver,
+Moderator, or Challenge Administrator and
 thereby grant scoped `/admin/` access. Signup never grants staff or superuser
 privileges automatically.
 
@@ -161,6 +171,19 @@ canonical run data. Denied, invalid, older, duplicate, and superseded
 submissions remain immutable audit records and do not become comparison
 baselines. Approval and denial record the moderator, timestamp, and decision
 reason, and applying an approval must be transactional.
+
+## 2026-08-03 - Limit active runs per participant and challenge mode
+
+Each Challenge Mode owns a configurable maximum number of active runs per
+participant, defaulting to one. The limit counts active run identities, whether
+their first submission is pending or approved. A later submission for the same
+active run is an update and does not consume another slot.
+
+A participant may deactivate their own active run without moderator review.
+Deactivation is irreversible: the run becomes Abandoned, any pending submissions
+for it are declined, later exports for that run ID are rejected, and its active
+slot becomes available immediately. The participant interface must show an
+explicit confirmation warning before applying this action.
 
 ## 2026-07-17 - Use a constrained, reusable page system
 
@@ -476,3 +499,243 @@ a normal run-moderation bulk action.
 - Better Item Info is a useful behavioural reference, but the website derives
   its catalogue from the installed Project Zomboid definitions rather than
   importing another mod's authored output.
+
+## 2026-07-30 - Keep public navigation available on long pages
+
+- The desktop navigation and account controls form a sticky full-width bar at
+  the top of the viewport once the page header scrolls away.
+- On compact layouts the hamburger, account, and notification controls remain
+  together in a sticky bar.
+- On compact guest layouts, labelled Sign In and Sign Up actions sit directly
+  beside the hamburger. The expandable navigation contains only managed site
+  links.
+- The compact bar hides when the reader scrolls down and returns when they
+  scroll up, reducing obstruction without making navigation hard to recover.
+- An open navigation, account, or notification panel keeps the compact bar
+  visible so active interaction is never dismissed by incidental scrolling.
+- Reduced-motion preferences disable the bar transition.
+
+## 2026-07-30 - Separate public event visibility from participant analysis
+
+- The landing page, a top-ten summary, the current leaderboard, and the Mods
+  catalogue are publicly visible. These views help
+  spectators follow the event and prospective participants understand it
+  before creating an account.
+- The public leaderboard shows each participant's active personal best. Runs
+  that are inactive are not valid for the current leaderboard, and the website
+  does not maintain separate current leaderboards for active and inactive runs.
+- Signed-in participants may browse a filterable historical view containing all
+  runs, including inactive runs.
+- Individual run data, detailed statistics, and analytical charts are available
+  only to signed-in participants.
+- Future record notifications are opt-in website notifications, not email. A
+  participant may be notified when someone exceeds a previous Rat Race record.
+- Live Rat Race stream or channel embeds remain a possible public feature, not
+  a settled requirement.
+
+## 2026-07-31 - Register code-managed pages alongside editorial pages
+
+- The Website Content administration area distinguishes editorial Pages from
+  Code-managed Pages.
+- A Code-managed Page represents a stable application route whose templates,
+  queries, access control and behaviour remain implemented in version-controlled
+  code. Administrators do not recreate or edit that functionality as page
+  content.
+- Each registered route has a stable code key, display identity, description,
+  availability state and code-enforced audience such as public, signed-in
+  participant or staff. Administration may not weaken its security boundary.
+- Navigation placement remains separate from page availability. A Navigation
+  Item may target either an editorial Page or a registered Code-managed Page,
+  while address-driven destinations such as an individual run need not appear
+  in navigation.
+- Known application routes are installed deterministically so their registry
+  records cannot drift from the routes implemented by the website.
+- This registry is the foundation for replacing the current test navigation
+  with the launch information architecture.
+
+## 2026-07-31 - Use permanent team voting for mod policy
+
+- Mod review is a permanent team workflow used for both the historical mod list
+  and future participant requests submitted with a Steam Workshop link.
+- The active official policy uses the concise states `Allowed`, `Disallowed`
+  and `Pending review`. The active game is implied, so these states are not
+  labelled Stable in ordinary administration or public presentation.
+- Every imported historical mod separately records its `Previous Unstable
+  ruling` as `Allowed`, `Disallowed`, `Not reviewed` or `Unknown`. This is
+  provenance for reviewers, not the current official ruling.
+- An optional `Unstable ruling notes` field may preserve a known historical
+  reason without changing the active ruling.
+- Eligible team members vote `Allow`, `Disallow` or `Discuss`. Not voting is
+  sufficient when a team member does not wish to take a position, so there is
+  no separate Abstain vote.
+  Individual votes and reasons remain attributable. Rejections and requests for
+  discussion should include a concise reason.
+- Voting produces a recommendation and disagreement queue. It does not directly
+  change public policy. An authorised reviewer records the final ruling,
+  reviewer, timestamp and rationale after considering the team result.
+- The final reviewer may start from a reusable Allowed or Disallowed public
+  rationale template. Its text is copied into the ordinary rationale field for
+  review and editing, and the confirmed wording is stored rather than a template
+  identifier. Public wording references policy and does not expose individual
+  votes or internal discussion.
+- The public Mods page exposes only the active official ruling and appropriate
+  public rationale. It is one searchable catalogue with ruling filters for
+  Allowed and Disallowed rather than separate pages. Individual votes, internal
+  discussion and historical Unstable provenance remain team-facing.
+- Only mods explicitly listed as `Allowed` or `Required` may be used in a Rat
+  Race run. `Disallowed` and unlisted mods cannot be used. Cosmetic or
+  quality-of-life characteristics guide review decisions but do not exempt an
+  unlisted mod from review and publication in the catalogue.
+- A `More Info` action opens an in-page rules modal. It explains that an eligible
+  mod must be purely cosmetic and must not provide information unavailable in
+  the unmodded game, using generalised examples without linking to individual
+  Workshop items.
+- The official TGSRR mod is a distinguished `Required` entry. It remains pinned
+  above the ordinary mod results and is visually highlighted so participants do
+  not mistake it for an optional Allowed mod.
+- Selected `Allowed` mods may also carry a separate `Recommended` flag. They
+  appear in a curated section above ordinary mod rulings and are not duplicated
+  in the results below. Recommended is presentation guidance, not an additional
+  official ruling, and a Disallowed mod cannot remain recommended.
+- The Mods page has a `Submit for review` action at the top right. It opens an
+  in-page modal where a participant enters a Steam Workshop item ID and a
+  required `Reason for adding this mod`.
+- Before submission, the website validates the Workshop ID format, confirms the
+  item exists through Steam, and checks the local catalogue for an existing
+  Allowed, Disallowed or pending record. Existing rulings are shown instead of
+  creating a duplicate request.
+- A valid new request enters `Pending review` and the permanent team voting and
+  authorised final-review workflow. Participant submissions never publish an
+  Allowed or Disallowed ruling directly.
+- The modal has a clear Submit action and reports field, Steam-validation and
+  duplicate errors without discarding the participant's entered reason.
+- Existing mods should be imported with their historical provenance before
+  ratification. The voting interface was subsequently reprioritised and
+  implemented on 1 August 2026.
+- On 1 August 2026 the approval journey was reprioritised. The existing mod table
+  remains temporary development and import data and will be wiped before the
+  completed workflow is tested from a clean state.
+- Approval authority is split into two named roles. `Workshop Mod Approver`
+  grants access to the mod queue and team voting but not final publication.
+  `Run Submission Approver` grants access to review, approve and decline run
+  submissions but does not grant mod-voting authority. The former generic
+  `Approver` role is retired and receives no permissions after role bootstrap;
+  its members must be deliberately assigned to the appropriate scoped role.
+
+## 2026-08-03 - Import the Unstable Hall of Fame from a packaged snapshot
+
+- Only the Google workbook's `Historical Leaderboard` worksheet is imported.
+  The `Active Runs Only` worksheet is not part of the website legacy dataset.
+- Historical Unstable results remain separate from verified website
+  `ChallengeRun` and `RunSubmission` records. Missing exports, survivor names,
+  event ledgers and review timestamps must not be invented.
+- Before production deployment, the public Google worksheet is exported,
+  validated and normalized into a dated, version-controlled snapshot included
+  in the deployment package. Production does not fetch Google Sheets at runtime
+  or while applying database migrations.
+- An idempotent management command imports the packaged snapshot. Re-running it
+  updates source-owned historical values without duplicating entries or
+  removing an approved participant claim.
+- Every legacy row permanently preserves its imported display name, source rank,
+  result values, source link, source row and snapshot provenance.
+- A legacy row may later be associated with a current participant through an
+  auditable claim-review journey. Exact nickname matches may suggest a claim but
+  never assign one automatically. Approval may use a matching connected stream
+  account, supplied evidence or manual team verification.
+- Claim approval links the current public participant profile while retaining
+  the original historical identity and figures unchanged.
+
+## 2026-07-31 - Keep the public leaderboard concise and gate survivor details
+
+- The public current leaderboard is sorted by weighted challenge completion
+  using the approved snapshot's partial category progress. Zombie kills provide
+  50% of the score; outposts and skills provide 25% each.
+- Its main presentation begins with a compact primary-stream icon and includes
+  rank, racer and survivor identity, total zombie kills, outposts completed,
+  maxed skills, in-game day and the last verified update time.
+- Participant and survivor identity are separate leaderboard columns. The
+  participant name will link to a public participant profile once that page's
+  public-data contract is settled. The survivor link retains the signed-in
+  detail gate. The Build column uses the PZWiki Ball-peen Hammer artwork as its
+  heading and each row uses that survivor's starting occupation icon as the
+  control that opens the starting-build modal. Custom occupations use the
+  website-owned Custom Occupation icon.
+- A participant may select one connected account as their `Primary streaming
+  channel`. The setting is provider-neutral so Twitch, YouTube and later
+  supported streaming providers use the same relationship.
+- The leaderboard icon uses the selected provider's official mark, has an
+  accessible channel label, and opens the participant's public channel in a new
+  tab. A participant without an eligible primary channel has no linked icon.
+- Only a currently connected streaming account owned by that participant may be
+  selected. Disconnecting or invalidating the selected account clears or
+  disables the primary relationship safely; the website never guesses a
+  replacement channel.
+- The provider icon may present cached `Live`, `Offline`, `Unknown` or `Stale`
+  status. A provider failure becomes Unknown rather than falsely reporting
+  Offline, and streaming status never affects challenge ranking.
+- Twitch live status uses verified `stream.online` and `stream.offline` EventSub
+  notifications for prompt changes, backed by periodic batched reconciliation,
+  startup reconciliation and a stale threshold. Other providers implement the
+  same contract through their own adapters when supported.
+- Live-status changes emit only a public-safe leaderboard invalidation marker.
+  Open leaderboard pages fetch refreshed public data through the same SSE and
+  visible-tab polling pattern used elsewhere; browsers never query providers
+  directly.
+- Outposts and maxed skills should be presented as progress counts, such as
+  `8 / 13` and `12 / 35`, where the total improves comprehension.
+- Participant and survivor remain separate columns. The survivor identity links
+  to the individual survivor record.
+- Detailed character and run information remains visible only to signed-in
+  participants. It does not expand the public leaderboard table.
+- Selecting a survivor while signed out opens an access prompt rather than
+  navigating away immediately. The prompt heading is `Sign in to view survivor
+  details` and explains that a Rat Race account is required to view detailed
+  character and run information.
+- The prompt offers `Sign Up`, `Sign In` and `Close`. Sign-up and sign-in preserve
+  the selected survivor URL as the return destination after authentication.
+- Each leaderboard entry also offers a compact `Show Build` control beside the
+  survivor identity. It does not add trait columns to the main leaderboard.
+- For signed-in participants, `Show Build` opens an in-page modal showing the
+  survivor name, starting profession, starting positive and negative traits,
+  and starting skill boosts when included. The modal also links to the full
+  survivor record.
+- The build is sourced only from the canonical approved run snapshot. Starting
+  choices remain distinct from currently effective traits so acquired or
+  removed traits never rewrite the original build.
+- Desktop and compact layouts use the same accessible modal content rather than
+  relying on hover-only behaviour.
+- Desktop and mobile use the same compact columnar leaderboard. Narrow screens
+  scroll the leaderboard panel horizontally, following the survivor skills-list
+  pattern, rather than transforming each entry into a card.
+- For signed-out visitors, `Show Build` opens the access prompt with the heading
+  `Sign in to view survivor builds`. It explains that an account is required to
+  view the starting profession and traits, and offers `Sign Up`, `Sign In` and
+  `Close` while preserving the intended survivor destination.
+
+## 2026-08-02 - Build rankings as a configurable managed-page block
+
+- Managed Pages may include a reusable `Ranking Table` block backed by canonical
+  run and challenge data. It is not limited to hard-coded Current Leaderboard,
+  Hall of Fame or Legacy Hall of Fame presets.
+- The block exposes a bounded, validated query configuration. Administrators may
+  filter by challenge mode, game or challenge build, run lifecycle and selected
+  participants. Appropriate filters support multiple selected values through an
+  add-and-remove control rather than a browser-native multi-select box.
+- Values selected within one filter use OR semantics. Different filters use AND
+  semantics. For example, Standard mode AND (Active OR Completed) is valid. The
+  editor displays a human-readable summary of the effective query.
+- Result selection may choose every eligible run, the best eligible run per
+  participant or the latest eligible run per participant. The block also
+  controls the primary ordering, deterministic tie-breaking, maximum row count,
+  visible column set and column order.
+- Display controls may enable the heading, introductory copy, score-weighting
+  note, starting-build action and detailed-run links. Presentation choices never
+  alter ranking eligibility or canonical values.
+- Django owns all query construction, scoring, eligibility, privacy and link
+  gating. Editors cannot enter arbitrary database queries, expose pending or
+  declined submissions, include unapproved snapshots or bypass signed-in run
+  detail restrictions.
+- The intended initial configurations are: Current Leaderboard for active runs,
+  Hall of Fame for each participant's strongest eligible Stable terminal run,
+  and Legacy Hall of Fame for imported Unstable-build personal bests. Legacy
+  results remain visibly and logically separate from Stable rankings.

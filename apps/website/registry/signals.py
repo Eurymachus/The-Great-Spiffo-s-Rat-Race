@@ -6,7 +6,8 @@ from .models import Participant
 
 
 STAFF_ROLE_NAMES = {
-    "Approver",
+    "Workshop Mod Approver",
+    "Run Submission Approver",
     "Moderator",
     "Challenge Administrator",
     "Branding Administrator",

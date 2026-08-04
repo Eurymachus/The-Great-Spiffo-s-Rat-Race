@@ -1,0 +1,102 @@
+{% extends "admin/change_form.html" %}
+
+{% block field_sets %}
+  {% if original %}
+    <div class="mod-review-admin">
+      <section class="mod-review-hero">
+        {% if original.preview_url %}<img src="{{ original.preview_url }}" alt="" width="160" height="160">{% endif %}
+        <div>
+          <p class="mod-review-kicker">Mod approval review</p>
+          <h2>{{ original.title }}</h2>
+          <p>Steam Workshop ID: <strong>{{ original.workshop_id }}</strong></p>
+          <a class="button" href="{{ original.steam_url }}" target="_blank" rel="noopener noreferrer">View on Steam</a>
+        </div>
+        <span class="mod-review-status status-{{ original.ruling }}">{{ original.get_ruling_display }}</span>
+      </section>
+
+      <div class="mod-review-summary">
+        <section>
+          <h3>Participant request</h3>
+          {% if original.submitted_by %}<p>Submitted by <strong>{{ original.submitted_by }}</strong></p>{% endif %}
+          <p>{{ original.submission_reason|default:"No participant reason was recorded." }}</p>
+        </section>
+        <section>
+          <h3>Previous Unstable policy</h3>
+          <p><strong>{{ original.get_previous_unstable_ruling_display }}</strong></p>
+          <p>{{ original.unstable_ruling_notes|default:"No historical notes were recorded." }}</p>
+        </section>
+      </div>
+
+      <section class="mod-voting-panel">
+        <header>
+          <div><p class="mod-review-kicker">Team voting</p><h3>{{ mod_vote_recommendation }}</h3></div>
+          <div class="mod-vote-totals" aria-label="Vote totals">
+            <span class="vote-allow">Allow {{ mod_vote_counts.allow }}</span>
+            <span class="vote-disallow">Disallow {{ mod_vote_counts.disallow }}</span>
+            <span class="vote-discuss">Discuss {{ mod_vote_counts.discuss }}</span>
+          </div>
+        </header>
+
+        {% if can_vote_on_mod %}
+          <div class="mod-vote-form">
+            <fieldset>
+              <legend>Your vote</legend>
+              <label><input type="radio" name="decision" value="allow"{% if current_mod_vote.decision == 'allow' %} checked{% endif %}> Allow</label>
+              <label><input type="radio" name="decision" value="disallow"{% if current_mod_vote.decision == 'disallow' %} checked{% endif %}> Disallow</label>
+              <label><input type="radio" name="decision" value="discuss"{% if current_mod_vote.decision == 'discuss' %} checked{% endif %}> Discuss</label>
+            </fieldset>
+            <label for="mod-vote-reason">Reason <small>(required for Disallow or Discuss)</small></label>
+            <textarea id="mod-vote-reason" name="reason" rows="3">{{ current_mod_vote.reason|default:"" }}</textarea>
+            <button
+              type="submit"
+              class="button default"
+              formaction="{% url 'admin:registry_workshopmod_vote' original.pk %}"
+              formmethod="post"
+            >Record vote</button>
+          </div>
+        {% elif original.ruling != 'pending' %}
+          <p class="mod-voting-closed">Voting closed when the final ruling was recorded.</p>
+        {% endif %}
+
+        <div class="mod-vote-records">
+          <h4>Attributable votes</h4>
+          {% for vote in mod_votes %}
+            <article class="mod-vote-record vote-{{ vote.decision }}">
+              <strong>{{ vote.voter_name }}</strong>
+              <span>{{ vote.get_decision_display }}</span>
+              {% if vote.reason %}<p>{{ vote.reason }}</p>{% endif %}
+              <time datetime="{{ vote.updated_at|date:'c' }}">{{ vote.updated_at|date:"j F Y, H:i" }}</time>
+            </article>
+          {% empty %}
+            <p>No team votes have been recorded.</p>
+          {% endfor %}
+        </div>
+      </section>
+
+      {% if has_change_permission %}
+        <section class="mod-rationale-templates" aria-labelledby="mod-rationale-templates-title">
+          <header>
+            <p class="mod-review-kicker">Final public wording</p>
+            <h3 id="mod-rationale-templates-title">Public rationale templates</h3>
+            <p>Choose a starting point, then review or edit the wording in Public rationale before saving the final ruling.</p>
+          </header>
+          <div class="mod-rationale-template-groups">
+            {% for group, templates in public_rationale_templates.items %}
+              <div>
+                <h4>{{ group }}</h4>
+                {% for rationale in templates %}
+                  <button type="button" class="button mod-rationale-template" data-public-rationale="{{ rationale }}" data-ruling="{{ group|lower }}">{{ rationale }}</button>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if original.reviewed_at %}
+        <p class="mod-review-audit">Last finalised by <strong>{{ original.reviewed_by|default:"Former administrator" }}</strong> on {{ original.reviewed_at|date:"j F Y, H:i" }}.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

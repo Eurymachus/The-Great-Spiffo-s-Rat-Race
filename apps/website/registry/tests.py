@@ -25,7 +25,7 @@ from branding.models import SiteBranding
 from pages.models import NavigationItem, Page, PageBlock, PageSection
 from .admin import export_registrations, promote_to_role
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
-from .models import AccountClosureRecord, Notification, Participant, StreamingAccount
+from .models import AccountClosureRecord, LegacyLeaderboardEntry, Notification, Participant, StreamingAccount, StreamingMedia
 from .tokens import create_verification_token
 from .streaming import (
     TWITCH_STATE_SESSION_KEY,
@@ -34,6 +34,52 @@ from .streaming import (
     encrypt_token,
 )
 from .discord_integration import DISCORD_STATE_SESSION_KEY
+from .youtube_integration import YOUTUBE_STATE_SESSION_KEY
+from .leaderboard import build_ranking_table
+
+
+class LegacyLeaderboardImportTests(TestCase):
+    def test_packaged_import_is_idempotent_and_preserves_claim_owner(self):
+        call_command("import_legacy_leaderboard", verbosity=0)
+        self.assertEqual(LegacyLeaderboardEntry.objects.count(), 205)
+        participant = Participant.objects.create_user(
+            email="legacy@example.com", nickname="LegacyRacer", password="valid-test-password"
+        )
+        entry = LegacyLeaderboardEntry.objects.order_by("source_rank").first()
+        entry.claimed_participant = participant
+        entry.save(update_fields=("claimed_participant",))
+
+        call_command("import_legacy_leaderboard", verbosity=0)
+
+        self.assertEqual(LegacyLeaderboardEntry.objects.count(), 205)
+        entry.refresh_from_db()
+        self.assertEqual(entry.claimed_participant, participant)
+
+    def test_legacy_page_uses_fixed_provider_slot_and_channel_link(self):
+        call_command("import_legacy_leaderboard", verbosity=0)
+        response = self.client.get("/legacyhalloffame/", HTTP_HOST="127.0.0.1")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "leaderboard-provider-slot")
+        self.assertContains(response, 'target="_blank"')
+        self.assertContains(response, "streaming-provider-icon-twitch")
+
+    def test_legacy_ranking_honours_selected_ordering(self):
+        call_command("import_legacy_leaderboard", verbosity=0)
+        base = {
+            "source": "legacy_hall_of_fame",
+            "lifecycles": [],
+            "selection": "all",
+            "limit": 500,
+        }
+
+        by_progress = build_ranking_table({**base, "ordering": "weighted_completion"})
+        by_kills = build_ranking_table({**base, "ordering": "kills"})
+        by_source = build_ranking_table({**base, "ordering": "source_rank"})
+
+        self.assertGreaterEqual(by_progress[0]["completion"], by_progress[1]["completion"])
+        self.assertGreaterEqual(by_kills[0]["kills"], by_kills[1]["kills"])
+        self.assertEqual([entry["source_rank"] for entry in by_source[:3]], [1, 2, 3])
+        self.assertEqual([entry["rank"] for entry in by_progress[:3]], [1, 2, 3])
 
 
 class RegistrationTests(TestCase):
@@ -100,6 +146,65 @@ class RegistrationTests(TestCase):
         self.assertContains(form_page, "cf-turnstile")
         self.assertContains(form_page, "Create account")
         self.assertNotContains(form_page, "I confirm that I am aged 18 or over")
+
+    def test_registration_form_enables_validation_on_focus_loss(self):
+        self.registration_data()
+        form_page = self.client.get(reverse("registry:register"))
+
+        self.assertContains(form_page, "data-registration-form")
+        self.assertContains(
+            form_page,
+            f'data-validation-url="{reverse("registry:validate_registration_field")}"',
+        )
+        self.assertContains(form_page, "registry/registration_validation.js")
+        self.assertContains(form_page, 'data-validation-for="nickname"')
+        self.assertContains(form_page, 'data-validation-for="password_confirmation"')
+
+    def test_registration_field_validation_reports_availability_and_policy(self):
+        self.registration_data()
+        Participant.objects.create_user(
+            nickname="ReservedRacer",
+            email="reserved@example.com",
+            password="Local-test-password-482!",
+        )
+        validation_url = reverse("registry:validate_registration_field")
+
+        nickname = self.client.post(
+            validation_url,
+            {"field": "nickname", "value": "reservedracer"},
+        )
+        self.assertFalse(nickname.json()["valid"])
+        self.assertIn("already reserved", nickname.json()["errors"][0])
+
+        email = self.client.post(
+            validation_url,
+            {"field": "email", "value": "RESERVED@example.com"},
+        )
+        self.assertFalse(email.json()["valid"])
+        self.assertIn("already registered", email.json()["errors"][0])
+
+        password = self.client.post(
+            validation_url,
+            {"field": "password", "value": "password"},
+        )
+        self.assertFalse(password.json()["valid"])
+        self.assertTrue(password.json()["errors"])
+
+        available = self.client.post(
+            validation_url,
+            {"field": "nickname", "value": "AvailableRacer"},
+        )
+        self.assertTrue(available.json()["valid"])
+        self.assertEqual(available.json()["message"], "This nickname is available.")
+
+    def test_registration_field_validation_requires_current_age_eligibility(self):
+        response = self.client.post(
+            reverse("registry:validate_registration_field"),
+            {"field": "nickname", "value": "AvailableRacer"},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["error"], "Registration eligibility has expired.")
 
     def test_age_gate_redirect_survives_inherited_refresh_header(self):
         response = self.client.post(
@@ -738,6 +843,46 @@ class RegistrationTests(TestCase):
             account.status,
             StreamingAccount.Status.RECONNECT_REQUIRED,
         )
+
+    @patch("registry.views.refresh_youtube_media")
+    def test_youtube_media_refresh_returns_provider_specific_options(self, refresh_media):
+        participant = Participant.objects.create_user(
+            email="youtube-streamer@example.com",
+            nickname="YouTubeStreamer",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        account = StreamingAccount.objects.create(
+            participant=participant,
+            provider=StreamingAccount.Provider.YOUTUBE,
+            provider_identity="google-user-42",
+            channel_identity="youtube-channel-42",
+            display_name="Spiffo Videos",
+            channel_url="https://www.youtube.com/channel/youtube-channel-42",
+        )
+        media = StreamingMedia.objects.create(
+            account=account,
+            kind=StreamingMedia.Kind.VIDEO,
+            provider_media_id="youtube-video-42",
+            title="A Rat Race run",
+            canonical_url="https://www.youtube.com/watch?v=youtube-video-42",
+            published_at=timezone.now(),
+        )
+        refresh_media.return_value = (1, 0)
+        self.client.force_login(participant)
+
+        response = self.client.post(
+            reverse("registry:refresh_streaming_media"),
+            {"provider": StreamingAccount.Provider.YOUTUBE},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(response.json()["provider"], StreamingAccount.Provider.YOUTUBE)
+        self.assertIn(str(media.id), [item["value"] for item in response.json()["videos"]])
+        self.assertEqual(response.json()["clips"], [])
 
     @override_settings(
         TWITCH_CLIENT_ID="client-id",
@@ -1751,3 +1896,169 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("nickname,email,status", content)
         self.assertIn("Spiffo Fan,player@example.com,pending", content)
+
+    @override_settings(
+        YOUTUBE_CLIENT_ID="youtube-client-id",
+        YOUTUBE_CLIENT_SECRET="youtube-client-secret",
+        YOUTUBE_REDIRECT_URI="http://testserver/account/streaming/youtube/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
+    def test_youtube_connect_starts_state_protected_authorization(self):
+        participant = Participant.objects.create_user(
+            email="youtube@example.com",
+            nickname="YouTube User",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:connect_youtube"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            response.url.startswith("https://accounts.google.com/o/oauth2/v2/auth?")
+        )
+        self.assertIn("youtube.readonly", response.url)
+        self.assertIn("access_type=offline", response.url)
+        self.assertIn(YOUTUBE_STATE_SESSION_KEY, self.client.session)
+
+    @override_settings(
+        YOUTUBE_CLIENT_ID="youtube-client-id",
+        YOUTUBE_CLIENT_SECRET="youtube-client-secret",
+        YOUTUBE_REDIRECT_URI="http://testserver/account/streaming/youtube/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
+    @patch("registry.views.fetch_youtube_channel")
+    @patch("registry.views.fetch_google_identity")
+    @patch("registry.views.exchange_youtube_code")
+    def test_youtube_callback_links_owned_channel_and_encrypts_tokens(
+        self, exchange_code, fetch_identity, fetch_channel
+    ):
+        participant = Participant.objects.create_user(
+            email="youtube@example.com",
+            nickname="YouTube User",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+        session = self.client.session
+        session[YOUTUBE_STATE_SESSION_KEY] = {
+            "value": "safe-state",
+            "created_at": timezone.now().timestamp(),
+        }
+        session.save()
+        exchange_code.return_value = {
+            "access_token": "youtube-access-secret",
+            "refresh_token": "youtube-refresh-secret",
+            "expires_in": 3600,
+            "scope": "openid https://www.googleapis.com/auth/youtube.readonly",
+        }
+        fetch_identity.return_value = {
+            "sub": "google-sub-42",
+            "email": "owner@example.com",
+        }
+        fetch_channel.return_value = {
+            "id": "youtube-channel-42",
+            "snippet": {"title": "Spiffo Videos"},
+        }
+
+        response = self.client.get(
+            reverse("registry:youtube_callback"),
+            {"code": "authorization-code", "state": "safe-state"},
+        )
+
+        self.assertRedirects(response, reverse("registry:account_settings"))
+        account = StreamingAccount.objects.get(
+            participant=participant,
+            provider=StreamingAccount.Provider.YOUTUBE,
+        )
+        self.assertEqual(account.provider_identity, "google-sub-42")
+        self.assertEqual(account.channel_identity, "youtube-channel-42")
+        self.assertEqual(account.display_name, "Spiffo Videos")
+        self.assertEqual(
+            decrypt_token(account.encrypted_access_token),
+            "youtube-access-secret",
+        )
+        self.assertEqual(
+            decrypt_token(account.encrypted_refresh_token),
+            "youtube-refresh-secret",
+        )
+
+    def test_participant_can_select_only_an_owned_connected_broadcast_channel(self):
+        participant = Participant.objects.create_user(
+            email="primary@example.com",
+            nickname="Primary User",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        twitch = StreamingAccount.objects.create(
+            participant=participant,
+            provider=StreamingAccount.Provider.TWITCH,
+            provider_identity="twitch-primary",
+            channel_identity="twitch-primary",
+            display_name="Primary Twitch",
+            channel_url="https://www.twitch.tv/primary",
+        )
+        discord = StreamingAccount.objects.create(
+            participant=participant,
+            provider=StreamingAccount.Provider.DISCORD,
+            provider_identity="discord-primary",
+            channel_identity="discord-primary",
+            display_name="Primary Discord",
+            channel_url="https://discord.com/users/primary",
+        )
+        self.client.force_login(participant)
+
+        response = self.client.post(
+            reverse("registry:set_primary_streaming_channel"),
+            {"account_id": twitch.id},
+        )
+        self.assertRedirects(response, reverse("registry:account_settings"))
+        participant.refresh_from_db()
+        self.assertEqual(participant.primary_streaming_account, twitch)
+
+        response = self.client.post(
+            reverse("registry:set_primary_streaming_channel"),
+            {"account_id": discord.id},
+        )
+        self.assertEqual(response.status_code, 404)
+        participant.refresh_from_db()
+        self.assertEqual(participant.primary_streaming_account, twitch)
+
+    @override_settings(
+        YOUTUBE_CLIENT_ID="youtube-client-id",
+        YOUTUBE_CLIENT_SECRET="youtube-client-secret",
+        YOUTUBE_REDIRECT_URI="http://testserver/account/streaming/youtube/callback/",
+        STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
+    )
+    @patch("registry.youtube_integration._json_request", return_value={})
+    def test_youtube_disconnect_clears_primary_channel(self, revoke_request):
+        participant = Participant.objects.create_user(
+            email="youtube@example.com",
+            nickname="YouTube User",
+            password="Local-test-password-482!",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        account = StreamingAccount.objects.create(
+            participant=participant,
+            provider=StreamingAccount.Provider.YOUTUBE,
+            provider_identity="google-sub-42",
+            channel_identity="youtube-channel-42",
+            display_name="Spiffo Videos",
+            channel_url="https://www.youtube.com/channel/youtube-channel-42",
+            encrypted_access_token=encrypt_token("youtube-access-secret"),
+        )
+        participant.primary_streaming_account = account
+        participant.save(update_fields=("primary_streaming_account",))
+        self.client.force_login(participant)
+
+        response = self.client.post(reverse("registry:disconnect_youtube"))
+
+        self.assertRedirects(response, reverse("registry:account_settings"))
+        participant.refresh_from_db()
+        self.assertIsNone(participant.primary_streaming_account)
+        revoke_request.assert_called_once()

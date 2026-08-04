@@ -17,12 +17,10 @@
                 const widths = [
                     window.innerWidth,
                     window.visualViewport?.width,
-                    window.screen?.width,
                 ].filter((width) => Number.isFinite(width) && width > 0);
                 const heights = [
                     window.innerHeight,
                     window.visualViewport?.height,
-                    window.screen?.height,
                 ].filter((height) => Number.isFinite(height) && height > 0);
                 if (widths.length) {
                     document.documentElement.style.setProperty(
@@ -74,9 +72,10 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260728-15">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260804-8">
+    <script src="{% static 'registry/leaderboard.js' %}?v=20260803-3" defer></script>
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
-    <script src="{% static 'registry/site_menu.js' %}?v=20260728-3" defer></script>
+    <script src="{% static 'registry/site_menu.js' %}?v=20260731-1" defer></script>
     <script src="{% static 'registry/account_menu.js' %}?v=20260722-1" defer></script>
     <script src="{% static 'registry/avatar_modal.js' %}?v=20260723-2" defer></script>
     <script src="{% static 'registry/connection_modal.js' %}?v=20260725-1" defer></script>
@@ -138,13 +137,7 @@
             <a href="{% url 'admin:branding_websitetheme_changelist' %}">Return to themes</a>
         </aside>
         {% endif %}
-        <header class="site-header">
-            {% if site_header_logo_url %}
-            <img class="site-header-logo" src="{{ site_header_logo_url }}" alt="{{ site_header_logo_alt }}">
-            {% endif %}
-            <p class="eyebrow">{{ site_tagline }}</p>
-            <h1>{{ site_full_title }}</h1>
-            <div class="site-header-controls">
+        <div class="site-header-controls">
                 <button class="site-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-menu" aria-label="Open navigation" data-site-menu-toggle>
                     <span class="site-menu-toggle-icon" aria-hidden="true"><i></i><i></i><i></i></span>
                 </button>
@@ -166,11 +159,17 @@
                         </div>
                     </li>
                     <li class="site-nav-item site-utility-item site-sign-up-item">
-                    <a href="{% url 'registry:register' %}"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign Up</a>
+                    <a href="{% url 'registry:register' %}#sign-up"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign Up</a>
                     </li>
                 {% endif %}
                 </ul>
                 </nav>
+                {% if not request.user.is_authenticated %}
+                <ul class="site-guest-actions" aria-label="Account">
+                    <li><a href="{% url 'registry:login' %}#sign-in"{% if request.resolver_match.url_name == 'login' %} aria-current="page"{% endif %}>Sign In</a></li>
+                    <li><a href="{% url 'registry:register' %}#sign-up"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign Up</a></li>
+                </ul>
+                {% endif %}
                 {% if request.user.is_authenticated %}
                 <ul class="site-utility-list" aria-label="Account and notifications">
                     <li class="site-nav-item site-utility-item site-account-item has-children">
@@ -229,7 +228,13 @@
                     </li>
                 </ul>
                 {% endif %}
-            </div>
+        </div>
+        <header class="site-header">
+            {% if site_header_logo_url %}
+            <img class="site-header-logo" src="{{ site_header_logo_url }}" alt="{{ site_header_logo_alt }}">
+            {% endif %}
+            <p class="eyebrow">{{ site_tagline }}</p>
+            <h1>{{ site_full_title }}</h1>
         </header>
         <main id="main-content">
             {% block content %}{% endblock %}

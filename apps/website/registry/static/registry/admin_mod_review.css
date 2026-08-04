@@ -1,0 +1,53 @@
+.mod-review-admin { display: grid; gap: 1rem; margin-bottom: 1.25rem; }
+.mod-review-hero,
+.mod-review-summary > section,
+.mod-review-audit { border: 1px solid var(--hairline-color); border-radius: 4px; background: var(--darkened-bg); }
+.mod-review-hero { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; padding: 1rem; }
+.mod-review-hero img { width: 7rem; height: 7rem; border-radius: 4px; object-fit: cover; }
+.mod-review-hero h2 { margin: .2rem 0 .45rem; color: var(--body-fg); }
+.mod-review-hero p { margin: 0 0 .65rem; }
+.mod-review-kicker { color: var(--accent); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.mod-review-status { align-self: start; padding: .3rem .65rem; border: 1px solid currentColor; border-radius: 999px; font-size: .75rem; font-weight: 700; text-transform: uppercase; }
+.mod-review-status.status-pending { color: #f0c36b; }
+.mod-review-status.status-allowed { color: #72c879; }
+.mod-review-status.status-disallowed { color: #e58b91; }
+.mod-review-status.status-required { color: #79aec8; }
+.mod-review-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.mod-review-summary > section { padding: 1rem; }
+.mod-review-summary h3 { margin-top: 0; }
+.mod-review-summary p:last-child { margin-bottom: 0; color: var(--body-quiet-color); white-space: pre-wrap; }
+.mod-review-audit { margin: 0; padding: .75rem 1rem; }
+.mod-voting-panel { border: 1px solid var(--hairline-color); border-radius: 4px; background: var(--darkened-bg); padding: 1rem; }
+.mod-voting-panel > header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--hairline-color); padding-bottom: .8rem; }
+.mod-voting-panel h3, .mod-voting-panel h4 { margin: .2rem 0; }
+.mod-vote-totals { display: flex; flex-wrap: wrap; gap: .5rem; }
+.mod-vote-totals span { border: 1px solid currentColor; border-radius: 999px; padding: .25rem .55rem; font-weight: 700; }
+.vote-allow { color: #72c879; }
+.vote-disallow { color: #e58b91; }
+.vote-discuss { color: #f0c36b; }
+.mod-vote-form { display: grid; gap: .65rem; padding: 1rem 0; border-bottom: 1px solid var(--hairline-color); }
+.mod-vote-form fieldset { display: flex; gap: 1rem; border: 0; margin: 0; padding: 0; }
+.mod-vote-form legend { font-weight: 700; margin-bottom: .45rem; }
+.mod-vote-form textarea { width: min(100%, 52rem); box-sizing: border-box; }
+.mod-vote-form .button { justify-self: start; }
+.mod-vote-records { padding-top: .8rem; }
+.mod-vote-record { display: grid; grid-template-columns: minmax(9rem, auto) auto 1fr auto; gap: .75rem; align-items: baseline; padding: .6rem 0; border-top: 1px solid var(--hairline-color); }
+.mod-vote-record p { margin: 0; white-space: pre-wrap; }
+.mod-vote-record time { color: var(--body-quiet-color); font-size: .8rem; }
+.mod-voting-closed { color: var(--body-quiet-color); }
+.mod-rationale-templates { border: 1px solid var(--hairline-color); border-radius: 4px; background: var(--darkened-bg); padding: 1rem; }
+.mod-rationale-templates h3 { margin: .2rem 0; }
+.mod-rationale-templates header > p:last-child { margin-bottom: 0; color: var(--body-quiet-color); }
+.mod-rationale-template-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+.mod-rationale-template-groups > div { display: grid; align-content: start; gap: .5rem; }
+.mod-rationale-template-groups h4 { margin: 0; }
+.mod-rationale-template.button { height: auto; min-height: 2rem; padding: .5rem .65rem; text-align: left; white-space: normal; }
+@media (max-width: 760px) {
+  .mod-review-hero { grid-template-columns: 1fr; }
+  .mod-review-summary { grid-template-columns: 1fr; }
+  .mod-voting-panel > header { display: grid; }
+  .mod-vote-form fieldset { flex-wrap: wrap; }
+  .mod-vote-record { grid-template-columns: 1fr auto; }
+  .mod-vote-record p, .mod-vote-record time { grid-column: 1 / -1; }
+  .mod-rationale-template-groups { grid-template-columns: 1fr; }
+}

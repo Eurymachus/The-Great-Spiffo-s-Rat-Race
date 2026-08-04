@@ -1,9 +1,9 @@
 <div class="sign-in-component{% if compact %} is-compact{% endif %}" data-sign-in-component>
     <div class="sign-in-heading">
         <h2>Sign In</h2>
-        <p>Don&rsquo;t have an account? <a href="{% url 'registry:register' %}">Sign Up</a></p>
+        <p>Don&rsquo;t have an account? <a href="{% url 'registry:register' %}#sign-up">Sign Up</a></p>
     </div>
-    <form method="post" action="{% url 'registry:login' %}" data-sign-in-form{% if compact %} data-compact-sign-in{% endif %}>
+    <form method="post" action="{% url 'registry:login' %}#sign-in" data-sign-in-form{% if compact %} data-compact-sign-in{% endif %}>
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
         {% for field in form %}

@@ -2,17 +2,20 @@
 <li class="navigation-tree-item" data-navigation-item data-id="{{ node.item.pk }}" draggable="false">
     <div class="navigation-tree-row" data-navigation-row>
         <button type="button" class="navigation-tree-toggle" data-navigation-toggle aria-expanded="false" aria-label="Edit {{ node.item.label }}">&#8250;</button>
-        <button type="button" class="navigation-tree-handle" data-navigation-handle aria-label="Move {{ node.item.label }}">☰</button>
+        <button type="button" class="navigation-tree-handle" data-navigation-handle aria-label="Move {{ node.item.label }}">&#9776;</button>
         <button type="button" class="navigation-tree-edit-icon" data-navigation-name-trigger aria-label="Edit {{ node.item.label }}">&#9998;</button>
         <strong class="navigation-tree-label" data-navigation-summary-label data-navigation-name-trigger>{{ node.item.label }}</strong>
         <input class="navigation-tree-name-input" type="text" maxlength="80" value="{{ node.item.label }}" data-navigation-label hidden aria-label="Navigation label">
         {% if node.item.page %}
-        <span class="navigation-tree-destination-info" data-navigation-destination tabindex="0" aria-label="Destination: Page, {% if node.item.page.slug == 'home' %}/{% else %}/{{ node.item.page.public_path }}/{% endif %}" data-tooltip="Page · {% if node.item.page.slug == 'home' %}/{% else %}/{{ node.item.page.public_path }}/{% endif %}">i</span>
+        <span class="navigation-tree-destination-info" data-navigation-destination tabindex="0" aria-label="Destination: Editorial page, {% if node.item.page.slug == 'home' %}/{% else %}/{{ node.item.page.public_path }}/{% endif %}" data-tooltip="Editorial page: {% if node.item.page.slug == 'home' %}/{% else %}/{{ node.item.page.public_path }}/{% endif %}">i</span>
         {% if not node.item.page.is_published %}<span class="navigation-tree-badge is-warning" data-navigation-draft>Draft page</span>{% endif %}
+        {% elif node.item.code_page %}
+        <span class="navigation-tree-destination-info" data-navigation-destination tabindex="0" aria-label="Destination: Code-managed page, {{ node.item.code_page.address }}" data-tooltip="Code-managed page: {{ node.item.code_page.address }}">i</span>
         {% else %}
-        <span class="navigation-tree-destination-info" data-navigation-destination tabindex="0" aria-label="Destination: Menu group" data-tooltip="Menu group · no page destination">i</span>
+        <span class="navigation-tree-destination-info" data-navigation-destination tabindex="0" aria-label="Destination: Menu group" data-tooltip="Menu group: no page destination">i</span>
         {% endif %}
         {% if not node.item.is_visible %}<span class="navigation-tree-badge is-warning" data-navigation-hidden>Hidden</span>{% endif %}
+        {% if node.item.audience != "everyone" %}<span class="navigation-tree-badge" data-navigation-audience-badge>{{ node.item.get_audience_display }}</span>{% endif %}
         {% if node.depth < 3 %}<button type="button" class="navigation-tree-add-child" data-navigation-add-child data-add-child-url="{% url 'admin:pages_navigationitem_add_child' node.item.pk %}" aria-label="Add child navigation item inside {{ node.item.label }}" title="Add child navigation item">+</button>{% endif %}
         <button type="button" class="navigation-tree-remove" data-navigation-remove data-remove-url="{% url 'admin:pages_navigationitem_remove' node.item.pk %}" aria-label="Remove {{ node.item.label }}">&#215;</button>
     </div>
@@ -21,8 +24,23 @@
             <label for="navigation-page-{{ node.item.pk }}">Destination</label>
             <select id="navigation-page-{{ node.item.pk }}" data-navigation-page>
                 <option value="">Menu group (no destination)</option>
-                {% for page in navigation_pages %}
-                <option value="{{ page.pk }}" data-address="{% if page.slug == 'home' %}/{% else %}/{{ page.public_path }}/{% endif %}" data-published="{{ page.is_published|yesno:'true,false' }}"{% if node.item.page_id == page.pk %} selected{% endif %}>{{ page.title }} — {% if page.slug == "home" %}/{% else %}/{{ page.public_path }}/{% endif %}{% if not page.is_published %} (draft){% endif %}</option>
+                <optgroup label="Editorial pages">
+                    {% for page in navigation_pages %}
+                    <option value="page:{{ page.pk }}" data-type="page" data-address="{% if page.slug == 'home' %}/{% else %}/{{ page.public_path }}/{% endif %}" data-published="{{ page.is_published|yesno:'true,false' }}"{% if node.item.page_id == page.pk %} selected{% endif %}>{{ page.title }}: {% if page.slug == "home" %}/{% else %}/{{ page.public_path }}/{% endif %}{% if not page.is_published %} (draft){% endif %}</option>
+                    {% endfor %}
+                </optgroup>
+                <optgroup label="Code-managed pages">
+                    {% for page in navigation_code_pages %}
+                    <option value="code:{{ page.pk }}" data-type="code" data-address="{{ page.address }}" data-published="true"{% if node.item.code_page_id == page.pk %} selected{% endif %}>{{ page.title }}: {{ page.address }}</option>
+                    {% endfor %}
+                </optgroup>
+            </select>
+        </div>
+        <div class="navigation-tree-field">
+            <label for="navigation-audience-{{ node.item.pk }}">Audience</label>
+            <select id="navigation-audience-{{ node.item.pk }}" data-navigation-audience>
+                {% for value, label in node.item.Audience.choices %}
+                <option value="{{ value }}"{% if node.item.audience == value %} selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
         </div>

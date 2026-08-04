@@ -17,6 +17,13 @@
     let notificationSummaryRequest = null;
     let notificationToastTimer = null;
     let notificationState = null;
+    const pageScroller = document.body;
+    const controlsSpacer = document.createElement("div");
+    controlsSpacer.className = "site-header-controls-spacer";
+    headerControls.after(controlsSpacer);
+    let controlsDockPoint = headerControls.offsetTop;
+    let lastScrollY = pageScroller.scrollTop;
+    let scrollFrame = null;
 
     const notificationToastRegion = document.createElement("div");
     notificationToastRegion.className = "notification-live-toast-region";
@@ -157,6 +164,52 @@
         if (restoreFocus) toggle.focus();
     };
 
+    const compactNavigationIsActive = () => getComputedStyle(toggle).display !== "none";
+    const controlsHaveOpenPanel = () => (
+        menu.classList.contains("is-open")
+        || headerControls.querySelector(".site-nav-item.is-open")
+    );
+    const revealHeaderControls = () => headerControls.classList.remove("is-scroll-hidden");
+    const scrollToPageTarget = () => {
+        if (!window.location.hash) return;
+        const target = document.getElementById(window.location.hash.slice(1));
+        if (!target) return;
+        const targetTop = (
+            pageScroller.scrollTop
+            + target.getBoundingClientRect().top
+            - headerControls.offsetHeight
+            - 16
+        );
+        pageScroller.scrollTo({top: Math.max(targetTop, 0), behavior: "auto"});
+    };
+    const updateDockPoint = () => {
+        if (!headerControls.classList.contains("is-stuck")) {
+            controlsDockPoint = headerControls.offsetTop;
+        }
+    };
+    const updateHeaderControlsForScroll = () => {
+        scrollFrame = null;
+        const currentScrollY = Math.max(pageScroller.scrollTop, 0);
+        const shouldStick = currentScrollY >= controlsDockPoint;
+        headerControls.classList.toggle("is-stuck", shouldStick);
+        controlsSpacer.classList.toggle("is-active", shouldStick);
+        controlsSpacer.style.height = shouldStick ? `${headerControls.offsetHeight}px` : "";
+        if (!compactNavigationIsActive() || !shouldStick) {
+            revealHeaderControls();
+            lastScrollY = currentScrollY;
+            return;
+        }
+        if (controlsHaveOpenPanel()) {
+            revealHeaderControls();
+            lastScrollY = currentScrollY;
+            return;
+        }
+        const delta = currentScrollY - lastScrollY;
+        if (Math.abs(delta) < 6) return;
+        headerControls.classList.toggle("is-scroll-hidden", delta > 0);
+        lastScrollY = currentScrollY;
+    };
+
     submenuToggles.forEach((submenuToggle) => {
         submenuToggle.addEventListener("click", (event) => {
             event.stopPropagation();
@@ -235,10 +288,32 @@
     }
 
     toggle.addEventListener("click", () => {
+        revealHeaderControls();
         const opening = !menu.classList.contains("is-open");
         closeSubmenus();
         menu.classList.toggle("is-open", opening);
         toggle.setAttribute("aria-expanded", String(opening));
+    });
+    headerControls.addEventListener("focusin", revealHeaderControls);
+    pageScroller.addEventListener("scroll", () => {
+        if (scrollFrame !== null) return;
+        scrollFrame = window.requestAnimationFrame(updateHeaderControlsForScroll);
+    }, {passive: true});
+    window.addEventListener("resize", () => {
+        revealHeaderControls();
+        headerControls.classList.remove("is-stuck");
+        controlsSpacer.classList.remove("is-active");
+        controlsSpacer.style.height = "";
+        if (!compactNavigationIsActive()) closeMenu();
+        updateDockPoint();
+        updateHeaderControlsForScroll();
+    }, {passive: true});
+    window.addEventListener("hashchange", scrollToPageTarget);
+    window.addEventListener("load", () => {
+        window.requestAnimationFrame(() => {
+            scrollToPageTarget();
+            window.requestAnimationFrame(scrollToPageTarget);
+        });
     });
     document.addEventListener("click", (event) => {
         if (!headerControls.contains(event.target)) {
@@ -251,7 +326,6 @@
             closeMenu(true);
         }
     });
-    window.matchMedia("(min-width: 34.01rem)").addEventListener("change", (event) => {
-        if (event.matches) closeMenu();
-    });
+    updateDockPoint();
+    updateHeaderControlsForScroll();
 })();

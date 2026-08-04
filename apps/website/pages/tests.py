@@ -1,16 +1,24 @@
 import json
 
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import AnonymousUser, Group
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from branding.models import ManagedImage
 from config.context_processors import navigation_tree
 from registry.models import Participant
 
-from .models import NavigationItem, Page, PageBlock, PageGalleryImage, PageSection, SectionItem
+from .models import (
+    CodeManagedPage,
+    NavigationItem,
+    Page,
+    PageBlock,
+    PageGalleryImage,
+    PageSection,
+    SectionItem,
+)
 
 
 class ManagedPageTests(TestCase):
@@ -24,10 +32,13 @@ class ManagedPageTests(TestCase):
             "id": section.pk,
             "name": section.name,
             "is_visible": section.is_visible,
+            "section_type": section.section_type,
             "width": section.width,
             "layout": section.layout,
             "background": section.background,
             "full_bleed_background": section.full_bleed_background,
+            "separator_style": section.separator_style,
+            "separator_spacing": section.separator_spacing,
             "blocks": [{
                 "id": block.pk,
                 "column": block.column,
@@ -56,6 +67,7 @@ class ManagedPageTests(TestCase):
                 "gallery_show_controls": block.gallery_show_controls,
                 "gallery_show_captions": block.gallery_show_captions,
                 "gallery_expandable": block.gallery_expandable,
+                "ranking_config": block.ranking_config,
                 "gallery_images": [{
                     "image": item.image_id,
                     "alternative_text": item.alternative_text,
@@ -79,6 +91,7 @@ class ManagedPageTests(TestCase):
         data = {
             "title": self.page.title,
             "public_path": self.page.public_path,
+            "audience": self.page.audience,
             "content_width": self.page.content_width,
             "is_published": "on",
             "page_builder_data": json.dumps(payload),
@@ -296,6 +309,56 @@ class ManagedPageTests(TestCase):
         self.assertEqual(self.section.blocks.get(block_type="card_group").card_columns, "2")
         self.assertContains(self.client.get(reverse("registry:home")), "managed-card-columns-2")
 
+    def test_page_editor_saves_and_renders_ranking_table_configuration(self):
+        self.login_superuser("ranking-editor@example.com")
+        payload = self.editor_payload()
+        payload[0]["blocks"].append({
+            "column": 0,
+            "is_visible": True,
+            "block_type": "ranking_table",
+            "content": "",
+            "ranking_config": {
+                "challenge_modes": [],
+                "game_builds": ["42.12.3"],
+                "challenge_builds": [],
+                "lifecycles": ["active", "deceased"],
+                "participants": [],
+                "selection": "latest_per_participant",
+                "ordering": "verified_at",
+                "limit": 25,
+                "columns": ["participant", "survivor", "progress"],
+                "show_heading": True,
+                "eyebrow": "Current challenge",
+                "heading": "Configured ranking",
+                "introduction": "A managed ranking table.",
+                "show_weighting": False,
+                "show_build": False,
+                "show_details": True,
+            },
+            "items": [],
+            "gallery_images": [],
+        })
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        block = self.section.blocks.get(block_type=PageBlock.BlockType.RANKING_TABLE)
+        self.assertEqual(block.ranking_config["lifecycles"], ["active", "deceased"])
+        self.assertEqual(block.ranking_config["columns"], ["participant", "survivor", "progress"])
+        rendered = self.client.get(reverse("registry:home"))
+        self.assertContains(rendered, "Configured ranking")
+        self.assertContains(rendered, "managed-ranking-table")
+
+    def test_ranking_table_rejects_unsupported_configuration(self):
+        block = PageBlock(
+            section=self.section,
+            position=999,
+            block_type=PageBlock.BlockType.RANKING_TABLE,
+            ranking_config={"lifecycles": ["unknown"]},
+        )
+        with self.assertRaises(ValidationError):
+            block.full_clean()
+
     def test_page_editor_saves_existing_section_name(self):
         self.login_superuser("section-name-editor@example.com")
         payload = self.editor_payload()
@@ -341,6 +404,32 @@ class ManagedPageTests(TestCase):
         self.assertContains(public_response, "managed-page-width-wide")
         self.assertContains(public_response, "managed-section-layout-two")
 
+    def test_page_editor_saves_and_renders_separator_section(self):
+        self.login_superuser("separator-editor@example.com")
+        payload = self.editor_payload()
+        payload.append({
+            "id": None,
+            "name": "Leaderboard separator",
+            "is_visible": True,
+            "section_type": PageSection.SectionType.SEPARATOR,
+            "width": PageSection.Width.WIDE,
+            "layout": PageSection.Layout.SINGLE,
+            "background": PageSection.Background.DEFAULT,
+            "full_bleed_background": False,
+            "separator_style": PageSection.SeparatorStyle.ACCENT,
+            "separator_spacing": PageSection.SeparatorSpacing.LARGE,
+            "blocks": [],
+        })
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        separator = self.page.sections.get(name="Leaderboard separator")
+        self.assertEqual(separator.section_type, PageSection.SectionType.SEPARATOR)
+        public_response = self.client.get(reverse("registry:home"))
+        self.assertContains(public_response, "managed-separator-style-accent")
+        self.assertContains(public_response, "managed-separator-spacing-large")
+
     def test_homepage_cannot_be_deleted_or_have_address_changed(self):
         self.login_superuser("page-admin@example.com")
         response = self.client.get(reverse("admin:pages_page_change", args=(self.page.pk,)))
@@ -348,6 +437,10 @@ class ManagedPageTests(TestCase):
         self.assertContains(response, "field-public_path")
         self.assertContains(response, 'name="public_path"')
         self.assertContains(response, 'name="public_path" class="vTextField" maxlength="240" disabled')
+        self.assertContains(
+            response,
+            'class="viewsitelink" target="_blank" rel="noopener"',
+        )
 
     def test_navigation_items_are_managed_separately_from_page_content(self):
         self.login_superuser("navigation-order-editor@example.com")
@@ -427,12 +520,198 @@ class ManagedPageTests(TestCase):
         useful_root = NavigationItem.objects.create(label="Useful menu", position=10)
         NavigationItem.objects.create(label="Home link", page=self.page, parent=useful_root, position=0)
 
-        tree = navigation_tree()
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        tree = navigation_tree(request)
 
         self.assertEqual([node["item"].label for node in tree], ["Useful menu"])
         self.assertEqual([node["item"].label for node in tree[0]["children"]], ["Home link"])
         self.assertTrue(NavigationItem.objects.filter(pk=empty_root.pk).exists())
         self.assertTrue(NavigationItem.objects.filter(pk=empty_child.pk).exists())
+
+    def test_navigation_audience_controls_public_tree(self):
+        NavigationItem.objects.all().delete()
+        everyone = NavigationItem.objects.create(label="Everyone")
+        visitors = NavigationItem.objects.create(
+            label="Visitors", audience=NavigationItem.Audience.VISITORS
+        )
+        participants = NavigationItem.objects.create(
+            label="Participants", audience=NavigationItem.Audience.SIGNED_IN
+        )
+        staff = NavigationItem.objects.create(
+            label="Staff", audience=NavigationItem.Audience.STAFF
+        )
+        for item in (everyone, visitors, participants, staff):
+            item.page = self.page
+            item.save(update_fields=("page",))
+
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        self.assertEqual(
+            [node["item"].label for node in navigation_tree(request)],
+            ["Everyone", "Visitors"],
+        )
+
+        participant = Participant.objects.create_user(
+            email="menu-audience@example.com",
+            nickname="Menu Audience",
+            password="test-password-only",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        request.user = participant
+        self.assertEqual(
+            [node["item"].label for node in navigation_tree(request)],
+            ["Everyone", "Participants"],
+        )
+        participant.is_staff = True
+        self.assertEqual(
+            [node["item"].label for node in navigation_tree(request)],
+            ["Everyone", "Participants", "Staff"],
+        )
+
+    def test_page_audience_controls_navigation_and_direct_access(self):
+        participant_page = Page.objects.create(
+            title="Participant guide",
+            public_path="participant-guide",
+            audience=Page.Audience.SIGNED_IN,
+        )
+        NavigationItem.objects.create(label="Participant guide", page=participant_page)
+        url = participant_page.get_absolute_url()
+
+        self.assertEqual(self.client.get(url).status_code, 404)
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        self.assertNotIn(
+            "Participant guide",
+            [node["item"].label for node in navigation_tree(request)],
+        )
+
+        participant = Participant.objects.create_user(
+            email="managed-page-audience@example.com",
+            nickname="Managed Page Audience",
+            password="test-password-only",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        self.client.force_login(participant)
+        self.assertEqual(self.client.get(url).status_code, 200)
+        request.user = participant
+        self.assertIn(
+            "Participant guide",
+            [node["item"].label for node in navigation_tree(request)],
+        )
+
+        participant_page.audience = Page.Audience.STAFF
+        participant_page.save(update_fields=("audience",))
+        self.assertEqual(self.client.get(url).status_code, 404)
+        participant.is_staff = True
+        participant.save(update_fields=("is_staff",))
+        self.client.force_login(participant)
+        self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_code_managed_pages_are_seeded_with_honest_availability(self):
+        account = CodeManagedPage.objects.get(key="account")
+        run_detail = CodeManagedPage.objects.get(key="run-detail")
+
+        self.assertFalse(CodeManagedPage.objects.filter(key="home").exists())
+        self.assertFalse(CodeManagedPage.objects.filter(key="leaderboard").exists())
+        self.assertTrue(account.is_navigation_target)
+        self.assertEqual(account.get_absolute_url(), reverse("registry:account"))
+        self.assertEqual(run_detail.availability, CodeManagedPage.Availability.AVAILABLE)
+        self.assertFalse(run_detail.is_navigation_target)
+
+    def test_current_leaderboard_is_a_managed_page_with_ranking_block(self):
+        leaderboard = Page.objects.get(public_path="leaderboard")
+
+        self.assertTrue(leaderboard.is_published)
+        self.assertEqual(leaderboard.get_absolute_url(), reverse("registry:page", kwargs={"page_path": "leaderboard"}))
+        ranking = PageBlock.objects.get(
+            section__page=leaderboard,
+            block_type=PageBlock.BlockType.RANKING_TABLE,
+        )
+        self.assertEqual(ranking.ranking_config["lifecycles"], ["active"])
+        self.assertEqual(ranking.ranking_config["selection"], "best_per_participant")
+
+    def test_code_managed_page_admin_is_a_viewer_without_form_actions(self):
+        self.login_superuser("code-page-viewer@example.com")
+        page = CodeManagedPage.objects.get(key="account")
+
+        response = self.client.get(
+            reverse("admin:pages_codemanagedpage_change", args=(page.pk,))
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "View code-managed page")
+        self.assertNotContains(response, 'class="submit-row"')
+        self.assertNotContains(response, ">Close<")
+
+    def test_admin_sidebar_renders_collapsible_section_controls(self):
+        self.login_superuser("collapsible-admin-sidebar@example.com")
+
+        response = self.client.get(reverse("admin:pages_codemanagedpage_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "admin-sidebar-section-toggle")
+        self.assertContains(response, 'aria-controls="admin-sidebar-section-pages"')
+        self.assertContains(response, "admin_sidebar_sections.js")
+
+    def test_navigation_rejects_multiple_or_unavailable_destinations(self):
+        account = CodeManagedPage.objects.get(key="account")
+        planned_page = CodeManagedPage.objects.get(key="top-ten")
+
+        multiple = NavigationItem(
+            label="Invalid", page=self.page, code_page=account
+        )
+        with self.assertRaises(ValidationError):
+            multiple.full_clean()
+
+        unavailable = NavigationItem(label="Soon", code_page=planned_page)
+        with self.assertRaises(ValidationError):
+            unavailable.full_clean()
+
+    def test_code_managed_navigation_respects_code_enforced_audience(self):
+        account = CodeManagedPage.objects.get(key="account")
+        NavigationItem.objects.all().delete()
+        NavigationItem.objects.create(label="Account", code_page=account)
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+
+        self.assertEqual(navigation_tree(request), [])
+
+        participant = Participant.objects.create_user(
+            email="navigation-audience@example.com",
+            nickname="Navigation Audience",
+            password="test-password-only",
+            is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        request.user = participant
+        tree = navigation_tree(request)
+        self.assertEqual([node["item"].label for node in tree], ["Account"])
+        self.assertEqual(tree[0]["url"], reverse("registry:account"))
+
+    def test_code_managed_navigation_highlights_only_the_current_route(self):
+        NavigationItem.objects.all().delete()
+        leaderboard = Page.objects.get(public_path="leaderboard")
+        mods = CodeManagedPage.objects.get(key="mods")
+        NavigationItem.objects.create(label="Leaderboard", page=leaderboard)
+        NavigationItem.objects.create(label="Mods", code_page=mods)
+
+        response = self.client.get(reverse("registry:leaderboard"))
+        menu = response.content.decode().split(
+            '<nav class="site-nav"', 1
+        )[1].split("</nav>", 1)[0]
+
+        self.assertIn(
+            f'href="{leaderboard.get_absolute_url()}" aria-current="page"',
+            menu,
+        )
+        self.assertIn(f'href="{mods.get_absolute_url()}"', menu)
+        self.assertNotIn(
+            f'href="{mods.get_absolute_url()}" aria-current="page"',
+            menu,
+        )
 
     def test_navigation_tree_order_can_be_saved_together(self):
         self.login_superuser("navigation-tree-save@example.com")
@@ -444,9 +723,9 @@ class ManagedPageTests(TestCase):
         response = self.client.post(
             reverse("admin:pages_navigationitem_reorder"),
             data=json.dumps({"items": [
-                {"id": media.pk, "parent_id": None, "position": 0, "label": "Media centre", "page_id": None, "is_visible": True},
-                {"id": gallery.pk, "parent_id": media.pk, "position": 0, "label": "Gallery", "page_id": None, "is_visible": False},
-                {"id": rules.pk, "parent_id": None, "position": 10, "label": "Rules", "page_id": None, "is_visible": True},
+                {"id": media.pk, "parent_id": None, "position": 0, "label": "Media centre", "destination_type": "", "destination_id": None, "is_visible": True},
+                {"id": gallery.pk, "parent_id": media.pk, "position": 0, "label": "Gallery", "destination_type": "", "destination_id": None, "is_visible": False},
+                {"id": rules.pk, "parent_id": None, "position": 10, "label": "Rules", "destination_type": "", "destination_id": None, "is_visible": True},
             ]}),
             content_type="application/json",
         )
@@ -470,8 +749,8 @@ class ManagedPageTests(TestCase):
         response = self.client.post(
             reverse("admin:pages_navigationitem_reorder"),
             data=json.dumps({"items": [
-                {"id": media.pk, "parent_id": gallery.pk, "position": 0, "label": "Media", "page_id": None, "is_visible": True},
-                {"id": gallery.pk, "parent_id": media.pk, "position": 0, "label": "Gallery", "page_id": None, "is_visible": True},
+                {"id": media.pk, "parent_id": gallery.pk, "position": 0, "label": "Media", "destination_type": "", "destination_id": None, "is_visible": True},
+                {"id": gallery.pk, "parent_id": media.pk, "position": 0, "label": "Gallery", "destination_type": "", "destination_id": None, "is_visible": True},
             ]}),
             content_type="application/json",
         )

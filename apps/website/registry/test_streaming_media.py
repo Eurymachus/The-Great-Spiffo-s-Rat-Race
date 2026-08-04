@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from cryptography.fernet import Fernet
+from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -117,3 +118,44 @@ class TwitchMediaTests(TestCase):
 
         self.assertRedirects(response, reverse("registry:submit_run"))
         refresh.assert_called_once_with(self.account)
+
+    @patch("registry.views.refresh_twitch_media", return_value=(3, 4))
+    def test_participant_can_refresh_media_without_reloading_submission(self, refresh):
+        self.client.force_login(self.participant)
+
+        response = self.client.post(
+            reverse("registry:refresh_twitch_media"),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "ok": True,
+                "message": "Found 3 recent broadcasts and 4 clips.",
+                "videos": [{"value": "", "label": "Choose a broadcast"}],
+                "clips": [],
+            },
+        )
+        refresh.assert_called_once_with(self.account)
+        self.assertFalse(self.participant.notifications.exists())
+
+    @patch(
+        "registry.views.refresh_twitch_media",
+        side_effect=ImproperlyConfigured("Invalid local encryption key."),
+    )
+    def test_refresh_configuration_error_returns_to_submission_form(self, refresh):
+        self.client.force_login(self.participant)
+
+        response = self.client.post(reverse("registry:refresh_twitch_media"))
+
+        self.assertRedirects(response, reverse("registry:submit_run"))
+        refresh.assert_called_once_with(self.account)
+        notification = self.participant.notifications.get(
+            title="Twitch media could not be refreshed"
+        )
+        self.assertEqual(
+            notification.message,
+            "The Twitch connection is temporarily unavailable.",
+        )

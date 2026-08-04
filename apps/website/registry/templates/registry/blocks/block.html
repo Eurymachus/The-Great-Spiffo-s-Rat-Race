@@ -1,4 +1,4 @@
-{% load page_content %}
+{% load page_content ranking_table %}
 {% if block.audience == "everyone" or block.audience == "visitors" and not request.user.is_authenticated or block.audience == "signed_in" and request.user.is_authenticated %}
     {% if block.block_type == "text" %}
         {% with typography_classes="managed-block managed-text managed-text-role-"|add:block.text_role|add:" managed-text-font-"|add:block.text_font|add:" managed-text-size-"|add:block.text_size|add:" managed-text-weight-"|add:block.text_weight|add:" managed-block-align-"|add:block.alignment %}
@@ -15,9 +15,9 @@
     {% elif block.block_type == "action" %}
         <div class="home-actions managed-block managed-block-align-{{ block.alignment }}">
             {% if block.destination == "register" %}
-                <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:register' %}">{{ block.content }}</a>
+                <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:register' %}#sign-up">{{ block.content }}</a>
             {% elif block.destination == "login" %}
-                <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:login' %}">{{ block.content }}</a>
+                <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:login' %}#sign-in">{{ block.content }}</a>
             {% elif block.destination == "account" %}
                 <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:account' %}">{{ block.content }}</a>
             {% else %}
@@ -62,5 +62,7 @@
                 </div>
             </div>
         </section>
+    {% elif block.block_type == "ranking_table" %}
+        {% managed_ranking_table block %}
     {% endif %}
 {% endif %}

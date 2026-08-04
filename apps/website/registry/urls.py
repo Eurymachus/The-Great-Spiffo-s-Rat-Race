@@ -10,6 +10,11 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("pages/<slug:slug>/", views.legacy_page, name="legacy_page"),
     path("signup/", views.register, name="register"),
+    path(
+        "signup/validate/",
+        views.validate_registration_field,
+        name="validate_registration_field",
+    ),
     path("thanks/", views.thanks, name="thanks"),
     path("resend/", views.resend_verification, name="resend"),
     path("verify/<str:token>/", views.verify, name="verify"),
@@ -42,6 +47,9 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("account/", views.account, name="account"),
+    path("leaderboard/", views.leaderboard, name="leaderboard"),
+    path("mods/", views.mods_catalogue, name="mods"),
+    path("mods/workshop-lookup/", views.workshop_mod_lookup, name="workshop_mod_lookup"),
     path("runs/<uuid:run_id>/", views.public_run_detail, name="public_run_detail"),
     path(
         "account/dashboard/fragment/",
@@ -49,6 +57,11 @@ urlpatterns = [
         name="account_dashboard_fragment",
     ),
     path("account/submit/", views.submit_run, name="submit_run"),
+    path(
+        "account/runs/<uuid:run_id>/deactivate/",
+        views.deactivate_run,
+        name="deactivate_run",
+    ),
     path("account/settings/", views.account_settings, name="account_settings"),
     path(
         "account/streaming/twitch/connect/",
@@ -69,6 +82,31 @@ urlpatterns = [
         "account/streaming/twitch/media/refresh/",
         views.refresh_twitch_media_view,
         name="refresh_twitch_media",
+    ),
+    path(
+        "account/streaming/media/refresh/",
+        views.refresh_streaming_media_view,
+        name="refresh_streaming_media",
+    ),
+    path(
+        "account/streaming/youtube/connect/",
+        views.connect_youtube,
+        name="connect_youtube",
+    ),
+    path(
+        "account/streaming/youtube/callback/",
+        views.youtube_callback,
+        name="youtube_callback",
+    ),
+    path(
+        "account/streaming/youtube/disconnect/",
+        views.disconnect_youtube,
+        name="disconnect_youtube",
+    ),
+    path(
+        "account/streaming/primary/",
+        views.set_primary_streaming_channel,
+        name="set_primary_streaming_channel",
     ),
     path(
         "account/connections/discord/connect/",

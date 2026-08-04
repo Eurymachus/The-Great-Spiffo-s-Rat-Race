@@ -36,6 +36,10 @@ class DecodedRunExport:
     projection: dict
 
     @property
+    def lifecycle(self):
+        return self.projection.get("lifecycle") or "active"
+
+    @property
     def character_name(self):
         character_projection = self.projection.get("character")
         if isinstance(character_projection, dict):
@@ -329,6 +333,53 @@ def decode_run_export(value):
         events.append(event)
     if previous_hash != event_hash:
         raise InvalidRunExport("The export ledger hash does not match its events.")
+
+    lifecycle = projection.get("lifecycle")
+    terminal_events = [event for event in events if event["event_type"] == "run.ended"]
+    if len(terminal_events) > 1:
+        raise InvalidRunExport("The export contains duplicate terminal run events.")
+    if lifecycle is not None and lifecycle not in {"active", "deceased"}:
+        raise InvalidRunExport("The export contains an unsupported run lifecycle.")
+    if lifecycle == "deceased":
+        ended_reason = projection.get("endedReason")
+        ended_utc = projection.get("endedUtc")
+        ended_world_age = projection.get("endedWorldAgeHours")
+        ended_sequence = projection.get("endedEventSequence")
+        if (
+            ended_reason != "deceased"
+            or isinstance(ended_utc, bool)
+            or not isinstance(ended_utc, int)
+            or ended_utc < 0
+            or isinstance(ended_world_age, bool)
+            or not isinstance(ended_world_age, (int, float))
+            or not math.isfinite(ended_world_age)
+            or ended_world_age < 0
+            or isinstance(ended_sequence, bool)
+            or not isinstance(ended_sequence, int)
+            or ended_sequence < 1
+            or len(terminal_events) != 1
+        ):
+            raise InvalidRunExport("The deceased run has incomplete terminal evidence.")
+        terminal_event = terminal_events[0]
+        if (
+            terminal_event["payload"].get("reason") != "deceased"
+            or terminal_event["sequence"] != ended_sequence
+            or terminal_event["utc"] != ended_utc
+            or terminal_event["world_age_hours"] != ended_world_age
+        ):
+            raise InvalidRunExport("The terminal run evidence does not match its projection.")
+    elif terminal_events:
+        raise InvalidRunExport("The terminal run event has no matching lifecycle projection.")
+    elif any(
+        key in projection
+        for key in (
+            "endedReason",
+            "endedUtc",
+            "endedWorldAgeHours",
+            "endedEventSequence",
+        )
+    ):
+        raise InvalidRunExport("The active run contains terminal projection fields.")
     try:
         generated_at = datetime.fromtimestamp(generated_utc, tz=timezone.utc)
     except (OverflowError, OSError, ValueError) as exc:

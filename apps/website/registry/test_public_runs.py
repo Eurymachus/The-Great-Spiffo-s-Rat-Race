@@ -153,7 +153,16 @@ class PublicRunDetailTests(TestCase):
         self.run.save(update_fields=("status", "approved_submission"))
         self.url = reverse("registry:public_run_detail", args=(self.run.pk,))
 
-    def test_verified_run_is_public_and_player_facing(self):
+    def test_verified_run_requires_sign_in(self):
+        response = self.client.get(self.url)
+
+        self.assertRedirects(
+            response,
+            f"{reverse('registry:login')}?next={self.url}",
+        )
+
+    def test_verified_run_is_player_facing_after_sign_in(self):
+        self.client.force_login(self.participant)
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, 200)
@@ -182,6 +191,7 @@ class PublicRunDetailTests(TestCase):
         self.assertNotContains(response, self.run.event_hash)
 
     def test_pending_run_is_not_public(self):
+        self.client.force_login(self.participant)
         self.run.status = ChallengeRun.Status.PENDING
         self.run.save(update_fields=("status",))
 

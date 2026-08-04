@@ -50,10 +50,66 @@ records, while aliases and assets remain shared catalogue relationships.
   duplication, restoration, activation, and validated design controls.
 - A protected backend-managed Homepage assembled from ordered, reusable,
   responsive sections without administrator-authored HTML or JavaScript.
+- Managed Pages include dedicated Separator sections for intentional spacing.
+  Editors may choose space only, a subtle line or an accent line, with small,
+  standard or large spacing and the usual managed section widths.
 - Flat backend-managed public pages at protected `/pages/<slug>/` addresses,
   with page-owned navigation labels, visibility, and ordering.
+- An immutable Code-managed Pages registry in Website Content administration.
+  Version-controlled definitions install stable keys, display identities,
+  descriptions, fixed audiences, availability and route metadata. Navigation
+  Items may target available fixed application routes alongside editorial
+  Pages, while planned and address-driven routes remain non-selectable. The
+  editorial Homepage remains solely in Pages and is not duplicated in the
+  Code-managed Pages catalogue. Run Django migrations after changing the
+  version-controlled registry definitions so the deployment reconciles their
+  availability and route metadata into the database.
+- A public Mods catalogue at `/mods/` with search, Allowed and Disallowed ruling
+  filters, illustrated and compact list views, a pinned Required TGSRR Workshop
+  entry, a curated Recommended section for selected Allowed mods, and responsive
+  rules and submission modals. Recommended is a separate feature flag rather
+  than a ruling, and recommended entries are not duplicated in ordinary
+  results. The page states that only
+  mods explicitly listed as Allowed or Required may be used; Disallowed and
+  unlisted mods cannot be used. Its More Info modal explains the cosmetic and
+  vanilla-information rules with generalised examples. Signed-in participants
+  can find a mod by Workshop name, numeric ID or full Steam URL and provide a
+  required reason. Name search uses Steam's supported `QueryFiles` API with a
+  protected `STEAM_WEB_API_KEY`. Exact ID and URL resolution remain available
+  without that key. The website does not parse Steam's rendered Workshop pages
+  as an integration fallback. Steam confirms that the item exists for Project Zomboid, duplicates
+  report their existing Required, Allowed, Disallowed or Pending review state,
+  and valid new items enter Pending review without becoming public rulings.
+  The Discord mod-policy record supplied on 1 August 2026 has been normalised
+  into 59 unique historical entries and resolved against Steam: 54 retain a
+  Previous Unstable ruling of Allowed and 5 retain Disallowed. All 59 current
+  rulings remain Pending review until the permanent Stable voting workflow
+  produces an authorised final decision.
+- The permanent mod-approval journey is implemented in administration. Its
+  Mod approval queue sorts Pending review records first, exposes a dedicated
+  Pending shortcut and opens a focused review page containing the participant
+  reason, Steam destination, previous Unstable provenance and editable final
+  decision fields. Eligible Workshop Mod Approvers, Challenge Administrators and super
+  administrators cast one attributable `Allow`, `Disallow` or `Discuss` vote
+  per Pending mod and may revise it while voting remains open. Disallow and
+  Discuss require a reason. Vote totals produce an advisory recommendation or
+  discussion-needed state but never publish a ruling automatically. Moving a
+  Pending record to Allowed or Disallowed requires a public rationale and
+  records the authorised reviewer and timestamp. The final reviewer can insert
+  a consistent Allowed or Disallowed rationale template, then edit and confirm
+  the public wording before publication. Workshop Mod Approvers may
+  vote in the queue; Challenge Administrators may edit final decisions. Run
+  Submission Approvers are separately scoped to run reviews. Participant decision
+  notifications remain the next slice.
+- The current Workshop Mod records are development fixtures and imported
+  preparation data. The project owner intends to wipe this table before the
+  completed approval journey is tested from a clean state.
 - Consistent primary navigation, authenticated-route redirects, accessible form
   metadata, keyboard focus treatment, and responsive local journey checks.
+- Signup validates nickname and email availability, password policy and password
+  confirmation when each control loses focus. Availability checks remain
+  age-gated and rate-limited, while ordinary server-side validation remains the
+  final authority on submission.
 - Administration editing forms use one **Save** action that saves in place and
   continues editing. It activates only when the form has unsaved changes;
   workflow actions such as submission review remain separate.
@@ -89,15 +145,20 @@ records, while aliases and assets remain shared catalogue relationships.
   snapshot are preserved separately.
 - Independent run lifecycle tracking for active, deceased, abandoned, completed,
   and invalidated runs, presented as Active Runs and Past Runs on the participant
-  dashboard. Lifecycle is moderator-managed until the tracker emits a terminal
-  run signal.
-- Public, shareable verified-run pages at UUID-based addresses. The initial
-  player-facing view presents challenge progress, character traits, current
-  skills in a grouped Project Zomboid-style panel using the mod's complete
-  35-icon skill set, outposts, town visits, activity totals and clearly
-  distinguished in-game export and website receipt timestamps without exposing
-  raw run IDs, checksums or ledger hashes. Charts remain a later presentation
-  layer.
+  dashboard. A validated, hash-chained `run.ended` event and matching projection
+  evidence now mark an approved death export as Deceased automatically. Other
+  lifecycle decisions remain moderator-managed. Each Challenge Mode also has a
+  configurable per-participant active-run limit, defaulting to one. Updates to
+  an existing active run do not consume another slot. Participants can
+  irreversibly deactivate their own active run without review; this marks it
+  Abandoned, declines its pending submissions, prevents future updates to the
+  same run ID, and immediately releases the mode slot.
+- Signed-in verified-run page presentation at UUID-based addresses. The initial view
+  presents challenge progress, character traits, current skills in a grouped
+  Project Zomboid-style panel using the mod's complete 35-icon skill set,
+  outposts, town visits, activity totals and clearly distinguished in-game
+  export and website receipt timestamps without exposing raw run IDs, checksums
+  or ledger hashes. Charts remain a later signed-in presentation layer.
 - Participant notifications for submission receipt and moderation decisions,
   with ASGI/SSE live invalidation, immediate bell/dropdown refresh, unobtrusive
   title toasts, a visible-tab polling fallback, and in-place refresh of
@@ -145,7 +206,16 @@ records, while aliases and assets remain shared catalogue relationships.
   The approved catalogue review remains immutable and records only the reviewed
   game-data decision. Shared filenames are fetched once per job and reruns do
   not duplicate unchanged assets. Missing Wiki artwork is reported rather than
-  guessed.
+  guessed. Transient PZWiki download failures are retried per asset and, if still
+  unavailable, are recorded in the structured report without aborting the
+  catalogue-wide job. The latest reconciliation completed successfully on
+  31 July 2026: 16 images were imported, 4,483 were unchanged, 748 unavailable
+  results were recorded for review, and no manual assets were overwritten.
+  Local and production deployments must run `run_reference_update_worker` as a
+  separately supervised process alongside the web server. The web server does
+  not consume queued reference or artwork jobs by itself. Avoid concurrent
+  database polling during long write-heavy jobs when developing with SQLite;
+  production uses PostgreSQL and must supervise and restart the worker.
 - Website-owned animal taxonomy maps known raw Project Zomboid animal
   identifiers to display names, species and life stages while preserving unknown
   or modded identifiers as unclassified evidence.
@@ -173,55 +243,120 @@ records, while aliases and assets remain shared catalogue relationships.
   and the run-submission journey.
 - Optional Discord identity linking using the minimal `identify` permission,
   with encrypted credentials and participant-controlled disconnect.
+- Google-authorised YouTube channel linking using the read-only YouTube scope,
+  stable Google and channel identities, encrypted credentials, ownership
+  collision protection, reconnection and participant-controlled disconnect.
+- Provider-selectable run evidence using connected Twitch or YouTube channels.
+  Switching providers and refreshing recent media updates only the evidence
+  controls, preserving the pasted run export and the rest of the submission
+  form. Twitch supplies broadcasts and clips; YouTube supplies recent public or
+  unlisted uploads and archived livestreams through the official Data API.
+- A participant may explicitly select one owned, connected Twitch or YouTube
+  account as their primary streaming channel. That provider-neutral selection
+  supplies the linked provider icon in live ranking tables. Clearing,
+  disconnecting or invalidating the selected account safely removes the icon.
 
 Uploaded brand images live in deployment media storage rather than Git. A live
 deployment must persist and back up that media directory alongside the database.
 
 ## Not Now
 
-- Leaderboards and statistics
+- Expanded analytical charts and detailed statistics beyond the launch views
 - Full mod integration
-- YouTube OAuth linking and media retrieval.
+- Participant notifications when an authorised reviewer records the final mod
+  ruling. The submission, team voting and final-ruling administration journey
+  is implemented.
+- Expanded public weapon-kill, literature, and collectible presentation using
+  the item catalogue. The implemented run export already supplies the underlying
+  `weaponKills` and `literature` evidence; this is parked while launch-critical
+  public pages are completed.
 
-## Future Core Deliverable: Moderated Run Updates
+## Confirmed domain infrastructure
 
-Run-update ingestion is deferred, but its integrity workflow is a settled
-requirement:
-
-- Every upload is a complete cumulative snapshot of one mod-generated run ID.
-- Uploading creates an immutable pending submission and never changes approved
-  run data automatically.
-- A new submission is compared with the latest approved snapshot for that run.
-- Previously approved daily data that differs in the pending snapshot must be
-  highlighted clearly for moderator review.
-- Automated validators, including debug-mode detection and future
-  challenge-integrity checks, produce visible findings but never approve a
-  submission.
-- Only an authorised moderator's explicit approval may add to or replace the
-  canonical approved run data.
-- Denied or invalid submissions remain available as an auditable record and
-  never become the comparison baseline for later submissions.
-
-## Pending Team Decision
-
-- Final public domain name. `spiffosratrace.com` is available and has been
-  suggested, but registration is on hold until the team agrees.
+- The project owns `tgsrr.com`, purchased through Spaceship.com on 1 August
+  2026. The Spaceship website is the current control surface for the domain's
+  DNS records and related registrar settings.
 
 ## Hierarchical managed navigation
 
 Pages now own canonical root or nested public addresses such as `/gallery/` and
 `/media/gallery/`. Navigation placement is managed separately through ordered
 Navigation Item records. An item may link to a Page or act as a non-clickable
-heading, and may be nested to three visible levels. The public header renders
-desktop dropdowns and expandable mobile submenus. Code-controlled routes remain
-reserved, and provisional `/pages/<slug>/` addresses permanently redirect to a
-Page's canonical address. The admin tree uses visual drag-and-drop insertion
-between items: vertical movement selects the position, while moving right nests
-under the nearest preceding item and moving left moves the item outward.
+heading, and may be nested to three visible levels. Each item has an enforced
+audience of Everyone, Signed-out visitors, Signed-in participants or Staff.
+Hiding a menu group by audience hides its nested branch, while code-managed
+destinations retain their own stricter audience checks. Editorial managed Pages
+use the same audience choices, enforced for both direct addresses and navigation
+visibility. The public navigation bar
+sits at the top of the page before the branded masthead. Desktop renders
+dropdowns in a navigation bar that remains visible at the top while scrolling.
+Mobile renders expandable submenus in a compact control bar that hides while
+scrolling down and returns when scrolling up. Open navigation,
+account, and notification panels keep the mobile bar visible. Guest Sign In
+and Sign Up actions remain directly available beside the hamburger instead of
+being hidden inside the expandable navigation. Code-controlled
+routes remain reserved, and provisional `/pages/<slug>/` addresses permanently
+redirect to a Page's canonical address. The admin tree uses visual drag-and-drop
+insertion between items: vertical movement selects the position, while moving
+right nests under the nearest preceding item and moving left moves the item
+outward.
 
 ## Recommended next action
 
-Run and review the catalogue-wide PZWiki artwork reconciliation, then extend
-item analysis with the gameplay fields needed by kill and collectible views.
+Complete the participant claim journey for imported Legacy Hall of Fame entries.
+The historical worksheet snapshot, separate legacy storage and idempotent
+deployment import must remain independent from verified website run records.
+
+The reusable `Ranking Table` managed-page block is now implemented. Its typed,
+validated configuration supports additive filters for challenge modes, game and
+challenge builds, run lifecycles and selected participants; all, best-per-
+participant and latest-per-participant result selection; ordering and row limits;
+ordered visible columns; and optional heading, introduction, weighting, build and
+detail controls. The editor presents add/remove selectors and an effective-query
+summary. Public rendering uses official runs with approved submissions only and
+preserves the existing signed-in survivor/build detail gates. The current
+leaderboard and managed block share the same ranking query implementation.
+
+The public current leaderboard at `/leaderboard/` is now an editorial managed
+Page containing a code-backed `Ranking Table` block. Its former Code-managed Page
+record was retired and existing Navigation Items were transferred to the managed
+Page. Editors can now control its page layout and validated ranking configuration
+without changing scoring or querying code. It ranks each participant's strongest
+active official run using approved snapshots only, omits inactive runs and
+exposes signed-in survivor records and starting-build modals. Guest detail and
+build actions instead open the appropriate sign-up or sign-in prompt. Its
+desktop and mobile presentations use the same compact columnar list; narrow
+screens scroll the leaderboard panel horizontally instead of converting rows
+into cards. The PZWiki Ball-peen Hammer icon identifies the Build column and
+each row's occupation icon opens that survivor's build modal.
+
+Add reconciled online status to the leaderboard as a separately cached provider
+concern. Keep that work separate from the ranking calculation so the scoring
+formula and public columns can be changed after team review without disturbing
+provider state.
+
+After the legacy claim journey, add the signed-in filterable history of all runs.
+Replace development gallery and navigation records only as their real launch
+destinations become available.
 
 Retention automation and a final pre-launch privacy review remain required.
+
+## Launch-critical operational safeguards
+
+Before production launch, replace ad hoc `runserver` commands with one canonical
+environment-aware startup path. Local development must load the repository's
+uncommitted `.env` before Django starts and must report the local and LAN
+addresses it actually bound. Production must receive secrets from its deployment
+environment, never from the repository.
+
+Startup validation must fail before accepting traffic when a configured Twitch
+or Discord integration has a missing or malformed Fernet encryption key. The
+deployment health check must also identify the running build and verify that
+required integration configuration is present without revealing secret values.
+Restart procedures must stop the complete previous process tree and confirm that
+only one listener owns the intended port before announcing the site as ready.
+
+Do not rotate `STREAMING_TOKEN_ENCRYPTION_KEY` without an explicit credential
+migration. Existing encrypted provider tokens must remain decryptable across
+deployments, restarts and rollbacks. A pre-deployment check should verify this
+against stored credentials without printing decrypted tokens.

@@ -9,6 +9,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth.models import Group
 from django.db import transaction
+from django.db.models import Case, IntegerField, Value, When
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect
 from django.urls import path
@@ -23,12 +24,36 @@ from .models import (
     ChallengeMode,
     ChallengeModeAlias,
     ChallengeRun,
+    LegacyLeaderboardClaim,
+    LegacyLeaderboardEntry,
     Notification,
     Participant,
     RunSubmission,
     StreamingAccount,
     StreamingMedia,
+    WorkshopMod,
+    WorkshopModVote,
 )
+
+
+@admin.register(LegacyLeaderboardEntry)
+class LegacyLeaderboardEntryAdmin(admin.ModelAdmin):
+    list_display = ("source_rank", "historical_name", "zombie_kills", "challenge_progress", "claimed_participant", "snapshot_id")
+    list_filter = ("snapshot_id",)
+    search_fields = ("historical_name", "source_url", "claimed_participant__nickname")
+    readonly_fields = (
+        "source_key", "source_row", "source_rank", "historical_name", "zombie_kills",
+        "survival_time_full", "survival_days", "kills_per_day", "playtime_hours",
+        "outposts_cleared", "maxed_skills", "challenge_progress", "source_url",
+        "snapshot_id", "snapshot_captured_at", "created_at", "updated_at",
+    )
+
+
+@admin.register(LegacyLeaderboardClaim)
+class LegacyLeaderboardClaimAdmin(admin.ModelAdmin):
+    list_display = ("entry", "participant", "status", "submitted_at", "reviewed_by", "reviewed_at")
+    list_filter = ("status",)
+    search_fields = ("entry__historical_name", "participant__nickname")
 from .tokens import create_verification_token
 from .verification_email import send_verification_email
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
@@ -36,6 +61,285 @@ from .notifications import notify
 from .run_review import build_run_review
 from .run_exports import decode_run_export
 from .challenge_modes import resolve_challenge_mode
+
+
+PUBLIC_MOD_RATIONALE_TEMPLATES = {
+    "Allowed": (
+        "This mod is purely cosmetic and does not alter gameplay or game balance.",
+        "This mod improves presentation or usability without revealing information unavailable in the unmodified game.",
+        "This mod clarifies information already available in the unmodified game without adding new gameplay data.",
+    ),
+    "Disallowed": (
+        "This mod alters gameplay or game balance beyond the permitted cosmetic and quality-of-life scope.",
+        "This mod provides gameplay information that is not available in the unmodified game.",
+        "This mod automates gameplay, progression or another action that must be performed by the participant.",
+        "This mod adds or improves player abilities, protection, insulation, traits, occupations, items or vehicles.",
+    ),
+}
+
+
+class WorkshopModAdminForm(forms.ModelForm):
+    class Meta:
+        model = WorkshopMod
+        fields = "__all__"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        ruling = cleaned_data.get("ruling")
+        previous_ruling = self.instance.ruling if self.instance.pk else None
+        if (
+            previous_ruling == WorkshopMod.Ruling.PENDING
+            and ruling in {WorkshopMod.Ruling.ALLOWED, WorkshopMod.Ruling.DISALLOWED}
+            and not (cleaned_data.get("public_rationale") or "").strip()
+        ):
+            self.add_error(
+                "public_rationale",
+                "Enter the public reason for this final ruling.",
+            )
+        return cleaned_data
+
+
+@admin.register(WorkshopMod)
+class WorkshopModAdmin(admin.ModelAdmin):
+    form = WorkshopModAdminForm
+    change_form_template = "admin/registry/workshopmod/change_form.html"
+    change_list_template = "admin/registry/workshopmod/change_list.html"
+    actions = (
+        "allow_selected_mods",
+        "disallow_selected_mods",
+        "reset_selected_rulings",
+    )
+    list_display = (
+        "title",
+        "workshop_id",
+        "ruling",
+        "is_recommended",
+        "previous_unstable_ruling",
+        "submitted_by",
+        "review_action",
+        "updated_at",
+    )
+    list_filter = ("ruling", "is_recommended", "previous_unstable_ruling")
+    search_fields = ("title", "workshop_id", "submission_reason")
+    readonly_fields = (
+        "workshop_id",
+        "title",
+        "steam_url",
+        "preview_url",
+        "creator_steam_id",
+        "submitted_by",
+        "submission_reason",
+        "steam_checked_at",
+        "reviewed_by",
+        "reviewed_at",
+        "created_at",
+        "updated_at",
+    )
+    fieldsets = (
+        ("Decision", {"fields": ("ruling", "public_rationale", "is_recommended")}),
+        ("Participant request", {"fields": ("submitted_by", "submission_reason", "created_at")}),
+        ("Previous Unstable policy", {"fields": ("previous_unstable_ruling", "unstable_ruling_notes")}),
+        ("Review audit", {"fields": ("reviewed_by", "reviewed_at", "updated_at")}),
+        ("Steam Workshop metadata", {"classes": ("collapse",), "fields": ("workshop_id", "title", "steam_url", "preview_url", "creator_steam_id", "steam_checked_at")}),
+    )
+
+    class Media:
+        css = {"all": ("registry/admin_mod_review.css",)}
+        js = ("registry/admin_mod_review.js",)
+
+    def get_urls(self):
+        return [
+            path(
+                "<path:object_id>/vote/",
+                self.admin_site.admin_view(self.vote_view),
+                name="registry_workshopmod_vote",
+            ),
+        ] + super().get_urls()
+
+    @staticmethod
+    def can_vote(user):
+        return user.is_superuser or user.groups.filter(
+            name__in=("Workshop Mod Approver", "Challenge Administrator")
+        ).exists()
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        obj = self.get_object(request, object_id)
+        context = dict(extra_context or {})
+        if obj:
+            votes = list(obj.team_votes.select_related("voter"))
+            counts = {
+                choice: sum(vote.decision == choice for vote in votes)
+                for choice in WorkshopModVote.Decision.values
+            }
+            if counts[WorkshopModVote.Decision.DISCUSS] or (
+                counts[WorkshopModVote.Decision.ALLOW]
+                and counts[WorkshopModVote.Decision.DISALLOW]
+            ):
+                recommendation = "Discussion needed"
+            elif counts[WorkshopModVote.Decision.ALLOW]:
+                recommendation = "Recommend Allow"
+            elif counts[WorkshopModVote.Decision.DISALLOW]:
+                recommendation = "Recommend Disallow"
+            else:
+                recommendation = "Awaiting team votes"
+            context.update(
+                {
+                    "mod_votes": votes,
+                    "mod_vote_counts": counts,
+                    "mod_vote_recommendation": recommendation,
+                    "can_vote_on_mod": self.can_vote(request.user)
+                    and obj.ruling == WorkshopMod.Ruling.PENDING,
+                    "current_mod_vote": next(
+                        (vote for vote in votes if vote.voter_id == request.user.pk),
+                        None,
+                    ),
+                    "public_rationale_templates": PUBLIC_MOD_RATIONALE_TEMPLATES,
+                }
+            )
+        return super().change_view(request, object_id, form_url, context)
+
+    def vote_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        obj = self.get_object(request, object_id)
+        if obj is None:
+            raise Http404
+        change_url = reverse("admin:registry_workshopmod_change", args=(obj.pk,))
+        if not self.can_vote(request.user):
+            self.message_user(request, "You are not eligible to vote on mod rulings.", messages.ERROR)
+            return redirect(change_url)
+        if obj.ruling != WorkshopMod.Ruling.PENDING:
+            self.message_user(request, "Voting is closed because this mod has a final ruling.", messages.ERROR)
+            return redirect(change_url)
+
+        decision = request.POST.get("decision", "")
+        reason = request.POST.get("reason", "").strip()
+        if decision not in WorkshopModVote.Decision.values:
+            self.message_user(request, "Choose Allow, Disallow or Discuss.", messages.ERROR)
+            return redirect(change_url)
+        if decision in {
+            WorkshopModVote.Decision.DISALLOW,
+            WorkshopModVote.Decision.DISCUSS,
+        } and not reason:
+            self.message_user(request, "Enter a reason for a Disallow or Discuss vote.", messages.ERROR)
+            return redirect(change_url)
+
+        WorkshopModVote.objects.update_or_create(
+            workshop_mod=obj,
+            voter=request.user,
+            defaults={
+                "voter_name": request.user.nickname or request.user.email,
+                "decision": decision,
+                "reason": reason,
+            },
+        )
+        self.message_user(request, "Your team vote has been recorded.", messages.SUCCESS)
+        return redirect(change_url)
+
+    @admin.display(description="Review")
+    def review_action(self, obj):
+        label = "Review" if obj.ruling == WorkshopMod.Ruling.PENDING else "View"
+        return format_html(
+            '<a class="button" href="{}">{}</a>',
+            reverse("admin:registry_workshopmod_change", args=(obj.pk,)),
+            label,
+        )
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        if "o" not in request.GET:
+            queryset = queryset.order_by(
+                Case(
+                    When(ruling=WorkshopMod.Ruling.PENDING, then=Value(0)),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                ),
+                "title",
+                "workshop_id",
+            )
+        return queryset
+
+    def changelist_view(self, request, extra_context=None):
+        context = dict(extra_context or {})
+        context["pending_mod_review_count"] = WorkshopMod.objects.filter(
+            ruling=WorkshopMod.Ruling.PENDING
+        ).count()
+        context["title"] = "Mod approval queue"
+        return super().changelist_view(request, extra_context=context)
+
+    def save_model(self, request, obj, form, change):
+        previous_ruling = None
+        if obj.pk:
+            previous_ruling = WorkshopMod.objects.filter(pk=obj.pk).values_list(
+                "ruling", flat=True
+            ).first()
+        if obj.ruling == WorkshopMod.Ruling.PENDING:
+            obj.reviewed_by = None
+            obj.reviewed_at = None
+        elif (
+            obj.ruling in {WorkshopMod.Ruling.ALLOWED, WorkshopMod.Ruling.DISALLOWED}
+            and obj.ruling != previous_ruling
+        ):
+            obj.reviewed_by = request.user
+            obj.reviewed_at = timezone.now()
+        super().save_model(request, obj, form, change)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not request.user.is_superuser:
+            actions.pop("allow_selected_mods", None)
+            actions.pop("disallow_selected_mods", None)
+            actions.pop("reset_selected_rulings", None)
+        return actions
+
+    @admin.action(description="Allow selected mods")
+    def allow_selected_mods(self, request, queryset):
+        reviewed_at = timezone.now()
+        updated = queryset.exclude(
+            ruling=WorkshopMod.Ruling.REQUIRED
+        ).update(
+            ruling=WorkshopMod.Ruling.ALLOWED,
+            reviewed_by=request.user,
+            reviewed_at=reviewed_at,
+            updated_at=reviewed_at,
+        )
+        self.message_user(request, f"{updated} mod(s) marked Allowed.", messages.SUCCESS)
+
+    @admin.action(description="Disallow selected mods")
+    def disallow_selected_mods(self, request, queryset):
+        reviewed_at = timezone.now()
+        updated = queryset.exclude(
+            ruling=WorkshopMod.Ruling.REQUIRED
+        ).update(
+            ruling=WorkshopMod.Ruling.DISALLOWED,
+            is_recommended=False,
+            reviewed_by=request.user,
+            reviewed_at=reviewed_at,
+            updated_at=reviewed_at,
+        )
+        self.message_user(
+            request,
+            f"{updated} mod(s) marked Disallowed.",
+            messages.SUCCESS,
+        )
+
+    @admin.action(description="Reset ruling")
+    def reset_selected_rulings(self, request, queryset):
+        updated = queryset.exclude(
+            ruling=WorkshopMod.Ruling.REQUIRED
+        ).update(
+            ruling=WorkshopMod.Ruling.PENDING,
+            is_recommended=False,
+            public_rationale="",
+            reviewed_by=None,
+            reviewed_at=None,
+            updated_at=timezone.now(),
+        )
+        self.message_user(
+            request,
+            f"{updated} mod ruling(s) reset to Pending review.",
+            messages.SUCCESS,
+        )
 
 admin.site.site_header = f"{settings.SITE_SHORT_TITLE} administration"
 admin.site.site_title = f"{settings.SITE_SHORT_TITLE} admin"
@@ -138,9 +442,14 @@ def promote_to_role(modeladmin, request, queryset, role_name):
     modeladmin.message_user(request, f"Promoted {queryset.count()} participant(s) to {role_name}.", level=messages.SUCCESS)
 
 
-@admin.action(description="Promote selected participants to Approver")
-def promote_to_approver(modeladmin, request, queryset):
-    promote_to_role(modeladmin, request, queryset, "Approver")
+@admin.action(description="Promote selected participants to Workshop Mod Approver")
+def promote_to_workshop_mod_approver(modeladmin, request, queryset):
+    promote_to_role(modeladmin, request, queryset, "Workshop Mod Approver")
+
+
+@admin.action(description="Promote selected participants to Run Submission Approver")
+def promote_to_run_submission_approver(modeladmin, request, queryset):
+    promote_to_role(modeladmin, request, queryset, "Run Submission Approver")
 
 
 @admin.action(description="Promote selected participants to Moderator")
@@ -257,7 +566,7 @@ class ParticipantAdmin(UserAdmin):
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("email", "nickname", "password1", "password2", "is_active", "is_staff", "groups")}),
     )
-    actions = (approve_avatars, reject_avatars, resend_verifications, promote_to_approver, promote_to_moderator, promote_to_challenge_admin, promote_to_branding_admin, promote_to_zomboid_integration, process_account_closures, export_registrations)
+    actions = (approve_avatars, reject_avatars, resend_verifications, promote_to_workshop_mod_approver, promote_to_run_submission_approver, promote_to_moderator, promote_to_challenge_admin, promote_to_branding_admin, promote_to_zomboid_integration, process_account_closures, export_registrations)
     date_hierarchy = "registered_at"
 
     @admin.display(description="Pending avatar preview")
@@ -440,8 +749,11 @@ class ChallengeModeAliasInline(admin.TabularInline):
 
 @admin.register(ChallengeMode)
 class ChallengeModeAdmin(admin.ModelAdmin):
-    list_display = ("display_name", "key", "game_mode_name", "is_active", "display_order")
-    list_editable = ("is_active", "display_order")
+    list_display = (
+        "display_name", "key", "game_mode_name", "max_active_runs_per_participant",
+        "is_active", "display_order",
+    )
+    list_editable = ("max_active_runs_per_participant", "is_active", "display_order")
     search_fields = ("display_name", "key", "game_mode_name", "aliases__key")
     inlines = (ChallengeModeAliasInline,)
 
@@ -463,7 +775,8 @@ class ChallengeRunAdmin(admin.ModelAdmin):
         "starting_challenge_game_mode",
         "run_id", "export_format", "generated_at", "current_kills",
         "event_sequence", "event_hash", "character_name", "bootstrapped",
-        "latest_projection", "latest_events", "first_submitted_at", "updated_at",
+        "latest_projection", "latest_events", "participant_deactivated_at",
+        "first_submitted_at", "updated_at",
     )
 
     def has_add_permission(self, request):
@@ -597,6 +910,8 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         run.bootstrapped = decoded.bootstrapped
         run.latest_projection = decoded.projection
         run.latest_events = decoded.events
+        if decoded.lifecycle == ChallengeRun.Lifecycle.DECEASED:
+            run.lifecycle_status = ChallengeRun.Lifecycle.DECEASED
         run.save()
         if run.participant:
             notify(

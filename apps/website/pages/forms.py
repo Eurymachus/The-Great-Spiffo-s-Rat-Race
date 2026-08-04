@@ -22,7 +22,7 @@ class PageEditorForm(forms.ModelForm):
     class Meta:
         model = Page
         fields = (
-            "title", "public_path", "is_published", "content_width",
+            "title", "public_path", "is_published", "audience", "content_width",
             "page_builder_data",
         )
 
@@ -38,8 +38,11 @@ class PageEditorForm(forms.ModelForm):
                     "id": section.pk, "position": section.position,
                     "name": section.name,
                     "is_visible": section.is_visible, "width": section.width,
+                    "section_type": section.section_type,
                     "layout": section.layout, "background": section.background,
                     "full_bleed_background": section.full_bleed_background,
+                    "separator_style": section.separator_style,
+                    "separator_spacing": section.separator_spacing,
                     "blocks": [
                         {
                             "id": block.pk, "position": block.position,
@@ -63,6 +66,7 @@ class PageEditorForm(forms.ModelForm):
                             "gallery_show_controls": block.gallery_show_controls,
                             "gallery_show_captions": block.gallery_show_captions,
                             "gallery_expandable": block.gallery_expandable,
+                            "ranking_config": block.ranking_config,
                             "gallery_images": [
                                 {"id": item.pk, "image": item.image_id,
                                  "alternative_text": item.alternative_text, "caption": item.caption}
@@ -100,16 +104,22 @@ class PageEditorForm(forms.ModelForm):
                 page=self.instance, position=section_index * 10,
                 name=str(raw.get("name", "Section")).strip() or "Section",
                 is_visible=bool(raw.get("is_visible", True)),
+                section_type=raw.get("section_type", PageSection.SectionType.CONTENT),
                 width=raw.get("width", PageSection.Width.INHERIT),
                 layout=raw.get("layout", PageSection.Layout.SINGLE),
                 background=raw.get("background", PageSection.Background.DEFAULT),
                 full_bleed_background=bool(raw.get("full_bleed_background", False)),
+                separator_style=raw.get("separator_style", PageSection.SeparatorStyle.SPACE),
+                separator_spacing=raw.get("separator_spacing", PageSection.SeparatorSpacing.STANDARD),
             )
             section.full_clean(exclude=("page",))
+            raw_blocks = raw.get("blocks", [])
+            if section.section_type == PageSection.SectionType.SEPARATOR and raw_blocks:
+                raise ValidationError("Separator sections cannot contain content blocks.")
             column_count = LAYOUT_COLUMNS.get(section.layout, 1)
             block_ids = set(PageBlock.objects.filter(section_id=section_id).values_list("pk", flat=True)) if section_id else set()
             blocks = []
-            for block_index, raw_block in enumerate(raw.get("blocks", [])):
+            for block_index, raw_block in enumerate(raw_blocks):
                 if not isinstance(raw_block, dict):
                     raise ValidationError(f"Block {block_index + 1} in section {section_index + 1} is invalid.")
                 block_id = raw_block.get("id")
@@ -145,8 +155,17 @@ class PageEditorForm(forms.ModelForm):
                     gallery_show_controls=bool(raw_block.get("gallery_show_controls", True)),
                     gallery_show_captions=bool(raw_block.get("gallery_show_captions", True)),
                     gallery_expandable=bool(raw_block.get("gallery_expandable", True)),
+                    ranking_config=raw_block.get("ranking_config") or {},
                 )
                 block.full_clean(exclude=("section",))
+                if block.block_type == PageBlock.BlockType.RANKING_TABLE:
+                    from registry.models import ChallengeMode, Participant
+
+                    config = block.ranking_config
+                    if ChallengeMode.objects.filter(pk__in=config["challenge_modes"]).count() != len(config["challenge_modes"]):
+                        raise ValidationError("A selected challenge mode no longer exists.")
+                    if Participant.objects.filter(pk__in=config["participants"]).count() != len(config["participants"]):
+                        raise ValidationError("A selected participant no longer exists.")
                 item_ids = set(SectionItem.objects.filter(block_id=block_id).values_list("pk", flat=True)) if block_id else set()
                 items = []
                 raw_items = raw_block.get("items", [])

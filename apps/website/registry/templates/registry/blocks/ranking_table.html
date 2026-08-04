@@ -1,0 +1,56 @@
+<section class="managed-ranking-table" data-leaderboard-page>
+  {% if config.show_heading or config.introduction or config.show_weighting %}
+  <header class="managed-ranking-header leaderboard-hero">
+    {% if config.eyebrow %}<p class="account-dashboard-kicker">{{ config.eyebrow }}</p>{% endif %}
+    {% if config.show_heading and config.heading %}<h2>{{ config.heading }}</h2>{% endif %}
+    {% if config.introduction %}<p>{{ config.introduction }}</p>{% endif %}
+    {% if config.show_weighting %}<p class="leaderboard-weighting"><strong>Score weighting:</strong> zombie kills 50%, outposts 25%, skills 25%.</p>{% endif %}
+  </header>
+  {% endif %}
+  {% if entries %}
+  <div class="managed-ranking-panel" tabindex="0">
+    <table data-sortable-ranking data-initial-sort="{{ config.ordering }}">
+      <thead><tr><th scope="col" class="managed-ranking-rank" data-sort-key="rank" data-sort-type="number"><button type="button" class="managed-ranking-sort" aria-label="Sort by rank">⚑<span class="managed-ranking-sort-indicator" aria-hidden="true"></span></button></th>
+        {% for column in config.columns %}
+          {% if column == "participant" %}<th scope="col" class="managed-ranking-column-participant" data-sort-key="participant" data-sort-type="text"><button type="button" class="managed-ranking-sort">Participant<span class="managed-ranking-sort-indicator" aria-hidden="true"></span></button></th>
+          {% elif column == "survivor" %}<th scope="col" class="managed-ranking-column-survivor" data-sort-key="survivor" data-sort-type="text"><button type="button" class="managed-ranking-sort">Survivor<span class="managed-ranking-sort-indicator" aria-hidden="true"></span></button></th>
+          {% elif column == "build" %}<th scope="col" class="managed-ranking-build"><span class="visually-hidden">Build</span>{% if entries.0.build_header_icon_url %}<img src="{{ entries.0.build_header_icon_url }}" alt="">{% else %}Build{% endif %}</th>
+          {% elif column == "progress" %}<th scope="col" class="managed-ranking-column-progress" data-sort-key="progress" data-sort-type="number"><button type="button" class="managed-ranking-sort"><span>Progress <small>(weighted)</small></span><span class="managed-ranking-sort-indicator" aria-hidden="true"></span></button></th>
+          {% elif column == "kills" %}<th scope="col" class="managed-ranking-column-kills" data-sort-key="kills" data-sort-type="number"><button type="button" class="managed-ranking-sort">Zombie kills<span class="managed-ranking-sort-indicator" aria-hidden="true"></span></button></th>
+          {% elif column == "outposts" %}<th scope="col" class="managed-ranking-column-outposts" data-sort-key="outposts" data-sort-type="number"><button type="button" class="managed-ranking-sort">Outposts<span class="managed-ranking-sort-indicator" aria-hidden="true"></span></button></th>
+          {% elif column == "skills" %}<th scope="col" class="managed-ranking-column-skills" data-sort-key="skills" data-sort-type="number"><button type="button" class="managed-ranking-sort">Maxed skills<span class="managed-ranking-sort-indicator" aria-hidden="true"></span></button></th>
+          {% elif column == "day" %}<th scope="col" class="managed-ranking-column-day" data-sort-key="day" data-sort-type="number"><button type="button" class="managed-ranking-sort">Day<span class="managed-ranking-sort-indicator" aria-hidden="true"></span></button></th>
+          {% elif column == "verified" %}<th scope="col" class="managed-ranking-column-verified" data-sort-key="verified" data-sort-type="number"><button type="button" class="managed-ranking-sort">Last verified<span class="managed-ranking-sort-indicator" aria-hidden="true"></span></button></th>{% endif %}
+        {% endfor %}
+      </tr></thead>
+      <tbody>{% for entry in entries %}<tr{% if entry.rank == 1 %} class="is-leading"{% endif %}>
+        <td class="managed-ranking-rank" data-sort-value="{{ entry.rank }}"><strong>{{ entry.rank }}</strong></td>
+        {% for column in config.columns %}
+          {% if column == "participant" %}<td class="managed-ranking-column-participant" data-sort-value="{{ entry.racer }}"><span class="managed-ranking-participant"><span class="leaderboard-provider-slot">{% if entry.source_url and entry.stream_provider %}<a href="{{ entry.source_url }}" target="_blank" rel="noopener noreferrer" aria-label="Open {{ entry.racer }}'s {{ entry.stream_provider|title }} channel">{% include "registry/includes/streaming_provider_icon.html" with provider=entry.stream_provider compact=True %}</a>{% endif %}</span><strong title="{{ entry.racer }}">{{ entry.racer }}</strong></span></td>
+          {% elif column == "survivor" %}<td class="managed-ranking-column-survivor" data-sort-value="{{ entry.survivor }}">{% if config.show_details %}{% if request.user.is_authenticated %}<a href="{% url 'registry:public_run_detail' entry.run.pk %}">{{ entry.survivor }}</a>{% else %}<button type="button" class="leaderboard-text-action" data-access-prompt-open data-access-title="Sign in to view survivor details" data-access-message="Create a Rat Race account or sign in to view this survivor's detailed character and run information." data-access-destination="{% url 'registry:public_run_detail' entry.run.pk %}">{{ entry.survivor }}</button>{% endif %}{% else %}{{ entry.survivor }}{% endif %}</td>
+          {% elif column == "build" %}<td class="managed-ranking-build">{% if config.show_build %}<button type="button" class="leaderboard-build-action" data-build-open="managed-build-{{ block.pk }}-{{ entry.run.pk }}" aria-label="Show {{ entry.survivor }} build" title="Show Build: {{ entry.profession }}"{% if not request.user.is_authenticated %} data-access-title="Sign in to view survivor builds" data-access-message="Create a Rat Race account or sign in to view this survivor's starting profession and selected traits." data-access-destination="{% url 'registry:public_run_detail' entry.run.pk %}"{% endif %}>{% if entry.profession_icon_url %}<img src="{{ entry.profession_icon_url }}" alt="">{% else %}Build{% endif %}</button>{% endif %}</td>
+          {% elif column == "progress" %}<td class="managed-ranking-column-progress" data-sort-value="{{ entry.completion }}"><div class="managed-ranking-progress"><span style="width:{{ entry.completion }}%"></span><strong>{{ entry.completion|floatformat:2 }}%</strong></div></td>
+          {% elif column == "kills" %}<td class="managed-ranking-column-kills" data-sort-value="{{ entry.kills }}">{{ entry.kills|floatformat:"0g" }}</td>
+          {% elif column == "outposts" %}<td class="managed-ranking-column-outposts" data-sort-value="{{ entry.outposts_completed }}">{{ entry.outposts_completed }} / {{ entry.outposts_total }}</td>
+          {% elif column == "skills" %}<td class="managed-ranking-column-skills" data-sort-value="{{ entry.maxed_skills }}">{{ entry.maxed_skills }} / {{ entry.skills_total }}</td>
+          {% elif column == "day" %}<td class="managed-ranking-column-day" data-sort-value="{{ entry.in_game_day|default:0 }}">{{ entry.in_game_day|default:"-" }}</td>
+          {% elif column == "verified" %}<td class="managed-ranking-column-verified" data-sort-value="{{ entry.verified_at|date:'U'|default:0 }}">{{ entry.verified_at|date:"j M Y" }}<small>{{ entry.verified_at|date:"H:i" }}</small></td>{% endif %}
+        {% endfor %}
+      </tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}<div class="leaderboard-empty"><h3>No eligible records yet</h3><p>Verified runs matching this table's filters will appear here.</p></div>{% endif %}
+
+  {% if request.user.is_authenticated and config.show_build and config.source == "verified_runs" %}{% for entry in entries %}
+  <dialog class="leaderboard-build-modal" id="managed-build-{{ block.pk }}-{{ entry.run.pk }}" aria-labelledby="managed-build-title-{{ block.pk }}-{{ entry.run.pk }}">
+    <header><div><p class="account-dashboard-kicker">Starting build</p><strong id="managed-build-title-{{ block.pk }}-{{ entry.run.pk }}">{{ entry.survivor }}</strong></div><div class="leaderboard-modal-actions">{% if config.show_details %}<a class="dashboard-header-action" href="{% url 'registry:public_run_detail' entry.run.pk %}">View survivor record</a>{% endif %}<button type="button" data-build-close>Close</button></div></header>
+    <div class="leaderboard-build-content"><section class="leaderboard-profession">{% if entry.profession_icon_url %}<img src="{{ entry.profession_icon_url }}" alt="">{% endif %}<div><small>Profession</small><strong>{{ entry.profession }}</strong></div></section><section><h3>Selected starting traits</h3><div class="leaderboard-trait-columns">
+      <div class="leaderboard-trait-column leaderboard-trait-column-negative"><h4>Negative traits</h4><ul>{% for trait in entry.negative_traits %}<li tabindex="0" aria-describedby="managed-negative-trait-{{ block.pk }}-{{ entry.run.pk }}-{{ forloop.counter }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="">{% endif %}<span>{{ trait.name }}</span><strong>{{ trait.point_value }}</strong><span class="leaderboard-trait-tooltip" id="managed-negative-trait-{{ block.pk }}-{{ entry.run.pk }}-{{ forloop.counter }}" role="tooltip">{{ trait.description|linebreaksbr }}</span></li>{% empty %}<li class="leaderboard-trait-empty">None selected</li>{% endfor %}</ul></div>
+      <div class="leaderboard-trait-column leaderboard-trait-column-positive"><h4>Positive traits</h4><ul>{% for trait in entry.positive_traits %}<li tabindex="0" aria-describedby="managed-positive-trait-{{ block.pk }}-{{ entry.run.pk }}-{{ forloop.counter }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="">{% endif %}<span>{{ trait.name }}</span><strong>{{ trait.point_value }}</strong><span class="leaderboard-trait-tooltip" id="managed-positive-trait-{{ block.pk }}-{{ entry.run.pk }}-{{ forloop.counter }}" role="tooltip">{{ trait.description|linebreaksbr }}</span></li>{% empty %}<li class="leaderboard-trait-empty">None selected</li>{% endfor %}</ul></div>
+    </div></section></div>
+  </dialog>
+  {% endfor %}{% endif %}
+  {% if not request.user.is_authenticated and config.show_details or not request.user.is_authenticated and config.show_build %}
+  <dialog class="leaderboard-build-modal leaderboard-access-modal" data-access-prompt aria-labelledby="managed-access-title-{{ block.pk }}"><header><strong id="managed-access-title-{{ block.pk }}">Sign in to view survivor details</strong><button type="button" data-access-prompt-close>Close</button></header><div class="leaderboard-build-content"><p data-access-message>Create a Rat Race account or sign in to view detailed character and run information.</p><div class="leaderboard-access-actions"><a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a><a class="dashboard-header-action" data-access-sign-in href="{% url 'registry:login' %}?next={{ request.path|urlencode }}">Sign In</a></div></div></dialog>
+  {% endif %}
+</section>

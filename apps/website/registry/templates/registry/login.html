@@ -1,7 +1,7 @@
 {% extends "registry/base.html" %}
 {% block title_suffix %} | Sign In{% endblock %}
 {% block content %}
-<section class="card sign-in-page-card">
+<section class="card sign-in-page-card" id="sign-in">
   {% include "registry/_sign_in_form.html" with form=form compact=False %}
 </section>
 {% endblock %}

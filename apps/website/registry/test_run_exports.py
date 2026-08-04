@@ -157,6 +157,44 @@ def make_export(
 
 
 class RunExportCodecTests(TestCase):
+    def test_decodes_matching_deceased_terminal_state(self):
+        projection = {
+            "schema": 1,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Late Survivor"}},
+            "lifecycle": "deceased",
+            "endedReason": "deceased",
+            "endedUtc": 1784800003,
+            "endedWorldAgeHours": 3,
+            "endedEventSequence": 3,
+        }
+        decoded = decode_run_export(
+            make_export(
+                projection=projection,
+                event_specs=[
+                    ("session.started", {"character": {"displayName": "Late Survivor"}}),
+                    ("day.started", {"partial": False}),
+                    ("run.ended", {"reason": "deceased"}),
+                ],
+            )
+        )
+
+        self.assertEqual(decoded.lifecycle, "deceased")
+
+    def test_rejects_terminal_event_without_matching_projection(self):
+        with self.assertRaisesMessage(
+            InvalidRunExport,
+            "terminal run event has no matching lifecycle projection",
+        ):
+            decode_run_export(
+                make_export(
+                    event_specs=[
+                        ("session.started", {"character": {"displayName": "Test Survivor"}}),
+                        ("run.ended", {"reason": "deceased"}),
+                    ]
+                )
+            )
+
     def test_decodes_real_current_contract_export(self):
         fixture = (
             Path(__file__).with_name("testdata")
@@ -484,6 +522,7 @@ class RunSubmissionTests(TestCase):
             reverse("registry:submit_run"),
             {
                 "run_export": make_export(),
+                "evidence_provider": StreamingAccount.Provider.TWITCH,
                 "evidence_video": str(broadcast.pk),
                 "evidence_start_seconds": 60,
                 "evidence_end_seconds": 3600,
@@ -501,6 +540,9 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(submission.evidence_clips[0]["media_id"], "clip-42")
 
     def test_run_lifecycle_separates_active_and_past_runs(self):
+        mode = ChallengeMode.objects.get(key="TGSRR")
+        mode.max_active_runs_per_participant = 2
+        mode.save(update_fields=("max_active_runs_per_participant",))
         self.client.post(
             reverse("registry:submit_run"),
             {"run_export": make_export(run_id="active-run")},
@@ -523,14 +565,133 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "Deceased")
         self.assertContains(dashboard, "Active Survivor")
         self.assertContains(dashboard, "Past Survivor")
-        self.assertNotContains(dashboard, "active-run")
-        self.assertNotContains(dashboard, "past-run")
         self.assertContains(dashboard, 'class="dashboard-run-entry"', count=4)
         self.assertContains(dashboard, "Run details", count=2)
         self.assertContains(dashboard, "Approved submissions", count=2)
         self.assertContains(dashboard, "Submission history", count=2)
         self.assertContains(dashboard, "Awaiting Review")
         self.assertContains(dashboard, "Awaiting review")
+
+    def test_mode_active_run_limit_blocks_a_second_character(self):
+        first = self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    run_id="first-active-run",
+                    challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
+                )
+            },
+        )
+        self.assertRedirects(first, reverse("registry:account"))
+
+        response = self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    run_id="second-active-run",
+                    challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
+                )
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "maximum of 1 active run")
+        self.assertContains(response, "data-submission-blocked-dialog")
+        self.assertFalse(ChallengeRun.objects.filter(run_id="second-active-run").exists())
+
+    def test_configured_mode_limit_allows_more_than_one_active_run(self):
+        mode = ChallengeMode.objects.get(key="TGSRR")
+        mode.max_active_runs_per_participant = 2
+        mode.save(update_fields=("max_active_runs_per_participant",))
+
+        for run_id in ("first-active-run", "second-active-run"):
+            response = self.client.post(
+                reverse("registry:submit_run"),
+                {
+                    "run_export": make_export(
+                        run_id=run_id,
+                        challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
+                    )
+                },
+            )
+            self.assertRedirects(response, reverse("registry:account"))
+
+        self.assertEqual(ChallengeRun.objects.count(), 2)
+
+    def test_participant_can_irreversibly_deactivate_active_run(self):
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(run_id="run-to-deactivate")},
+        )
+        run = ChallengeRun.objects.get(run_id="run-to-deactivate")
+
+        response = self.client.post(
+            reverse("registry:deactivate_run", args=(run.pk,)),
+            {"confirm_deactivation": "deactivate"},
+        )
+
+        self.assertRedirects(response, reverse("registry:account"))
+        run.refresh_from_db()
+        self.assertEqual(run.lifecycle_status, ChallengeRun.Lifecycle.ABANDONED)
+        self.assertIsNotNone(run.participant_deactivated_at)
+        submission = run.submissions.get()
+        self.assertEqual(submission.status, RunSubmission.Status.DECLINED)
+        self.assertEqual(submission.review_note, "Run deactivated by participant.")
+
+        dashboard = self.client.get(reverse("registry:account"))
+        self.assertContains(dashboard, "Abandoned")
+        self.assertNotContains(dashboard, "Deactivate permanently")
+
+    def test_deactivated_run_rejects_later_updates_and_frees_mode_slot(self):
+        self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    run_id="retired-run",
+                    challenge={
+                        "id": "TGSRR",
+                        "gameMode": "The Great Spiffo's Rat Race",
+                    },
+                )
+            },
+        )
+        run = ChallengeRun.objects.get(run_id="retired-run")
+        self.client.post(
+            reverse("registry:deactivate_run", args=(run.pk,)),
+            {"confirm_deactivation": "deactivate"},
+        )
+
+        blocked = self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    run_id="retired-run",
+                    kills=50,
+                    generated_at=1784800200,
+                    challenge={
+                        "id": "TGSRR",
+                        "gameMode": "The Great Spiffo's Rat Race",
+                    },
+                )
+            },
+        )
+        self.assertEqual(blocked.status_code, 200)
+        self.assertContains(blocked, "was deactivated")
+
+        replacement = self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    run_id="replacement-run",
+                    challenge={
+                        "id": "TGSRR",
+                        "gameMode": "The Great Spiffo's Rat Race",
+                    },
+                )
+            },
+        )
+        self.assertRedirects(replacement, reverse("registry:account"))
+        self.assertTrue(ChallengeRun.objects.filter(run_id="replacement-run").exists())
 
     def test_duplicate_export_is_rejected(self):
         value = make_export()
@@ -579,6 +740,46 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "In-game Day")
         self.assertNotContains(dashboard, "Day 1")
         self.assertNotContains(dashboard, "Events verified")
+
+    def test_approval_marks_a_terminal_death_export_as_deceased(self):
+        projection = {
+            "schema": 1,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Late Survivor"}},
+            "lifecycle": "deceased",
+            "endedReason": "deceased",
+            "endedUtc": 1784800003,
+            "endedWorldAgeHours": 3,
+            "endedEventSequence": 3,
+        }
+        self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    projection=projection,
+                    event_specs=[
+                        ("session.started", {"character": {"displayName": "Late Survivor"}}),
+                        ("day.started", {"partial": False}),
+                        ("run.ended", {"reason": "deceased"}),
+                    ],
+                )
+            },
+        )
+        run = ChallengeRun.objects.get()
+        submission = RunSubmission.objects.get()
+        administrator = Participant.objects.create_superuser(
+            email="terminal-reviewer@example.com",
+            nickname="Terminal Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+
+        self.client.post(
+            reverse("admin:registry_runsubmission_approve", args=(submission.pk,))
+        )
+
+        run.refresh_from_db()
+        self.assertEqual(run.lifecycle_status, ChallengeRun.Lifecycle.DECEASED)
 
     def test_newer_snapshot_can_be_approved_without_new_ledger_events(self):
         self.client.post(

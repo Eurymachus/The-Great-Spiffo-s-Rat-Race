@@ -70,6 +70,14 @@ class Participant(AbstractUser):
     avatar_review_path = models.CharField(max_length=255, blank=True, editable=False)
     avatar_moderation_note = models.CharField(max_length=255, blank=True, editable=False)
     avatar_submitted_at = models.DateTimeField(null=True, blank=True)
+    primary_streaming_account = models.ForeignKey(
+        "StreamingAccount",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="primary_for_participants",
+        help_text="The connected Twitch or YouTube channel shown on public rankings.",
+    )
 
     objects = ParticipantManager()
 
@@ -242,6 +250,113 @@ class StreamingMedia(models.Model):
         return self.title or self.provider_media_id
 
 
+class WorkshopMod(models.Model):
+    class Ruling(models.TextChoices):
+        REQUIRED = "required", "Required"
+        ALLOWED = "allowed", "Allowed"
+        DISALLOWED = "disallowed", "Disallowed"
+        PENDING = "pending", "Pending review"
+
+    class PreviousUnstableRuling(models.TextChoices):
+        ALLOWED = "allowed", "Allowed"
+        DISALLOWED = "disallowed", "Disallowed"
+        NOT_REVIEWED = "not_reviewed", "Not reviewed"
+        UNKNOWN = "unknown", "Unknown"
+
+    workshop_id = models.CharField(max_length=20, unique=True)
+    title = models.CharField(max_length=255)
+    steam_url = models.URLField(max_length=500)
+    preview_url = models.URLField(max_length=1000, blank=True)
+    creator_steam_id = models.CharField(max_length=32, blank=True)
+    ruling = models.CharField(
+        max_length=16,
+        choices=Ruling.choices,
+        default=Ruling.PENDING,
+        db_index=True,
+    )
+    is_recommended = models.BooleanField(
+        default=False,
+        help_text="Feature this Allowed mod in the public Recommended section.",
+    )
+    public_rationale = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        "Participant",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_workshop_mods",
+    )
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    previous_unstable_ruling = models.CharField(
+        max_length=16,
+        choices=PreviousUnstableRuling.choices,
+        default=PreviousUnstableRuling.NOT_REVIEWED,
+    )
+    unstable_ruling_notes = models.TextField(blank=True)
+    submission_reason = models.TextField(blank=True)
+    submitted_by = models.ForeignKey(
+        "Participant",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="submitted_workshop_mods",
+    )
+    steam_checked_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("title", "workshop_id")
+        verbose_name = "Workshop mod"
+        verbose_name_plural = "Workshop mods"
+        constraints = (
+            models.CheckConstraint(
+                condition=models.Q(is_recommended=False) | models.Q(ruling="allowed"),
+                name="recommended_workshop_mod_is_allowed",
+            ),
+        )
+
+    def __str__(self):
+        return self.title
+
+
+class WorkshopModVote(models.Model):
+    class Decision(models.TextChoices):
+        ALLOW = "allow", "Allow"
+        DISALLOW = "disallow", "Disallow"
+        DISCUSS = "discuss", "Discuss"
+
+    workshop_mod = models.ForeignKey(
+        WorkshopMod,
+        on_delete=models.CASCADE,
+        related_name="team_votes",
+    )
+    voter = models.ForeignKey(
+        "Participant",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="workshop_mod_votes",
+    )
+    voter_name = models.CharField(max_length=150)
+    decision = models.CharField(max_length=16, choices=Decision.choices)
+    reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("created_at", "pk")
+        constraints = (
+            models.UniqueConstraint(
+                fields=("workshop_mod", "voter"),
+                name="one_vote_per_team_member_per_workshop_mod",
+            ),
+        )
+
+    def __str__(self):
+        return f"{self.voter_name}: {self.get_decision_display()}"
+
+
 class ChallengeMode(models.Model):
     key = models.CharField(
         max_length=160,
@@ -255,6 +370,13 @@ class ChallengeMode(models.Model):
         help_text="The expected Project Zomboid game-mode name, retained for comparison.",
     )
     description = models.TextField(blank=True)
+    max_active_runs_per_participant = models.PositiveSmallIntegerField(
+        default=1,
+        help_text=(
+            "Maximum active runs each participant may have in this challenge mode. "
+            "Updates to an existing active run do not use another slot."
+        ),
+    )
     is_active = models.BooleanField(default=True)
     display_order = models.PositiveSmallIntegerField(default=0)
 
@@ -338,6 +460,7 @@ class ChallengeRun(models.Model):
     lifecycle_status = models.CharField(
         max_length=16, choices=Lifecycle.choices, default=Lifecycle.ACTIVE
     )
+    participant_deactivated_at = models.DateTimeField(null=True, blank=True)
     export_format = models.PositiveSmallIntegerField()
     generated_at = models.DateTimeField()
     current_kills = models.PositiveBigIntegerField(default=0)
@@ -388,6 +511,78 @@ class ChallengeRun(models.Model):
         if self.challenge_id:
             return f"{self.challenge_id} (Unmapped)"
         return "Legacy / Unspecified"
+
+
+class LegacyLeaderboardEntry(models.Model):
+    source_key = models.CharField(max_length=64, unique=True)
+    source_row = models.PositiveIntegerField()
+    source_rank = models.PositiveIntegerField(db_index=True)
+    historical_name = models.CharField(max_length=160, db_index=True)
+    zombie_kills = models.PositiveBigIntegerField(default=0)
+    survival_time_full = models.CharField(max_length=32, blank=True)
+    survival_days = models.DecimalField(max_digits=12, decimal_places=5, default=0)
+    kills_per_day = models.DecimalField(max_digits=14, decimal_places=5, default=0)
+    playtime_hours = models.DecimalField(max_digits=14, decimal_places=5, default=0)
+    outposts_cleared = models.PositiveSmallIntegerField(default=0)
+    maxed_skills = models.PositiveSmallIntegerField(default=0)
+    challenge_progress = models.DecimalField(max_digits=8, decimal_places=5, default=0)
+    source_url = models.TextField(blank=True)
+    snapshot_id = models.CharField(max_length=120)
+    snapshot_captured_at = models.DateTimeField()
+    claimed_participant = models.ForeignKey(
+        Participant,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="claimed_legacy_leaderboard_entries",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("source_rank", "historical_name")
+        verbose_name = "legacy Hall of Fame entry"
+        verbose_name_plural = "legacy Hall of Fame entries"
+
+    def __str__(self):
+        return f"{self.source_rank}. {self.historical_name}"
+
+
+class LegacyLeaderboardClaim(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved"
+        DECLINED = "declined", "Declined"
+
+    entry = models.ForeignKey(
+        LegacyLeaderboardEntry, on_delete=models.CASCADE, related_name="claims"
+    )
+    participant = models.ForeignKey(
+        Participant, on_delete=models.CASCADE, related_name="legacy_leaderboard_claims"
+    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    evidence = models.TextField(blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_by = models.ForeignKey(
+        Participant,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_legacy_leaderboard_claims",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-submitted_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("entry", "participant"), name="unique_legacy_entry_participant_claim"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.participant.nickname}: {self.entry.historical_name}"
 
 
 class RunSubmission(models.Model):

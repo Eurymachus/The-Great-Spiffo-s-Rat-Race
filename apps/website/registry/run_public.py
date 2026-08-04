@@ -1,5 +1,7 @@
 import re
 
+from django.utils.html import strip_tags
+from django.templatetags.static import static
 from zomboid_catalogue.models import (
     CatalogueAsset,
     CatalogueEntry,
@@ -76,7 +78,7 @@ def _catalogue_map(kind, identifiers):
         kind=kind,
         stable_id__in=candidates,
         is_active=True,
-    )
+    ).select_related("trait_details")
     resolved = {}
     for entry in sorted(entries, key=lambda item: version_key(item.introduced_in)):
         resolved[entry.stable_id] = entry
@@ -123,7 +125,13 @@ def _skill_level_progress(level, xp, thresholds):
 
 
 def build_public_run_context(run):
-    projection = run.latest_projection if isinstance(run.latest_projection, dict) else {}
+    approved_projection = (
+        run.approved_submission.projection
+        if run.approved_submission_id
+        and isinstance(run.approved_submission.projection, dict)
+        else {}
+    )
+    projection = approved_projection
     character = projection.get("character", {})
     current_character = character.get("current", {}) if isinstance(character, dict) else {}
     weight = projection.get("weight", {})
@@ -329,12 +337,33 @@ def build_public_run_context(run):
         (*trait_catalogue.values(), *profession_catalogue.values())
     )
     profession_entry = profession_catalogue.get(str(profession_id))
+    profession_icon_url = (
+        catalogue_icons.get(profession_entry.pk, "") if profession_entry else ""
+    )
+    if not profession_icon_url and str(profession_id).casefold() in (
+        "unemployed",
+        "base:unemployed",
+    ):
+        profession_icon_url = static("registry/images/Profession_custom.png")
 
     def presented_trait(value):
         entry = trait_catalogue.get(value)
+        details = getattr(entry, "trait_details", None) if entry else None
+        point_cost = details.point_cost if details else None
+        description = ""
+        if details and details.description:
+            description = strip_tags(
+                re.sub(r"<br\s*/?>", "\n", details.description, flags=re.IGNORECASE)
+            ).strip()
         return {
             "name": entry.display_name if entry else _name(value),
             "icon_url": catalogue_icons.get(entry.pk, "") if entry else "",
+            "point_cost": point_cost,
+            "is_negative": point_cost is not None and point_cost < 0,
+            "point_value": (
+                f"{(-point_cost):+d}" if point_cost is not None else "?"
+            ),
+            "description": description or "No game description is available for this trait.",
         }
 
     return {
@@ -346,9 +375,7 @@ def build_public_run_context(run):
             if profession_entry
             else _name(profession_id)
         ),
-        "profession_icon_url": (
-            catalogue_icons.get(profession_entry.pk, "") if profession_entry else ""
-        ),
+        "profession_icon_url": profession_icon_url,
         "weight": (
             f"{weight.get('currentKilograms'):,.1f} kg"
             if isinstance(weight, dict)
