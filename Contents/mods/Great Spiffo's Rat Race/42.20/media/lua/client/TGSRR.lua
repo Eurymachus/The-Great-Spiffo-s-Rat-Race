@@ -1,8 +1,9 @@
 require("TGSRR/Run/PendingTraitSelection")
 require("TGSRR/Sandbox/PresetRegistration")
 require("TGSRR/Patches/PostDeathUI")
+require("TGSRR/Patches/DeadSaveUI")
 require("TGSRR/Animals/RanchRuntime")
-require("TGSRR/Alarms/DecayRuntime")
+require("TGSRR/Alarms/CustomDecayRuntime")
 require("TGSRR/Helicopter/Runtime")
 require("TGSRR/Outposts/Runtime")
 require("TGSRR/Tracker/Window")
@@ -10,7 +11,9 @@ require("TGSRR/Run/Runtime")
 
 if isDebugEnabled and isDebugEnabled() then
     require("TGSRR/Debug/HelicopterWindow")
+    require("TGSRR/Debug/AlarmWindow")
     require("TGSRR/Debug/SoundWindow")
+    require("TGSRR/Debug/RSLBuildingIdWindow")
     require("TGSRR/Outposts/Debug/SurveyWindow")
 end
 

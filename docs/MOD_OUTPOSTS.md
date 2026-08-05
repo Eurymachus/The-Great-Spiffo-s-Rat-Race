@@ -80,6 +80,11 @@ A spare car is allowed within the core zone or within the provisional `supportRa
 - Explicit decorative tower exclusions for Echo Creek, Ekron, Irvington, and Muldraugh.
 - Underground BuildingDefs registered for Ekron, Hog Wallow, and Irvington.
 - Player-facing snapshot data: rooms, weighted progress, strict stage, and persisted deliverable records.
+- Player-facing `Area Cleared` uses only a latched cross/check state plus an
+  explanatory question-icon tooltip. Zombie totals are not displayed.
+- Outpost Overview has a dedicated map button that queues vanilla's world-map
+  opening timed action and centers at the outpost anchor. The world map carries
+  a blue Cross for ordinary outposts and blue CrossedSwords for Hog Wallow.
 - Persistent discovery and awarded-clearance records in world ModData.
 - Live deliverable evaluation on area entry/load, room changes, `OnZombieDead`, and a one-second fallback while the player remains in the area.
 - Normalized last-known deliverable snapshots persist for tracker display and future export when an outpost is unloaded.
@@ -103,7 +108,7 @@ A spare car is allowed within the core zone or within the provisional `supportRa
 - Must bed, food, and sink be inside a more narrowly defined sealed contained space than the registered ground-floor outpost rooms, and how is that containment evaluated?
 - Whether the provisional **spare car** thresholds, support radius, and omission of a key requirement are correct for release.
 - Final support-radius origin and distance.
-- Whether an awarded clearance requirement can later regress when zombies return.
+- Awarded zombie clearance is permanently latched and cannot regress when zombies return.
 - Final per-outpost partial-progress formula.
 
 ## Accepted Overview aggregate

@@ -11,7 +11,7 @@
 
     "Sandbox_TGSRRAlarmDecay": "TGSRR Alarm Battery Decay",
     "Sandbox_TGSRRAlarmDecay.Enabled": "Enable custom alarm battery decay",
-    "Sandbox_TGSRRAlarmDecay.Enabled_tooltip": "Replaces vanilla's six alarm battery-decay ranges with the exact minimum and maximum below.",
+    "Sandbox_TGSRRAlarmDecay.Enabled_tooltip": "Uses TGSRR's Lua alarm lifecycle to replace vanilla's inaccessible per-building battery decay with the exact minimum and maximum below. Vanilla still decides which buildings receive alarms.",
     "Sandbox_TGSRRAlarmDecay.MinimumDay": "Earliest battery decay day",
     "Sandbox_TGSRRAlarmDecay.MinimumDay_tooltip": "Minimum number of days after the power shuts off before a building's alarm battery stops working.",
     "Sandbox_TGSRRAlarmDecay.MaximumDay": "Latest battery decay day",
@@ -19,7 +19,7 @@
 
     "Sandbox_TGSRRHelicopter": "TGSRR Helicopter Schedule",
     "Sandbox_TGSRRHelicopter.Enabled": "Enable custom helicopter schedule",
-    "Sandbox_TGSRRHelicopter.Enabled_tooltip": "Replaces vanilla helicopter recurrence with this schedule. The vanilla helicopter event itself is retained.",
+    "Sandbox_TGSRRHelicopter.Enabled_tooltip": "Replaces vanilla recurrence dates while retaining the vanilla helicopter event. Every configured month is anchored to the challenge's original start day-of-month.",
 
     "Sandbox_TGSRRHelicopter.Year1Months": "Year 1 months",
     "Sandbox_TGSRRHelicopter.Year2Months": "Year 2 months",
@@ -31,20 +31,26 @@
     "Sandbox_TGSRRHelicopter.Year8Months": "Year 8 months",
     "Sandbox_TGSRRHelicopter.Year9Months": "Year 9 months",
 
-    "Sandbox_TGSRRHelicopter.Year1Months_tooltip": "Comma-separated calendar month numbers only, for example 7,1 for July and January. Leave empty for no custom events in this challenge year.",
-    "Sandbox_TGSRRHelicopter.Year2Months_tooltip": "Comma-separated calendar month numbers only, for example 7,1 for July and January. Leave empty for no custom events.",
-    "Sandbox_TGSRRHelicopter.Year3Months_tooltip": "Comma-separated calendar month numbers only, for example 7,11,3. Leave empty for no custom events.",
-    "Sandbox_TGSRRHelicopter.Year4Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
-    "Sandbox_TGSRRHelicopter.Year5Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
-    "Sandbox_TGSRRHelicopter.Year6Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
-    "Sandbox_TGSRRHelicopter.Year7Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
-    "Sandbox_TGSRRHelicopter.Year8Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
-    "Sandbox_TGSRRHelicopter.Year9Months_tooltip": "Comma-separated calendar month numbers only. Leave empty for no custom events.",
+    "Sandbox_TGSRRHelicopter.Year1Months_tooltip": "Comma-separated calendar months receiving one event slot, for example 7,1 for July and January. Each slot is anchored to the challenge start day-of-month. Leave empty for none.",
+    "Sandbox_TGSRRHelicopter.Year2Months_tooltip": "Comma-separated calendar months receiving one event slot. Each slot is anchored to the challenge start day-of-month. Leave empty for none.",
+    "Sandbox_TGSRRHelicopter.Year3Months_tooltip": "Comma-separated calendar months receiving one event slot, for example 7,11,3. Each slot is anchored to the challenge start day-of-month. Leave empty for none.",
+    "Sandbox_TGSRRHelicopter.Year4Months_tooltip": "Comma-separated calendar months receiving one event slot. Each slot is anchored to the challenge start day-of-month. Leave empty for none.",
+    "Sandbox_TGSRRHelicopter.Year5Months_tooltip": "Comma-separated calendar months receiving one event slot. Each slot is anchored to the challenge start day-of-month. Leave empty for none.",
+    "Sandbox_TGSRRHelicopter.Year6Months_tooltip": "Comma-separated calendar months receiving one event slot. Each slot is anchored to the challenge start day-of-month. Leave empty for none.",
+    "Sandbox_TGSRRHelicopter.Year7Months_tooltip": "Comma-separated calendar months receiving one event slot. Each slot is anchored to the challenge start day-of-month. Leave empty for none.",
+    "Sandbox_TGSRRHelicopter.Year8Months_tooltip": "Comma-separated calendar months receiving one event slot. Each slot is anchored to the challenge start day-of-month. Leave empty for none.",
+    "Sandbox_TGSRRHelicopter.Year9Months_tooltip": "Comma-separated calendar months receiving one event slot. Each slot is anchored to the challenge start day-of-month. Leave empty for none.",
 
-    "Sandbox_TGSRRHelicopter.DayMinimum": "Earliest day of month",
-    "Sandbox_TGSRRHelicopter.DayMaximum": "Latest day of month",
+    "Sandbox_TGSRRHelicopter.DayMinimum": "Minimum world-day delay",
+    "Sandbox_TGSRRHelicopter.DayMaximum": "Maximum world-day delay (exclusive)",
+    "Sandbox_TGSRRHelicopter.DayMinimum_tooltip": "Minimum completed world days after each slot's challenge-day anchor. With a July 9 start, the default 6 makes July 15 the earliest event date.",
+    "Sandbox_TGSRRHelicopter.DayMaximum_tooltip": "Exclusive upper bound. Defaults 6 and 10 match vanilla Rand.Next(6, 10), selecting a delay of 6, 7, 8, or 9 days. With a start day of the 9th, events fall on the 15th through 18th.",
     "Sandbox_TGSRRHelicopter.StartHourMinimum": "Earliest start hour",
     "Sandbox_TGSRRHelicopter.StartHourMaximum": "Latest start hour",
+    "Sandbox_TGSRRHelicopter.StartHourMinimum_tooltip": "Earliest hour that may begin the helicopter activation-opportunity window.",
+    "Sandbox_TGSRRHelicopter.StartHourMaximum_tooltip": "Latest hour that may begin the helicopter activation-opportunity window.",
     "Sandbox_TGSRRHelicopter.DurationMinimum": "Minimum event-window hours",
-    "Sandbox_TGSRRHelicopter.DurationMaximum": "Maximum event-window hours"
+    "Sandbox_TGSRRHelicopter.DurationMaximum": "Maximum event-window hours",
+    "Sandbox_TGSRRHelicopter.DurationMinimum_tooltip": "Minimum length of the activation-opportunity window. This does not control how long the helicopter remains airborne.",
+    "Sandbox_TGSRRHelicopter.DurationMaximum_tooltip": "Maximum length of the activation-opportunity window. This does not control how long the helicopter remains airborne."
 }

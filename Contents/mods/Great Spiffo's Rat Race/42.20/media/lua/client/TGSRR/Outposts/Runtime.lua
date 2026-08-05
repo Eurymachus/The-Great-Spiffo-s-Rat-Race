@@ -85,10 +85,12 @@ function Runtime.evaluate(outpost, player)
         local previous = Store.getDeliverable(outpost.id, "zombie_clearance")
         local certified = activationAvailable and activation.passed == true and zombies == 0
             and getTimestampMs() >= canCertifyAt
+        local cleared = certified or (previous and previous.passed == true)
         updateDeliverable(outpost, "zombie_clearance", {
-            passed = certified or (previous and previous.passed == true),
-            current = zombies,
-            required = 0,
+            passed = cleared,
+            current = cleared and 1 or 0,
+            required = 1,
+            state = cleared and "cleared" or "unclear",
         })
     end
 

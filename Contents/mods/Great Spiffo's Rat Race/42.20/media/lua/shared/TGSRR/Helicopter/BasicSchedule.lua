@@ -1,7 +1,7 @@
 local HelicopterScheduler = require "TGSRR/Core/HelicopterScheduler"
 
 local BasicSchedule = {
-    id = "tgsrr_basic_v2",
+    id = "tgsrr_basic_v3",
 }
 
 local function boundedInteger(value, minimum, maximum, fallback)
@@ -17,9 +17,9 @@ local function normalize(source)
     local config = {
         enabled = source.Enabled ~= false,
         dayMinimum = boundedInteger(
-            source.DayMinimum, 1, 31, 8),
+            source.DayMinimum, 0, 31, 6),
         dayMaximum = boundedInteger(
-            source.DayMaximum, 1, 31, 14),
+            source.DayMaximum, 1, 32, 10),
         startHourMinimum = boundedInteger(
             source.StartHourMinimum, 0, 23, 9),
         startHourMaximum = boundedInteger(
@@ -31,7 +31,7 @@ local function normalize(source)
         monthsByYear = {},
         slots = {},
     }
-    if config.dayMaximum < config.dayMinimum then
+    if config.dayMaximum <= config.dayMinimum then
         return nil, "invalid_helicopter_day_range"
     end
     if config.startHourMaximum < config.startHourMinimum then
@@ -141,6 +141,19 @@ local function calendarYear(slot, startYear, startMonth)
     return startYear + slot.challengeYear
 end
 
+local function slotStartDay(slot, year, startYear, startMonth, gameTime)
+    -- Vanilla stores helicopterDay as a world-day offset. Preserve that
+    -- behavior by anchoring each recurring month to the challenge's original
+    -- start day-of-month, rather than treating the delay as a calendar date.
+    if year == startYear and slot.month == startMonth then
+        return 0
+    end
+    local startDay =
+        math.floor(tonumber(gameTime:getStartDay()) or 0) + 1
+    return HelicopterScheduler.dayForDate(
+        year, slot.month, startDay, gameTime)
+end
+
 function BasicSchedule.chooseNext(state, gameTime)
     local config, configError = configuration(state)
     if not config then return nil, configError end
@@ -157,13 +170,18 @@ function BasicSchedule.chooseNext(state, gameTime)
         local slot = config.slots[slotIndex]
         local year = calendarYear(
             slot, startYear, startMonth)
-        local calendarDay = ZombRand(
-            config.dayMinimum, config.dayMaximum + 1)
-        local scheduledDay, dateError = HelicopterScheduler.dayForDate(
-            year, slot.month, calendarDay, gameTime)
+        local slotDay, dateError = slotStartDay(
+            slot, year, startYear, startMonth, gameTime)
+        if not slotDay then return nil, dateError end
 
-        if not scheduledDay then return nil, dateError end
+        -- DayMaximum is intentionally exclusive, matching vanilla's
+        -- Rand.Next(6, 10), which produces world-day delays 6 through 9.
+        local scheduledDay = slotDay + ZombRand(
+            config.dayMinimum, config.dayMaximum)
         if scheduledDay > today then
+            local date, resolvedDateError =
+                HelicopterScheduler.dateForDay(scheduledDay, gameTime)
+            if not date then return nil, resolvedDateError end
             local startHour = ZombRand(
                 config.startHourMinimum,
                 config.startHourMaximum + 1)
@@ -175,9 +193,9 @@ function BasicSchedule.chooseNext(state, gameTime)
             return {
                 slotIndex = slotIndex,
                 challengeYear = slot.challengeYear,
-                calendarYear = year,
-                month = slot.month,
-                calendarDay = calendarDay,
+                calendarYear = date.year,
+                month = date.month,
+                calendarDay = date.day,
                 day = scheduledDay,
                 startHour = startHour,
                 endHour = endHour,

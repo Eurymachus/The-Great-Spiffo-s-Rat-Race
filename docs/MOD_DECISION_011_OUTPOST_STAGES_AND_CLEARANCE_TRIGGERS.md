@@ -35,7 +35,8 @@ Clearance passes only when every required non-excluded room across all registere
 
 - `Clearing` and `Cleared` are no longer player-facing stages.
 - The implementation persists discovery, per-deliverable progress baselines, a monotonic work-started latch, and an awarded clearance requirement result.
-- The clearance-regression policy remains deferred; the current awarded result is latched until that policy is settled.
+- The awarded clearance result is permanently latched and reported only as
+  cleared or not cleared.
 - No historical player-kill attribution is required.
 
 ## Supersedes

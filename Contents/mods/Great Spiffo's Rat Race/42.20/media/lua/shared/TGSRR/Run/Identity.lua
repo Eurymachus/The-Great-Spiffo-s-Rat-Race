@@ -11,15 +11,12 @@ local CHALLENGE_MODES = {
     TGSRR = "standard",
     TGSRR_CDDA = "cdda",
     TGSRR_Sprinters = "sprinters",
-    TGSRR_SevenMonths = "standard",
 }
 
 local GAME_MODE_IDS = {
     ["The Great Spiffo's Rat Race"] = "TGSRR",
     ["The Great Spiffo's Rat Race - CDDA"] = "TGSRR_CDDA",
     ["The Great Spiffo's Rat Race - Sprinters"] = "TGSRR_Sprinters",
-    ["The Great Spiffo's Rat Race - Seven Months Later (Test)"] =
-        "TGSRR_SevenMonths",
 }
 
 local function nonEmpty(value)
@@ -159,6 +156,8 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.zombieKillTypesPartial = data.bootstrapped
         data.townVisits = {}
         data.townVisitsPartial = data.bootstrapped
+        data.buildingVisits = {}
+        data.buildingVisitsPartial = data.bootstrapped
         data.distanceTravelledMeters = 0
         data.distanceRejectedSamples = 0
         data.distanceTravelledPartial = data.bootstrapped
@@ -257,6 +256,11 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.townVisitsPartial = true
     end
     data.townVisitsPartial = data.townVisitsPartial == true
+    if type(data.buildingVisits) ~= "table" then
+        data.buildingVisits = {}
+        data.buildingVisitsPartial = true
+    end
+    data.buildingVisitsPartial = data.buildingVisitsPartial == true
     if data.distanceTravelledMeters == nil then
         data.distanceTravelledMeters = 0
         data.distanceRejectedSamples = 0

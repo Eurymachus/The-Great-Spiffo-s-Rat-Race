@@ -22,8 +22,10 @@ Current modules:
 - `kills`
 - `skills`
 - `outposts`
+- `landmarks`
 
-Future modules may cover skills, kills, run information, rules, or milestones. Those were discussed as product intent, not approved implementation scope.
+Future modules may cover run information, rules, or additional milestones.
+Those remain product intent rather than approved implementation scope.
 
 ## Deliverable boundary
 
@@ -44,6 +46,11 @@ The schema supports counts, percentages, availability, status, explanatory detai
 
 For the outposts record, `current` is the number of currently Completed outposts, `target` is 13, and `percent` is the arithmetic mean of the 13 individual outpost percentages. The percentage therefore includes partial outpost progress even when `current` remains zero.
 
+Overview also displays an overall progress footer calculated as the arithmetic
+mean of available required category percentages. Kills, Skills, and Outposts
+currently participate. Optional providers are presented as cards but are
+excluded from this overall figure. Landmarks are the first optional provider.
+
 ## Current UI behavior
 
 - Fixed-size `800x650` prototype; final dimensions remain subject to in-game review.
@@ -54,6 +61,13 @@ For the outposts record, `current` is the number of currently Completed outposts
 - Scrolling tracker tables permanently reserve a content gutter for their scrollbar while row backgrounds, separators, headers, and aggregate footers retain full table width.
 - Movable rat-icon launcher opens and closes the tracker.
 - Outpost diagnostics refresh once per second and update entries in place; Kills and Skills are event-driven through `OnZombieDead`, `AddXP`, and `LevelPerk`.
+- The Landmarks tab lists 21 optional discoveries and their first-visit state.
+  Its Asterisk icon/name column opens the world map through vanilla's map
+  opening timed action and centers it on the location.
+- Outpost Overview provides a separate map-icon button. Outpost list rows do
+  not open the map; double-click retains its Outpost Overview behavior.
+- The world map receives duplicate-safe red landmark Asterisks, blue outpost
+  Crosses, and blue CrossedSwords for Hog Wallow Military Base.
 - Tracker is player-facing for `TGSRR`, `TGSRR_CDDA`, and `TGSRR_Sprinters`; it is not debug-only.
 - Player-facing tracker strings and title-case outpost names resolve through TGSRR `getTextOrNull` keys.
 
@@ -70,12 +84,12 @@ For the outposts record, `current` is the number of currently Completed outposts
 The Outposts tab compares all 13 outposts. Earlier design intent included:
 
 - A completion bar or status per outpost.
-- Hover data such as last visited and last-observed zombies.
-- Exact remaining zombies while an authoritative clearing session is active.
+- Hover data such as last visited and last-observed zombies. The final design rejects zombie totals in favor of a binary clearance status.
+- Exact remaining zombies while an authoritative clearing session is active. The final design keeps this count internal to evaluation and never displays or persists it.
 - Activation and deliverable summaries.
 - Activation of a row to open Outpost Overview.
 
-The accepted player-facing stages are `Undiscovered`, `Discovered`, `In Progress`, and `Complete`. In Progress is a persisted monotonic latch triggered when an authoritative non-zombie deliverable improves beyond a discovery baseline sealed after full authority and ten unchanged seconds. Clearance and remaining zombies remain structured requirement details rather than lifecycle stages.
+The accepted player-facing stages are `Undiscovered`, `Discovered`, `In Progress`, and `Complete`. In Progress is a persisted monotonic latch triggered when an authoritative non-zombie deliverable improves beyond a discovery baseline sealed after full authority and ten unchanged seconds. `Area Cleared` remains a structured binary requirement rather than a lifecycle stage and permanently latches once awarded.
 
 The player-facing table uses passed `Requirements`, strict `Stage`, and weighted `Progress`. Room and floor detail remains in the tooltip. Percentage semantics are defined in [MOD_DECISION_013_OUTPOST_PROGRESS_WEIGHTS.md](MOD_DECISION_013_OUTPOST_PROGRESS_WEIGHTS.md).
 
@@ -96,6 +110,10 @@ The implementation opens on double-click from the Outposts table and reports the
 Persisted outpost deliverables share `available`, `passed`, `current`, `required`, optional presentation `state`, and `observedAt`. Live checks update this snapshot only when a meaningful field changes; transient debug details and world-object references are not part of the player/export contract.
 
 Each Outpost Overview requirement row has a localized explanatory tooltip. The fixed-size window persists and clamps its screen position independently of the main tracker, remembers its open/closed state and selected outpost, and remains closed by default when no saved state exists.
+
+`Area Cleared` is presented as a latched binary cross/check requirement. Its
+question icon explains that once clearance is awarded it cannot regress, even
+if zombies later return and must be dealt with again.
 
 ## Inspector responsibility
 
@@ -133,6 +151,10 @@ The Inspector is developer-facing diagnostics for BuildingDefs, RoomDefs, activa
 - `client/TGSRR/Tracker/Outposts/Module.lua`
 - `client/TGSRR/Tracker/Outposts/View.lua`
 - `client/TGSRR/Tracker/Outposts/Snapshot.lua`
+- `client/TGSRR/Tracker/Landmarks/Module.lua`
+- `client/TGSRR/Tracker/Landmarks/View.lua`
+- `client/TGSRR/Tracker/Landmarks/WorldMap.lua`
+- `client/TGSRR/Run/LocationTracker.lua`
 
 ## Source organization
 

@@ -15,14 +15,15 @@ During an active outpost visit:
 - Count zombies whose X/Y lies inside the configured `150x150` clearance bounds; Z is intentionally irrelevant.
 - Require room activation before awarding clearance.
 - Record the result when the authoritative live count reaches zero.
-- Persist cleared state and last-observed data for player-facing reporting after the area unloads.
+- Persist only the binary cleared or not-cleared state for reporting and export.
+- Permanently latch the cleared state once awarded.
 
 ## Consequences
 
 - Live in-zone counts are exact for instantiated zombies.
-- Remote values are historical observations, not fresh native-population queries.
+- Live counts are an evaluation input only and are not exposed or persisted.
 - Debug radar, reflection, forced loading, and renderer parsing are rejected for released certification.
-- Session start/resume rules, persistence location, migration handling, and regression policy still require implementation detail.
+- Returning zombies cannot revoke an awarded clearance result.
 
 ## Related documents
 

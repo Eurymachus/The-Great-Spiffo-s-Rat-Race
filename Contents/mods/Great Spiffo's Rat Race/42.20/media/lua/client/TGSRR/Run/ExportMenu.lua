@@ -9,10 +9,10 @@ local Exporter = require "TGSRR/Run/Exporter"
 local L = require "TGSRR/Core/Localization"
 local ModalLayout = require "TGSRR/Run/ModalLayout"
 
+local ExportMenu = {}
 local ExportOverlay = ISPanel:derive("TGSRRExportOverlay")
 local activeExport = nil
 local updateExport
-local exportRun
 
 function ExportOverlay:prerender()
     self:drawRect(0, 0, self.width, self.height, 0.9, 0, 0, 0)
@@ -183,7 +183,7 @@ updateExport = function()
     if activeExport.job.done then finishExport(ok, result) end
 end
 
-exportRun = function()
+function ExportMenu.exportRun()
     if activeExport then return end
 
     -- Leave the Escape menu before creating the export UI. ToggleEscapeMenu
@@ -213,7 +213,7 @@ local originalMenuItemMouseDown = MainScreen.onMenuItemMouseDownMainMenu
 MainScreen.onMenuItemMouseDownMainMenu = function(item, x, y)
     if item and item.internal == "TGSRR_EXPORT" then
         getSoundManager():playUISound("UIActivateMainMenuItem")
-        exportRun()
+        ExportMenu.exportRun()
         return
     end
     return originalMenuItemMouseDown(item, x, y)
@@ -290,4 +290,4 @@ Events.OnTickEvenPaused.Add(function()
     updateExport()
 end)
 
-return true
+return ExportMenu

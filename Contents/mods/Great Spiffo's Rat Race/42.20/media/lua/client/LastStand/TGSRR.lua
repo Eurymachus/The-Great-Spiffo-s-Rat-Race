@@ -4,7 +4,8 @@ local TGSRR_SandboxBase = require("TGSRR/Sandbox/Base")
 local TGSRR_SelectedChallenge = require("TGSRR/Run/SelectedChallenge")
 local TGSRR_CHALLENGE_IDS = {
     TGSRR = true,
-    TGSRR_SevenMonths = true,
+    TGSRR_CDDA = true,
+    TGSRR_Sprinters = true,
 }
 
 Challenge.id = "TGSRR";
@@ -18,27 +19,8 @@ Challenge.Add = function()
 	addChallenge(Challenge);
 end
 
---[[
 Challenge.getSpawnRegion = function()
-	return SpawnRegionMgr.getSpawnRegions();
-end
-]]
-
-Challenge.getSpawnRegion = function()
-    local regions = {}
-
-    for _, dir in ipairs(getMapDirectoryTable()) do
-        local file = "media/maps/" .. dir .. "/spawnpoints.lua"
-
-        if fileExists(file) then
-            table.insert(regions, {
-                name = dir,
-                file = file
-            })
-        end
-    end
-
-    return SpawnRegionMgr.loadSpawnRegions(regions)
+	return TGSRR_SandboxBase.getSpawnRegions()
 end
 
 local function TGSRR_shouldShowMapSpawnInfo(info)

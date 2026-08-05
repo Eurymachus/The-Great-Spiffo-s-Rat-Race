@@ -22,11 +22,11 @@ Completed is not permanently latched. If a required car, generator/power source,
 
 ## Consequences
 
-- The tracker may show exact remaining zombies while Clearing and last-observed information while away.
+- The tracker exposes only the binary zombie-clearance status, never a live or last-observed zombie total.
 - Outposts may be cleared and completed in any order.
 - `Cleared` must not be used as a synonym for `Completed`.
 - Completion checks can be modular and independently report current/required values.
-- Whether Cleared may later regress when zombies return is explicitly deferred; Completed regression is settled.
+- Zombie clearance is permanently latched once awarded. Full outpost completion may still regress when another ongoing requirement stops passing.
 
 ## Related documents
 

@@ -1,5 +1,22 @@
 local TGSRR_SandboxBase = {}
 
+TGSRR_SandboxBase.getSpawnRegions = function()
+	local regions = {}
+
+	for _, dir in ipairs(getMapDirectoryTable()) do
+		local file = "media/maps/" .. dir .. "/spawnpoints.lua"
+
+		if fileExists(file) then
+			table.insert(regions, {
+				name = dir,
+				file = file,
+			})
+		end
+	end
+
+	return SpawnRegionMgr.loadSpawnRegions(regions)
+end
+
 TGSRR_SandboxBase.apply = function()
     SandboxVars.Basement = {
 
@@ -314,10 +331,11 @@ TGSRR_SandboxBase.apply = function()
 		-- Vanilla default: 3.
 		RallyGroupRadius = 1,
 
-		-- How many zombies can occupy a certain area.
+		-- Agreed Rat Race value: 0.
+		-- How many zombies can occupy a certain area before deletion applies.
 		-- Allowed range: integer 0 to 5000.
 		-- Vanilla default: 300.
-		ZombiesCountBeforeDelete = 300,
+		ZombiesCountBeforeDelete = 0,
 	}
 
 	SandboxVars.MultiplierConfig = {
@@ -514,10 +532,12 @@ TGSRR_SandboxBase.apply = function()
 	--   5 = 0 - 1 Year
 	--   6 = 0 - 5 Years
 	-- Vanilla default: 2 (0 - 30 Days).
-	SandboxVars.AlarmDecay = 6;
+	-- Safety fallback for any vanilla alarm TGSRR does not claim. TGSRR-owned
+	-- alarms use the independent exact range below.
+	SandboxVars.AlarmDecay = 5;
 
 	SandboxVars.TGSRRAlarmDecay = {
-		-- Replaces vanilla alarm battery-decay ranges with an exact day range.
+		-- Lua replacement for vanilla's inaccessible alarm-decay field.
 		Enabled = true,
 		-- Days after the power shuts off. 730 days is two years.
 		MinimumDay = 0,
@@ -532,7 +552,8 @@ TGSRR_SandboxBase.apply = function()
 	-- How long after the default start date (July 9, 1993) that the world's electricity turns off for good.
 	-- Allowed range: integer -1 to Integer.MAX_VALUE.
 	-- Vanilla default: 14.
-	SandboxVars.ElecShutModifier = -1;
+	-- TGSRR keeps the grid online for 72 elapsed hours, then shuts it off at the start of world day 4.
+	SandboxVars.ElecShutModifier = 3;
 
 	-- Registered by Build 42.20 but not consumed by its alarm-decay runtime; retained as a legacy preset field.
 	-- Allowed range: integer -1 to Integer.MAX_VALUE.
@@ -591,7 +612,7 @@ TGSRR_SandboxBase.apply = function()
 	-- Loose ammo, boxes and magazines.
 	-- Allowed range: double 0.0 to 4.0.
 	-- Vanilla default: 0.6.
- 	SandboxVars.AmmoLootNew = 0.04;
+	SandboxVars.AmmoLootNew = 0.25;
 
 	-- Vehicle parts and the tools needed to install them.
 	-- Allowed range: double 0.0 to 4.0.
@@ -709,7 +730,7 @@ TGSRR_SandboxBase.apply = function()
 	--   4 = Hot
 	--   5 = Very Hot
 	-- Vanilla default: 3 (Normal).
-	SandboxVars.Temperature = 1;
+	SandboxVars.Temperature = 3;
 
 	-- How often it rains.
 	-- Allowed values:
@@ -719,7 +740,7 @@ TGSRR_SandboxBase.apply = function()
 	--   4 = Rainy
 	--   5 = Very Rainy
 	-- Vanilla default: 3 (Normal).
-	SandboxVars.Rain = 1;
+	SandboxVars.Rain = 3;
 
 	-- Number of days until the erosion system (which adds vines, long grass, new trees etc. to the world) will reach 100% growth.
 	-- Allowed values:
@@ -944,6 +965,7 @@ TGSRR_SandboxBase.apply = function()
 		-- TGSRR option with no vanilla counterpart. Registration default: false.
 		Enabled = true,
 
+		-- Each listed month receives one event slot anchored to the challenge's original start day-of-month. For the default July 9 start, every slot is anchored to the 9th.
 		-- Comma-separated calendar month numbers only, for example 7,1 for July and January. Leave empty for no custom events in this challenge year.
 		-- Allowed value: text.
 		-- TGSRR option with no vanilla counterpart. Registration default: "".
@@ -989,15 +1011,15 @@ TGSRR_SandboxBase.apply = function()
 		-- TGSRR option with no vanilla counterpart. Registration default: "".
 		Year9Months = "7",
 
-		-- Earliest calendar day that may be selected for each scheduled helicopter event.
-		-- Allowed range: integer 1 to 31.
-		-- TGSRR option with no vanilla counterpart. Registration default: 8.
-		DayMinimum = 8,
+		-- Minimum world-day delay from the challenge start day within each scheduled month slot. With the July 9 challenge start and the default value 6, the earliest event date is the 15th.
+		-- Allowed range: integer 0 to 31.
+		-- TGSRR option with no vanilla counterpart. Registration default: 6.
+		DayMinimum = 6,
 
-		-- Latest calendar day that may be selected for each scheduled helicopter event.
-		-- Allowed range: integer 1 to 31.
-		-- TGSRR option with no vanilla counterpart. Registration default: 14.
-		DayMaximum = 14,
+		-- Exclusive maximum world-day delay from the challenge start day within each scheduled month slot. The default range 6 to 10 matches vanilla Rand.Next(6, 10), producing delays 6, 7, 8, or 9 and dates from the 15th through 18th.
+		-- Allowed range: integer 1 to 32.
+		-- TGSRR option with no vanilla counterpart. Registration default: 10.
+		DayMaximum = 10,
 
 		-- Earliest hour of day that may be selected for a scheduled helicopter event.
 		-- Allowed range: integer 0 to 23.
@@ -1009,12 +1031,12 @@ TGSRR_SandboxBase.apply = function()
 		-- TGSRR option with no vanilla counterpart. Registration default: 18.
 		StartHourMaximum = 18,
 
-		-- Minimum duration in hours of a scheduled helicopter event window.
+		-- Minimum length in hours of the activation-opportunity window. This does not control the helicopter's flight duration.
 		-- Allowed range: integer 1 to 24.
 		-- TGSRR option with no vanilla counterpart. Registration default: 1.
 		DurationMinimum = 1,
 
-		-- Maximum duration in hours of a scheduled helicopter event window.
+		-- Maximum length in hours of the activation-opportunity window. This does not control the helicopter's flight duration.
 		-- Allowed range: integer 1 to 24.
 		-- TGSRR option with no vanilla counterpart. Registration default: 4.
 		DurationMaximum = 4,

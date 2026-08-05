@@ -63,8 +63,8 @@ SandboxVars = {
         Year7Months = "7,11,3",
         Year8Months = "7,1",
         Year9Months = "7",
-        DayMinimum = 8,
-        DayMaximum = 14,
+        DayMinimum = 6,
+        DayMaximum = 10,
         StartHourMinimum = 9,
         StartHourMaximum = 18,
         DurationMinimum = 1,
@@ -100,9 +100,9 @@ assert(status == "scheduled_new")
 assert(state.current.challengeYear == 2)
 assert(state.current.calendarYear == 1994)
 assert(state.current.month == 7)
-assert(state.current.calendarDay == 8)
-assert(state.current.day == 364)
-assert(gameTime.helicopterDay == 364)
+assert(state.current.calendarDay == 17)
+assert(state.current.day == 373)
+assert(gameTime.helicopterDay == 373)
 assert(gameTime.helicopterStartHour == 9)
 assert(gameTime.helicopterEndHour == 10)
 
@@ -110,15 +110,15 @@ state, status = Scheduler.update(options)
 assert(status == "scheduled")
 assert(state.slotIndex == 1)
 
-gameTime.today = 365
-randomValues = { 14, 18, 4 }
+gameTime.today = 374
+randomValues = { 9, 18, 4 }
 state, status = Scheduler.update(options)
 assert(status == "scheduled_new")
 assert(state.current.challengeYear == 2)
 assert(state.current.calendarYear == 1995)
 assert(state.current.month == 1)
-assert(state.current.calendarDay == 14)
-assert(state.current.day == 554)
+assert(state.current.calendarDay == 18)
+assert(state.current.day == 558)
 assert(gameTime.helicopterStartHour == 18)
 assert(gameTime.helicopterEndHour == 22)
 
@@ -167,9 +167,33 @@ assert(alternateEvent ~= nil, alternateEventError)
 assert(alternateEvent.challengeYear == 1)
 assert(alternateEvent.calendarYear == 1993)
 assert(alternateEvent.month == 8)
-assert(alternateEvent.calendarDay == 3)
+assert(alternateEvent.calendarDay == 12)
 assert(alternateEvent.startHour == 11)
 assert(alternateEvent.endHour == 13)
+
+local initialMonth, initialMonthError = BasicSchedule.normalize({
+    MonthsByYear = {
+        [1] = { 7 },
+    },
+    DayMinimum = 6,
+    DayMaximum = 10,
+    StartHourMinimum = 9,
+    StartHourMaximum = 18,
+    DurationMinimum = 1,
+    DurationMaximum = 4,
+})
+assert(initialMonth ~= nil, initialMonthError)
+gameTime.today = 0
+randomValues = { 6, 9, 1 }
+local initialEvent, initialEventError = BasicSchedule.chooseNext({
+    slotIndex = 0,
+    policyConfig = initialMonth,
+}, gameTime)
+assert(initialEvent ~= nil, initialEventError)
+assert(initialEvent.day == 6)
+assert(initialEvent.calendarYear == 1993)
+assert(initialEvent.month == 7)
+assert(initialEvent.calendarDay == 15)
 
 local registered, registeredError = BasicSchedule.fromRegistered({
     Enabled = true,

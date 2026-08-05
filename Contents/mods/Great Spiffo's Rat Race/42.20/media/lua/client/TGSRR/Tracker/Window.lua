@@ -10,6 +10,7 @@ require "TGSRR/Tracker/Kills/Module"
 require "TGSRR/Notifications/MilestonePresenter"
 require "TGSRR/Tracker/Skills/Module"
 require "TGSRR/Tracker/Outposts/Module"
+require "TGSRR/Tracker/Landmarks/Module"
 
 TGSRRChallengeTrackerWindow = ISCollapsableWindow:derive("TGSRRChallengeTrackerWindow")
 TGSRRChallengeTrackerWindow.instance = nil

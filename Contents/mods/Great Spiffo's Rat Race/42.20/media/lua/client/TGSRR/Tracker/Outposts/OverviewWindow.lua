@@ -1,5 +1,6 @@
 require "ISUI/ISCollapsableWindow"
 require "ISUI/ISScrollingListBox"
+require "ISUI/ISButton"
 
 local Snapshot = require "TGSRR/Tracker/Outposts/Snapshot"
 local Outposts = require "TGSRR/Outposts/Definitions"
@@ -8,6 +9,7 @@ local Icons = require "TGSRR/Tracker/Outposts/Icons"
 local Notifications = require "TGSRR/Challenge/Notifications"
 local State = require "TGSRR/Tracker/State"
 local Identity = require "TGSRR/Run/Identity"
+local LandmarkMap = require "TGSRR/Tracker/Landmarks/WorldMap"
 
 local Window = ISCollapsableWindow:derive("TGSRROutpostOverviewWindow")
 Window.instance = nil
@@ -19,6 +21,14 @@ local HEADER_HEIGHT = 112
 local COLUMN_VALUE_X = 0.58
 local COLUMN_STATUS_X = 0.80
 local REFRESH_INTERVAL_MS = 1000
+local HELP_ICON = getTexture("media/ui/foraging/questionMark.png")
+local CHECK_ICON = getTexture("media/ui/inventoryPanes/Tickbox_Tick.png")
+local CROSS_ICON = getTexture("media/ui/inventoryPanes/Tickbox_Cross.png")
+local HELP_ICON_SIZE = 14
+local STATUS_ICON_SIZE = 18
+local MAP_BUTTON_SIZE = 44
+local MAP_ICON_SIZE = 34
+local MAP_ICON = getTexture("media/textures/worldMap/Map_On.png")
 local function loadWindowState()
     local state = State.load()
     local x = tonumber(state["outpostOverview.x"])
@@ -124,9 +134,6 @@ local function buildRequirements(row)
     local spareCar = deliverables.spare_car
     local discovered = runtime.discovered == true
     local activationPassed = activation and activation.passed == true
-    local clearanceValue = clearance and
-        (tostring(clearance.current) .. " " ..
-            L.text("UI_TGSRR_Tracker_RemainingLower", "remaining")) or "-"
     local windowValue = windows and
         (tostring(windows.current) .. " / " .. tostring(windows.required)) or "-"
     local enclosedValue = enclosed and
@@ -159,7 +166,7 @@ local function buildRequirements(row)
         spareCarValue = L.text("UI_TGSRR_Tracker_NeedsRepairs", "Needs repairs")
     end
 
-    return {
+    local result = {
         requirement("UI_TGSRR_Tracker_Discovery", "Discovery",
             "UI_TGSRR_Tracker_Tooltip_Discovery", "Enter the outpost's 150 x 150 clearance area.", nil,
             discovered and "passed" or "pending"),
@@ -171,9 +178,10 @@ local function buildRequirements(row)
             "UI_TGSRR_Tracker_Tooltip_FloorActivation", "Activate every required floor, including registered basements.",
             activation and (tostring(activation.activatedFloors) .. " / " .. tostring(activation.totalFloors)) or "-",
             activationPassed and "passed" or "pending"),
-        requirement("UI_TGSRR_Tracker_ZombieClearance", "Zombie clearance",
-            "UI_TGSRR_Tracker_Tooltip_ZombieClearance", "Clear the live zombies within the outpost's 150 x 150 clearance area.",
-            clearanceValue, clearance and (clearance.passed and "passed" or "pending") or "unavailable"),
+        requirement("UI_TGSRR_Tracker_AreaCleared", "Area Cleared",
+            "UI_TGSRR_Tracker_Tooltip_AreaCleared",
+            "Clearing the area will Latch this deliverable and once latched it will not regress.\nIf the dead return it will be up to you to deal with them and keep the area safe.",
+            nil, clearance and (clearance.passed and "passed" or "pending") or "pending"),
         requirement("UI_TGSRR_Tracker_WindowBarricades", "Window barricades",
             "UI_TGSRR_Tracker_Tooltip_WindowBarricades", "Barricade every ground-floor exterior window with wood, sheet metal, or metal bars.",
             windowValue, windows and (windows.passed and "passed" or "pending") or "unavailable"),
@@ -205,6 +213,8 @@ local function buildRequirements(row)
             spareCarValue, spareCar and (spareCar.passed and "passed" or "pending") or "unavailable",
             spareCarTooltip(spareCar)),
     }
+    result[4].binaryStatus = true
+    return result
 end
 
 local function findRow(outpost)
@@ -217,6 +227,18 @@ end
 
 function Window:createChildren()
     ISCollapsableWindow.createChildren(self)
+    local mapY = self:titleBarHeight() + 10
+    self.mapButton = ISButton:new(
+        self.width - MARGIN - MAP_BUTTON_SIZE, mapY,
+        MAP_BUTTON_SIZE, MAP_BUTTON_SIZE, "", self, Window.onMap)
+    self.mapButton:initialise()
+    self.mapButton:instantiate()
+    self.mapButton:setImage(MAP_ICON)
+    self.mapButton:forceImageSize(MAP_ICON_SIZE, MAP_ICON_SIZE)
+    self.mapButton:setTooltip(L.text(
+        "UI_TGSRR_Tracker_ViewOnMap", "View outpost on world map"))
+    self:addChild(self.mapButton)
+
     local top = self:titleBarHeight() + HEADER_HEIGHT
     self.list = ISScrollingListBox:new(MARGIN, top, self.width - MARGIN * 2,
         self.height - top - MARGIN)
@@ -224,9 +246,14 @@ function Window:createChildren()
     self.list:instantiate()
     self.list.itemheight = 36
     self.list.doDrawItem = self.drawRequirement
+    self.list.updateTooltip = Window.updateRequirementTooltip
     self.list.drawBorder = true
     self:addChild(self.list)
     self:refresh()
+end
+
+function Window:onMap()
+    if self.outpost then LandmarkMap.showAt(self.outpost.anchor, 0) end
 end
 
 function Window:prerender()
@@ -270,6 +297,19 @@ function Window:drawRequirement(y, item, alt)
     self:drawRect(0, y + self.itemheight - 1, width, 1, 0.32, 0.5, 0.5, 0.5)
     local textY = y + math.floor((self.itemheight - getTextManager():getFontHeight(UIFont.Small)) / 2)
     self:drawText(data.label, 8, textY, 1, 1, 1, 1, UIFont.Small)
+    if data.binaryStatus then
+        local helpX = 8 + getTextManager():MeasureStringX(UIFont.Small, data.label) + 6
+        local helpY = y + math.floor((self.itemheight - HELP_ICON_SIZE) / 2)
+        self:drawTextureScaledAspect(HELP_ICON, helpX, helpY,
+            HELP_ICON_SIZE, HELP_ICON_SIZE, 0.9, 1, 1, 1)
+
+        local statusX = math.floor(width * (COLUMN_STATUS_X + 1) / 2)
+        local statusY = y + math.floor((self.itemheight - STATUS_ICON_SIZE) / 2)
+        local icon = data.status == "passed" and CHECK_ICON or CROSS_ICON
+        self:drawTextureScaledAspect(icon, statusX - math.floor(STATUS_ICON_SIZE / 2), statusY,
+            STATUS_ICON_SIZE, STATUS_ICON_SIZE, 1, 1, 1, 1)
+        return y + self.itemheight
+    end
     self:drawTextCentre(data.value, math.floor(width * (COLUMN_VALUE_X + COLUMN_STATUS_X) / 2),
         textY, 0.82, 0.82, 0.82, 1, UIFont.Small)
     local colors = { passed = { 0.42, 0.9, 0.48 }, pending = { 1, 0.75, 0.24 },
@@ -278,6 +318,22 @@ function Window:drawRequirement(y, item, alt)
     self:drawTextCentre(statusText(data.status), math.floor(width * (COLUMN_STATUS_X + 1) / 2),
         textY, color[1], color[2], color[3], 1, UIFont.Small)
     return y + self.itemheight
+end
+
+function Window.updateRequirementTooltip(list)
+    local row = list:rowAt(getMouseX(), getMouseY())
+    local item = list.items[row]
+    if item and item.item and item.item.binaryStatus then
+        local data = item.item
+        local localX = getMouseX() - list:getAbsoluteX()
+        local helpX = 8 + getTextManager():MeasureStringX(UIFont.Small, data.label) + 6
+        if localX >= helpX and localX < helpX + HELP_ICON_SIZE then
+            item.tooltip = data.tooltip
+        else
+            item.tooltip = nil
+        end
+    end
+    ISScrollingListBox.updateTooltip(list)
 end
 
 function Window:refresh()

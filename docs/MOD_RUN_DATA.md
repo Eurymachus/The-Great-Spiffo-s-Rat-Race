@@ -38,6 +38,8 @@ Persist stable identifiers, not localized display values:
 - Towns: stable TGSRR-owned town ID. A town may have multiple activation points,
   but all points resolve to the same permanent visit identity.
 - Locations: registered location ID, plus coordinates/world context where the record requires it.
+- Physical buildings: precision-safe `BuildingDef:getIDString()` values in an
+  internal reconciliation registry. These are not exported location IDs.
 - Mods: paired activated mod ID and Workshop ID where available. Workshop ID is the website's external lookup/link key; mod ID remains required because one Workshop item may contain multiple mods and local/unpublished mods have no Workshop ID.
 
 The website maps these IDs to names, icons, categories, aliases, and game-version applicability. Those mappings can be maintained by a Zomboid Integration role without rewriting historical exports.
@@ -120,13 +122,19 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   its `AttackDidDamage` flag is true. This is strong neutral evidence, not a
   durable source assertion: PZ stores no wound source and `attackedBy` alone can
   remain stale.
-- Non-town locations: the collector and export contract are registry-driven,
-  but the canonical definition list is deliberately deferred. Registry version
-  0 contains no locations and exports an authoritative empty list. When the
-  first definition set is approved, incrementing the registry version makes the
-  existing one-second position check record permanent `location.visited` events
-  with stable location/point IDs, UTC, world age, and observed coordinates.
-  Runs that predate a populated registry are then marked partial automatically.
+- Non-town locations: the versioned registry currently defines 21 optional
+  landmarks. The existing one-second observation records permanent
+  `location.visited` events with stable location ID, precision-safe BuildingDef
+  ID where applicable, discovery method, UTC, world age, and observed
+  coordinates. Multi-building sites resolve several BuildingDefs to one
+  landmark. Runs that predate a registry revision are marked partial.
+- Physical building visits: during the same observation, TGSRR records the
+  first time the player's current square belongs to each BuildingDef. The
+  run-scoped `buildingVisits` table stores UTC, world age, in-game calendar and
+  time, and entry XYZ. It supports future retrospective visit reconciliation
+  through `LocationTracker.hasVisitedBuilding()` and `getBuildingVisit()`.
+  This internal registry is deliberately absent from both ledger and export;
+  existing or bootstrapped histories carry `buildingVisitsPartial = true`.
 - Broken weapons use Build 42 `OnBreak` callbacks where defined and a short
   post-`OnWeaponSwing` condition check otherwise. The same item is weakly
   deduplicated across both paths. TGSRR maintains cumulative per-ID totals and
@@ -285,8 +293,8 @@ per-item first/last completion times and completion counts.
 Runs bootstrapped after collection begins disclose a partial baseline rather than
 inventing historical read timestamps.
 Non-town location export schema 1 is already present with the registry version,
-partial-history flag, and registered first-visit entries. At registry version 0
-the entries array is intentionally empty.
+partial-history flag, and first-visit entries for all 21 registered optional
+landmarks. Internal all-building visit history is intentionally excluded.
 Selected traits are captured from the character-creation UI before Project
 Zomboid applies spawn-time mutations. A missing capture on an already-running
 or bootstrapped save uses a clearly marked partial fallback rather than claiming

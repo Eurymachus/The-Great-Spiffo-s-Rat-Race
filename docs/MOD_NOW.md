@@ -35,10 +35,10 @@ the export contract; their policy and test surfaces are documented in
   recurrence and exposing a debug schedule/jump window.
 - Server-authoritative ranch-zone interception and one-time population with
   configurable vanilla-shaped sex-specific mortality, adjacent-zone grouping,
-  persistent spawn results, clean vanilla fallback, and a seven-month test
-  challenge.
+  persistent spawn results, and clean vanilla fallback.
 - Generic `TGSRR.ChallengeTracker.registerModule()` registry.
-- Overview, Kills, Skills, and Outposts modules in a fixed-size `800x650` tabbed window.
+- Overview, Kills, Skills, Outposts, and Landmarks modules in a fixed-size
+  `800x650` tabbed window.
 - Generic `ChallengeDeliverables` provider registry and normalized Overview record boundary.
 - Overview summaries for Outposts, Skills, and Kills.
 - Event-driven Kills deliverable and detail tab using `OnZombieDead` and the persisted Character Info zombie-kill counter with a `1,000,000` target.
@@ -93,9 +93,13 @@ the export contract; their policy and test surfaces are documented in
 - Immutable skill-book and recipe-magazine read-state baseline plus hash-chained
   successful-reading deltas from PZ's authoritative `ISReadABook.complete()`
   edge. Leisure and generic print media are excluded.
-- Versioned non-town location registry, lightweight first-visit collector, and
-  schema-1 export projection. Registry version 0 intentionally contains no
-  definitions while the canonical location list is deferred.
+- Versioned 21-landmark registry, lightweight first-visit collector, optional
+  tracker deliverable, and exported location projection. Registered
+  multi-building sites reconcile to one permanent discovery.
+- Persistent internal first-entry history for every physically occupied
+  BuildingDef, including real/game timestamps and XYZ. It is available for
+  future registry reconciliation, marks incomplete historical coverage as
+  partial, and is intentionally excluded from ledger and export.
 - Compact loaded-mod history: a complete initial Mod ID/Workshop ID baseline followed by timestamped added, removed, and changed-association session deltas.
 - Versioned, deterministic LZSS/Base64URL run exports containing the complete verified event history, integrity metadata, and a live current-kills projection.
 - Pre-spawn capture of the raw namespaced trait IDs selected on the character-creation screen, persisted across the loading transition and consumed only by the matching new character.
@@ -150,6 +154,10 @@ the export contract; their policy and test surfaces are documented in
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
 - One-second refresh that updates stable list entries in place.
 - Weighted Outposts percentage derived from the arithmetic mean of the 13 weighted individual percentages.
+- Overall Overview progress derived from available required category
+  percentages, excluding optional Landmarks.
+- Duplicate-safe vanilla world-map annotations for landmarks and outposts,
+  with map navigation routed through vanilla's map-opening timed action.
 - Outpost registration API, 13 definitions, configured core zones, `150x150` clearance bounds, registered BuildingDefs, and manual inaccessible-room exclusions.
 - Room activation via `RoomDef:isExplored()` and loaded-square diagnostics.
 - Persistent outpost discovery when the player enters a configured `150x150` clearance area.
@@ -181,7 +189,7 @@ the export contract; their policy and test surfaces are documented in
 
 ## Not implemented
 
-- Zombie count, last visited, or last-observed population in tracker snapshots.
+- Zombie totals and last-observed populations are intentionally excluded from tracker snapshots. Zombie clearance is exposed only as a permanently latched binary status.
 - Hunger fulfilled remains explicitly deferred because it overlaps calories
   consumed without a current scoring or presentation use.
 - Skill milestone award selection (individual skills, categories, or selected levels).
@@ -189,8 +197,8 @@ the export contract; their policy and test surfaces are documented in
 
 ## Recommended next action
 
-Define the canonical non-town location membership when ready, or continue adding
-neutral rule-relevant evidence for website-side eligibility review.
+Continue release review of tracker presentation and neutral rule-relevant
+evidence for website-side eligibility review.
 
 ## Related decisions
 
@@ -211,3 +219,4 @@ neutral rule-relevant evidence for website-side eligibility review.
 - [MOD_DECISION_015_SOURCE_LAYOUT.md](MOD_DECISION_015_SOURCE_LAYOUT.md)
 - [MOD_DECISION_016_SKILL_TRACKING.md](MOD_DECISION_016_SKILL_TRACKING.md)
 - [MOD_DECISION_017_RUN_IDENTITY_AND_LIFECYCLE.md](MOD_DECISION_017_RUN_IDENTITY_AND_LIFECYCLE.md)
+- [MOD_DECISION_018_BUILDING_VISIT_HISTORY.md](MOD_DECISION_018_BUILDING_VISIT_HISTORY.md)

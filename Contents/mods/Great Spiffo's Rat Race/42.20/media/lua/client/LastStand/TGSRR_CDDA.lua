@@ -17,7 +17,7 @@ Challenge.Add = function()
 end
 
 Challenge.getSpawnRegion = function()
-	return SpawnRegionMgr.getSpawnRegions();
+	return TGSRR_SandboxBase.getSpawnRegions()
 end
 
 Challenge.OnInitWorld = function()

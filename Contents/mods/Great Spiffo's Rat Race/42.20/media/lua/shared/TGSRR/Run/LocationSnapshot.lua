@@ -7,7 +7,9 @@ local function visitSnapshot(visit)
     return {
         utc = math.max(0, math.floor(tonumber(visit.utc) or 0)),
         worldAgeHours = math.max(0, tonumber(visit.worldAgeHours) or 0),
+        buildingId = tostring(visit.buildingId or ""),
         pointId = tostring(visit.pointId or ""),
+        discoveryMethod = tostring(visit.discoveryMethod or ""),
         x = math.floor(tonumber(visit.x) or 0),
         y = math.floor(tonumber(visit.y) or 0),
     }
@@ -21,12 +23,18 @@ function LocationSnapshot.observe(run)
         local visit = visitSnapshot(visits[location.id])
         entries[#entries + 1] = {
             id = location.id,
+            name = tostring(location.name or location.id),
+            area = tostring(location.area or ""),
+            category = tostring(location.category or ""),
+            optional = location.optional == true,
+            buildingIds = location.buildingIds,
+            anchor = location.anchor,
             visited = visit ~= nil,
             firstVisit = visit,
         }
     end
     return {
-        schema = 1,
+        schema = 2,
         registryVersion = Locations.getVersion(),
         partial = not state or state.partial == true,
         entries = entries,

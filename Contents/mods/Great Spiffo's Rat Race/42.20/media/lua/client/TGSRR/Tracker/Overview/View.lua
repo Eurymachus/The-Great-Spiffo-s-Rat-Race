@@ -9,6 +9,7 @@ local View = ISPanel:derive("TGSRROverviewTrackerView")
 local REFRESH_INTERVAL_MS = 1000
 local CONTENT_MARGIN = 8
 local CARD_HEIGHT = 104
+local FOOTER_HEIGHT = 22
 
 local function commaValue(value)
     local text = tostring(math.max(0, math.floor(tonumber(value) or 0)))
@@ -46,7 +47,8 @@ end
 function View:createChildren()
     ISPanel.createChildren(self)
     self.list = ISScrollingListBox:new(CONTENT_MARGIN, CONTENT_MARGIN,
-        self.width - CONTENT_MARGIN * 2, self.height - CONTENT_MARGIN * 2)
+        self.width - CONTENT_MARGIN * 2,
+        self.height - CONTENT_MARGIN * 3 - FOOTER_HEIGHT)
     self.list:initialise()
     self.list:instantiate()
     self.list.itemheight = CARD_HEIGHT
@@ -55,6 +57,28 @@ function View:createChildren()
     self.list:setOnMouseDoubleClick(self, View.onActivate)
     self:addChild(self.list)
     self:refresh(getSpecificPlayer(0) or getPlayer())
+end
+
+function View:prerender()
+    ISPanel.prerender(self)
+    local x = CONTENT_MARGIN
+    local y = self.height - CONTENT_MARGIN - FOOTER_HEIGHT
+    local width = self.width - CONTENT_MARGIN * 2
+    local percent = self.overallPercent or 0
+    self:drawRect(x, y, width, FOOTER_HEIGHT, 0.8, 0.02, 0.02, 0.02)
+    if percent > 0 then
+        self:drawRect(x + 1, y + 1,
+            math.floor((width - 2) * percent / 100), FOOTER_HEIGHT - 2,
+            0.76, 0.12, 0.58, 0.18)
+    end
+    self:drawRectBorder(x, y, width, FOOTER_HEIGHT,
+        0.62, 0.55, 0.55, 0.55)
+    local textY = y + math.floor((FOOTER_HEIGHT
+        - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    self:drawTextCentre(
+        L.text("UI_TGSRR_Tracker_OverallProgress", "Overall progress")
+            .. ": " .. formatPercent(percent),
+        x + width / 2, textY, 1, 1, 1, 1, UIFont.Small)
 end
 
 function View:drawDeliverable(y, item, alt)
@@ -101,6 +125,16 @@ end
 function View:refresh(player)
     if not self.list then return end
     local records = Deliverables.getAll({ player = player })
+    local requiredTotal = 0
+    local requiredCount = 0
+    for _, record in ipairs(records) do
+        if not record.optional and record.available ~= false then
+            requiredTotal = requiredTotal + record.percent
+            requiredCount = requiredCount + 1
+        end
+    end
+    self.overallPercent = requiredCount > 0
+        and requiredTotal / requiredCount or 0
     local rebuild = #self.list.items ~= #records
     if not rebuild then
         for index, record in ipairs(records) do
@@ -148,7 +182,7 @@ function View:onResize(width, height)
     self:setHeight(height)
     if self.list then
         self.list:setWidth(width - CONTENT_MARGIN * 2)
-        self.list:setHeight(height - CONTENT_MARGIN * 2)
+        self.list:setHeight(height - CONTENT_MARGIN * 3 - FOOTER_HEIGHT)
     end
 end
 

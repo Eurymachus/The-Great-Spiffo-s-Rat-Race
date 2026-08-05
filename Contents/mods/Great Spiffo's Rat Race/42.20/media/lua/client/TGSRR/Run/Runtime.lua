@@ -36,7 +36,8 @@ local GeneratorKnowledgeTracker = require "TGSRR/Run/GeneratorKnowledgeTracker"
 local GeneratorRepairTracker =
     require "TGSRR/Run/GeneratorRepairTracker"
 local InjuryTracker = require "TGSRR/Run/InjuryTracker"
-require "TGSRR/Run/ExportMenu"
+local TerminalState = require "TGSRR/Run/TerminalState"
+local ExportMenu = require "TGSRR/Run/ExportMenu"
 
 TGSRR = TGSRR or {}
 TGSRR.Run = TGSRR.Run or {}
@@ -553,6 +554,17 @@ end
 Events.OnGameStart.Add(initialize)
 Events.OnCreatePlayer.Add(function(playerNum)
     if playerNum == 0 then initialize() end
+end)
+
+Events.OnPlayerDeath.Add(function(player)
+    if not Identity.isRatRaceChallenge() then return end
+    local recorded, result = TerminalState.markDeceased(player)
+    if not recorded then
+        print("[TGSRR Run] Failed to record terminal death state: "
+            .. tostring(result))
+        return
+    end
+    ExportMenu.exportRun()
 end)
 
 return {

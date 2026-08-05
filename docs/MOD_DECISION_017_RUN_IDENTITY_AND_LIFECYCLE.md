@@ -25,10 +25,18 @@ Character names are mutable and non-unique. A name change never changes the run 
 
 ## Lifecycle
 
-The factual mod-side lifecycle begins with `active`. Later observed transitions
-may record events such as character death, completion, abandonment, or a recovery
-condition. These observations are distinct from website-owned submission status
-and run eligibility.
+The factual mod-side lifecycle begins with `active`. Character death appends one
+hash-chained `run.ended` event with `reason = deceased`, then changes the
+projection lifecycle to `deceased` and automatically generates the final export.
+The death-screen final-report action performs the same transition idempotently
+before allowing a replacement export. Later transitions may include completion
+or abandonment. These observations are distinct from website-owned submission
+status and run eligibility.
+
+Rat Race is single-character ironman. After the character dies, the post-death
+respawn action is disabled, the main-menu Continue action is hidden, and the
+Load Game screen disables both loading the world and creating a replacement
+character. The save remains visible so the player can identify or delete it.
 
 The mod does not store or export an authoritative `official`, `unofficial`, or
 `unclassified` verdict. It exports neutral evidence. The website applies the

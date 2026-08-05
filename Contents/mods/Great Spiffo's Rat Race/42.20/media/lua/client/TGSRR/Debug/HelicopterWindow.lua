@@ -4,13 +4,11 @@ require "ISUI/ISCollapsableWindow"
 local HelicopterScheduler = require "TGSRR/Core/HelicopterScheduler"
 local HelicopterRuntime = require "TGSRR/Helicopter/Runtime"
 local WindowState = require "TGSRR/Debug/HelicopterWindowState"
+local LauncherPalette = require "TGSRR/Debug/LauncherPalette"
 
 TGSRRHelicopterDebugWindow =
     ISCollapsableWindow:derive("TGSRRHelicopterDebugWindow")
 TGSRRHelicopterDebugWindow.instance = nil
-TGSRRHelicopterDebugWindow.launcher = nil
-local TGSRRHelicopterDebugLauncher =
-    ISButton:derive("TGSRRHelicopterDebugLauncher")
 
 local function clockText(timeOfDay)
     local hour = math.floor(timeOfDay)
@@ -236,24 +234,7 @@ local function toggleWindow()
     window:saveState(true)
 end
 
-local function createLauncher()
-    if not isDebugEnabled()
-            or TGSRRHelicopterDebugWindow.launcher then return end
-
-    local width, height = 150, 26
-    local x = math.max(
-        10, getCore():getScreenWidth() - width - 12)
-    local y = math.max(
-        10, getCore():getScreenHeight() - height - 45)
-    local launcher = TGSRRHelicopterDebugLauncher:new(
-        x, y, width, height, "TGSRR Helicopter",
-        nil, toggleWindow)
-    launcher:initialise()
-    launcher.backgroundColor =
-        { r = 0.12, g = 0.12, b = 0.12, a = 0.9 }
-    launcher:addToUIManager()
-    TGSRRHelicopterDebugWindow.launcher = launcher
-
+local function restoreWindow()
     local window = getOrCreateWindow()
     addWindow(window)
     if WindowState.isOpen() then
@@ -265,6 +246,7 @@ local function createLauncher()
     end
 end
 
-Events.OnGameStart.Add(createLauncher)
+LauncherPalette.register("helicopter", "TGSRR Helicopter", toggleWindow, 20)
+Events.OnGameStart.Add(restoreWindow)
 
 return TGSRRHelicopterDebugWindow

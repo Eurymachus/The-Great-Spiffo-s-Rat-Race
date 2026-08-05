@@ -55,6 +55,19 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
 
 ## Project Zomboid Lua Restrictions
 
+- Before relying on a Java class, method, field, constructor, or global from
+  shipped Lua, verify that it is actually exposed through Project Zomboid's
+  Kahlua bridge. A public Java API in the decompile is not sufficient proof.
+  For the current build, inspect `zombie.Lua.LuaManager.Exposer`: classes must
+  be admitted by its `setExposed(...)` list (directly or through an exposed
+  type), and callable members must be public and not marked `@HiddenFromLua`.
+  Lua globals are generally methods registered from
+  `LuaManager.GlobalObject`, commonly with `@LuaMethod(global = true)`, or by
+  another explicit `register`/exposure path. `@UsedFromLua` is useful evidence
+  of intended Lua use, but do not treat that annotation alone as proof that a
+  particular member is callable. Confirm against `LuaManager.Exposer`, an
+  established vanilla Lua call site, or an in-game probe before designing
+  around the API.
 - Project Zomboid's restricted Kahlua environment does **not** expose the
   standard Lua `next()` global. Never use `next(table)` in shipped mod Lua.
   Test table emptiness with a `pairs()` loop instead.

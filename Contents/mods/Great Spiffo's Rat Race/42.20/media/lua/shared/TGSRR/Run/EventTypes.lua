@@ -15,6 +15,7 @@ local registered = {
     ["knowledge.generator.first_observed"] = true,
     ["run.recovery.decided"] = true,
     ["run.clock.repaired"] = true,
+    ["run.ended"] = true,
 }
 
 local function validName(name)

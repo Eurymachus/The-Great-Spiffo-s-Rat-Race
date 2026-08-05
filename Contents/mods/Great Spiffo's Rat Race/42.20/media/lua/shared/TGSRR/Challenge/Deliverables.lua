@@ -42,6 +42,7 @@ function Deliverables.getAll(context)
         record.id = provider.id
         record.label = record.label or provider.label
         record.order = provider.order
+        record.optional = provider.optional == true or record.optional == true
         record.available = record.available ~= false
         record.percent = math.max(0, math.min(100, tonumber(record.percent) or 0))
         records[#records + 1] = record

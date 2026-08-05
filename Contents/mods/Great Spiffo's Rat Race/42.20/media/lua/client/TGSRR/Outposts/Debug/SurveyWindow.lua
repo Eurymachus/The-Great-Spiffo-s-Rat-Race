@@ -5,12 +5,10 @@ local SurveyIO = require "TGSRR/Outposts/Debug/SurveyIO"
 local ZoneEditor = require "TGSRR/Outposts/Debug/ZoneEditor"
 local Outposts = require "TGSRR/Outposts/Definitions"
 local Inspector = require "TGSRR/Outposts/Debug/InspectorWindow"
+local LauncherPalette = require "TGSRR/Debug/LauncherPalette"
 
 TGSRROutpostSurveyWindow = ISCollapsableWindow:derive("TGSRROutpostSurveyWindow")
 TGSRROutpostSurveyWindow.instance = nil
-TGSRROutpostSurveyWindow.launcher = nil
-local TGSRROutpostSurveyLauncher =
-    ISButton:derive("TGSRROutpostSurveyLauncher")
 
 local OUTPOSTS = {
     { id = "Louisville", name = "Louisville" },
@@ -370,24 +368,4 @@ local function toggleSurveyWindow()
     end
 end
 
-local function createSurveyWindow()
-    if not isDebugEnabled() then return end
-
-    local window = getOrCreateSurveyWindow()
-    window:addToUIManager()
-
-    if not TGSRROutpostSurveyWindow.launcher then
-        local width, height = 150, 26
-        local x = math.max(10, getCore():getScreenWidth() - width - 12)
-        local y = math.max(10, getCore():getScreenHeight() - height - 12)
-        local launcher = TGSRROutpostSurveyLauncher:new(
-            x, y, width, height, "TGSRR Outposts",
-            nil, toggleSurveyWindow)
-        launcher:initialise()
-        launcher.backgroundColor = { r = 0.12, g = 0.12, b = 0.12, a = 0.9 }
-        launcher:addToUIManager()
-        TGSRROutpostSurveyWindow.launcher = launcher
-    end
-end
-
-Events.OnGameStart.Add(createSurveyWindow)
+LauncherPalette.register("outposts", "TGSRR Outposts", toggleSurveyWindow, 40)

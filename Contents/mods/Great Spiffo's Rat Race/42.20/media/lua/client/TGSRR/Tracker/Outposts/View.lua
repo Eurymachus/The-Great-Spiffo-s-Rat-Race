@@ -163,13 +163,9 @@ local function buildTooltip(outpost, activation, percent, runtime, status)
     end
     if runtime and runtime.discovered then
         local clearance = runtime.deliverables and runtime.deliverables.zombie_clearance or nil
-        lines[#lines + 1] = L.text("UI_TGSRR_Tracker_Clearance", "Clearance") .. ": " ..
-            (clearance and clearance.passed and L.text("UI_TGSRR_Tracker_Passed", "Passed") or
-                L.text("UI_TGSRR_Tracker_Pending", "Pending"))
-        if clearance then
-            lines[#lines + 1] = L.text("UI_TGSRR_Tracker_LastObservedZombies",
-                "Last observed zombies") .. ": " .. tostring(clearance.current)
-        end
+        lines[#lines + 1] = L.text("UI_TGSRR_Tracker_AreaCleared", "Area Cleared") .. ": " ..
+            (clearance and clearance.passed and L.text("UI_TGSRR_Tracker_Yes", "Yes") or
+                L.text("UI_TGSRR_Tracker_No", "No"))
     end
     lines[#lines + 1] = L.text("UI_TGSRR_Tracker_DoubleClickDetails", "Double-click for details")
     return table.concat(lines, "\n")
