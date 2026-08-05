@@ -1,0 +1,127 @@
+.claim-review-card {
+    width: min(54rem, 100%);
+    overflow: hidden;
+    border: 1px solid var(--hairline-color);
+    border-radius: 8px;
+    background: var(--body-bg);
+    box-shadow: 0 12px 30px rgb(0 0 0 / 12%);
+}
+
+.claim-review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem 1rem;
+}
+
+.claim-review-header h2,
+.claim-review-header p,
+.claim-review-evidence h3,
+.claim-review-evidence p,
+.claim-review-decision p {
+    margin: 0;
+}
+
+.claim-review-header h2 {
+    margin-top: .15rem;
+    font-size: 1.45rem;
+}
+
+.claim-review-kicker {
+    color: var(--link-fg);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.claim-review-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem 2rem;
+    margin: 0;
+    padding: .9rem 1.5rem;
+    border-block: 1px solid var(--hairline-color);
+    background: var(--darkened-bg);
+}
+
+.claim-review-facts div {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: .5rem;
+}
+
+.claim-review-facts dt {
+    color: var(--body-quiet-color);
+}
+
+.claim-review-facts dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+.claim-review-evidence {
+    padding: 1.2rem 1.5rem 1.35rem;
+}
+
+.claim-review-evidence h3 {
+    margin-bottom: .45rem;
+    font-size: .9rem;
+}
+
+.claim-review-muted,
+.claim-review-decision span {
+    color: var(--body-quiet-color);
+}
+
+.claim-review-decision {
+    display: grid;
+    gap: .75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--hairline-color);
+    background: var(--darkened-bg);
+}
+
+.claim-review-decision > div {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.claim-review-decision-mark {
+    display: grid;
+    width: 1.8rem;
+    height: 1.8rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.claim-review-decision.status-approved .claim-review-decision-mark {
+    color: var(--message-success-bg);
+}
+
+.claim-review-decision.status-declined .claim-review-decision-mark {
+    color: #d8757b;
+}
+
+.claim-review-note {
+    padding-left: 2.55rem;
+}
+
+@media (max-width: 720px) {
+    .claim-review-facts {
+        grid-template-columns: 1fr;
+    }
+
+    .claim-review-header,
+    .claim-review-facts,
+    .claim-review-evidence,
+    .claim-review-decision {
+        padding-inline: 1rem;
+    }
+}

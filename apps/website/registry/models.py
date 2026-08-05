@@ -513,52 +513,142 @@ class ChallengeRun(models.Model):
         return "Legacy / Unspecified"
 
 
-class LegacyLeaderboardEntry(models.Model):
+class LegacyRun(models.Model):
+    class Lifecycle(models.TextChoices):
+        ACTIVE = "active", "Active"
+        INACTIVE = "inactive", "Inactive"
+        DECEASED = "deceased", "Deceased"
+
     source_key = models.CharField(max_length=64, unique=True)
-    source_row = models.PositiveIntegerField()
-    source_rank = models.PositiveIntegerField(db_index=True)
-    historical_name = models.CharField(max_length=160, db_index=True)
-    zombie_kills = models.PositiveBigIntegerField(default=0)
-    survival_time_full = models.CharField(max_length=32, blank=True)
-    survival_days = models.DecimalField(max_digits=12, decimal_places=5, default=0)
-    kills_per_day = models.DecimalField(max_digits=14, decimal_places=5, default=0)
-    playtime_hours = models.DecimalField(max_digits=14, decimal_places=5, default=0)
-    outposts_cleared = models.PositiveSmallIntegerField(default=0)
-    maxed_skills = models.PositiveSmallIntegerField(default=0)
-    challenge_progress = models.DecimalField(max_digits=8, decimal_places=5, default=0)
-    source_url = models.TextField(blank=True)
-    snapshot_id = models.CharField(max_length=120)
-    snapshot_captured_at = models.DateTimeField()
+    legacy_participant_name = models.CharField(max_length=160, db_index=True)
+    normalized_legacy_name = models.CharField(max_length=160, unique=True, editable=False)
+    lifecycle = models.CharField(
+        max_length=16, choices=Lifecycle.choices, default=Lifecycle.ACTIVE, db_index=True
+    )
+    character_name = models.CharField(max_length=160, blank=True)
     claimed_participant = models.ForeignKey(
         Participant,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="claimed_legacy_leaderboard_entries",
+        related_name="claimed_legacy_runs",
+    )
+    current_submission = models.ForeignKey(
+        "LegacyRunSubmission", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="current_for_runs",
+    )
+    best_submission = models.ForeignKey(
+        "LegacyRunSubmission", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="best_for_runs",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ("source_rank", "historical_name")
-        verbose_name = "legacy Hall of Fame entry"
-        verbose_name_plural = "legacy Hall of Fame entries"
+        ordering = ("legacy_participant_name",)
+        verbose_name = "legacy run"
+        verbose_name_plural = "legacy runs"
 
     def __str__(self):
-        return f"{self.source_rank}. {self.historical_name}"
+        return self.claimed_participant.nickname if self.claimed_participant_id else self.legacy_participant_name
 
 
-class LegacyLeaderboardClaim(models.Model):
+class LegacyRunSubmission(models.Model):
+    class Status(models.TextChoices):
+        RECEIVED = "received", "Received"
+        APPROVED = "approved", "Approved"
+        DECLINED = "declined", "Declined"
+
+    class Source(models.TextChoices):
+        IMPORT_LEADERBOARD = "import_leaderboard", "Imported Legacy Leaderboard"
+        IMPORT_HALL_OF_FAME = "import_hall_of_fame", "Imported Legacy Hall of Fame"
+        PARTICIPANT = "participant", "Participant submission"
+
+    run = models.ForeignKey(LegacyRun, on_delete=models.CASCADE, related_name="submissions")
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.RECEIVED)
+    source = models.CharField(max_length=24, choices=Source.choices)
+    source_rank = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    character_name = models.CharField(max_length=160, blank=True)
+    zombie_kills = models.PositiveBigIntegerField(default=0)
+    survival_days = models.DecimalField(max_digits=12, decimal_places=5, default=0)
+    outposts_cleared = models.PositiveSmallIntegerField(default=0)
+    maxed_skills = models.PositiveSmallIntegerField(default=0)
+    challenge_progress = models.DecimalField(max_digits=8, decimal_places=5, default=0)
+    survival_time_input = models.CharField(max_length=255, blank=True)
+    survival_time_full = models.CharField(max_length=32, blank=True)
+    reports_death = models.BooleanField(default=False)
+    import_review = models.ForeignKey(
+        "LegacyDataImport", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="created_submissions",
+    )
+    submitted_by = models.ForeignKey(
+        Participant, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="legacy_run_submissions",
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_by = models.ForeignKey(
+        Participant, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="reviewed_legacy_run_submissions",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.TextField(blank=True)
+    evidence_provider = models.CharField(max_length=16, blank=True)
+    evidence_media_type = models.CharField(max_length=12, blank=True)
+    evidence_media_id = models.CharField(max_length=255, blank=True)
+    evidence_url = models.URLField(max_length=1000, blank=True)
+    evidence_title = models.CharField(max_length=500, blank=True)
+    evidence_start_seconds = models.PositiveIntegerField(null=True, blank=True)
+    evidence_end_seconds = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-submitted_at",)
+
+    def __str__(self):
+        return f"{self.run}: {self.get_source_display()}"
+
+
+class LegacyDataImport(models.Model):
+    class Status(models.TextChoices):
+        PREVIEW = "preview", "Awaiting confirmation"
+        IMPORTED = "imported", "Imported"
+        REJECTED = "rejected", "Rejected"
+        FAILED = "failed", "Failed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PREVIEW)
+    leaderboard_filename = models.CharField(max_length=255)
+    hall_of_fame_filename = models.CharField(max_length=255)
+    leaderboard_sha256 = models.CharField(max_length=64)
+    hall_of_fame_sha256 = models.CharField(max_length=64)
+    leaderboard_csv = models.TextField()
+    hall_of_fame_csv = models.TextField()
+    preview = models.JSONField(default=dict)
+    uploaded_by = models.ForeignKey(
+        Participant, null=True, on_delete=models.SET_NULL, related_name="legacy_data_imports"
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    imported_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-uploaded_at",)
+        verbose_name = "legacy data import"
+        verbose_name_plural = "legacy data imports"
+
+    def __str__(self):
+        return f"Legacy import {self.uploaded_at:%Y-%m-%d %H:%M}"
+
+
+class LegacyRunClaim(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending review"
         APPROVED = "approved", "Approved"
         DECLINED = "declined", "Declined"
 
-    entry = models.ForeignKey(
-        LegacyLeaderboardEntry, on_delete=models.CASCADE, related_name="claims"
+    run = models.ForeignKey(
+        LegacyRun, on_delete=models.CASCADE, related_name="claims"
     )
     participant = models.ForeignKey(
-        Participant, on_delete=models.CASCADE, related_name="legacy_leaderboard_claims"
+        Participant, on_delete=models.CASCADE, related_name="legacy_run_claims"
     )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     evidence = models.TextField(blank=True)
@@ -568,7 +658,7 @@ class LegacyLeaderboardClaim(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="reviewed_legacy_leaderboard_claims",
+        related_name="reviewed_legacy_run_claims",
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     review_note = models.TextField(blank=True)
@@ -577,12 +667,12 @@ class LegacyLeaderboardClaim(models.Model):
         ordering = ("-submitted_at",)
         constraints = [
             models.UniqueConstraint(
-                fields=("entry", "participant"), name="unique_legacy_entry_participant_claim"
+                fields=("run", "participant"), name="unique_legacy_run_participant_claim"
             )
         ]
 
     def __str__(self):
-        return f"{self.participant.nickname}: {self.entry.historical_name}"
+        return f"{self.participant.nickname}: {self.run.legacy_participant_name}"
 
 
 class RunSubmission(models.Model):

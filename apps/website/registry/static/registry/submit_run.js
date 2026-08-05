@@ -21,7 +21,7 @@
     const videoSelect = document.querySelector("#id_evidence_video");
     const clipsRegion = document.querySelector("[data-evidence-clips]");
     const status = document.querySelector("[data-media-refresh-status]");
-    if (!refreshForm || !refreshButton || !providerInput || !refreshProviderInput || !videoSelect || !clipsRegion || !status) return;
+    if (!refreshForm || !refreshButton || !providerInput || !refreshProviderInput || !videoSelect || !status) return;
 
     const setStatus = (message, failed = false) => {
         status.textContent = message;
@@ -41,6 +41,7 @@
     };
 
     const replaceClips = (clips) => {
+        if (!clipsRegion) return;
         const selectedValues = new Set(
             [...clipsRegion.querySelectorAll('input[type="checkbox"]:checked')]
                 .map((input) => input.value)
@@ -116,7 +117,7 @@
                 candidate.setAttribute("aria-pressed", String(selected));
             });
             videoSelect.replaceChildren(new Option("Choose a broadcast or video", ""));
-            clipsRegion.replaceChildren();
+            if (clipsRegion) clipsRegion.replaceChildren();
             refreshMedia();
         });
     });

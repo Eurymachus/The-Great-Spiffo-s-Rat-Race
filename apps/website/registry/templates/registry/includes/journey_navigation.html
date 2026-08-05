@@ -1,0 +1,9 @@
+<nav class="journey-navigation" aria-label="Breadcrumb">
+  <ol>
+    {% for item in journey_items %}
+    <li{% if not item.url %} aria-current="page"{% endif %}>
+      {% if item.url %}<a href="{{ item.url }}">{{ item.label }}</a>{% else %}<span>{{ item.label }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</nav>

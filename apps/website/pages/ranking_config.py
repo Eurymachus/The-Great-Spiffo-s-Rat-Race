@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 
 
 SELECTION_CHOICES = {"all", "best_per_participant", "latest_per_participant"}
-SOURCE_CHOICES = {"verified_runs", "legacy_hall_of_fame"}
+SOURCE_CHOICES = {"verified_runs", "legacy_leaderboard", "legacy_hall_of_fame"}
 ORDERING_CHOICES = {"weighted_completion", "kills", "outposts", "skills", "verified_at", "source_rank"}
 LIFECYCLE_CHOICES = {"active", "deceased", "abandoned", "completed", "invalidated"}
 COLUMN_CHOICES = {
@@ -85,7 +85,7 @@ def validate_ranking_config(value):
     if config["ordering"] not in ORDERING_CHOICES:
         raise ValidationError("Choose a supported ranking order.")
     if config["source"] == "verified_runs" and config["ordering"] == "source_rank":
-        raise ValidationError("Imported historical rank is only available for the Legacy Hall of Fame source.")
+        raise ValidationError("Imported historical rank is only available for a legacy ranking source.")
     try:
         config["limit"] = int(config["limit"])
     except (TypeError, ValueError) as exc:

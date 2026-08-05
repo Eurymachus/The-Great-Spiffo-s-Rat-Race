@@ -5,7 +5,14 @@ from django.urls import reverse
 from zomboid_catalogue.models import CatalogueEntry, TraitDetails
 
 from .leaderboard import build_current_leaderboard, build_ranking_table, weighted_completion
-from .models import ChallengeRun, Participant, RunSubmission, StreamingAccount
+from .models import (
+    ChallengeRun,
+    LegacyRun,
+    LegacyRunSubmission,
+    Participant,
+    RunSubmission,
+    StreamingAccount,
+)
 
 
 class LeaderboardTests(TestCase):
@@ -128,6 +135,92 @@ class LeaderboardTests(TestCase):
         self.assertContains(signed_in, "Improved fitness.<br>Can run for longer.")
         self.assertContains(signed_in, "registry/images/Profession_custom.png")
         self.assertContains(signed_in, reverse("registry:public_run_detail", args=(run.pk,)))
+        self.assertContains(
+            signed_in,
+            reverse("registry:participant_profile", args=(self.racer.pk,)),
+        )
+
+    def test_participant_profile_is_signed_in_and_shows_only_approved_runs(self):
+        active = self.create_run(
+            "1", {"kills": 0.4, "outposts": 0.4, "skills": 0.4}
+        )
+        past = self.create_run(
+            "2",
+            {"kills": 0.7, "outposts": 0.7, "skills": 0.7},
+            lifecycle=ChallengeRun.Lifecycle.DECEASED,
+        )
+        hidden = self.create_run(
+            "3",
+            {"kills": 1, "outposts": 1, "skills": 1},
+            official=False,
+        )
+        url = reverse("registry:participant_profile", args=(self.racer.pk,))
+
+        guest = self.client.get(url)
+        self.assertRedirects(guest, f"{reverse('registry:login')}?next={url}")
+
+        viewer = Participant.objects.create_user(
+            email="viewer@example.com",
+            nickname="Viewer",
+            password="test-password",
+            status=Participant.Status.VERIFIED,
+            is_active=True,
+        )
+        self.client.force_login(viewer)
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Rat Racer profile")
+        self.assertContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(response, reverse("registry:leaderboard"))
+        self.assertContains(response, "Personal Best")
+        self.assertContains(response, "Active Runs")
+        self.assertContains(response, "Past Runs")
+        self.assertContains(response, active.character_name)
+        self.assertContains(response, past.character_name)
+        self.assertNotContains(response, hidden.character_name)
+        self.assertContains(
+            response, reverse("registry:public_run_detail", args=(active.pk,))
+        )
+
+    def test_participant_profile_shows_the_linked_legacy_record(self):
+        legacy_run = LegacyRun.objects.create(
+            source_key="profile-legacy",
+            legacy_participant_name="Historic Leader",
+            claimed_participant=self.racer,
+            lifecycle=LegacyRun.Lifecycle.ACTIVE,
+        )
+        legacy_submission = LegacyRunSubmission.objects.create(
+            run=legacy_run,
+            status=LegacyRunSubmission.Status.APPROVED,
+            source=LegacyRunSubmission.Source.PARTICIPANT,
+            character_name="Legacy Survivor",
+            zombie_kills=40927,
+            survival_days="759",
+            outposts_cleared=3,
+            maxed_skills=4,
+            challenge_progress="12.5",
+        )
+        legacy_run.current_submission = legacy_submission
+        legacy_run.best_submission = legacy_submission
+        legacy_run.save(update_fields=("current_submission", "best_submission"))
+        viewer = Participant.objects.create_user(
+            email="legacy-viewer@example.com",
+            nickname="LegacyViewer",
+            password="test-password",
+            status=Participant.Status.VERIFIED,
+            is_active=True,
+        )
+        self.client.force_login(viewer)
+
+        response = self.client.get(
+            reverse("registry:participant_profile", args=(self.racer.pk,))
+        )
+
+        self.assertContains(response, "Legacy Rat Race")
+        self.assertContains(response, "Historic Leader")
+        self.assertContains(response, "Legacy Survivor")
+        self.assertContains(response, "40927")
 
     def test_ranking_table_filters_lifecycle_and_supports_all_rows(self):
         active = self.create_run("6", {"kills": 0.2, "outposts": 0.2, "skills": 0.2})

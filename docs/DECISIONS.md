@@ -622,28 +622,77 @@ a normal run-moderation bulk action.
   `Approver` role is retired and receives no permissions after role bootstrap;
   its members must be deliberately assigned to the appropriate scoped role.
 
-## 2026-08-03 - Import the Unstable Hall of Fame from a packaged snapshot
+## 2026-08-04 - Import the final Unstable legacy datasets after deployment
 
-- Only the Google workbook's `Historical Leaderboard` worksheet is imported.
-  The `Active Runs Only` worksheet is not part of the website legacy dataset.
-- Historical Unstable results remain separate from verified website
-  `ChallengeRun` and `RunSubmission` records. Missing exports, survivor names,
+- The Legacy Leaderboard and Legacy Hall of Fame are separate public views of
+  one legacy run per historical participant. The Leaderboard shows the current
+  approved submission for active runs. The Hall of Fame shows the best approved
+  submission across all legacy runs.
+- The final cutoff date has not yet been selected. Production may therefore be
+  deployed with an empty legacy dataset and populated later through a protected
+  super-admin import screen.
+- The importer accepts two CSV exports, validates both without changing public
+  data, presents row counts, merged-run counts and warnings, then requires an
+  explicit confirmation before replacing the imported dataset.
+- Rows are merged by a normalized historical participant name. A participant
+  present in the Legacy Leaderboard begins Active. A Hall-of-Fame-only record
+  begins Inactive. Team-controlled lifecycle changes remain separate from the
+  imported results.
+- Imported streaming-channel or source-link columns are ignored and never
+  stored. Until a future claim is approved, the historical participant name is
+  displayed. After approval, the current participant nickname and their chosen
+  primary streaming channel provide public identity and channel linking.
+- Each imported result is retained as an approved legacy submission. The
+  import record preserves the original CSV texts, filenames, hashes, preview,
+  uploader and import time for auditability.
+- Historical Unstable data remains separate from verified website
+  `ChallengeRun` and `RunSubmission` records. Missing exports, character names,
   event ledgers and review timestamps must not be invented.
-- Before production deployment, the public Google worksheet is exported,
-  validated and normalized into a dated, version-controlled snapshot included
-  in the deployment package. Production does not fetch Google Sheets at runtime
-  or while applying database migrations.
-- An idempotent management command imports the packaged snapshot. Re-running it
-  updates source-owned historical values without duplicating entries or
-  removing an approved participant claim.
-- Every legacy row permanently preserves its imported display name, source rank,
-  result values, source link, source row and snapshot provenance.
-- A legacy row may later be associated with a current participant through an
-  auditable claim-review journey. Exact nickname matches may suggest a claim but
-  never assign one automatically. Approval may use a matching connected stream
-  account, supplied evidence or manual team verification.
-- Claim approval links the current public participant profile while retaining
-  the original historical identity and figures unchanged.
+- The future claim and participant legacy-submission journeys remain approved
+  design work separate from the importer implementation.
+- An authenticated participant may submit one legacy run claim for team review.
+  Claim details are immutable in administration and reviewed through explicit
+  Approve or Decline actions rather than a generic edit form. Decline requires a
+  retained reason; both decisions record the reviewer and time and notify the
+  participant. Approval links the historical run to the current participant,
+  after collision checks prevent either side from being linked elsewhere.
+- Participants with a pending or declined claim see that state on their
+  dashboard. An approved claimant instead sees a dedicated Legacy Rat Race
+  panel below a clear archive divider. It shows one result: the current
+  Leaderboard submission when the legacy run is Active, or the Hall of Fame
+  best when it is Inactive or Deceased. A lifecycle tag identifies that state.
+  These Unstable results remain visually and logically separate from verified
+  Stable runs.
+- Legacy ranking tables show the Claim column only while the signed-in
+  participant may still need the claim journey. Once an approved claim or linked
+  legacy run exists for that participant, the entire Claim column and its
+  controls are hidden.
+- Legacy ranking tables label approval provenance as `Last approved`, not
+  `Last verified`. Imported results use the confirmed import approval time;
+  later participant submissions use their own approval time. Missing approval
+  provenance is shown as `Not recorded` rather than left blank. Stable ranking
+  tables continue to use `Last verified` for approved signed run exports. The
+  legacy column shows only the short approval date; Stable verification may
+  continue to show both date and time.
+- Only the participant linked through an approved claim may submit an update to
+  an Active legacy run. The required result fields are character name, zombie
+  kills, Time Survived, Level 10 skill count, completed outposts and whether the
+  run remains Alive or is Dead. Evidence is a connected Twitch or YouTube VOD,
+  or a manually entered VOD URL, with optional start and end offsets.
+- Time Survived accepts either `YY:MM:DD:HH` or a word form such as `1 year 5
+  months 20 days 6 hours`. The website retains the participant's original text,
+  normalizes the full value and calculates decimal days. The interface provides
+  a concise tooltip and live interpretation; moderators verify the evidence and
+  do not perform the conversion.
+- Participant legacy progress is calculated automatically using the same public
+  weighting as Stable rankings: progress toward one million kills supplies 50%,
+  progress through 13 outposts supplies 25%, and progress through 35 Level 10
+  skills supplies 25%. Each category is capped at completion.
+- Only one participant update may be pending for a legacy run. Approval makes
+  the submission current, makes it the Hall of Fame best only when its progress,
+  kills, outposts, skills and survival time outrank the existing best, and marks
+  the run Deceased when death is reported. Decline requires a retained reason.
+  Both decisions record the reviewer and time and notify the participant.
 
 ## 2026-07-31 - Keep the public leaderboard concise and gate survivor details
 
@@ -739,3 +788,15 @@ a normal run-moderation bulk action.
   Hall of Fame for each participant's strongest eligible Stable terminal run,
   and Legacy Hall of Fame for imported Unstable-build personal bests. Legacy
   results remain visibly and logically separate from Stable rankings.
+
+## 2026-08-05 - Treat participant history as a focused signed-in profile
+
+- A signed-in Rat Racer may open another participant's profile by selecting
+  their linked name in a Stable or claimed Legacy ranking table.
+- The profile shows the participant's nickname, approved avatar, join date,
+  Personal Best, Active Runs, Past Runs and claimed Legacy Rat Race record when
+  available. Individual Stable runs link to their approved detail pages.
+- The profile does not expose submission history, pending or declined
+  submissions, evidence review, or moderation details.
+- Navbar participant search is a later nice-to-have discovery layer. Ranking
+  links are sufficient for the initial profile journey.

@@ -47,16 +47,27 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("account/", views.account, name="account"),
+    path(
+        "participants/<uuid:participant_id>/",
+        views.participant_profile,
+        name="participant_profile",
+    ),
     path("leaderboard/", views.leaderboard, name="leaderboard"),
     path("mods/", views.mods_catalogue, name="mods"),
     path("mods/workshop-lookup/", views.workshop_mod_lookup, name="workshop_mod_lookup"),
     path("runs/<uuid:run_id>/", views.public_run_detail, name="public_run_detail"),
+    path(
+        "legacy-runs/<int:run_id>/claim/",
+        views.claim_legacy_run,
+        name="claim_legacy_run",
+    ),
     path(
         "account/dashboard/fragment/",
         views.account_dashboard_fragment,
         name="account_dashboard_fragment",
     ),
     path("account/submit/", views.submit_run, name="submit_run"),
+    path("account/legacy/submit/", views.submit_legacy_run, name="submit_legacy_run"),
     path(
         "account/runs/<uuid:run_id>/deactivate/",
         views.deactivate_run,

@@ -18,14 +18,17 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 from .models import (
     AccountClosureRecord,
     ChallengeMode,
     ChallengeModeAlias,
     ChallengeRun,
-    LegacyLeaderboardClaim,
-    LegacyLeaderboardEntry,
+    LegacyDataImport,
+    LegacyRun,
+    LegacyRunClaim,
+    LegacyRunSubmission,
     Notification,
     Participant,
     RunSubmission,
@@ -34,26 +37,370 @@ from .models import (
     WorkshopMod,
     WorkshopModVote,
 )
+from .legacy_imports import apply_legacy_import, create_legacy_import_review
+from .legacy_submissions import legacy_submission_strength
 
 
-@admin.register(LegacyLeaderboardEntry)
-class LegacyLeaderboardEntryAdmin(admin.ModelAdmin):
-    list_display = ("source_rank", "historical_name", "zombie_kills", "challenge_progress", "claimed_participant", "snapshot_id")
-    list_filter = ("snapshot_id",)
-    search_fields = ("historical_name", "source_url", "claimed_participant__nickname")
+@admin.register(LegacyRun)
+class LegacyRunAdmin(admin.ModelAdmin):
+    list_display = (
+        "legacy_participant_name", "lifecycle", "claimed_participant",
+        "current_submission", "best_submission", "updated_at",
+    )
+    list_filter = ("lifecycle",)
+    search_fields = ("legacy_participant_name", "claimed_participant__nickname")
     readonly_fields = (
-        "source_key", "source_row", "source_rank", "historical_name", "zombie_kills",
-        "survival_time_full", "survival_days", "kills_per_day", "playtime_hours",
-        "outposts_cleared", "maxed_skills", "challenge_progress", "source_url",
-        "snapshot_id", "snapshot_captured_at", "created_at", "updated_at",
+        "source_key", "normalized_legacy_name", "current_submission", "best_submission",
+        "created_at", "updated_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+
+@admin.register(LegacyRunSubmission)
+class LegacyRunSubmissionAdmin(admin.ModelAdmin):
+    change_form_template = "admin/registry/legacyrunsubmission/change_form.html"
+    list_display = (
+        "run", "source", "status", "source_rank", "zombie_kills",
+        "outposts_cleared", "maxed_skills", "submitted_at",
+    )
+    list_filter = ("source", "status")
+    search_fields = ("run__legacy_participant_name", "run__claimed_participant__nickname")
+    readonly_fields = (
+        "run", "source", "status", "source_rank", "character_name", "zombie_kills",
+        "survival_time_input", "survival_time_full", "survival_days", "outposts_cleared",
+        "maxed_skills", "challenge_progress", "reports_death", "import_review",
+        "submitted_by", "submitted_at", "evidence_provider", "evidence_media_type",
+        "evidence_media_id", "evidence_url", "evidence_title", "evidence_start_seconds",
+        "evidence_end_seconds", "reviewed_by", "reviewed_at", "review_note",
+    )
+
+    class Media:
+        css = {"all": ("registry/admin_run_review.css", "registry/admin_legacy_claim_review.css")}
+
+    def changelist_view(self, request, extra_context=None):
+        context = dict(extra_context or {})
+        context["title"] = "Legacy run submission reviews"
+        return super().changelist_view(request, extra_context=context)
+
+    def get_urls(self):
+        return [
+            path("<path:object_id>/approve/", self.admin_site.admin_view(self.approve_submission_view), name="registry_legacyrunsubmission_approve"),
+            path("<path:object_id>/decline/", self.admin_site.admin_view(self.decline_submission_view), name="registry_legacyrunsubmission_decline"),
+        ] + super().get_urls()
+
+    def review_submission(self, request, object_id):
+        submission = self.get_object(request, object_id)
+        if not submission or not self.has_change_permission(request, submission):
+            raise Http404
+        return submission
+
+    def approve_submission_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        submission = self.review_submission(request, object_id)
+        with transaction.atomic():
+            submission = LegacyRunSubmission.objects.select_for_update().select_related("run", "submitted_by").get(pk=submission.pk)
+            run = LegacyRun.objects.select_for_update().select_related("best_submission").get(pk=submission.run_id)
+            if submission.source != LegacyRunSubmission.Source.PARTICIPANT or submission.status != LegacyRunSubmission.Status.RECEIVED:
+                self.message_user(request, "This legacy submission is not awaiting review.", level=messages.WARNING)
+                return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
+            if run.claimed_participant_id != submission.submitted_by_id:
+                self.message_user(request, "The submission no longer belongs to the participant linked to this run.", level=messages.ERROR)
+                return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
+
+            submission.status = LegacyRunSubmission.Status.APPROVED
+            submission.reviewed_by = request.user
+            submission.reviewed_at = timezone.now()
+            submission.review_note = request.POST.get("review_note", "").strip()
+            submission.save(update_fields=("status", "reviewed_by", "reviewed_at", "review_note"))
+            run.current_submission = submission
+            run.character_name = submission.character_name
+            if run.best_submission_id is None or legacy_submission_strength(submission) > legacy_submission_strength(run.best_submission):
+                run.best_submission = submission
+            if submission.reports_death:
+                run.lifecycle = LegacyRun.Lifecycle.DECEASED
+            run.save(update_fields=("current_submission", "best_submission", "character_name", "lifecycle", "updated_at"))
+
+        notify(
+            submission.submitted_by,
+            category=Notification.Category.SUBMISSION,
+            title="Legacy update approved",
+            message="Your legacy Rat Race update has been approved.",
+            destination=reverse("registry:account"),
+        )
+        self.message_user(request, "The legacy run update was approved.", level=messages.SUCCESS)
+        return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
+
+    def decline_submission_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        submission = self.review_submission(request, object_id)
+        reason = request.POST.get("reason", "").strip()
+        if not reason:
+            self.message_user(request, "A reason is required when declining a legacy update.", level=messages.ERROR)
+            return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
+        with transaction.atomic():
+            submission = LegacyRunSubmission.objects.select_for_update().select_related("submitted_by").get(pk=submission.pk)
+            if submission.source != LegacyRunSubmission.Source.PARTICIPANT or submission.status != LegacyRunSubmission.Status.RECEIVED:
+                self.message_user(request, "This legacy submission is not awaiting review.", level=messages.WARNING)
+                return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
+            submission.status = LegacyRunSubmission.Status.DECLINED
+            submission.reviewed_by = request.user
+            submission.reviewed_at = timezone.now()
+            submission.review_note = reason
+            submission.save(update_fields=("status", "reviewed_by", "reviewed_at", "review_note"))
+        notify(
+            submission.submitted_by,
+            category=Notification.Category.SUBMISSION,
+            title="Legacy update declined",
+            message=f"Your legacy Rat Race update was not approved: {reason}",
+            destination=reverse("registry:account"),
+        )
+        self.message_user(request, "The legacy run update was declined.", level=messages.SUCCESS)
+        return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(LegacyRunClaim)
+class LegacyRunClaimAdmin(admin.ModelAdmin):
+    change_form_template = "admin/registry/legacyrunclaim/change_form.html"
+    list_display = ("run", "participant", "status", "submitted_at", "reviewed_by", "reviewed_at")
+    list_filter = ("status",)
+    search_fields = ("run__legacy_participant_name", "participant__nickname")
+    readonly_fields = (
+        "run", "participant", "status", "evidence", "submitted_at",
+        "reviewed_by", "reviewed_at", "review_note",
+    )
+    fields = readonly_fields
+
+    class Media:
+        css = {"all": (
+            "registry/admin_run_review.css",
+            "registry/admin_legacy_claim_review.css",
+        )}
+
+    def changelist_view(self, request, extra_context=None):
+        context = dict(extra_context or {})
+        context["title"] = "Legacy run claim reviews"
+        return super().changelist_view(request, extra_context=context)
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        context = dict(extra_context or {})
+        context["title"] = "Review legacy run claim"
+        return super().change_view(request, object_id, form_url, context)
+
+    def get_urls(self):
+        return [
+            path(
+                "<path:object_id>/approve/",
+                self.admin_site.admin_view(self.approve_claim_view),
+                name="registry_legacyrunclaim_approve",
+            ),
+            path(
+                "<path:object_id>/decline/",
+                self.admin_site.admin_view(self.decline_claim_view),
+                name="registry_legacyrunclaim_decline",
+            ),
+        ] + super().get_urls()
+
+    def review_claim(self, request, object_id):
+        claim = self.get_object(request, object_id)
+        if not claim or not self.has_change_permission(request, claim):
+            raise Http404
+        return claim
+
+    def approve_claim_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        claim = self.review_claim(request, object_id)
+        with transaction.atomic():
+            claim = LegacyRunClaim.objects.select_for_update().select_related(
+                "run", "participant"
+            ).get(pk=claim.pk)
+            run = LegacyRun.objects.select_for_update().get(pk=claim.run_id)
+            if claim.status != LegacyRunClaim.Status.PENDING:
+                self.message_user(request, "This claim has already been reviewed.", level=messages.WARNING)
+                return redirect("admin:registry_legacyrunclaim_change", claim.pk)
+            if run.claimed_participant_id and run.claimed_participant_id != claim.participant_id:
+                self.message_user(request, "This legacy run is already linked to another participant.", level=messages.ERROR)
+                return redirect("admin:registry_legacyrunclaim_change", claim.pk)
+            if LegacyRun.objects.select_for_update().filter(
+                claimed_participant=claim.participant
+            ).exclude(pk=run.pk).exists():
+                self.message_user(request, "This participant is already linked to another legacy run.", level=messages.ERROR)
+                return redirect("admin:registry_legacyrunclaim_change", claim.pk)
+
+            reviewed_at = timezone.now()
+            run.claimed_participant = claim.participant
+            run.save(update_fields=("claimed_participant", "updated_at"))
+            claim.status = LegacyRunClaim.Status.APPROVED
+            claim.reviewed_by = request.user
+            claim.reviewed_at = reviewed_at
+            claim.review_note = request.POST.get("review_note", "").strip()
+            claim.save(update_fields=("status", "reviewed_by", "reviewed_at", "review_note"))
+
+        self.message_user(request, "The legacy run claim was approved.", level=messages.SUCCESS)
+        notify(
+            claim.participant,
+            category=Notification.Category.ACCOUNT,
+            title="Legacy run claim approved",
+            message=f"Your historical Rat Race record for {run.legacy_participant_name} is now linked to your account.",
+            destination=reverse("registry:account"),
+        )
+        return redirect("admin:registry_legacyrunclaim_change", claim.pk)
+
+    def decline_claim_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        claim = self.review_claim(request, object_id)
+        reason = request.POST.get("reason", "").strip()
+        if not reason:
+            self.message_user(request, "A reason is required when declining a claim.", level=messages.ERROR)
+            return redirect("admin:registry_legacyrunclaim_change", claim.pk)
+        with transaction.atomic():
+            claim = LegacyRunClaim.objects.select_for_update().get(pk=claim.pk)
+            if claim.status != LegacyRunClaim.Status.PENDING:
+                self.message_user(request, "This claim has already been reviewed.", level=messages.WARNING)
+                return redirect("admin:registry_legacyrunclaim_change", claim.pk)
+            claim.status = LegacyRunClaim.Status.DECLINED
+            claim.reviewed_by = request.user
+            claim.reviewed_at = timezone.now()
+            claim.review_note = reason
+            claim.save(update_fields=("status", "reviewed_by", "reviewed_at", "review_note"))
+
+        self.message_user(request, "The legacy run claim was declined.", level=messages.SUCCESS)
+        notify(
+            claim.participant,
+            category=Notification.Category.ACCOUNT,
+            title="Legacy run claim declined",
+            message=f"Your claim for {claim.run.legacy_participant_name} was not approved: {reason}",
+            destination=reverse("registry:account"),
+        )
+        return redirect("admin:registry_legacyrunclaim_change", claim.pk)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+class LegacyDataImportUploadForm(forms.Form):
+    legacy_leaderboard = forms.FileField(
+        help_text="Upload the final Legacy Leaderboard CSV exported from Google Sheets."
+    )
+    legacy_hall_of_fame = forms.FileField(
+        help_text="Upload the final Legacy Hall of Fame CSV exported from Google Sheets."
     )
 
 
-@admin.register(LegacyLeaderboardClaim)
-class LegacyLeaderboardClaimAdmin(admin.ModelAdmin):
-    list_display = ("entry", "participant", "status", "submitted_at", "reviewed_by", "reviewed_at")
+@admin.register(LegacyDataImport)
+class LegacyDataImportAdmin(admin.ModelAdmin):
+    change_list_template = "admin/registry/legacydataimport/change_list.html"
+    change_form_template = "admin/registry/legacydataimport/change_form.html"
+    list_display = (
+        "uploaded_at", "status", "leaderboard_filename", "hall_of_fame_filename",
+        "uploaded_by", "imported_at",
+    )
     list_filter = ("status",)
-    search_fields = ("entry__historical_name", "participant__nickname")
+    readonly_fields = (
+        "id", "status", "leaderboard_filename", "hall_of_fame_filename",
+        "leaderboard_sha256", "hall_of_fame_sha256",
+        "uploaded_by", "uploaded_at", "imported_at",
+    )
+    exclude = ("leaderboard_csv", "hall_of_fame_csv", "preview")
+
+    def has_module_permission(self, request):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_urls(self):
+        return [
+            path("upload/", self.admin_site.admin_view(self.upload_view), name="registry_legacydataimport_upload"),
+            path(
+                "<uuid:object_id>/confirm/", self.admin_site.admin_view(self.confirm_view),
+                name="registry_legacydataimport_confirm",
+            ),
+        ] + super().get_urls()
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = dict(extra_context or {})
+        review = self.get_object(request, object_id) if object_id else None
+        if review and review.preview:
+            records = review.preview.get("records", [])
+
+            def position(record, source):
+                value = (record.get(source) or {}).get("rank")
+                try:
+                    return int(value)
+                except (TypeError, ValueError):
+                    return 10**9
+
+            extra_context["legacy_leaderboard_preview"] = sorted(
+                (record for record in records if record.get("leaderboard")),
+                key=lambda record: (position(record, "leaderboard"), record.get("legacy_participant_name", "").casefold()),
+            )
+            extra_context["legacy_hall_of_fame_preview"] = sorted(
+                (record for record in records if record.get("hall_of_fame")),
+                key=lambda record: (position(record, "hall_of_fame"), record.get("legacy_participant_name", "").casefold()),
+            )
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+    def upload_view(self, request):
+        if not request.user.is_superuser:
+            raise Http404
+        form = LegacyDataImportUploadForm(request.POST or None, request.FILES or None)
+        if request.method == "POST" and form.is_valid():
+            try:
+                review = create_legacy_import_review(
+                    leaderboard_upload=form.cleaned_data["legacy_leaderboard"],
+                    hall_of_fame_upload=form.cleaned_data["legacy_hall_of_fame"],
+                    uploaded_by=request.user,
+                )
+            except ValidationError as exc:
+                form.add_error(None, exc)
+            else:
+                messages.success(request, "Legacy files validated. Review the preview before importing.")
+                return redirect("admin:registry_legacydataimport_change", review.pk)
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "title": "Upload legacy data",
+            "form": form,
+        }
+        return TemplateResponse(request, "admin/registry/legacydataimport/upload.html", context)
+
+    def confirm_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        review = self.get_object(request, object_id)
+        if review is None:
+            raise Http404
+        try:
+            apply_legacy_import(review, request.user)
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+        else:
+            messages.success(request, "Legacy Leaderboard and Hall of Fame data imported successfully.")
+        return redirect("admin:registry_legacydataimport_change", object_id)
 from .tokens import create_verification_token
 from .verification_email import send_verification_email
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar

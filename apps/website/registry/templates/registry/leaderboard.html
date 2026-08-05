@@ -28,7 +28,7 @@
           <div class="leaderboard-rank"><small>Rank</small><strong>{{ entry.rank }}</strong></div>
           <div class="leaderboard-participant">
             <span class="leaderboard-provider-slot" aria-hidden="true"></span>
-            <strong>{{ entry.racer }}</strong>
+            <strong>{% if request.user.is_authenticated %}<a href="{% url 'registry:participant_profile' entry.participant.pk %}">{{ entry.racer }}</a>{% else %}{{ entry.racer }}{% endif %}</strong>
           </div>
           <div class="leaderboard-survivor">
             {% if request.user.is_authenticated %}

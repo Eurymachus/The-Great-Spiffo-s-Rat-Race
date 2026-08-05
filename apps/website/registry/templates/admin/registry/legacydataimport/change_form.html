@@ -1,0 +1,109 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .legacy-preview-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+      gap: 1px;
+      margin: 0 0 1rem;
+      background: var(--hairline-color);
+      border: 1px solid var(--hairline-color);
+    }
+    .legacy-preview-stat { padding: .8rem 1rem; background: var(--body-bg); }
+    .legacy-preview-stat strong { display: block; font-size: 1.35rem; }
+    .legacy-preview-stat span { color: var(--body-quiet-color); }
+    .legacy-preview-warnings { margin: 0 0 1rem; padding: .8rem 1rem; border-left: 3px solid var(--message-warning-bg); }
+    .legacy-preview-table-wrap {
+      max-height: 28rem;
+      margin: .75rem 0 1.5rem;
+      overflow: auto;
+      border: 1px solid var(--hairline-color);
+    }
+    .legacy-preview-table { width: 100%; border-collapse: collapse; }
+    .legacy-preview-table th,
+    .legacy-preview-table td { padding: .55rem .75rem; border-bottom: 1px solid var(--hairline-color); white-space: nowrap; }
+    .legacy-preview-table th { position: sticky; top: 0; z-index: 1; background: var(--darkened-bg); text-align: left; }
+    .legacy-preview-table .numeric { text-align: right; }
+    .legacy-preview-table .derived { color: var(--message-warning-bg); }
+    .legacy-preview-details summary { cursor: pointer; font-size: 1rem; font-weight: 700; }
+    .legacy-preview-details summary span { color: var(--body-quiet-color); font-weight: 400; }
+  </style>
+{% endblock %}
+
+{% block after_field_sets %}
+  {{ block.super }}
+  {% if original.preview %}
+    <fieldset class="module aligned">
+      <h2>Validated preview</h2>
+      <div class="legacy-preview-summary">
+        <div class="legacy-preview-stat"><strong>{{ original.preview.counts.merged_runs }}</strong><span>Merged legacy runs</span></div>
+        <div class="legacy-preview-stat"><strong>{{ original.preview.counts.active_runs }}</strong><span>Active runs</span></div>
+        <div class="legacy-preview-stat"><strong>{{ original.preview.counts.inactive_runs }}</strong><span>Inactive runs</span></div>
+        <div class="legacy-preview-stat"><strong>{{ original.preview.counts.matched_names }}</strong><span>Names matched across files</span></div>
+        <div class="legacy-preview-stat"><strong>{{ original.preview.counts.leaderboard_rows }}</strong><span>Leaderboard source rows</span></div>
+        <div class="legacy-preview-stat"><strong>{{ original.preview.counts.hall_of_fame_rows }}</strong><span>Hall of Fame source rows</span></div>
+      </div>
+      {% if original.preview.warnings %}
+        <div class="legacy-preview-warnings">
+          <strong>Import warnings</strong>
+          <ul>{% for warning in original.preview.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+        </div>
+      {% endif %}
+
+      <details class="legacy-preview-details" open>
+        <summary>Legacy Leaderboard <span>({{ original.preview.counts.active_runs }} active runs)</span></summary>
+        <div class="legacy-preview-table-wrap">
+          <table class="legacy-preview-table">
+            <thead><tr><th>Position</th><th>Legacy participant</th><th class="numeric">Kills</th><th class="numeric">Outposts</th><th class="numeric">Maxed skills</th><th class="numeric">Day</th><th class="numeric">Progress</th></tr></thead>
+            <tbody>
+              {% for record in legacy_leaderboard_preview %}
+                <tr>
+                  <td title="Calculated from Overall Challenge %">{{ record.leaderboard.rank }}</td>
+                  <td>{{ record.legacy_participant_name }}</td>
+                  <td class="numeric">{{ record.leaderboard.kills }}</td>
+                  <td class="numeric">{{ record.leaderboard.outposts }}</td>
+                  <td class="numeric">{{ record.leaderboard.skills }}</td>
+                  <td class="numeric">{{ record.leaderboard.days }}</td>
+                  <td class="numeric">{{ record.leaderboard.progress }}%</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <details class="legacy-preview-details">
+        <summary>Legacy Hall of Fame <span>({{ original.preview.counts.merged_runs }} merged runs)</span></summary>
+        <div class="legacy-preview-table-wrap">
+          <table class="legacy-preview-table">
+            <thead><tr><th>Position</th><th>Legacy participant</th><th class="numeric">Kills</th><th class="numeric">Outposts</th><th class="numeric">Maxed skills</th><th class="numeric">Day</th><th class="numeric">Progress</th></tr></thead>
+            <tbody>
+              {% for record in legacy_hall_of_fame_preview %}
+                <tr>
+                  <td title="Calculated from Overall Challenge %">{{ record.hall_of_fame.rank }}</td>
+                  <td>{{ record.legacy_participant_name }}</td>
+                  <td class="numeric">{{ record.hall_of_fame.kills }}</td>
+                  <td class="numeric">{{ record.hall_of_fame.outposts }}</td>
+                  <td class="numeric">{{ record.hall_of_fame.skills }}</td>
+                  <td class="numeric">{{ record.hall_of_fame.days }}</td>
+                  <td class="numeric">{{ record.hall_of_fame.progress }}%</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </fieldset>
+  {% endif %}
+{% endblock %}
+
+{% block submit_buttons_bottom %}
+  {% if original.status == "preview" %}
+    <div class="submit-row">
+      <input type="submit" value="Confirm and replace legacy data" class="default"
+             formmethod="post" formaction="{% url 'admin:registry_legacydataimport_confirm' original.pk %}">
+    </div>
+  {% endif %}
+{% endblock %}

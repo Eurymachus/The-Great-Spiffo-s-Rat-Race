@@ -139,28 +139,34 @@ sent more than seven days ago. Production will run this command on a schedule.
 This administrator is suitable only for local development. Do not expose it to
 the internet or enter real participant data until the production security and
 operations checklist is complete.
-# Legacy Hall of Fame snapshot
+# Legacy data import
 
-The Legacy Hall of Fame is imported from the Google workbook's `Historical
-Leaderboard` worksheet only. It is stored separately from verified Rat Race
-runs.
+The Legacy Leaderboard and Legacy Hall of Fame use one merged legacy dataset,
+stored separately from verified Rat Race runs. The final cutoff date may occur
+after production deployment, so the import is an explicit super-admin operation
+and is never performed automatically by a migration.
 
-Immediately before the production package is built, refresh the committed
-snapshot:
+1. Export the final Legacy Leaderboard and Legacy Hall of Fame worksheets as
+   separate CSV files.
+2. Open `Participant Registry > Legacy data imports` in administration.
+3. Select `Upload legacy data`, then upload both CSV files.
+4. Review detected rows, merged runs, Active and Inactive totals, and warnings.
+5. Confirm only when the preview is correct. Confirmation replaces the current
+   imported legacy runs in one database transaction.
+
+The importer ignores streaming-channel and source-link columns. It stores the
+validated original CSV text, filenames, SHA-256 hashes, preview, uploader and
+import time as an audit record. Replacement is refused after claims or
+participant-created legacy submissions exist, preventing an established
+ownership journey from being silently destroyed.
+
+The same validator is available for controlled command-line operations:
 
 ```powershell
-.\.venv\Scripts\python.exe .\apps\website\manage.py snapshot_legacy_leaderboard
+.\.venv\Scripts\python.exe .\apps\website\manage.py import_legacy_leaderboard `
+  --leaderboard C:\path\legacy-leaderboard.csv `
+  --hall-of-fame C:\path\legacy-hall-of-fame.csv
 ```
 
-Review and commit
-`apps/website/registry/data/legacy_hall_of_fame.json` with the deployment. A
-fresh installation imports that packaged snapshot during migrations, without
-network access. An existing installation can safely refresh it with:
-
-```powershell
-.\.venv\Scripts\python.exe .\apps\website\manage.py import_legacy_leaderboard
-```
-
-The importer is idempotent and does not overwrite a legacy entry's approved
-participant ownership link. Never replace this process with a runtime Google
-Sheets dependency.
+That command previews by default. Add `--confirm` only after reviewing its
+counts. Do not replace this process with a runtime Google Sheets dependency.

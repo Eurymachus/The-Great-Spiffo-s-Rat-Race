@@ -14,6 +14,15 @@ class RatRaceAdminSite(AdminSite):
         ),
         ("Challenge configuration", ("ChallengeMode",)),
         ("Run moderation", ("ChallengeRun", "RunSubmission")),
+        (
+            "Legacy data",
+            (
+                "LegacyDataImport",
+                "LegacyRun",
+                "LegacyRunSubmission",
+                "LegacyRunClaim",
+            ),
+        ),
         ("Mod policy", ("WorkshopMod",)),
         (
             "Platform integrations",

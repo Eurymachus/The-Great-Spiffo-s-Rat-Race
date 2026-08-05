@@ -6,13 +6,17 @@
 {% endblock %}
 {% block content %}
 <article class="run-public-page">
+  {% include "registry/includes/journey_navigation.html" %}
   <header class="run-public-hero">
     <div>
       <p class="dashboard-panel-kicker">Verified Rat Race run</p>
       <h2>{{ run.character_name|default:"Rat Race survivor" }}</h2>
       <p>Run by <strong>{{ rat_racer }}</strong> in {{ run.challenge_mode_display }}.</p>
     </div>
-    <span class="run-public-status">{{ run.get_lifecycle_status_display }}</span>
+    <div class="run-public-hero-actions">
+      <span class="run-public-status">{{ run.get_lifecycle_status_display }}</span>
+      <a class="dashboard-header-action journey-back-link" href="{{ participant_profile_url }}">&lsaquo; Back to {{ rat_racer }}</a>
+    </div>
   </header>
 
   <section class="run-public-summary" aria-label="Run summary">

@@ -100,6 +100,13 @@
         }
     });
 
+    document.querySelectorAll("[data-legacy-claim-open]").forEach((button) => {
+        const dialog = document.getElementById(button.dataset.legacyClaimOpen);
+        if (!dialog) return;
+        button.addEventListener("click", () => openDialog(dialog, button));
+        prepareDialog(dialog, "[data-legacy-claim-close]");
+    });
+
     const accessDialog = document.querySelector("[data-access-prompt]");
     if (accessDialog) {
         const accessTitle = accessDialog.querySelector("#leaderboard-access-title");

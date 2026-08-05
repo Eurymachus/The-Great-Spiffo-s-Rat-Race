@@ -86,6 +86,16 @@ service and restart it after failure. Its scheduler should invoke the enqueue
 command at the desired interval. This same split is used in local development,
 so testing exercises the production execution boundary.
 
+For local development, use the canonical launcher from the repository root:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\start_website_dev.ps1" -Port 8001 -Background
+```
+
+The launcher loads `.env`, starts the web server and the independently running
+reference worker, reuses healthy existing processes, and refuses ambiguous
+duplicate listeners or workers.
+
 An installed-build change creates a super-admin notification. Authentication
 failure or another update failure also creates a notification. A superuser can
 repair the cached Steam session using **Reconnect Steam**.

@@ -153,6 +153,35 @@ records, while aliases and assets remain shared catalogue relationships.
   irreversibly deactivate their own active run without review; this marks it
   Abandoned, declines its pending submissions, prevents future updates to the
   same run ID, and immediately releases the mode slot.
+- The protected two-file Legacy Leaderboard and Legacy Hall of Fame importer,
+  merged Unstable run records, public legacy ranking sources and participant
+  claim journey are implemented. Signed-in participants can claim one legacy
+  run for team review. A focused approval screen records the reviewer and
+  decision, links approved historical identity to the participant and sends an
+  account notification. The participant dashboard shows pending and declined
+  claim states or, after approval, a dedicated Legacy Rat Race panel containing
+  one imported historical result. Active legacy runs use their current
+  Leaderboard result; Inactive and Deceased runs use their Hall of Fame best.
+  A separate archive divider and lifecycle tag keep legacy results explicitly
+  separate from verified Stable runs.
+- Approved claimants with an Active legacy run can submit participant-authored
+  updates containing character name, kills, Time Survived, Level 10 skill count,
+  completed outposts, Alive or Dead state and Twitch or YouTube VOD evidence.
+  Time Survived accepts `YY:MM:DD:HH` or plain words and is normalized into the
+  full display plus decimal days without moderator arithmetic. The website
+  calculates weighted progress from the established one-million-kill, 13-outpost
+  and 35-skill targets. Only one update may await review per legacy run. A
+  focused moderation screen approves or declines the immutable submission with
+  a retained reason
+  and notifies the participant. Approval advances the current result,
+  advances the historical best only when stronger, and marks the run Deceased
+  when the submission reports death. Pending and declined submissions never
+  affect public rankings.
+- Signed-in Rat Racers can open another participant's profile from their linked
+  name in Stable or claimed Legacy ranking tables. The profile presents only
+  approved participant-facing records: Personal Best, Active Runs, Past Runs
+  and the claimed Legacy Rat Race result when available. It does not expose
+  submission history, pending or declined submissions, or moderation details.
 - Signed-in verified-run page presentation at UUID-based addresses. The initial view
   presents challenge progress, character traits, current skills in a grouped
   Project Zomboid-style panel using the mod's complete 35-icon skill set,
@@ -303,9 +332,9 @@ outward.
 
 ## Recommended next action
 
-Complete the participant claim journey for imported Legacy Hall of Fame entries.
-The historical worksheet snapshot, separate legacy storage and idempotent
-deployment import must remain independent from verified website run records.
+Test the complete legacy import, claim and participant-update journeys with the
+final representative development export, then leave the production dataset
+empty until the team selects its final cutoff date.
 
 The reusable `Ranking Table` managed-page block is now implemented. Its typed,
 validated configuration supports additive filters for challenge modes, game and
@@ -335,7 +364,8 @@ concern. Keep that work separate from the ranking calculation so the scoring
 formula and public columns can be changed after team review without disturbing
 provider state.
 
-After the legacy claim journey, add the signed-in filterable history of all runs.
+Participant search remains a nice-to-have discovery layer for the signed-in
+participant profiles. Ranking links provide the initial route into profiles.
 Replace development gallery and navigation records only as their real launch
 destinations become available.
 
@@ -343,11 +373,12 @@ Retention automation and a final pre-launch privacy review remain required.
 
 ## Launch-critical operational safeguards
 
-Before production launch, replace ad hoc `runserver` commands with one canonical
-environment-aware startup path. Local development must load the repository's
-uncommitted `.env` before Django starts and must report the local and LAN
-addresses it actually bound. Production must receive secrets from its deployment
-environment, never from the repository.
+Local development uses the canonical environment-aware
+`scripts/start_website_dev.ps1` launcher. It loads the repository's uncommitted
+`.env`, starts and verifies the web server and independently running reference
+worker, avoids duplicate processes, and reports the local and LAN addresses.
+Production must receive secrets from its deployment environment, never from the
+repository, and supervise its web and worker processes independently.
 
 Startup validation must fail before accepting traffic when a configured Twitch
 or Discord integration has a missing or malformed Fernet encryption key. The

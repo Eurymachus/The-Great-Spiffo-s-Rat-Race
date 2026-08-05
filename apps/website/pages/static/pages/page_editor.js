@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
         image_position: [["left top", "Top left"], ["center top", "Top centre"], ["right top", "Top right"], ["left center", "Centre left"], ["center center", "Centre"], ["right center", "Centre right"], ["left bottom", "Bottom left"], ["center bottom", "Bottom centre"], ["right bottom", "Bottom right"]],
         card_columns: [["auto", "Automatic wrapping"], ["1", "1 card per row"], ["2", "2 cards per row"], ["3", "3 cards per row"], ["4", "4 cards per row"]],
         ranking_selection: [["best_per_participant", "Best eligible run per participant"], ["latest_per_participant", "Latest eligible run per participant"], ["all", "Every eligible run"]],
-        ranking_source: [["verified_runs", "Verified Rat Race runs"], ["legacy_hall_of_fame", "Packaged Legacy Hall of Fame"]],
+        ranking_source: [["verified_runs", "Verified Rat Race runs"], ["legacy_leaderboard", "Imported Legacy Leaderboard"], ["legacy_hall_of_fame", "Imported Legacy Hall of Fame"]],
         ranking_ordering: [["weighted_completion", "Weighted completion"], ["kills", "Zombie kills"], ["outposts", "Outposts completed"], ["skills", "Maxed skills"], ["verified_at", "Last verified"], ["source_rank", "Imported historical rank"]],
         ranking_columns: [["participant", "Participant"], ["survivor", "Survivor"], ["build", "Starting build"], ["progress", "Weighted progress"], ["kills", "Zombie kills"], ["outposts", "Outposts"], ["skills", "Maxed skills"], ["day", "In-game day"], ["verified", "Last verified"]],
     };
@@ -420,7 +420,9 @@ document.addEventListener("DOMContentLoaded", () => {
             if (config.game_builds?.length) filters.push(`game build ${config.game_builds.join(" OR ")}`);
             if (config.challenge_builds?.length) filters.push(`challenge build ${config.challenge_builds.join(" OR ")}`);
             summaryText.textContent = config.source === "legacy_hall_of_fame"
-                ? "Effective query: packaged Historical Leaderboard snapshot."
+                ? "Effective query: imported Legacy Hall of Fame records."
+                : config.source === "legacy_leaderboard"
+                ? "Effective query: imported active Legacy Leaderboard records."
                 : `Effective query: verified approved runs${filters.length ? ` matching (${filters.join(") AND (")})` : ""}.`;
         };
         const display = el("div", "page-editor-grid page-ranking-settings");

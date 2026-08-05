@@ -1,0 +1,101 @@
+{% extends "admin/change_form.html" %}
+{% load admin_urls %}
+
+{% block field_sets %}
+  {% if original %}
+    <article class="claim-review-card">
+      <header class="claim-review-header">
+        <div>
+          <p class="claim-review-kicker">Legacy run claim</p>
+          <h2>{{ original.run.legacy_participant_name }}</h2>
+        </div>
+        <span class="run-review-status status-{{ original.status }}">{{ original.get_status_display }}</span>
+      </header>
+
+      <dl class="claim-review-facts">
+        <div><dt>Claimed by</dt><dd>{{ original.participant.nickname }}</dd></div>
+        <div><dt>Submitted</dt><dd>{{ original.submitted_at|date:"j F Y, H:i" }}</dd></div>
+      </dl>
+
+      <section class="claim-review-evidence">
+        <h3>Participant evidence</h3>
+        {% if original.evidence %}
+          <p>{{ original.evidence|linebreaksbr }}</p>
+        {% else %}
+          <p class="claim-review-muted">No additional evidence was supplied.</p>
+        {% endif %}
+      </section>
+
+      {% if original.status != "pending" %}
+        <footer class="claim-review-decision status-{{ original.status }}">
+          <div>
+            <span class="claim-review-decision-mark" aria-hidden="true">{% if original.status == "approved" %}✓{% else %}×{% endif %}</span>
+            <p><strong>{{ original.get_status_display }}</strong><br><span>Reviewed by {{ original.reviewed_by|default:"Unknown reviewer" }}{% if original.reviewed_at %}, {{ original.reviewed_at|date:"j F Y, H:i" }}{% endif %}</span></p>
+          </div>
+          {% if original.review_note %}<p class="claim-review-note">{{ original.review_note|linebreaksbr }}</p>{% endif %}
+        </footer>
+      {% endif %}
+    </article>
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block submit_buttons_bottom %}
+  {% if original and original.status == "pending" %}
+    <div class="submit-row run-review-submit-row">
+      <button
+        type="submit"
+        class="button run-review-approve"
+        formaction="{% url 'admin:registry_legacyrunclaim_approve' original.pk %}"
+        formmethod="post"
+      >Approve claim</button>
+      <button type="button" class="button run-review-decline" data-claim-decline-open>Decline</button>
+    </div>
+    <dialog class="run-decline-dialog" data-claim-decline-dialog aria-labelledby="claim-decline-title">
+      <h2 id="claim-decline-title">Decline this legacy run claim?</h2>
+      <p>The reason will be retained with the review decision.</p>
+      <label for="claim-decline-reason">Reason</label>
+      <textarea id="claim-decline-reason" name="reason" rows="5" maxlength="1000" required disabled></textarea>
+      <div class="run-decline-actions">
+        <button type="button" class="button" data-claim-decline-close>Cancel</button>
+        <button
+          type="submit"
+          class="button run-review-decline"
+          formaction="{% url 'admin:registry_legacyrunclaim_decline' original.pk %}"
+          formmethod="post"
+        >Decline claim</button>
+      </div>
+    </dialog>
+  {% else %}
+    <div class="submit-row run-review-complete">
+      Review completed{% if original.reviewed_at %} {{ original.reviewed_at|date:"j F Y, H:i" }}{% endif %}
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+  {{ block.super }}
+  <script>
+    (() => {
+      const dialog = document.querySelector("[data-claim-decline-dialog]");
+      const open = document.querySelector("[data-claim-decline-open]");
+      const close = document.querySelector("[data-claim-decline-close]");
+      if (!dialog || !open) return;
+      const reason = dialog.querySelector("textarea");
+      open.addEventListener("click", () => {
+        reason.disabled = false;
+        dialog.showModal();
+        reason.focus();
+      });
+      const closeDialog = () => dialog.close();
+      close?.addEventListener("click", closeDialog);
+      dialog.addEventListener("close", () => {
+        reason.disabled = true;
+      });
+      dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) closeDialog();
+      });
+    })();
+  </script>
+{% endblock %}

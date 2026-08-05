@@ -1,6 +1,4 @@
-import re
-
-from .models import ChallengeRun, LegacyLeaderboardEntry
+from .models import ChallengeRun, LegacyRun
 from .run_public import build_public_run_context
 from pages.ranking_config import default_ranking_config, validate_ranking_config
 from zomboid_catalogue.models import CatalogueAsset
@@ -73,7 +71,7 @@ def _entry_order_key(entry, ordering):
 
 def build_ranking_table(raw_config=None):
     config = validate_ranking_config(raw_config or default_ranking_config())
-    if config["source"] == "legacy_hall_of_fame":
+    if config["source"] in {"legacy_leaderboard", "legacy_hall_of_fame"}:
         return _build_legacy_ranking_table(config)
     runs = ChallengeRun.objects.filter(
         status=ChallengeRun.Status.OFFICIAL,
@@ -123,6 +121,7 @@ def build_ranking_table(raw_config=None):
             stream_provider = ""
         entry = {
             "run": run,
+            "participant": run.participant,
             "racer": run.participant.nickname,
             "survivor": run.character_name or "Unnamed survivor",
             "completion": score,
@@ -188,46 +187,79 @@ def build_ranking_table(raw_config=None):
 
 def _build_legacy_ranking_table(config):
     entries = []
-    queryset = LegacyLeaderboardEntry.objects.select_related("claimed_participant")
-    ordering = {
-        "weighted_completion": ("-challenge_progress", "source_rank", "historical_name"),
-        "kills": ("-zombie_kills", "source_rank", "historical_name"),
-        "outposts": ("-outposts_cleared", "-challenge_progress", "source_rank", "historical_name"),
-        "skills": ("-maxed_skills", "-challenge_progress", "source_rank", "historical_name"),
-        "source_rank": ("source_rank", "historical_name"),
-        "verified_at": ("source_rank", "historical_name"),
-    }[config["ordering"]]
-    for displayed_rank, record in enumerate(
-        queryset.order_by(*ordering)[:config["limit"]], start=1
-    ):
-        source_match = re.search(r"https?://[^\s,]+", record.source_url or "")
-        source_url = source_match.group(0) if source_match else ""
-        lowered_url = source_url.casefold()
-        if "twitch.tv/" in lowered_url:
-            stream_provider = "twitch"
-        elif "youtube.com/" in lowered_url or "youtu.be/" in lowered_url:
-            stream_provider = "youtube"
+    submission_relation = (
+        "current_submission" if config["source"] == "legacy_leaderboard" else "best_submission"
+    )
+    queryset = LegacyRun.objects.select_related(
+        submission_relation,
+        f"{submission_relation}__import_review",
+        "claimed_participant",
+        "claimed_participant__primary_streaming_account",
+    ).filter(**{f"{submission_relation}__isnull": False})
+    if config["source"] == "legacy_leaderboard":
+        queryset = queryset.filter(lifecycle=LegacyRun.Lifecycle.ACTIVE)
+    if config["participants"]:
+        queryset = queryset.filter(claimed_participant_id__in=config["participants"])
+    for record in queryset:
+        submission = getattr(record, submission_relation)
+        participant = record.claimed_participant
+        primary_channel = participant.primary_streaming_account if participant else None
+        if primary_channel and primary_channel.status == primary_channel.Status.CONNECTED:
+            source_url = primary_channel.channel_url
+            stream_provider = primary_channel.provider
         else:
+            source_url = ""
             stream_provider = ""
+        if submission.source == submission.Source.PARTICIPANT:
+            approved_at = submission.reviewed_at
+        else:
+            approved_at = (
+                submission.import_review.imported_at
+                if submission.import_review_id and submission.import_review.imported_at
+                else submission.reviewed_at
+            )
         entries.append({
             "run": None,
-            "rank": displayed_rank,
-            "source_rank": record.source_rank,
-            "racer": record.historical_name,
-            "participant": record.claimed_participant,
-            "survivor": "",
-            "completion": float(record.challenge_progress),
-            "kills": record.zombie_kills,
-            "outposts_completed": record.outposts_cleared,
+            "legacy_run": record,
+            "source_rank": submission.source_rank or 0,
+            "racer": participant.nickname if participant else record.legacy_participant_name,
+            "participant": participant,
+            "survivor": submission.character_name or record.character_name,
+            "completion": float(submission.challenge_progress),
+            "kills": submission.zombie_kills,
+            "outposts_completed": submission.outposts_cleared,
             "outposts_total": 13,
-            "maxed_skills": record.maxed_skills,
+            "maxed_skills": submission.maxed_skills,
             "skills_total": 35,
-            "in_game_day": max(1, int(record.survival_days)),
-            "verified_at": None,
+            "in_game_day": max(1, int(submission.survival_days)),
+            "verified_at": approved_at,
             "source_url": source_url,
             "stream_provider": stream_provider,
             "build_header_icon_url": "",
         })
+    sort_keys = {
+        "weighted_completion": lambda entry: (entry["completion"], entry["kills"]),
+        "kills": lambda entry: (entry["kills"], entry["completion"]),
+        "outposts": lambda entry: (entry["outposts_completed"], entry["completion"]),
+        "skills": lambda entry: (entry["maxed_skills"], entry["completion"]),
+        "verified_at": lambda entry: (
+            entry["verified_at"].timestamp() if entry["verified_at"] else 0,
+            entry["completion"],
+        ),
+    }
+    if config["ordering"] == "source_rank":
+        entries.sort(
+            key=lambda entry: (
+                entry["completion"], entry["kills"], entry["outposts_completed"],
+                entry["maxed_skills"], entry["in_game_day"], entry["racer"].casefold(),
+            ),
+            reverse=True,
+        )
+    else:
+        entries.sort(key=sort_keys[config["ordering"]], reverse=True)
+    entries = entries[:config["limit"]]
+    for displayed_rank, entry in enumerate(entries, start=1):
+        entry["rank"] = displayed_rank
     return entries
 
 

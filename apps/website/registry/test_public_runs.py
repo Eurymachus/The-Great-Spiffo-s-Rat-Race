@@ -167,6 +167,12 @@ class PublicRunDetailTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Verified Rat Race run")
+        profile_url = reverse(
+            "registry:participant_profile", args=(self.participant.pk,)
+        )
+        self.assertContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(response, profile_url, count=2)
+        self.assertContains(response, "Back to RatRacer")
         self.assertContains(response, "Esteban Grossman")
         self.assertContains(response, "RatRacer")
         self.assertContains(response, "TGSRR - Standard")

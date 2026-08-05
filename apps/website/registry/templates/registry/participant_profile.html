@@ -1,0 +1,70 @@
+{% extends "registry/base.html" %}
+{% block title_suffix %} | {{ profile_participant.nickname }}{% endblock %}
+{% block content %}
+<section class="card card-wide account-dashboard participant-profile">
+  {% include "registry/includes/journey_navigation.html" %}
+  <header class="account-dashboard-header participant-profile-header">
+    <div class="account-dashboard-identity">
+      <span class="account-dashboard-avatar" aria-hidden="true">
+        {% if profile_participant.avatar %}<img src="{{ profile_participant.avatar.url }}" alt="">{% else %}{{ profile_participant.nickname|first|upper }}{% endif %}
+      </span>
+      <small>Joined <strong>{{ profile_participant.registered_at|date:"j M Y" }}</strong></small>
+    </div>
+    <div class="account-dashboard-welcome">
+      <p class="account-dashboard-kicker">Rat Racer profile</p>
+      <h2>{{ profile_participant.nickname }}</h2>
+      <p>Approved Stable and Legacy Rat Race records.</p>
+    </div>
+  </header>
+
+  <div class="account-dashboard-grid">
+    <div class="account-dashboard-main">
+      <section class="dashboard-panel personal-best-panel">
+        <div class="dashboard-panel-heading">
+          <div><p class="dashboard-panel-kicker">Strongest result</p><h3>Personal Best</h3></div>
+          <span class="dashboard-coming-soon">{% if personal_best %}Verified{% else %}No result yet{% endif %}</span>
+        </div>
+        {% if personal_best %}
+        <div class="dashboard-run-summary">
+          <div><small>Survivor</small><strong>{{ personal_best.character_name|default:"Recorded run" }}</strong></div>
+          <div><small>Zombie kills</small><strong>{{ personal_best.current_kills }}</strong></div>
+          <div><small>In-game Day</small><strong>{{ personal_best.in_game_day|default:"Not recorded" }}</strong></div>
+          <div><small>Challenge mode</small><strong>{{ personal_best.challenge_mode_display }}</strong></div>
+        </div>
+        {% else %}
+        <div class="dashboard-empty-state compact"><strong>No verified result yet</strong><p>This participant has no approved Stable runs.</p></div>
+        {% endif %}
+      </section>
+
+      <section class="dashboard-panel">
+        <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">In progress</p><h3>Active Runs</h3></div></div>
+        {% if active_runs %}<div class="dashboard-run-list">
+          {% for run in active_runs %}<a class="dashboard-run-entry participant-profile-run" href="{% url 'registry:public_run_detail' run.pk %}"><div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></div><div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_status_display }}</small></div></a>{% endfor %}
+        </div>{% else %}<div class="dashboard-empty-state compact"><strong>No active runs</strong><p>This participant has no active approved runs.</p></div>{% endif %}
+      </section>
+
+      <section class="dashboard-panel">
+        <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Previous attempts</p><h3>Past Runs</h3></div></div>
+        {% if past_runs %}<div class="dashboard-run-list">
+          {% for run in past_runs %}<a class="dashboard-run-entry participant-profile-run" href="{% url 'registry:public_run_detail' run.pk %}"><div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></div><div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_lifecycle_status_display }}</small></div></a>{% endfor %}
+        </div>{% else %}<div class="dashboard-empty-state compact"><strong>No past runs</strong><p>This participant has no completed or inactive approved runs.</p></div>{% endif %}
+      </section>
+
+      {% if legacy_run and legacy_submission %}
+      <div class="legacy-dashboard-section">
+        <div class="legacy-dashboard-divider" role="separator"><span>Unstable archive</span></div>
+        <section class="dashboard-panel legacy-dashboard-panel">
+          <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Historical challenge record</p><h3>Legacy Rat Race</h3></div></div>
+          <div class="legacy-dashboard-identity"><span>Historical racer</span><strong>{{ legacy_run.legacy_participant_name }}</strong><div class="legacy-era-status"><small>Unstable Rat Race</small><span class="dashboard-coming-soon legacy-lifecycle-tag status-{{ legacy_run.lifecycle }}">{{ legacy_run.get_lifecycle_display }}</span></div></div>
+          <div class="legacy-dashboard-results legacy-dashboard-single-result"><article>
+            <header><span>{% if legacy_run.lifecycle == "active" %}Legacy Leaderboard{% else %}Legacy Hall of Fame{% endif %}</span><strong>{{ legacy_submission.character_name|default:"Historical result" }}</strong></header>
+            <dl><div><dt>Zombie kills</dt><dd>{{ legacy_submission.zombie_kills }}</dd></div><div><dt>Survival days</dt><dd>{{ legacy_submission.survival_days|floatformat:"-2" }}</dd></div><div><dt>Outposts</dt><dd>{{ legacy_submission.outposts_cleared }} / 13</dd></div><div><dt>Maxed skills</dt><dd>{{ legacy_submission.maxed_skills }} / 35</dd></div><div><dt>Progress</dt><dd>{{ legacy_submission.challenge_progress|floatformat:2 }}%</dd></div></dl>
+          </article></div>
+          <p class="legacy-dashboard-note">This imported result belongs to the Unstable Rat Race archive and remains separate from verified Stable runs.</p>
+        </section>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

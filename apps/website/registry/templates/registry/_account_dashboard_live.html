@@ -85,4 +85,59 @@
     <div class="dashboard-empty-state compact"><strong>Nothing awaiting review</strong><p>New submissions will appear here until a moderator approves or declines them.</p></div>
     {% endif %}
   </section>
+
+  {% if legacy_run or legacy_claim %}
+  <div class="legacy-dashboard-section">
+    <div class="legacy-dashboard-divider" role="separator">
+      <span>Unstable archive</span>
+    </div>
+    <section class="dashboard-panel legacy-dashboard-panel">
+      <div class="dashboard-panel-heading">
+        <div>
+          <p class="dashboard-panel-kicker">Historical challenge record</p>
+          <h3>Legacy Rat Race</h3>
+        </div>
+        <div class="legacy-dashboard-heading-actions">
+          {% if legacy_run and legacy_run.lifecycle == "active" and not pending_legacy_submission %}<a class="dashboard-header-action" href="{% url 'registry:submit_legacy_run' %}">Submit update</a>{% endif %}
+          {% if not legacy_run %}<span class="dashboard-coming-soon">{% if legacy_claim.status == "pending" %}Pending review{% else %}{{ legacy_claim.get_status_display }}{% endif %}</span>{% endif %}
+        </div>
+      </div>
+      {% if legacy_run %}
+        <div class="legacy-dashboard-identity">
+          <span>Historical racer</span>
+          <strong>{{ legacy_run.legacy_participant_name }}</strong>
+          <div class="legacy-era-status"><small>Unstable Rat Race</small><span class="dashboard-coming-soon legacy-lifecycle-tag status-{{ legacy_run.lifecycle }}">{{ legacy_run.get_lifecycle_display }}</span></div>
+        </div>
+        {% if legacy_dashboard_submission %}
+        <div class="legacy-dashboard-results legacy-dashboard-single-result">
+          <article>
+            <header><span>{% if legacy_run.lifecycle == "active" %}Legacy Leaderboard{% else %}Legacy Hall of Fame{% endif %}</span><strong>Historical result</strong></header>
+            <dl>
+              <div><dt>Zombie kills</dt><dd>{{ legacy_dashboard_submission.zombie_kills }}</dd></div>
+              <div><dt>Survival days</dt><dd>{{ legacy_dashboard_submission.survival_days|floatformat:"-2" }}</dd></div>
+              <div><dt>Outposts</dt><dd>{{ legacy_dashboard_submission.outposts_cleared }} / 13</dd></div>
+              <div><dt>Maxed skills</dt><dd>{{ legacy_dashboard_submission.maxed_skills }} / 35</dd></div>
+              <div><dt>Progress</dt><dd>{{ legacy_dashboard_submission.challenge_progress|floatformat:2 }}%</dd></div>
+            </dl>
+          </article>
+        </div>
+        {% endif %}
+        {% if pending_legacy_submission %}
+        <div class="legacy-update-pending"><div><strong>{{ pending_legacy_submission.character_name }}</strong><small>Legacy update awaiting moderation</small></div><div><strong>{{ pending_legacy_submission.zombie_kills }} kills</strong><small>{{ pending_legacy_submission.survival_time_full }}</small></div></div>
+        {% endif %}
+        <p class="legacy-dashboard-note">These imported results belong to the Unstable Rat Race archive and remain separate from verified Stable runs.</p>
+      {% elif legacy_claim.status == "pending" %}
+        <div class="dashboard-empty-state compact">
+          <strong>Claim awaiting review</strong>
+          <p>Your claim for {{ legacy_claim.run.legacy_participant_name }} has been sent to the team.</p>
+        </div>
+      {% else %}
+        <div class="dashboard-empty-state compact legacy-claim-declined">
+          <strong>Claim not approved</strong>
+          <p>Your claim for {{ legacy_claim.run.legacy_participant_name }} was declined.{% if legacy_claim.review_note %} {{ legacy_claim.review_note }}{% endif %}</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+  {% endif %}
 </div>

@@ -39,6 +39,7 @@ from .forms import (
     RegistrationForm,
     ResendVerificationForm,
     SignInForm,
+    LegacyRunSubmissionForm,
     RunSubmissionForm,
     ModReviewRequestForm,
     validate_registration_email,
@@ -47,6 +48,9 @@ from .forms import (
 from .avatar_moderation import InvalidAvatar, remove_avatar, submit_avatar
 from .models import (
     ChallengeRun,
+    LegacyRun,
+    LegacyRunClaim,
+    LegacyRunSubmission,
     Notification,
     Participant,
     RunSubmission,
@@ -63,6 +67,7 @@ from .steam_workshop import (
 )
 from .challenge_modes import resolve_challenge_mode
 from .notifications import notify
+from .legacy_submissions import calculate_legacy_progress
 from .rate_limit import exceeded, request_ip
 from .tokens import create_verification_token, read_verification_token
 from .turnstile import validate_turnstile
@@ -490,6 +495,25 @@ def account_dashboard_context(user):
     runs = user.challenge_runs.select_related("challenge_mode").prefetch_related(
         "submissions__challenge_mode"
     )
+    legacy_run = user.claimed_legacy_runs.select_related(
+        "current_submission", "best_submission"
+    ).first()
+    legacy_claim = None
+    if legacy_run is None:
+        legacy_claim = user.legacy_run_claims.select_related("run").first()
+    legacy_dashboard_submission = None
+    if legacy_run is not None:
+        legacy_dashboard_submission = (
+            legacy_run.current_submission
+            if legacy_run.lifecycle == LegacyRun.Lifecycle.ACTIVE
+            else legacy_run.best_submission
+        )
+    pending_legacy_submission = None
+    if legacy_run is not None:
+        pending_legacy_submission = legacy_run.submissions.filter(
+            source=LegacyRunSubmission.Source.PARTICIPANT,
+            status=LegacyRunSubmission.Status.RECEIVED,
+        ).first()
     return {
         "personal_best": runs.filter(status=ChallengeRun.Status.OFFICIAL)
             .order_by("-current_kills", "first_submitted_at")
@@ -499,6 +523,10 @@ def account_dashboard_context(user):
         "pending_submissions": user.run_submissions.filter(
             status=RunSubmission.Status.RECEIVED
         ).select_related("run", "challenge_mode"),
+        "legacy_run": legacy_run,
+        "legacy_claim": legacy_claim,
+        "legacy_dashboard_submission": legacy_dashboard_submission,
+        "pending_legacy_submission": pending_legacy_submission,
     }
 
 
@@ -513,6 +541,107 @@ def account(request):
 
 @login_required
 @require_http_methods(["GET"])
+def participant_profile(request, participant_id):
+    participant = get_object_or_404(
+        Participant,
+        pk=participant_id,
+        status=Participant.Status.VERIFIED,
+        is_active=True,
+    )
+    runs = participant.challenge_runs.filter(
+        status=ChallengeRun.Status.OFFICIAL,
+        approved_submission__isnull=False,
+    ).select_related("challenge_mode", "approved_submission")
+    legacy_run = participant.claimed_legacy_runs.select_related(
+        "current_submission", "best_submission"
+    ).first()
+    legacy_submission = None
+    if legacy_run is not None:
+        legacy_submission = (
+            legacy_run.current_submission
+            if legacy_run.lifecycle == LegacyRun.Lifecycle.ACTIVE
+            else legacy_run.best_submission
+        )
+    return render(
+        request,
+        "registry/participant_profile.html",
+        {
+            "profile_participant": participant,
+            "personal_best": runs.order_by(
+                "-current_kills", "first_submitted_at"
+            ).first(),
+            "active_runs": runs.filter(
+                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE
+            ),
+            "past_runs": runs.exclude(
+                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE
+            ),
+            "legacy_run": legacy_run,
+            "legacy_submission": legacy_submission,
+            "journey_items": (
+                {"label": "Rankings", "url": reverse("registry:leaderboard")},
+                {"label": participant.nickname, "url": ""},
+            ),
+        },
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def claim_legacy_run(request, run_id):
+    next_url = request.POST.get("next") or reverse("registry:account")
+    if not url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("registry:account")
+
+    with transaction.atomic():
+        legacy_run = get_object_or_404(
+            LegacyRun.objects.select_for_update(),
+            pk=run_id,
+        )
+        if legacy_run.claimed_participant_id:
+            if legacy_run.claimed_participant_id == request.user.pk:
+                messages.info(request, "This legacy run is already linked to your account.")
+            else:
+                messages.error(request, "This legacy run has already been claimed.")
+            return redirect(next_url)
+
+        if LegacyRun.objects.filter(claimed_participant=request.user).exclude(pk=run_id).exists():
+            messages.error(request, "Your account is already linked to a legacy run.")
+            return redirect(next_url)
+
+        if LegacyRunClaim.objects.filter(
+            participant=request.user,
+            status__in=(LegacyRunClaim.Status.PENDING, LegacyRunClaim.Status.APPROVED),
+        ).exclude(run=legacy_run).exists():
+            messages.error(request, "You already have a legacy run claim awaiting review.")
+            return redirect(next_url)
+
+        claim, created = LegacyRunClaim.objects.get_or_create(
+            run=legacy_run,
+            participant=request.user,
+            defaults={"status": LegacyRunClaim.Status.PENDING},
+        )
+        if created:
+            messages.success(request, "Your legacy run claim has been submitted for review.")
+        elif claim.status == LegacyRunClaim.Status.PENDING:
+            messages.info(request, "Your claim for this legacy run is already awaiting review.")
+        elif claim.status == LegacyRunClaim.Status.APPROVED:
+            messages.info(request, "This legacy run is already linked to your account.")
+        else:
+            messages.error(
+                request,
+                "This legacy run claim was declined. Contact the team if it should be reconsidered.",
+            )
+
+    return redirect(next_url)
+
+
+@login_required
+@require_http_methods(["GET"])
 def public_run_detail(request, run_id):
     run = get_object_or_404(
         ChallengeRun.objects.select_related(
@@ -522,11 +651,17 @@ def public_run_detail(request, run_id):
         status=ChallengeRun.Status.OFFICIAL,
         approved_submission__isnull=False,
     )
-    return render(
-        request,
-        "registry/public_run_detail.html",
-        build_public_run_context(run),
-    )
+    context = build_public_run_context(run)
+    profile_url = reverse("registry:participant_profile", args=(run.participant_id,))
+    context.update({
+        "participant_profile_url": profile_url,
+        "journey_items": (
+            {"label": "Rankings", "url": reverse("registry:leaderboard")},
+            {"label": run.participant.nickname, "url": profile_url},
+            {"label": run.character_name or "Rat Race survivor", "url": ""},
+        ),
+    })
+    return render(request, "registry/public_run_detail.html", context)
 
 
 @require_http_methods(["GET"])
@@ -870,6 +1005,107 @@ def submit_run(request):
             "submission_blocked_message": submission_blocked_message,
         },
     )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def submit_legacy_run(request):
+    legacy_run = request.user.claimed_legacy_runs.select_related(
+        "current_submission", "best_submission"
+    ).first()
+    if legacy_run is None:
+        messages.error(request, "An approved legacy run claim is required before submitting an update.")
+        return redirect("registry:account")
+    if legacy_run.lifecycle != LegacyRun.Lifecycle.ACTIVE:
+        messages.error(request, "Only an Active legacy run can receive participant updates.")
+        return redirect("registry:account")
+    if LegacyRunSubmission.objects.filter(
+        run=legacy_run,
+        source=LegacyRunSubmission.Source.PARTICIPANT,
+        status=LegacyRunSubmission.Status.RECEIVED,
+    ).exists():
+        messages.info(request, "Your legacy run already has an update awaiting review.")
+        return redirect("registry:account")
+
+    connected_streaming_accounts = list(
+        request.user.streaming_accounts.filter(
+            status=StreamingAccount.Status.CONNECTED,
+            provider__in=(StreamingAccount.Provider.TWITCH, StreamingAccount.Provider.YOUTUBE),
+        ).order_by("provider")
+    )
+    primary = request.user.primary_streaming_account
+    selected_provider = (
+        primary.provider
+        if primary in connected_streaming_accounts
+        else connected_streaming_accounts[0].provider if connected_streaming_accounts else ""
+    )
+    form = LegacyRunSubmissionForm(
+        request.POST or None,
+        participant=request.user,
+        selected_provider=selected_provider,
+    )
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            locked_run = LegacyRun.objects.select_for_update().get(pk=legacy_run.pk)
+            if locked_run.claimed_participant_id != request.user.pk:
+                raise Http404
+            if locked_run.lifecycle != LegacyRun.Lifecycle.ACTIVE:
+                form.add_error(None, "This legacy run is no longer Active.")
+            elif LegacyRunSubmission.objects.filter(
+                run=locked_run,
+                source=LegacyRunSubmission.Source.PARTICIPANT,
+                status=LegacyRunSubmission.Status.RECEIVED,
+            ).exists():
+                form.add_error(None, "An update for this legacy run is already awaiting review.")
+            else:
+                selected_media = form.media_by_id.get(form.cleaned_data.get("evidence_video"))
+                LegacyRunSubmission.objects.create(
+                    run=locked_run,
+                    status=LegacyRunSubmission.Status.RECEIVED,
+                    source=LegacyRunSubmission.Source.PARTICIPANT,
+                    character_name=form.cleaned_data["character_name"],
+                    zombie_kills=form.cleaned_data["zombie_kills"],
+                    survival_time_input=form.cleaned_data["survival_time"],
+                    survival_time_full=form.normalized_survival_time,
+                    survival_days=form.survival_days,
+                    outposts_cleared=form.cleaned_data["outposts_cleared"],
+                    maxed_skills=form.cleaned_data["maxed_skills"],
+                    challenge_progress=calculate_legacy_progress(
+                        form.cleaned_data["zombie_kills"],
+                        form.cleaned_data["outposts_cleared"],
+                        form.cleaned_data["maxed_skills"],
+                    ),
+                    reports_death=form.cleaned_data["run_state"] == "dead",
+                    submitted_by=request.user,
+                    evidence_provider=selected_media.account.provider if selected_media else "",
+                    evidence_media_type=selected_media.kind if selected_media else "",
+                    evidence_media_id=selected_media.provider_media_id if selected_media else "",
+                    evidence_url=(selected_media.canonical_url if selected_media else form.cleaned_data.get("manual_evidence_url", "")),
+                    evidence_title=selected_media.title if selected_media else "",
+                    evidence_start_seconds=form.cleaned_data.get("evidence_start_seconds"),
+                    evidence_end_seconds=form.cleaned_data.get("evidence_end_seconds"),
+                )
+                notify(
+                    request.user,
+                    category=Notification.Category.SUBMISSION,
+                    title="Legacy update received",
+                    message="Your legacy Rat Race update is awaiting moderator review.",
+                    destination=reverse("registry:account"),
+                )
+                messages.success(request, "Your legacy run update has been submitted for review.")
+                return redirect("registry:account")
+
+    return render(request, "registry/submit_legacy_run.html", {
+        "form": form,
+        "legacy_run": legacy_run,
+        "streaming_accounts": connected_streaming_accounts,
+        "selected_provider": form.selected_provider,
+        "cached_media_count": sum(
+            account.media.filter(kind=StreamingMedia.Kind.VIDEO).count()
+            for account in connected_streaming_accounts
+            if account.provider == form.selected_provider
+        ),
+    })
 
 
 @login_required

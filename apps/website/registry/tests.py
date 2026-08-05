@@ -25,7 +25,7 @@ from branding.models import SiteBranding
 from pages.models import NavigationItem, Page, PageBlock, PageSection
 from .admin import export_registrations, promote_to_role
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
-from .models import AccountClosureRecord, LegacyLeaderboardEntry, Notification, Participant, StreamingAccount, StreamingMedia
+from .models import AccountClosureRecord, LegacyDataImport, LegacyRun, LegacyRunClaim, LegacyRunSubmission, Notification, Participant, StreamingAccount, StreamingMedia
 from .tokens import create_verification_token
 from .streaming import (
     TWITCH_STATE_SESSION_KEY,
@@ -36,50 +36,553 @@ from .streaming import (
 from .discord_integration import DISCORD_STATE_SESSION_KEY
 from .youtube_integration import YOUTUBE_STATE_SESSION_KEY
 from .leaderboard import build_ranking_table
+from .legacy_imports import apply_legacy_import, create_legacy_import_review
+from .legacy_submissions import parse_survival_time
 
 
-class LegacyLeaderboardImportTests(TestCase):
-    def test_packaged_import_is_idempotent_and_preserves_claim_owner(self):
-        call_command("import_legacy_leaderboard", verbosity=0)
-        self.assertEqual(LegacyLeaderboardEntry.objects.count(), 205)
-        participant = Participant.objects.create_user(
-            email="legacy@example.com", nickname="LegacyRacer", password="valid-test-password"
+class LegacyDataImportTests(TestCase):
+    HEADER = (
+        "Position,Name,Zombies Killed,Survival Time (Full),Survival Time (Days),"
+        "Kills / Day Average,Playtime Approximation,Outposts Cleared,Level 10 Skills,"
+        "Overall Challenge Progress,Source\n"
+    )
+
+    def upload(self, name, rows):
+        content = "Legacy results\nGenerated export\n\n" + self.HEADER + "\n".join(rows) + "\n"
+        return SimpleUploadedFile(name, content.encode("utf-8"), content_type="text/csv")
+
+    def create_review(self):
+        reviewer = Participant.objects.create_superuser(
+            email="admin@example.com", nickname="LegacyAdmin", password="valid-test-password"
         )
-        entry = LegacyLeaderboardEntry.objects.order_by("source_rank").first()
-        entry.claimed_participant = participant
-        entry.save(update_fields=("claimed_participant",))
+        return create_legacy_import_review(
+            leaderboard_upload=self.upload("leaderboard.csv", [
+                "1,Active Racer,100,,12,0,0,2,3,10.5,https://twitch.tv/must-not-be-stored",
+                "2,Second Racer,50,,8,0,0,0,1,4.2,https://youtube.com/must-not-be-stored",
+            ]),
+            hall_of_fame_upload=self.upload("hall.csv", [
+                "1,Active Racer,250,,20,0,0,5,8,24.5,https://twitch.tv/ignored",
+                "2,Past Racer,200,,16,0,0,4,7,19.5,https://youtube.com/ignored",
+            ]),
+            uploaded_by=reviewer,
+        ), reviewer
 
-        call_command("import_legacy_leaderboard", verbosity=0)
+    def test_preview_merges_both_files_without_storing_channel_data(self):
+        review, reviewer = self.create_review()
+        self.assertEqual(review.preview["counts"]["merged_runs"], 3)
+        self.assertEqual(review.preview["counts"]["active_runs"], 2)
+        self.assertNotIn("twitch.tv", str(review.preview))
 
-        self.assertEqual(LegacyLeaderboardEntry.objects.count(), 205)
-        entry.refresh_from_db()
-        self.assertEqual(entry.claimed_participant, participant)
+        apply_legacy_import(review, reviewer)
 
-    def test_legacy_page_uses_fixed_provider_slot_and_channel_link(self):
-        call_command("import_legacy_leaderboard", verbosity=0)
-        response = self.client.get("/legacyhalloffame/", HTTP_HOST="127.0.0.1")
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "leaderboard-provider-slot")
-        self.assertContains(response, 'target="_blank"')
-        self.assertContains(response, "streaming-provider-icon-twitch")
+        self.assertEqual(LegacyRun.objects.count(), 3)
+        active = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        past = LegacyRun.objects.get(normalized_legacy_name="past racer")
+        self.assertEqual(active.lifecycle, LegacyRun.Lifecycle.ACTIVE)
+        self.assertEqual(past.lifecycle, LegacyRun.Lifecycle.INACTIVE)
+        self.assertEqual(active.current_submission.zombie_kills, 100)
+        self.assertEqual(active.best_submission.zombie_kills, 250)
+        self.assertFalse(hasattr(active, "source_url"))
 
-    def test_legacy_ranking_honours_selected_ordering(self):
-        call_command("import_legacy_leaderboard", verbosity=0)
+    def test_preview_ignores_sheet_position_and_ranks_by_progress(self):
+        reviewer = Participant.objects.create_superuser(
+            email="sheet-error@example.com", nickname="SheetErrorAdmin",
+            password="valid-test-password",
+        )
+        review = create_legacy_import_review(
+            leaderboard_upload=self.upload("leaderboard.csv", [
+                "99,First Racer,100,,12,0,0,2,3,10.5,",
+                "#N/A,Formula Error Racer,50,,8,0,0,0,1,4.2,",
+            ]),
+            hall_of_fame_upload=self.upload("hall.csv", [
+                "99,First Racer,250,,20,0,0,5,8,24.5,",
+                "1,Formula Error Racer,75,,9,0,0,1,2,6.5,",
+            ]),
+            uploaded_by=reviewer,
+        )
+
+        formula_record = next(
+            record for record in review.preview["records"]
+            if record["normalised_name"] == "formula error racer"
+        )
+        self.assertEqual(formula_record["leaderboard"]["rank"], 2)
+        self.assertEqual(formula_record["hall_of_fame"]["rank"], 2)
+        self.assertEqual(review.preview["counts"]["leaderboard_positions_assigned"], 2)
+        self.assertEqual(review.preview["counts"]["hall_of_fame_positions_assigned"], 2)
+
+    def test_admin_upload_requires_superuser_and_confirms_only_once(self):
+        review, reviewer = self.create_review()
+        self.client.force_login(reviewer)
+        response = self.client.post(reverse("admin:registry_legacydataimport_confirm", args=(review.pk,)))
+        self.assertRedirects(response, reverse("admin:registry_legacydataimport_change", args=(review.pk,)))
+        review.refresh_from_db()
+        self.assertEqual(review.status, LegacyDataImport.Status.IMPORTED)
+        self.assertEqual(LegacyRunSubmission.objects.filter(status="approved").count(), 4)
+
+        response = self.client.post(reverse("admin:registry_legacydataimport_confirm", args=(review.pk,)))
+        self.assertRedirects(response, reverse("admin:registry_legacydataimport_change", args=(review.pk,)))
+        self.assertEqual(LegacyRun.objects.count(), 3)
+
+    def test_admin_upload_builds_preview_without_importing(self):
+        reviewer = Participant.objects.create_superuser(
+            email="uploader@example.com", nickname="LegacyUploader", password="valid-test-password"
+        )
+        self.client.force_login(reviewer)
+        response = self.client.post(reverse("admin:registry_legacydataimport_upload"), {
+            "legacy_leaderboard": self.upload("leaderboard.csv", [
+                "1,Active Racer,100,,12,0,0,2,3,10.5,https://twitch.tv/ignored",
+            ]),
+            "legacy_hall_of_fame": self.upload("hall.csv", [
+                "1,Active Racer,250,,20,0,0,5,8,24.5,https://twitch.tv/ignored",
+            ]),
+        })
+
+        review = LegacyDataImport.objects.get()
+        self.assertRedirects(
+            response, reverse("admin:registry_legacydataimport_change", args=(review.pk,))
+        )
+        self.assertEqual(review.status, LegacyDataImport.Status.PREVIEW)
+        self.assertEqual(LegacyRun.objects.count(), 0)
+        self.assertNotIn("twitch.tv", str(review.preview))
+
+    def test_admin_changelist_offers_import_action(self):
+        reviewer = Participant.objects.create_superuser(
+            email="list@example.com", nickname="LegacyListAdmin", password="valid-test-password"
+        )
+        self.client.force_login(reviewer)
+
+        response = self.client.get(reverse("admin:registry_legacydataimport_changelist"))
+
+        self.assertContains(response, "Import legacy data")
+        self.assertContains(response, reverse("admin:registry_legacydataimport_upload"))
+
+    def test_non_superuser_cannot_open_import_upload(self):
+        participant = Participant.objects.create_user(
+            email="participant@example.com", nickname="Participant", password="valid-test-password"
+        )
+        self.client.force_login(participant)
+        response = self.client.get(reverse("admin:registry_legacydataimport_upload"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_legacy_ranking_sources_use_current_and_best_records(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
         base = {
-            "source": "legacy_hall_of_fame",
             "lifecycles": [],
             "selection": "all",
             "limit": 500,
         }
 
-        by_progress = build_ranking_table({**base, "ordering": "weighted_completion"})
-        by_kills = build_ranking_table({**base, "ordering": "kills"})
-        by_source = build_ranking_table({**base, "ordering": "source_rank"})
+        leaderboard = build_ranking_table({
+            **base, "source": "legacy_leaderboard", "ordering": "source_rank",
+        })
+        hall = build_ranking_table({
+            **base, "source": "legacy_hall_of_fame", "ordering": "weighted_completion",
+        })
 
-        self.assertGreaterEqual(by_progress[0]["completion"], by_progress[1]["completion"])
-        self.assertGreaterEqual(by_kills[0]["kills"], by_kills[1]["kills"])
-        self.assertEqual([entry["source_rank"] for entry in by_source[:3]], [1, 2, 3])
-        self.assertEqual([entry["rank"] for entry in by_progress[:3]], [1, 2, 3])
+        self.assertEqual([entry["racer"] for entry in leaderboard], ["Active Racer", "Second Racer"])
+        self.assertEqual(leaderboard[0]["kills"], 100)
+        self.assertIsNone(leaderboard[0]["run"])
+        self.assertEqual(leaderboard[0]["legacy_run"].normalized_legacy_name, "active racer")
+        self.assertEqual(hall[0]["racer"], "Active Racer")
+        self.assertEqual(hall[0]["kills"], 250)
+        imported_submission = hall[0]["legacy_run"].best_submission
+        self.assertEqual(
+            hall[0]["verified_at"],
+            imported_submission.import_review.imported_at,
+        )
+
+    def test_legacy_verified_column_is_labelled_last_approved(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        block = PageBlock.objects.get(
+            section__page__public_path="legacyhalloffame",
+            block_type=PageBlock.BlockType.RANKING_TABLE,
+        )
+        config = dict(block.ranking_config)
+        config["columns"] = [*config["columns"], "verified"]
+        block.ranking_config = config
+        block.save(update_fields=("ranking_config",))
+
+        response = self.client.get("/legacyhalloffame/", HTTP_HOST="127.0.0.1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Last approved")
+        self.assertNotContains(response, "Last verified")
+        self.assertNotContains(response, "Not recorded")
+
+    def test_legacy_pages_render_when_survivor_names_are_empty(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+
+        hall_block = PageBlock.objects.get(
+            section__page__public_path="legacyhalloffame",
+            block_type=PageBlock.BlockType.RANKING_TABLE,
+        )
+        leaderboard_page = Page.objects.create(
+            title="Legacy Leaderboard",
+            public_path="legacyleaderboard",
+            is_published=True,
+        )
+        leaderboard_section = PageSection.objects.create(
+            page=leaderboard_page,
+            name="Legacy rankings",
+            position=0,
+        )
+        leaderboard_config = dict(hall_block.ranking_config)
+        leaderboard_config["source"] = "legacy_leaderboard"
+        PageBlock.objects.create(
+            section=leaderboard_section,
+            position=0,
+            block_type=PageBlock.BlockType.RANKING_TABLE,
+            ranking_config=leaderboard_config,
+        )
+
+        for path in ("/legacyleaderboard/", "/legacyhalloffame/"):
+            with self.subTest(path=path):
+                response = self.client.get(path, HTTP_HOST="127.0.0.1")
+
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Active Racer")
+                self.assertNotContains(response, "/runs//")
+
+    def test_participant_can_submit_legacy_run_claim(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        participant = Participant.objects.create_user(
+            email="claimant@example.com", nickname="LegacyClaimant",
+            password="valid-test-password",
+        )
+        legacy_run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        self.client.force_login(participant)
+
+        response = self.client.post(
+            reverse("registry:claim_legacy_run", args=(legacy_run.pk,)),
+            {"next": "/legacyleaderboard/"},
+        )
+
+        self.assertRedirects(
+            response,
+            "/legacyleaderboard/",
+            fetch_redirect_response=False,
+        )
+        claim = LegacyRunClaim.objects.get(run=legacy_run, participant=participant)
+        self.assertEqual(claim.status, LegacyRunClaim.Status.PENDING)
+
+    def test_legacy_tables_hide_claim_column_after_approval(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        participant = Participant.objects.create_user(
+            email="completed-claim@example.com",
+            nickname="CompletedClaim",
+            password="valid-test-password",
+        )
+        legacy_run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        claim = LegacyRunClaim.objects.create(run=legacy_run, participant=participant)
+        self.client.force_login(participant)
+
+        response = self.client.get("/legacyhalloffame/", HTTP_HOST="127.0.0.1")
+        self.assertContains(response, 'class="managed-ranking-claim"')
+
+        claim.status = LegacyRunClaim.Status.APPROVED
+        claim.save(update_fields=("status",))
+        legacy_run.claimed_participant = participant
+        legacy_run.save(update_fields=("claimed_participant", "updated_at"))
+        response = self.client.get("/legacyhalloffame/", HTTP_HOST="127.0.0.1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'class="managed-ranking-claim"')
+        self.assertNotContains(response, "data-legacy-claim-open")
+
+    def test_admin_approves_legacy_claim_through_review_action(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        participant = Participant.objects.create_user(
+            email="approved-claimant@example.com",
+            nickname="ApprovedClaimant",
+            password="valid-test-password",
+        )
+        legacy_run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        claim = LegacyRunClaim.objects.create(run=legacy_run, participant=participant)
+        self.client.force_login(reviewer)
+
+        change_url = reverse("admin:registry_legacyrunclaim_change", args=(claim.pk,))
+        response = self.client.get(change_url)
+        self.assertContains(response, "Approve claim")
+        self.assertContains(response, "Decline")
+        self.assertNotContains(response, "Save and continue editing")
+
+        response = self.client.post(
+            reverse("admin:registry_legacyrunclaim_approve", args=(claim.pk,))
+        )
+
+        self.assertRedirects(response, change_url)
+        claim.refresh_from_db()
+        legacy_run.refresh_from_db()
+        self.assertEqual(claim.status, LegacyRunClaim.Status.APPROVED)
+        self.assertEqual(claim.reviewed_by, reviewer)
+        self.assertIsNotNone(claim.reviewed_at)
+        self.assertEqual(legacy_run.claimed_participant, participant)
+        notification = participant.notifications.get(title="Legacy run claim approved")
+        self.assertEqual(notification.destination, reverse("registry:account"))
+
+    def test_admin_declines_legacy_claim_with_required_reason(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        participant = Participant.objects.create_user(
+            email="declined-claimant@example.com",
+            nickname="DeclinedClaimant",
+            password="valid-test-password",
+        )
+        legacy_run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        claim = LegacyRunClaim.objects.create(run=legacy_run, participant=participant)
+        self.client.force_login(reviewer)
+        decline_url = reverse("admin:registry_legacyrunclaim_decline", args=(claim.pk,))
+
+        response = self.client.post(decline_url, {"reason": ""})
+        self.assertRedirects(
+            response, reverse("admin:registry_legacyrunclaim_change", args=(claim.pk,))
+        )
+        claim.refresh_from_db()
+        self.assertEqual(claim.status, LegacyRunClaim.Status.PENDING)
+
+        response = self.client.post(
+            decline_url, {"reason": "The supplied identity could not be verified."}
+        )
+
+        self.assertRedirects(
+            response, reverse("admin:registry_legacyrunclaim_change", args=(claim.pk,))
+        )
+        claim.refresh_from_db()
+        legacy_run.refresh_from_db()
+        self.assertEqual(claim.status, LegacyRunClaim.Status.DECLINED)
+        self.assertEqual(claim.reviewed_by, reviewer)
+        self.assertEqual(claim.review_note, "The supplied identity could not be verified.")
+        self.assertIsNone(legacy_run.claimed_participant)
+        notification = participant.notifications.get(title="Legacy run claim declined")
+        self.assertIn("could not be verified", notification.message)
+
+    def test_dashboard_shows_legacy_claim_state_and_linked_results(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        participant = Participant.objects.create_user(
+            email="dashboard-claimant@example.com",
+            nickname="DashboardClaimant",
+            password="valid-test-password",
+        )
+        legacy_run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        claim = LegacyRunClaim.objects.create(run=legacy_run, participant=participant)
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:account"))
+        self.assertContains(response, "Legacy Rat Race")
+        self.assertContains(response, "Claim awaiting review")
+        self.assertContains(response, "Active Racer")
+
+        claim.status = LegacyRunClaim.Status.DECLINED
+        claim.review_note = "The supplied evidence did not match."
+        claim.save(update_fields=("status", "review_note"))
+        response = self.client.get(reverse("registry:account"))
+        self.assertContains(response, "Claim not approved")
+        self.assertContains(response, "The supplied evidence did not match.")
+
+        legacy_run.claimed_participant = participant
+        legacy_run.save(update_fields=("claimed_participant", "updated_at"))
+        response = self.client.get(reverse("registry:account"))
+        self.assertContains(response, "Historical racer")
+        self.assertContains(response, "Legacy Leaderboard")
+        self.assertContains(response, "100")
+        self.assertContains(response, "Active")
+        self.assertNotContains(response, "Legacy Hall of Fame")
+        self.assertContains(response, "separate from verified Stable runs")
+        self.assertLess(
+            response.content.index(b"Awaiting Review"),
+            response.content.index(b"Unstable archive"),
+        )
+
+        legacy_run.lifecycle = LegacyRun.Lifecycle.INACTIVE
+        legacy_run.save(update_fields=("lifecycle", "updated_at"))
+        response = self.client.get(reverse("registry:account"))
+        self.assertContains(response, "Legacy Hall of Fame")
+        self.assertContains(response, "250")
+        self.assertContains(response, "Inactive")
+        self.assertNotContains(response, "Legacy Leaderboard")
+
+    def test_survival_time_accepts_full_and_word_formats(self):
+        original, full, days = parse_survival_time("09:10:27:01")
+        self.assertEqual(original, "09:10:27:01")
+        self.assertEqual(full, "09:10:27:01")
+        self.assertEqual(str(days), "3567.04167")
+
+        original, full, days = parse_survival_time(
+            "1 year 5 months 20 days 6 hours"
+        )
+        self.assertEqual(full, "01:05:20:06")
+        self.assertEqual(str(days), "530.25000")
+
+    def test_claimed_active_participant_submits_legacy_update(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        participant = Participant.objects.create_user(
+            email="legacy-update@example.com",
+            nickname="LegacyUpdater",
+            password="valid-test-password",
+        )
+        legacy_run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        legacy_run.claimed_participant = participant
+        legacy_run.save(update_fields=("claimed_participant", "updated_at"))
+        self.client.force_login(participant)
+
+        response = self.client.get(reverse("registry:submit_legacy_run"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Submit a legacy update")
+        self.assertContains(response, "YY:MM:DD:HH")
+
+        response = self.client.post(reverse("registry:submit_legacy_run"), {
+            "character_name": "Legacy Survivor",
+            "zombie_kills": "500000",
+            "survival_time": "1 year 5 months 20 days 6 hours",
+            "maxed_skills": "35",
+            "outposts_cleared": "13",
+            "run_state": "dead",
+            "manual_evidence_url": "https://www.twitch.tv/videos/123456789",
+            "evidence_start_seconds": "60",
+            "evidence_end_seconds": "600",
+        })
+
+        self.assertRedirects(response, reverse("registry:account"))
+        submission = LegacyRunSubmission.objects.get(
+            run=legacy_run, source=LegacyRunSubmission.Source.PARTICIPANT
+        )
+        self.assertEqual(submission.status, LegacyRunSubmission.Status.RECEIVED)
+        self.assertEqual(submission.survival_time_full, "01:05:20:06")
+        self.assertEqual(str(submission.survival_days), "530.25000")
+        self.assertEqual(str(submission.challenge_progress), "75.00000")
+        self.assertTrue(submission.reports_death)
+        self.assertEqual(submission.evidence_start_seconds, 60)
+        self.assertTrue(participant.notifications.filter(title="Legacy update received").exists())
+
+        response = self.client.get(reverse("registry:submit_legacy_run"))
+        self.assertRedirects(response, reverse("registry:account"))
+
+    def test_legacy_update_requires_claim_active_run_and_vod(self):
+        participant = Participant.objects.create_user(
+            email="legacy-ineligible@example.com",
+            nickname="LegacyIneligible",
+            password="valid-test-password",
+        )
+        self.client.force_login(participant)
+        self.assertRedirects(
+            self.client.get(reverse("registry:submit_legacy_run")),
+            reverse("registry:account"),
+        )
+
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        legacy_run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        legacy_run.claimed_participant = participant
+        legacy_run.save(update_fields=("claimed_participant", "updated_at"))
+        response = self.client.post(reverse("registry:submit_legacy_run"), {
+            "character_name": "No Evidence",
+            "zombie_kills": "100",
+            "survival_time": "00:00:10:00",
+            "maxed_skills": "1",
+            "outposts_cleared": "1",
+            "run_state": "alive",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Choose a recent broadcast or enter the VOD URL")
+        self.assertFalse(LegacyRunSubmission.objects.filter(source="participant").exists())
+
+    def test_admin_approves_legacy_update_and_applies_death(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        participant = Participant.objects.create_user(
+            email="legacy-approved-update@example.com",
+            nickname="LegacyApprovedUpdate",
+            password="valid-test-password",
+        )
+        legacy_run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        legacy_run.claimed_participant = participant
+        legacy_run.save(update_fields=("claimed_participant", "updated_at"))
+        submission = LegacyRunSubmission.objects.create(
+            run=legacy_run,
+            source=LegacyRunSubmission.Source.PARTICIPANT,
+            submitted_by=participant,
+            character_name="Final Survivor",
+            zombie_kills=500000,
+            survival_time_input="01:05:20:06",
+            survival_time_full="01:05:20:06",
+            survival_days="530.25000",
+            outposts_cleared=13,
+            maxed_skills=35,
+            challenge_progress="75.00000",
+            reports_death=True,
+            evidence_url="https://www.youtube.com/watch?v=legacy",
+        )
+        self.client.force_login(reviewer)
+
+        review_response = self.client.get(
+            reverse("admin:registry_legacyrunsubmission_change", args=(submission.pk,))
+        )
+        self.assertContains(review_response, "Approve update")
+        self.assertContains(review_response, "Final Survivor")
+        self.assertContains(review_response, "01:05:20:06")
+        self.assertContains(review_response, "youtube.com/watch?v=legacy")
+
+        response = self.client.post(
+            reverse("admin:registry_legacyrunsubmission_approve", args=(submission.pk,))
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("admin:registry_legacyrunsubmission_change", args=(submission.pk,)),
+        )
+        submission.refresh_from_db()
+        legacy_run.refresh_from_db()
+        self.assertEqual(submission.status, LegacyRunSubmission.Status.APPROVED)
+        self.assertEqual(submission.reviewed_by, reviewer)
+        self.assertEqual(legacy_run.current_submission, submission)
+        self.assertEqual(legacy_run.best_submission, submission)
+        self.assertEqual(legacy_run.lifecycle, LegacyRun.Lifecycle.DECEASED)
+        self.assertEqual(legacy_run.character_name, "Final Survivor")
+        self.assertTrue(participant.notifications.filter(title="Legacy update approved").exists())
+
+    def test_admin_declines_legacy_update_without_changing_run(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        participant = Participant.objects.create_user(
+            email="legacy-declined-update@example.com",
+            nickname="LegacyDeclinedUpdate",
+            password="valid-test-password",
+        )
+        legacy_run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        legacy_run.claimed_participant = participant
+        legacy_run.save(update_fields=("claimed_participant", "updated_at"))
+        original_current = legacy_run.current_submission
+        submission = LegacyRunSubmission.objects.create(
+            run=legacy_run,
+            source=LegacyRunSubmission.Source.PARTICIPANT,
+            submitted_by=participant,
+            character_name="Declined Survivor",
+            evidence_url="https://www.twitch.tv/videos/declined",
+        )
+        self.client.force_login(reviewer)
+        response = self.client.post(
+            reverse("admin:registry_legacyrunsubmission_decline", args=(submission.pk,)),
+            {"reason": "The values did not match the VOD."},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("admin:registry_legacyrunsubmission_change", args=(submission.pk,)),
+        )
+        submission.refresh_from_db()
+        legacy_run.refresh_from_db()
+        self.assertEqual(submission.status, LegacyRunSubmission.Status.DECLINED)
+        self.assertEqual(submission.review_note, "The values did not match the VOD.")
+        self.assertEqual(legacy_run.current_submission, original_current)
+        self.assertTrue(participant.notifications.filter(title="Legacy update declined").exists())
 
 
 class RegistrationTests(TestCase):

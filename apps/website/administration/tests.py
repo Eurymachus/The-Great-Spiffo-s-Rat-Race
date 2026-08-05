@@ -61,6 +61,11 @@ class WebsiteSettingsAdminTests(TestCase):
         self.assertContains(response, "Participant administration")
         self.assertContains(response, "Challenge configuration")
         self.assertContains(response, "Run moderation")
+        self.assertContains(response, "Legacy data")
+        self.assertContains(response, "Legacy data imports")
+        self.assertContains(response, "Legacy runs")
+        self.assertContains(response, "Legacy run submissions")
+        self.assertContains(response, "Legacy run claims")
         self.assertContains(response, "Platform integrations")
         content = response.content.decode()
         self.assertLess(
@@ -68,6 +73,7 @@ class WebsiteSettingsAdminTests(TestCase):
             content.index("Challenge modes"),
         )
         self.assertLess(content.index("Run moderation"), content.index("Challenge runs"))
+        self.assertLess(content.index("Legacy data"), content.index("Legacy data imports"))
         self.assertLess(
             content.index("Platform integrations"),
             content.index("Cached streaming media"),

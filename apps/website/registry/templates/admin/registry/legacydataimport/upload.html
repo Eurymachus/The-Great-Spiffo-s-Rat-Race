@@ -1,0 +1,31 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a>
+  &rsaquo; <a href="{% url 'admin:registry_legacydataimport_changelist' %}">Legacy data imports</a>
+  &rsaquo; Upload
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <h1>Upload legacy data</h1>
+  <p>Upload both final CSV exports. Nothing is imported until the validated preview is confirmed.</p>
+  <p>Existing legacy records will be replaced. Stream channel values in the files are ignored.</p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <fieldset class="module aligned">
+      {% for field in form %}
+        <div class="form-row">
+          {{ field.errors }}
+          <div><label class="required" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}</div>
+          {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </fieldset>
+    <div class="submit-row"><input type="submit" value="Validate and preview" class="default"></div>
+  </form>
+</div>
+{% endblock %}

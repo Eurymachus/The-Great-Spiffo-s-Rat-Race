@@ -1,0 +1,67 @@
+{% extends "registry/base.html" %}
+{% load static %}
+{% block title_suffix %} | Submit a legacy update{% endblock %}
+{% block extra_head %}<script src="{% static 'registry/submit_run.js' %}?v=20260805-1" defer></script><script src="{% static 'registry/legacy_submission.js' %}?v=20260805-1" defer></script>{% endblock %}
+{% block content %}
+<section class="card account-form-card run-submission-card">
+  <header class="run-submission-header">
+    <div><p class="account-dashboard-kicker">Unstable archive</p><h2>Submit a legacy update</h2><p>Update the historical record for {{ legacy_run.legacy_participant_name }}.</p></div>
+    <a class="dashboard-header-action" href="{% url 'registry:account' %}">Dashboard</a>
+  </header>
+  <form method="post" class="stacked-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <section class="submission-step">
+      <header class="submission-step-heading"><span class="submission-step-number" aria-hidden="true">1</span><div><h3>Legacy result</h3><p>Enter the values shown in Project Zomboid for this survivor.</p></div></header>
+      <div class="submission-step-body legacy-submission-fields">
+        <div class="field">{{ form.character_name.label_tag }}{{ form.character_name }}{{ form.character_name.errors }}</div>
+        <div class="legacy-submission-number-grid">
+          <div class="field">{{ form.zombie_kills.label_tag }}{{ form.zombie_kills }}{{ form.zombie_kills.errors }}</div>
+          <div class="field">{{ form.maxed_skills.label_tag }}{{ form.maxed_skills }}{{ form.maxed_skills.errors }}</div>
+          <div class="field">{{ form.outposts_cleared.label_tag }}{{ form.outposts_cleared }}{{ form.outposts_cleared.errors }}</div>
+        </div>
+        <div class="field">
+          <div class="submission-field-label-line">
+            {{ form.survival_time.label_tag }}
+            <span class="field-help-tooltip" tabindex="0" aria-label="Enter the time survived as YY:MM:DD:HH or in words, such as 1 year 5 months 20 days 6 hours." data-tooltip="Enter YY:MM:DD:HH or use words, such as 1 year 5 months 20 days 6 hours.">?</span>
+          </div>
+          {{ form.survival_time }}
+          <small>{{ form.survival_time.help_text }}</small>
+          <div class="legacy-time-preview" data-survival-preview hidden></div>
+          {{ form.survival_time.errors }}
+        </div>
+        <fieldset class="field legacy-run-state"><legend>{{ form.run_state.label }}</legend>{{ form.run_state }}{{ form.run_state.errors }}</fieldset>
+      </div>
+    </section>
+
+    <section class="submission-step submission-evidence">
+      <header class="submission-step-heading"><span class="submission-step-number" aria-hidden="true">2</span><div><h3>Stream evidence</h3><p>Select the VOD containing the submitted result, or enter its URL.</p></div></header>
+      <div class="submission-step-body">
+        {{ form.evidence_provider }}
+        {% if streaming_accounts %}
+          <div class="submission-provider-selector" role="group" aria-label="Evidence channel">
+            {% for account in streaming_accounts %}
+              <button class="submission-provider-choice{% if account.provider == selected_provider %} is-selected{% endif %}" type="button" data-evidence-provider="{{ account.provider }}" data-provider-name="{{ account.get_provider_display }}" data-channel-name="{{ account.display_name }}" aria-pressed="{% if account.provider == selected_provider %}true{% else %}false{% endif %}">
+                {% include "registry/includes/streaming_provider_icon.html" with provider=account.provider %}
+                <span><small>{{ account.get_provider_display }}</small><strong>{{ account.display_name }}</strong></span>
+              </button>
+            {% endfor %}
+          </div>
+          <div class="submission-source-status"><span>Recent media from the selected channel</span><button class="submission-secondary-action" type="submit" form="refresh-streaming-media-form">Refresh media</button></div>
+          {% if not cached_media_count %}<p class="submission-evidence-empty" data-media-refresh-empty>Refresh media to load recent broadcasts.</p>{% endif %}
+          <div class="field submission-broadcast-field"><div class="submission-field-label-line">{{ form.evidence_video.label_tag }}<span class="submission-media-refresh-status" data-media-refresh-status role="status" hidden></span></div>{{ form.evidence_video }}<small>{{ form.evidence_video.help_text }}</small>{{ form.evidence_video.errors }}</div>
+        {% else %}
+          <div class="submission-connect-callout"><div class="submission-provider-intro">{% include "registry/includes/streaming_provider_icon.html" with provider="twitch" %}<span><strong>Connect a streaming channel</strong><span>Choose recent Twitch or YouTube media directly from your verified channel.</span></span></div><a class="dashboard-header-action streaming-provider-action" href="{% url 'registry:account_settings' %}">Connect a channel</a></div>
+        {% endif %}
+        <div class="submission-evidence-times">
+          <div class="field">{{ form.evidence_start_seconds.label_tag }}{{ form.evidence_start_seconds }}<small>Seconds from the beginning of the VOD.</small>{{ form.evidence_start_seconds.errors }}</div>
+          <div class="field">{{ form.evidence_end_seconds.label_tag }}{{ form.evidence_end_seconds }}<small>Leave blank if the evidence continues to the end.</small>{{ form.evidence_end_seconds.errors }}</div>
+        </div>
+        <div class="submission-manual-evidence"><span class="submission-divider-label">{% if streaming_accounts %}VOD not listed?{% else %}VOD link{% endif %}</span><div class="field">{{ form.manual_evidence_url.label_tag }}{{ form.manual_evidence_url }}<small>{{ form.manual_evidence_url.help_text }}</small>{{ form.manual_evidence_url.errors }}</div></div>
+      </div>
+    </section>
+    <div class="submission-actions"><p>The update remains private until a moderator approves it.</p><button type="submit">Submit legacy update</button></div>
+  </form>
+  {% if streaming_accounts %}<form id="refresh-streaming-media-form" method="post" action="{% url 'registry:refresh_streaming_media' %}">{% csrf_token %}<input type="hidden" name="provider" value="{{ selected_provider }}"></form>{% endif %}
+</section>
+{% endblock %}

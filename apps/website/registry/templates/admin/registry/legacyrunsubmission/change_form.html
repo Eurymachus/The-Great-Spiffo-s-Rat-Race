@@ -1,0 +1,30 @@
+{% extends "admin/change_form.html" %}
+
+{% block field_sets %}
+  {% if original %}
+  <article class="claim-review-card">
+    <header class="claim-review-header"><div><p class="claim-review-kicker">Legacy run update</p><h2>{{ original.character_name|default:"Unnamed survivor" }}</h2></div><span class="run-review-status status-{{ original.status }}">{{ original.get_status_display }}</span></header>
+    <dl class="claim-review-facts">
+      <div><dt>Participant</dt><dd>{{ original.submitted_by|default:"Imported record" }}</dd></div>
+      <div><dt>Run</dt><dd>{{ original.run.legacy_participant_name }}</dd></div>
+      <div><dt>Kills</dt><dd>{{ original.zombie_kills }}</dd></div>
+      <div><dt>Time survived</dt><dd>{{ original.survival_time_full|default:"Not recorded" }} ({{ original.survival_days|floatformat:"-2" }} days)</dd></div>
+      <div><dt>Level 10 skills</dt><dd>{{ original.maxed_skills }} / 35</dd></div>
+      <div><dt>Outposts</dt><dd>{{ original.outposts_cleared }} / 13</dd></div>
+      <div><dt>Run status</dt><dd>{% if original.reports_death %}Dead{% else %}Alive{% endif %}</dd></div>
+      <div><dt>Progress</dt><dd>{{ original.challenge_progress|floatformat:2 }}%</dd></div>
+    </dl>
+    <section class="claim-review-evidence"><h3>Stream evidence</h3>{% if original.evidence_url %}<p><a href="{{ original.evidence_url }}" target="_blank" rel="noopener noreferrer">{{ original.evidence_title|default:original.evidence_url }}</a>{% if original.evidence_start_seconds is not None %}<br>Starts at {{ original.evidence_start_seconds }} seconds{% endif %}{% if original.evidence_end_seconds is not None %}, ends at {{ original.evidence_end_seconds }} seconds{% endif %}</p>{% else %}<p class="claim-review-muted">No stream evidence was stored.</p>{% endif %}</section>
+    {% if original.status != "received" %}<footer class="claim-review-decision status-{{ original.status }}"><div><span class="claim-review-decision-mark" aria-hidden="true">{% if original.status == "approved" %}✓{% else %}×{% endif %}</span><p><strong>{{ original.get_status_display }}</strong><br><span>Reviewed by {{ original.reviewed_by|default:"Unknown reviewer" }}{% if original.reviewed_at %}, {{ original.reviewed_at|date:"j F Y, H:i" }}{% endif %}</span></p></div>{% if original.review_note %}<p class="claim-review-note">{{ original.review_note|linebreaksbr }}</p>{% endif %}</footer>{% endif %}
+  </article>
+  {% else %}{{ block.super }}{% endif %}
+{% endblock %}
+
+{% block submit_buttons_bottom %}
+  {% if original and original.source == "participant" and original.status == "received" %}
+  <div class="submit-row run-review-submit-row"><button type="submit" class="button run-review-approve" formaction="{% url 'admin:registry_legacyrunsubmission_approve' original.pk %}" formmethod="post">Approve update</button><button type="button" class="button run-review-decline" data-legacy-update-decline-open>Decline</button></div>
+  <dialog class="run-decline-dialog" data-legacy-update-decline-dialog aria-labelledby="legacy-update-decline-title"><h2 id="legacy-update-decline-title">Decline this legacy update?</h2><label for="legacy-update-decline-reason">Reason</label><textarea id="legacy-update-decline-reason" name="reason" rows="5" maxlength="1000" required disabled></textarea><div class="run-decline-actions"><button type="button" class="button" data-legacy-update-decline-close>Cancel</button><button type="submit" class="button run-review-decline" formaction="{% url 'admin:registry_legacyrunsubmission_decline' original.pk %}" formmethod="post">Decline update</button></div></dialog>
+  {% else %}<div class="submit-row run-review-complete">{% if original.source == "participant" %}Review completed{% else %}Imported approved record{% endif %}</div>{% endif %}
+{% endblock %}
+
+{% block admin_change_form_document_ready %}{{ block.super }}<script>(() => { const dialog=document.querySelector("[data-legacy-update-decline-dialog]"); const open=document.querySelector("[data-legacy-update-decline-open]"); const close=document.querySelector("[data-legacy-update-decline-close]"); if(!dialog||!open)return; const reason=dialog.querySelector("textarea"); open.addEventListener("click",()=>{reason.disabled=false;dialog.showModal();reason.focus();}); close?.addEventListener("click",()=>dialog.close()); dialog.addEventListener("close",()=>{reason.disabled=true;}); dialog.addEventListener("click",event=>{if(event.target===dialog)dialog.close();}); })();</script>{% endblock %}

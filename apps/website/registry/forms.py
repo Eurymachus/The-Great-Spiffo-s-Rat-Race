@@ -315,11 +315,12 @@ class RunSubmissionForm(forms.Form):
             for item in media
             if item.kind == StreamingMedia.Kind.VIDEO and item.published_at
         ]
-        self.fields["evidence_clips"].choices = [
-            (str(item.id), item.title or item.provider_media_id)
-            for item in media
-            if item.kind == StreamingMedia.Kind.CLIP
-        ]
+        if "evidence_clips" in self.fields:
+            self.fields["evidence_clips"].choices = [
+                (str(item.id), item.title or item.provider_media_id)
+                for item in media
+                if item.kind == StreamingMedia.Kind.CLIP
+            ]
 
     def clean(self):
         cleaned = super().clean()
@@ -330,13 +331,14 @@ class RunSubmissionForm(forms.Form):
             self.add_error("evidence_video", "Choose a broadcast from your connected channel.")
         elif selected and self.media_by_id[selected].account.provider != provider:
             self.add_error("evidence_video", "Choose media from the selected channel.")
-        invalid_clips = [
-            value
-            for value in cleaned.get("evidence_clips", [])
-            if value not in self.media_by_id
-        ]
-        if invalid_clips:
-            self.add_error("evidence_clips", "Choose clips from your connected channel.")
+        if "evidence_clips" in self.fields:
+            invalid_clips = [
+                value
+                for value in cleaned.get("evidence_clips", [])
+                if value not in self.media_by_id
+            ]
+            if invalid_clips:
+                self.add_error("evidence_clips", "Choose clips from your connected channel.")
         if selected and manual:
             self.add_error(
                 "manual_evidence_url",
@@ -347,5 +349,50 @@ class RunSubmissionForm(forms.Form):
         if start is not None and end is not None and end <= start:
             self.add_error(
                 "evidence_end_seconds", "The end must be later than the start."
+            )
+        return cleaned
+
+
+class LegacyRunSubmissionForm(RunSubmissionForm):
+    run_export = None
+    evidence_clips = None
+    character_name = forms.CharField(label="Character name", max_length=160)
+    zombie_kills = forms.IntegerField(label="Zombie kills", min_value=0)
+    survival_time = forms.CharField(
+        label="Time survived",
+        max_length=255,
+        help_text="Enter YY:MM:DD:HH or use words, such as 1 year 5 months 20 days 6 hours.",
+        widget=forms.TextInput(attrs={
+            "placeholder": "01:05:20:06",
+            "autocomplete": "off",
+            "data-survival-time": "",
+        }),
+    )
+    maxed_skills = forms.IntegerField(
+        label="Skills at Level 10", min_value=0, max_value=35
+    )
+    outposts_cleared = forms.IntegerField(
+        label="Outposts completed", min_value=0, max_value=13
+    )
+    run_state = forms.ChoiceField(
+        label="Run status",
+        choices=(("alive", "Alive"), ("dead", "Dead")),
+        widget=forms.RadioSelect,
+    )
+
+    def clean_survival_time(self):
+        from .legacy_submissions import parse_survival_time
+
+        original, full, days = parse_survival_time(self.cleaned_data["survival_time"])
+        self.normalized_survival_time = full
+        self.survival_days = days
+        return original
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("evidence_video") and not cleaned.get("manual_evidence_url"):
+            self.add_error(
+                "manual_evidence_url",
+                "Choose a recent broadcast or enter the VOD URL.",
             )
         return cleaned
