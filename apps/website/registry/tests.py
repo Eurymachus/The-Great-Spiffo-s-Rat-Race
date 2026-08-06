@@ -1142,6 +1142,13 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Welcome to the Rat Race!")
         self.assertContains(response, "Spiffo Fan")
         self.assertContains(response, reverse("registry:account_settings"))
+        self.assertContains(
+            response,
+            reverse("registry:participant_profile", args=(participant.pk,)),
+        )
+        self.assertContains(response, "View profile")
+        self.assertContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(response, 'aria-current="page">')
         self.assertNotContains(response, reverse("registry:password_change"))
         self.assertContains(response, "Personal Best")
         self.assertContains(response, "Active Runs")
@@ -1201,6 +1208,9 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Discord")
         self.assertContains(response, "Twitch")
         self.assertContains(response, "YouTube")
+        self.assertContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(response, reverse("registry:account"))
+        self.assertContains(response, "Settings")
         self.assertContains(response, 'aria-current="page"')
 
     def test_account_settings_shows_connected_streaming_channel(self):
@@ -1385,6 +1395,11 @@ class RegistrationTests(TestCase):
         self.assertTrue(response.json()["ok"])
         self.assertEqual(response.json()["provider"], StreamingAccount.Provider.YOUTUBE)
         self.assertIn(str(media.id), [item["value"] for item in response.json()["videos"]])
+        returned_media = next(
+            item for item in response.json()["videos"] if item["value"] == str(media.id)
+        )
+        self.assertEqual(returned_media["title"], "A Rat Race run")
+        self.assertEqual(returned_media["provider"], StreamingAccount.Provider.YOUTUBE)
         self.assertEqual(response.json()["clips"], [])
 
     @override_settings(

@@ -182,6 +182,12 @@ class LeaderboardTests(TestCase):
         self.assertContains(
             response, reverse("registry:public_run_detail", args=(active.pk,))
         )
+        self.assertNotContains(response, "Return to dashboard")
+
+        self.client.force_login(self.racer)
+        own_profile = self.client.get(url)
+        self.assertContains(own_profile, reverse("registry:account"))
+        self.assertContains(own_profile, "Return to dashboard")
 
     def test_participant_profile_shows_the_linked_legacy_record(self):
         legacy_run = LegacyRun.objects.create(

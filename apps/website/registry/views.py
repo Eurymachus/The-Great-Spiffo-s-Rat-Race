@@ -87,6 +87,21 @@ from .streaming import (
 class SubmissionBlocked(Exception):
     """Raised when a valid export cannot enter the submission workflow."""
 
+
+def submission_media_payload(form, kind):
+    return [
+        {
+            "value": str(item.pk),
+            "title": item.title or item.provider_media_id,
+            "thumbnail_url": item.thumbnail_url,
+            "published_at": item.published_at.isoformat() if item.published_at else "",
+            "duration_seconds": item.duration_seconds,
+            "provider": item.account.provider,
+        }
+        for item in form.media_by_id.values()
+        if item.kind == kind
+    ]
+
 from .discord_integration import (
     DiscordIntegrationError,
     apply_discord_credentials,
@@ -532,10 +547,14 @@ def account_dashboard_context(user):
 
 @login_required
 def account(request):
+    context = account_dashboard_context(request.user)
+    context["journey_items"] = (
+        {"label": "Dashboard", "url": ""},
+    )
     return render(
         request,
         "registry/account.html",
-        account_dashboard_context(request.user),
+        context,
     )
 
 
@@ -823,6 +842,20 @@ def submit_run(request):
         participant=request.user,
         selected_provider=selected_provider,
     )
+    submission_videos = [
+        item
+        for item in form.media_by_id.values()
+        if item.kind == StreamingMedia.Kind.VIDEO
+    ]
+    submission_clips = [
+        item
+        for item in form.media_by_id.values()
+        if item.kind == StreamingMedia.Kind.CLIP
+    ]
+    selected_video_id = str(form["evidence_video"].value() or "")
+    selected_clip_ids = {
+        str(value) for value in (form["evidence_clips"].value() or [])
+    }
     submission_blocked_message = ""
     if request.method == "POST" and form.is_valid():
         try:
@@ -1003,6 +1036,10 @@ def submit_run(request):
                 )
             ),
             "submission_blocked_message": submission_blocked_message,
+            "submission_videos": submission_videos,
+            "submission_clips": submission_clips,
+            "selected_video_id": selected_video_id,
+            "selected_clip_ids": selected_clip_ids,
         },
     )
 
@@ -1196,7 +1233,13 @@ def account_settings(request):
     return render(
         request,
         "registry/account_settings.html",
-        {"streaming_accounts": streaming_accounts},
+        {
+            "streaming_accounts": streaming_accounts,
+            "journey_items": (
+                {"label": "Dashboard", "url": reverse("registry:account")},
+                {"label": "Settings", "url": ""},
+            ),
+        },
     )
 
 
@@ -1623,13 +1666,10 @@ def refresh_streaming_media_view(request):
             "provider": provider,
             "message": f"Found {video_count} recent {label} videos{clip_suffix}.",
             "videos": [
-                {"value": value, "label": text}
-                for value, text in form.fields["evidence_video"].choices
+                {"value": "", "title": "Choose a broadcast or video"},
+                *submission_media_payload(form, StreamingMedia.Kind.VIDEO),
             ],
-            "clips": [
-                {"value": value, "label": text}
-                for value, text in form.fields["evidence_clips"].choices
-            ],
+            "clips": submission_media_payload(form, StreamingMedia.Kind.CLIP),
         }
     )
 

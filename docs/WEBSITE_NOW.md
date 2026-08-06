@@ -398,6 +398,8 @@ Local development uses the canonical environment-aware
 `scripts/start_website_dev.ps1` launcher. It loads the repository's uncommitted
 `.env`, starts and verifies the web server and independently running reference
 worker, avoids duplicate processes, and reports the local and LAN addresses.
+The Django management entry point rejects a bare `manage.py runserver` so local
+startup cannot silently omit the environment or reference worker.
 Production must receive secrets from its deployment environment, never from the
 repository, and supervise its web and worker processes independently.
 

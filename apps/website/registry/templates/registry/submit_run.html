@@ -1,7 +1,7 @@
 {% extends "registry/base.html" %}
 {% load static %}
 {% block title_suffix %} | Submit a run{% endblock %}
-{% block extra_head %}<script src="{% static 'registry/submit_run.js' %}?v=20260803-2" defer></script>{% endblock %}
+{% block extra_head %}<script src="{% static 'registry/submit_run.js' %}?v=20260807-2" defer></script>{% endblock %}
 {% block content %}
 <section class="card account-form-card run-submission-card">
   <header class="run-submission-header">
@@ -66,12 +66,21 @@
           {% if not cached_media_count %}
             <p class="submission-evidence-empty" data-media-refresh-empty>Refresh media to load recent broadcasts and clips.</p>
           {% endif %}
-          <div class="field submission-broadcast-field">
+          <div class="field submission-broadcast-field" data-broadcast-picker-field>
             <div class="submission-field-label-line">
-              {{ form.evidence_video.label_tag }}
+              <span>{{ form.evidence_video.label }}</span>
               <span class="submission-media-refresh-status" data-media-refresh-status role="status" hidden></span>
             </div>
-            {{ form.evidence_video }}
+            <div class="submission-native-media-field" aria-hidden="true">{{ form.evidence_video }}</div>
+            <div class="submission-media-list" data-video-picker role="radiogroup" aria-label="{{ form.evidence_video.label }}">
+              {% for media in submission_videos %}
+              <button class="submission-media-choice{% if selected_video_id == media.pk|stringformat:'s' %} is-selected{% endif %}" type="button" data-media-choice data-media-value="{{ media.pk }}" aria-pressed="{% if selected_video_id == media.pk|stringformat:'s' %}true{% else %}false{% endif %}">
+                <span class="submission-media-thumbnail">{% if media.thumbnail_url %}<img src="{{ media.thumbnail_url }}" alt="">{% else %}<span aria-hidden="true">No preview</span>{% endif %}</span>
+                <span class="submission-media-details"><strong title="{{ media.title|default:media.provider_media_id }}"><span>{{ media.title|default:media.provider_media_id }}</span></strong><small>{% if media.published_at %}<time datetime="{{ media.published_at|date:'c' }}" data-local-datetime>{{ media.published_at|date:"j M Y, H:i" }}</time>{% endif %}{% if media.duration_seconds %}<span data-duration-seconds="{{ media.duration_seconds }}"></span>{% endif %}</small></span>
+                <span class="submission-media-selected" aria-hidden="true">Selected</span>
+              </button>
+              {% empty %}<p class="submission-media-list-empty">Refresh media to choose a recent broadcast or video.</p>{% endfor %}
+            </div>
             <small>{{ form.evidence_video.help_text }}</small>
             {{ form.evidence_video.errors }}
           </div>
@@ -92,11 +101,11 @@
           <div class="field">{{ form.evidence_start_seconds.label_tag }}{{ form.evidence_start_seconds }}<small>Seconds from the beginning of the broadcast.</small>{{ form.evidence_start_seconds.errors }}</div>
           <div class="field">{{ form.evidence_end_seconds.label_tag }}{{ form.evidence_end_seconds }}<small>Leave blank if the run continues to the end.</small>{{ form.evidence_end_seconds.errors }}</div>
         </div>
-        <div data-evidence-clips>
-          {% if form.evidence_clips.field.choices %}
-            <div class="field evidence-clips">{{ form.evidence_clips.label_tag }}{{ form.evidence_clips }}{{ form.evidence_clips.errors }}</div>
-          {% endif %}
-        </div>
+        {% if streaming_accounts %}<div class="submission-supporting-clips" data-evidence-clips>
+          <div><strong>Supporting clips</strong><small data-selected-clips-summary>No supporting clips selected.</small></div>
+          <button class="submission-secondary-action" type="button" data-clips-open>Add</button>
+          {{ form.evidence_clips.errors }}
+        </div>{% endif %}
         <div class="submission-manual-evidence">
           <span class="submission-divider-label">{% if streaming_accounts %}Media not listed?{% else %}Broadcast link{% endif %}</span>
           <div class="field">
@@ -112,6 +121,26 @@
       <p>The run will be placed under review. Nothing is published automatically.</p>
       <button type="submit">Verify and submit</button>
     </div>
+    {% if streaming_accounts %}<dialog class="submission-clips-modal" data-clips-dialog aria-labelledby="submission-clips-title">
+      <header>
+        <div><p class="dashboard-panel-kicker">Stream evidence</p><strong id="submission-clips-title">Supporting clips</strong></div>
+        <button class="run-detail-close" type="button" data-clips-close aria-label="Close supporting clips">Close</button>
+      </header>
+      <div class="submission-clips-modal-content">
+        <p>Select any short clips that help moderators verify key moments in the run.</p>
+        <div class="submission-media-list submission-clips-list" data-clips-picker>
+          {% for media in submission_clips %}
+          <label class="submission-media-choice{% if media.pk|stringformat:'s' in selected_clip_ids %} is-selected{% endif %}">
+            <input type="checkbox" name="evidence_clips" value="{{ media.pk }}"{% if media.pk|stringformat:'s' in selected_clip_ids %} checked{% endif %}>
+            <span class="submission-media-thumbnail">{% if media.thumbnail_url %}<img src="{{ media.thumbnail_url }}" alt="">{% else %}<span aria-hidden="true">No preview</span>{% endif %}</span>
+            <span class="submission-media-details"><strong title="{{ media.title|default:media.provider_media_id }}"><span>{{ media.title|default:media.provider_media_id }}</span></strong><small>{% if media.published_at %}<time datetime="{{ media.published_at|date:'c' }}" data-local-datetime>{{ media.published_at|date:"j M Y, H:i" }}</time>{% endif %}{% if media.duration_seconds %}<span data-duration-seconds="{{ media.duration_seconds }}"></span>{% endif %}</small></span>
+            <span class="submission-media-selected" aria-hidden="true">Added</span>
+          </label>
+          {% empty %}<p class="submission-media-list-empty">No recent clips are available for this channel.</p>{% endfor %}
+        </div>
+      </div>
+      <footer><button type="button" data-clips-close>Done</button></footer>
+    </dialog>{% endif %}
   </form>
   {% if streaming_accounts %}
     <form id="refresh-streaming-media-form" method="post" action="{% url 'registry:refresh_streaming_media' %}">

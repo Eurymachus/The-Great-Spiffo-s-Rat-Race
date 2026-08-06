@@ -417,6 +417,47 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "Test Survivor")
         self.assertContains(dashboard, "42 kills")
 
+    def test_submission_presents_visual_video_and_clip_pickers(self):
+        account = StreamingAccount.objects.create(
+            participant=self.participant,
+            provider=StreamingAccount.Provider.TWITCH,
+            provider_identity="visual-runner",
+            channel_identity="visual-runner",
+            display_name="Visual Runner",
+            channel_url="https://www.twitch.tv/visual-runner",
+        )
+        StreamingMedia.objects.create(
+            account=account,
+            kind=StreamingMedia.Kind.VIDEO,
+            provider_media_id="video-visual",
+            title="Full Rat Race broadcast",
+            canonical_url="https://www.twitch.tv/videos/visual",
+            thumbnail_url="https://example.test/video.jpg",
+            published_at=datetime.now(tz=timezone.utc),
+            duration_seconds=3723,
+        )
+        StreamingMedia.objects.create(
+            account=account,
+            kind=StreamingMedia.Kind.CLIP,
+            provider_media_id="clip-visual",
+            title="Close escape",
+            canonical_url="https://clips.twitch.tv/visual",
+            thumbnail_url="https://example.test/clip.jpg",
+            published_at=datetime.now(tz=timezone.utc),
+            duration_seconds=28,
+        )
+
+        response = self.client.get(reverse("registry:submit_run"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-video-picker')
+        self.assertContains(response, "Full Rat Race broadcast")
+        self.assertContains(response, "https://example.test/video.jpg")
+        self.assertContains(response, 'data-clips-open')
+        self.assertContains(response, 'data-clips-dialog')
+        self.assertContains(response, "Close escape")
+        self.assertContains(response, "https://example.test/clip.jpg")
+
     def test_submission_maps_known_challenge_mode_and_preserves_raw_evidence(self):
         response = self.client.post(
             reverse("registry:submit_run"),

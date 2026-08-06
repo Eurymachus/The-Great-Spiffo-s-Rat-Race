@@ -36,6 +36,7 @@ Get-Content -LiteralPath $environmentPath | ForEach-Object {
 }
 
 $env:DJANGO_ALLOWED_HOSTS = "localhost,127.0.0.1,[::1],192.168.4.100"
+$env:RAT_RACE_CANONICAL_DEV_LAUNCHER = "1"
 
 function Get-ReferenceWorkerProcesses {
     $escapedPythonPath = [Regex]::Escape($pythonPath)

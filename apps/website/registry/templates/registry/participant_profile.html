@@ -15,6 +15,11 @@
       <h2>{{ profile_participant.nickname }}</h2>
       <p>Approved Stable and Legacy Rat Race records.</p>
     </div>
+    {% if request.user.pk == profile_participant.pk %}
+    <div class="dashboard-header-actions">
+      <a class="dashboard-header-action dashboard-header-action-subtle" href="{% url 'registry:account' %}">Return to dashboard</a>
+    </div>
+    {% endif %}
   </header>
 
   <div class="account-dashboard-grid">

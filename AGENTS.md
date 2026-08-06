@@ -57,3 +57,14 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
 - Use external workshop, local workshop, Project Zomboid, and Java paths as read-only references by default.
 - Preserve existing mod structure and Project Zomboid conventions.
 - Keep edits focused and avoid unrelated refactors.
+
+## Website Startup
+
+- When asked to start, spin up, restart, or run the local website, always use
+  `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\start_website_dev.ps1" -Port 8001 -Background`
+  from the repository root.
+- Never start the local website with a bare `manage.py runserver`. The canonical
+  launcher loads `.env`, starts the reference-update worker, and verifies both
+  services.
+- Before reporting the website as ready, confirm an HTTP 200 response and one
+  logical `run_reference_update_worker` process tree.
