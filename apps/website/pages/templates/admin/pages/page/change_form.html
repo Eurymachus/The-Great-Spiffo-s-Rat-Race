@@ -4,12 +4,12 @@
 {% block extrahead %}
 {{ block.super }}
 {{ ranking_editor_options|json_script:"ranking-editor-options" }}
-<script src="{% static 'pages/page_editor.js' %}?v=20260803-2" defer></script>
+<script src="{% static 'pages/page_editor.js' %}?v=20260806-16" defer></script>
 {% endblock %}
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'pages/page_editor.css' %}?v=20260803-1">
+<link rel="stylesheet" href="{% static 'pages/page_editor.css' %}?v=20260806-5">
 {% endblock %}
 
 {% block after_field_sets %}

@@ -20,11 +20,13 @@ document.addEventListener("DOMContentLoaded", () => {
         section_type: [["content", "Content section"], ["separator", "Separator"]],
         width: [["inherit", "Use page width"], ["narrow", "Narrow"], ["standard", "Standard"], ["wide", "Wide"], ["full", "Full width"]],
         layout: [["single", "Single column"], ["two", "Two equal columns"], ["wide_left", "Two columns - wide left"], ["wide_right", "Two columns - wide right"], ["three", "Three columns"], ["four", "Four columns"]],
-        background: [["default", "Page background"], ["surface", "Raised surface"], ["alternate", "Alternate surface"]],
+        background: [["default", "Page background"], ["surface", "Raised surface"], ["alternate", "Alternate surface"], ["alternate_full", "Alternate surface - full width"]],
+        vertical_padding: [["standard", "Standard"], ["compact", "Compact"], ["none", "None"]],
         separator_style: [["space", "Space only"], ["line", "Subtle line"], ["accent", "Accent line"]],
-        separator_spacing: [["small", "Small"], ["standard", "Standard"], ["large", "Large"]],
-        block_type: [["text", "Text"], ["action", "Button or link"], ["card_group", "Card group"], ["image", "Image"], ["gallery", "Gallery"], ["ranking_table", "Ranking table"]],
+        separator_spacing: [["very_small", "Very small"], ["small", "Small"], ["standard", "Standard"], ["large", "Large"]],
+        block_type: [["text", "Text"], ["action", "Button or link"], ["card_group", "Card group"], ["separator", "Separator"], ["community_stats", "Community statistics"], ["image", "Image"], ["gallery", "Gallery"], ["ranking_table", "Ranking table"]],
         audience: [["everyone", "Everyone"], ["visitors", "Signed-out visitors"], ["signed_in", "Signed-in participants"], ["hidden", "Hidden"]],
+        card_audience: [["inherit", "Inherit from card group"], ["everyone", "Everyone"], ["visitors", "Signed-out visitors"], ["signed_in", "Signed-in participants"], ["hidden", "Hidden"]],
         alignment: [["left", "Left"], ["centre", "Centre"], ["right", "Right"]],
         text_role: [["eyebrow", "Eyebrow"], ["heading", "Heading"], ["subheading", "Subheading"], ["paragraph", "Paragraph"]],
         text_font: [["theme", "Theme default"], ["display", "Theme display font"], ["heading", "Theme heading font"], ["body", "Theme body font"]],
@@ -36,16 +38,18 @@ document.addEventListener("DOMContentLoaded", () => {
         image_height: [["standard", "Standard - maximum 24rem"], ["natural", "Natural proportions"], ["short", "Short banner - 12rem"], ["tall", "Tall banner - 32rem"], ["custom", "Custom height"]],
         image_position: [["left top", "Top left"], ["center top", "Top centre"], ["right top", "Top right"], ["left center", "Centre left"], ["center center", "Centre"], ["right center", "Centre right"], ["left bottom", "Bottom left"], ["center bottom", "Bottom centre"], ["right bottom", "Bottom right"]],
         card_columns: [["auto", "Automatic wrapping"], ["1", "1 card per row"], ["2", "2 cards per row"], ["3", "3 cards per row"], ["4", "4 cards per row"]],
+        card_type: [["standard", "Standard card"], ["linked", "Linked action card"]],
         ranking_selection: [["best_per_participant", "Best eligible run per participant"], ["latest_per_participant", "Latest eligible run per participant"], ["all", "Every eligible run"]],
         ranking_source: [["verified_runs", "Verified Rat Race runs"], ["legacy_leaderboard", "Imported Legacy Leaderboard"], ["legacy_hall_of_fame", "Imported Legacy Hall of Fame"]],
         ranking_ordering: [["weighted_completion", "Weighted completion"], ["kills", "Zombie kills"], ["outposts", "Outposts completed"], ["skills", "Maxed skills"], ["verified_at", "Last verified"], ["source_rank", "Imported historical rank"]],
         ranking_columns: [["participant", "Participant"], ["survivor", "Survivor"], ["build", "Starting build"], ["progress", "Weighted progress"], ["kills", "Zombie kills"], ["outposts", "Outposts"], ["skills", "Maxed skills"], ["day", "In-game day"], ["verified", "Last verified"]],
+        community_metrics: [["active_runs", "Rats in the Race"], ["total_kills", "Zombies Eliminated"], ["total_days", "Days Endured"], ["outposts_claimed", "Outposts Claimed"], ["fallen_survivors", "Fallen Survivors"], ["average_kills_per_day", "Average Kills per Day"], ["real_hours_raced", "Real Hours Raced"]],
     };
     let imageLibrary = [];
     let maximumImageSizeMb = 5;
     let maximumImageSizeBytes = 5 * 1024 * 1024;
     const columnCounts = {single: 1, two: 2, wide_left: 2, wide_right: 2, three: 3, four: 4};
-    const labels = {text: "Text", action: "Button or link", card_group: "Card group", image: "Image", gallery: "Gallery", ranking_table: "Ranking table"};
+    const labels = {text: "Text", action: "Button or link", card_group: "Card group", separator: "Separator", community_stats: "Community statistics", image: "Image", gallery: "Gallery", ranking_table: "Ranking table"};
 
     const el = (tag, className = "", text = "") => {
         const node = document.createElement(tag);
@@ -264,7 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (editableName) {
             const edit = el("button", "page-editor-edit-name");
             edit.type = "button";
-            edit.setAttribute("aria-label", "Edit section name");
+            edit.setAttribute("aria-label", `Edit ${kind} name`);
             edit.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 11.5-.5 2 2-.5 7.8-7.8-1.5-1.5L3 11.5Z"/><path d="m9.8 4.7 1.5 1.5"/></svg>';
             row.append(edit);
         }
@@ -287,8 +291,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const readCards = (blockPanel) => [...blockPanel.querySelectorAll(":scope .page-card-list > .page-card-editor")].map((card) => ({
         id: card.dataset.id ? Number(card.dataset.id) : null,
-        heading: card.querySelector('[data-key="heading"]').value,
+        heading: card.dataset.heading || "Untitled card",
         description: card.querySelector('[data-key="description"]').value,
+        card_type: card.querySelector('[data-key="card_type"]')?.value || card.dataset.cardType || "standard",
+        card_label: card.querySelector('[data-key="card_label"]')?.value || "",
+        audience: card.querySelector('[data-key="card_audience"]')?.value || "inherit",
+        alt_text: card.querySelector('[data-key="alt_text"]')?.value || "",
+        destination_url: card.querySelector('[data-key="destination_url"]')?.value || "",
     }));
     const readGallery = (blockPanel) => [...blockPanel.querySelectorAll(":scope .page-gallery-tile")].map((tile) => ({
         image: Number(tile.dataset.image),
@@ -305,6 +314,7 @@ document.addEventListener("DOMContentLoaded", () => {
         layout: sectionPanel.querySelector(':scope > .page-section-body [data-key="layout"]')?.value || "single",
         background: sectionPanel.querySelector(':scope > .page-section-body [data-key="background"]')?.value || "default",
         full_bleed_background: sectionPanel.querySelector(':scope > .page-section-body [data-key="full_bleed_background"]')?.checked || false,
+        vertical_padding: sectionPanel.querySelector(':scope > .page-section-body [data-key="vertical_padding"]')?.value || "standard",
         separator_style: sectionPanel.querySelector(':scope > .page-section-body [data-key="separator_style"]')?.value || "space",
         separator_spacing: sectionPanel.querySelector(':scope > .page-section-body [data-key="separator_spacing"]')?.value || "standard",
         blocks: [...sectionPanel.querySelectorAll(":scope .page-block-list > .page-block-editor")].map((blockPanel) => ({
@@ -322,6 +332,8 @@ document.addEventListener("DOMContentLoaded", () => {
             destination: blockPanel.querySelector('[data-key="destination"]')?.value || "none",
             style: blockPanel.querySelector('[data-key="style"]')?.value || "default",
             card_columns: blockPanel.querySelector('[data-key="card_columns"]')?.value || "auto",
+            separator_style: blockPanel.querySelector('[data-key="block_separator_style"]')?.value || "space",
+            separator_spacing: blockPanel.querySelector('[data-key="block_separator_spacing"]')?.value || "standard",
             image_asset: blockPanel.querySelector('[data-key="image_asset"]')?.value || null,
             image_alt: blockPanel.querySelector('[data-key="image_alt"]')?.value || "",
             image_fit: blockPanel.querySelector('[data-key="image_fit"]')?.value || "cover",
@@ -336,11 +348,19 @@ document.addEventListener("DOMContentLoaded", () => {
             gallery_show_captions: blockPanel.querySelector('[data-key="gallery_show_captions"]')?.checked ?? true,
             gallery_expandable: blockPanel.querySelector('[data-key="gallery_expandable"]')?.checked ?? true,
             ranking_config: JSON.parse(blockPanel.querySelector('[data-key="ranking_config"]')?.value || "{}"),
+            community_stats_config: JSON.parse(blockPanel.querySelector('[data-key="community_stats_config"]')?.value || "{}"),
             gallery_images: readGallery(blockPanel),
             items: readCards(blockPanel),
         })),
     }));
-    const sync = () => { sections = read(); payload.value = JSON.stringify(sections); };
+    const sync = () => {
+        sections = read();
+        const nextPayload = JSON.stringify(sections);
+        if (payload.value !== nextPayload) {
+            payload.value = nextPayload;
+            form.dispatchEvent(new CustomEvent("rat-race:admin-dirty"));
+        }
+    };
 
     const renderRankingEditor = (block) => {
         const config = JSON.parse(JSON.stringify(block.ranking_config || newBlock("ranking_table", block.column || 0).ranking_config));
@@ -466,16 +486,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const renderCard = (card, index, total) => {
         const panel = el("details", "page-card-editor");
         panel.dataset.id = card.id || "";
-        panel.append(summary(`${index + 1}. ${card.heading || "Untitled card"}`, "card", index, total));
+        panel.dataset.heading = card.heading || "Untitled card";
+        panel.dataset.cardType = card.card_type || "standard";
+        panel.append(summary(panel.dataset.heading, "card", index, total, true));
         const body = el("div", "page-card-body page-editor-grid");
-        body.append(field("Heading", "heading", card.heading), field("Description", "description", card.description, "textarea", true));
+        body.append(
+            selectField("Card type", "card_type", panel.dataset.cardType, choices.card_type),
+            field("Description", "description", card.description, "textarea", true)
+        );
+        body.append(
+            field("Number or label", "card_label", card.card_label || ""),
+            selectField("Audience", "card_audience", card.audience || "inherit", choices.card_audience)
+        );
+        if (panel.dataset.cardType === "linked") body.append(
+            field("Alt text", "alt_text", card.alt_text || ""),
+            field("Destination", "destination_url", card.destination_url || "")
+        );
         panel.append(body);
         return panel;
     };
     const newBlock = (blockType, column) => ({
         column, is_visible: true, block_type: blockType, content: "", audience: "everyone", alignment: "left",
         text_role: "paragraph", text_font: "theme", text_size: "standard", text_weight: "theme",
-        destination: "none", style: "default", card_columns: "auto", image_asset: null,
+        destination: "none", style: "default", card_columns: "auto",
+        separator_style: "space", separator_spacing: "standard", image_asset: null,
         image_alt: "", image_fit: "cover", image_height: "standard", image_custom_height: 24,
         image_expandable: false,
         image_position: "center center", gallery_auto_scroll: false, gallery_scroll_speed: 5,
@@ -490,7 +524,71 @@ document.addEventListener("DOMContentLoaded", () => {
             introduction: "Each Rat Racer's highest-ranked eligible survivor, calculated from the latest approved run update.",
             show_weighting: true, show_build: true, show_details: true,
         },
+        community_stats_config: {
+            metrics: choices.community_metrics.map(([value]) => value),
+            eyebrow: "The race so far", heading: "Rat Race by the numbers", show_heading: false,
+        },
     });
+
+    const renderCommunityStatsEditor = (block) => {
+        const config = JSON.parse(JSON.stringify(block.community_stats_config || newBlock("community_stats", block.column || 0).community_stats_config));
+        const wrapper = el("section", "page-ranking-editor page-editor-field-wide");
+        wrapper.append(el("h3", "", "Verified community metrics"));
+        const hidden = input("community_stats_config", JSON.stringify(config), "hidden");
+        const headingFields = el("div", "page-editor-grid");
+        const eyebrow = field("Eyebrow", "stats_eyebrow", config.eyebrow || "");
+        const heading = field("Heading", "stats_heading", config.heading || "");
+        const showHeading = checkboxField("Show heading", "stats_show_heading", config.show_heading);
+        headingFields.append(eyebrow, heading, showHeading);
+        const selected = el("div", "page-community-stat-order");
+        const addRow = el("div", "page-ranking-add");
+        const chooser = el("select");
+        const addButton = button("Add", "stats-add");
+        addButton.removeAttribute("data-action");
+        addRow.append(chooser, addButton);
+        const persist = () => { hidden.value = JSON.stringify(config); sync(); };
+        const draw = () => {
+            selected.replaceChildren();
+            chooser.replaceChildren();
+            const placeholder = el("option", "", "Choose a statistic");
+            placeholder.value = "";
+            chooser.append(placeholder);
+            choices.community_metrics.filter(([value]) => !config.metrics.includes(value)).forEach(([value, label]) => {
+                const option = el("option", "", label); option.value = value; chooser.append(option);
+            });
+            config.metrics.forEach((value, index) => {
+                const row = el("div", "page-community-stat-token");
+                row.append(el("span", "", choices.community_metrics.find(([key]) => key === value)?.[1] || value));
+                const up = button("", "stats-up");
+                up.removeAttribute("data-action");
+                up.classList.add("page-editor-move-icon", "is-up");
+                up.setAttribute("aria-label", "Move statistic earlier");
+                up.disabled = index === 0;
+                up.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>';
+                up.addEventListener("click", () => { [config.metrics[index - 1], config.metrics[index]] = [config.metrics[index], config.metrics[index - 1]]; draw(); persist(); });
+                const down = button("", "stats-down");
+                down.removeAttribute("data-action");
+                down.classList.add("page-editor-move-icon", "is-down");
+                down.setAttribute("aria-label", "Move statistic later");
+                down.disabled = index === config.metrics.length - 1;
+                down.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>';
+                down.addEventListener("click", () => { [config.metrics[index + 1], config.metrics[index]] = [config.metrics[index], config.metrics[index + 1]]; draw(); persist(); });
+                const remove = button("", "stats-remove", true);
+                remove.removeAttribute("data-action");
+                remove.classList.add("page-editor-remove-icon");
+                remove.setAttribute("aria-label", "Remove statistic");
+                remove.addEventListener("click", () => { if (config.metrics.length > 1) { config.metrics.splice(index, 1); draw(); persist(); } });
+                row.append(up, down, remove); selected.append(row);
+            });
+        };
+        addButton.addEventListener("click", () => { if (chooser.value) { config.metrics.push(chooser.value); draw(); persist(); } });
+        eyebrow.querySelector("input").addEventListener("input", (event) => { config.eyebrow = event.target.value; persist(); });
+        heading.querySelector("input").addEventListener("input", (event) => { config.heading = event.target.value; persist(); });
+        showHeading.querySelector("input").addEventListener("change", (event) => { config.show_heading = event.target.checked; persist(); });
+        draw();
+        wrapper.append(hidden, headingFields, selected, addRow);
+        return wrapper;
+    };
     const duplicateBlock = (source) => {
         const copy = JSON.parse(JSON.stringify(source));
         copy.id = null;
@@ -509,7 +607,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const newSection = (sectionType = "content") => ({
         name: sectionType === "separator" ? "Separator" : "Section",
         is_visible: true, section_type: sectionType, width: "inherit", layout: "single",
-        background: "default", full_bleed_background: false,
+        background: "default", full_bleed_background: false, vertical_padding: "standard",
         separator_style: "space", separator_spacing: "standard", blocks: [],
     });
     const renderBlock = (block, index, total) => {
@@ -542,7 +640,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 checkboxField("Show captions", "gallery_show_captions", block.gallery_show_captions),
                 checkboxField("Allow expanded view", "gallery_expandable", block.gallery_expandable)
             );
-        } else if (block.block_type !== "ranking_table") {
+        } else if (block.block_type === "separator") {
+            grid.append(
+                selectField("Separator style", "block_separator_style", block.separator_style || "space", choices.separator_style),
+                selectField("Spacing", "block_separator_spacing", block.separator_spacing || "standard", choices.separator_spacing)
+            );
+        } else if (!["ranking_table", "community_stats"].includes(block.block_type)) {
             const contentLabel = block.block_type === "action" ? "Button or link label" : block.block_type === "card_group" ? "Optional group heading" : "Content";
             const contentField = field(contentLabel, "content", block.content, block.block_type === "text" ? "textarea" : "text", true);
             if (block.block_type === "text") {
@@ -564,6 +667,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         body.append(grid);
         if (block.block_type === "ranking_table") body.append(renderRankingEditor(block));
+        if (block.block_type === "community_stats") body.append(renderCommunityStatsEditor(block));
         if (block.block_type === "gallery") {
             body.append(imagePickerField("Images", "gallery_selection", block.gallery_images || [], true));
         }
@@ -575,6 +679,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const addCard = button("Add card", "add-card");
             addCard.classList.add("page-editor-add-item");
             cardsActions.append(addCard);
+            splitAddButton(addCard, "Card", choices.card_type, (cardType) => {
+                sync();
+                const sectionPanel = panel.closest(".page-section-editor");
+                const sectionIndex = [...list.children].indexOf(sectionPanel);
+                const currentBlock = sections[sectionIndex]?.blocks[Number(panel.dataset.blockIndex)];
+                if (!currentBlock) return;
+                preserve(() => currentBlock.items.push({heading: "", description: "", card_type: cardType, card_label: "", audience: "inherit", alt_text: "", destination_url: ""}), false);
+            });
             cardsSummary.append(cardsTitle, cardsActions);
             cards.append(cardsSummary);
             const cardList = el("div", "page-card-list");
@@ -610,8 +722,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 settings.append(
                     selectField("Column layout", "layout", section.layout || "single", choices.layout),
                     selectField("Background", "background", section.background || "default", choices.background),
-                    checkboxField("Extend background to screen edges", "full_bleed_background", section.full_bleed_background)
+                    selectField("Vertical padding", "vertical_padding", section.vertical_padding || "standard", choices.vertical_padding)
                 );
+                if (section.background === "alternate") {
+                    settings.append(checkboxField("Extend background to screen edges", "full_bleed_background", section.full_bleed_background));
+                }
             }
             body.append(settings);
             if ((section.section_type || "content") === "separator") {
@@ -896,7 +1011,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const cardIndex = cardPanel && block ? [...cardPanel.parentElement.children].indexOf(cardPanel) : -1;
 
         if (action === "add-block") preserve(() => section.blocks.push(newBlock("text", Number(columnPanel.dataset.column))), false);
-        else if (action === "add-card") preserve(() => block.items.push({heading: "", description: ""}), false);
+        else if (action === "add-card") preserve(() => block.items.push({heading: "", description: "", card_type: "standard", card_label: "", audience: "inherit", alt_text: "", destination_url: ""}), false);
         else if (action === "duplicate-section") preserve(() => sections.splice(sectionIndex + 1, 0, duplicateSection(section)), false);
         else if (action === "duplicate-block") preserve(() => section.blocks.splice(blockIndex + 1, 0, duplicateBlock(block)), false);
         else if (action.endsWith("-up") || action.endsWith("-down")) {
@@ -945,18 +1060,45 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             preserve(() => {}, false);
         }
-        else if (["block_type", "layout"].includes(event.target.dataset.key)) preserve(() => {});
+        else if (["block_type", "layout", "background", "card_type"].includes(event.target.dataset.key)) preserve(() => {});
         else sync();
     });
     list.addEventListener("input", (event) => {
         sync();
     });
     list.addEventListener("click", (event) => {
-        const editable = event.target.closest(".page-section-editor > summary .page-editor-summary-title, .page-section-editor > summary .page-editor-edit-name");
+        const editable = event.target.closest(".page-section-editor > summary .page-editor-summary-title, .page-section-editor > summary .page-editor-edit-name, .page-card-editor > summary .page-editor-summary-title, .page-card-editor > summary .page-editor-edit-name");
         const title = editable?.closest("summary")?.querySelector(":scope > .page-editor-summary-title");
         if (!title || title.querySelector("input")) return;
         event.preventDefault();
         event.stopPropagation();
+        const cardPanel = title.closest(".page-card-editor");
+        if (cardPanel) {
+            const originalName = cardPanel.dataset.heading || "Untitled card";
+            const editorInput = input("card_name_inline", originalName);
+            editorInput.className = "page-editor-inline-name";
+            title.replaceChildren(editorInput);
+            const finish = (commit) => {
+                if (!editorInput.isConnected) return;
+                const name = commit ? editorInput.value.trim() || "Untitled card" : originalName;
+                cardPanel.dataset.heading = name;
+                title.textContent = name;
+                sync();
+            };
+            editorInput.addEventListener("click", (inputEvent) => inputEvent.stopPropagation());
+            editorInput.addEventListener("keydown", (keyEvent) => {
+                if (keyEvent.key === "Enter") {
+                    keyEvent.preventDefault();
+                    keyEvent.stopPropagation();
+                    finish(true);
+                }
+                if (keyEvent.key === "Escape") { keyEvent.preventDefault(); keyEvent.stopPropagation(); finish(false); }
+            });
+            editorInput.addEventListener("blur", () => finish(true), {once: true});
+            editorInput.focus();
+            editorInput.select();
+            return;
+        }
         const sectionPanel = title.closest(".page-section-editor");
         const originalName = sectionPanel.dataset.name || "Section";
         const editorInput = input("section_name_inline", originalName);

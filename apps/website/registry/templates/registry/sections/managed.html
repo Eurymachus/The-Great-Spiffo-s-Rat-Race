@@ -1,4 +1,4 @@
-<section class="card managed-section managed-section-width-{{ section.width }} managed-section-layout-{{ section.layout }} managed-section-background-{{ section.background }}{% if section.full_bleed_background %} managed-section-full-bleed{% endif %}">
+<section class="card managed-section managed-section-width-{{ section.width }} managed-section-layout-{{ section.layout }} managed-section-background-{{ section.background }} managed-section-padding-{{ section.vertical_padding }}{% if section.full_bleed_background %} managed-section-full-bleed{% endif %}">
     <div class="managed-section-columns">
         {% for column in section.render_columns %}
         <div class="managed-section-column">

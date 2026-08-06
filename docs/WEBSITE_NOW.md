@@ -53,6 +53,27 @@ records, while aliases and assets remain shared catalogue relationships.
 - Managed Pages include dedicated Separator sections for intentional spacing.
   Editors may choose space only, a subtle line or an accent line, with small,
   standard or large spacing and the usual managed section widths.
+- Managed sections can also contain Separator blocks for the same spacing and
+  rule treatments within an individual section column.
+- Managed Pages include dedicated Community Statistics and Card Group blocks.
+  Standard and linked action cards can be mixed within one group. The homepage
+  uses three destination-led linked cards and replaces
+  its embedded leaderboard with an edge-to-edge alternate-surface statistics
+  bar, framed by full-width top and bottom rules only, calculated exclusively
+  from verified runs with approved canonical submissions. Editors choose and
+  order supported metrics without controlling database queries. The initial
+  metrics are Rats in the Race, Zombies Eliminated, Days Endured, Outposts
+  Claimed, Fallen Survivors, Average Kills per Day and Real Hours Raced. Real
+  Hours Raced sums cumulative active-gameplay milliseconds from each run's
+  approved canonical projection rather than estimating from in-game time.
+  Each action card is itself a keyboard-accessible link with managed alt text,
+  a validated destination, an optional manually authored number or short label,
+  and a restrained hover or focus lift. Cards size to their content rather than
+  reserving space for a separate footer action. Every card inherits its card
+  group's audience by default, or can independently target everyone, signed-out
+  visitors, signed-in participants, or remain hidden. Editors add either card
+  type from a split Add card control, and linked-only destination fields remain
+  contextual to linked cards.
 - Flat backend-managed public pages at protected `/pages/<slug>/` addresses,
   with page-owned navigation labels, visibility, and ordering.
 - An immutable Code-managed Pages registry in Website Content administration.

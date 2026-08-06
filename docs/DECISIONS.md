@@ -800,3 +800,21 @@ a normal run-moderation bulk action.
   submissions, evidence review, or moderation details.
 - Navbar participant search is a later nice-to-have discovery layer. Ranking
   links are sufficient for the initial profile journey.
+
+## 2026-08-06 - Lead the homepage with community scale and clear destinations
+
+- The homepage does not embed a ranking table. Rankings remain available as
+  dedicated managed pages and navigation destinations.
+- An Alternate surface - full width section treatment gives the Community
+  Statistics block an edge-to-edge fill with top and bottom rules only. It
+  communicates the current scale of the challenge using only verified runs with
+  approved canonical submissions.
+- Statistics are selected and ordered from a code-owned metric catalogue.
+  Editors may control presentation but cannot author database queries or include
+  pending, declined or unverified submissions.
+- `Rats in the Race` is the public label for currently active verified runs. It
+  is not repeated as a separate Active Runs or Survivors Still Running metric.
+- Homepage journey prompts use the dedicated Call-to-Action Cards block. Each
+  card is one complete accessible link with a heading, concise explanation,
+  alt text and validated destination rather than presenting passive numbered
+  registration steps or a separate button.

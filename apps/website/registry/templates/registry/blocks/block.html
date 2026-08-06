@@ -1,5 +1,5 @@
 {% load page_content ranking_table %}
-{% if block.audience == "everyone" or block.audience == "visitors" and not request.user.is_authenticated or block.audience == "signed_in" and request.user.is_authenticated %}
+{% if block.block_type == "card_group" or block.audience == "everyone" or block.audience == "visitors" and not request.user.is_authenticated or block.audience == "signed_in" and request.user.is_authenticated %}
     {% if block.block_type == "text" %}
         {% with typography_classes="managed-block managed-text managed-text-role-"|add:block.text_role|add:" managed-text-font-"|add:block.text_font|add:" managed-text-size-"|add:block.text_size|add:" managed-text-weight-"|add:block.text_weight|add:" managed-block-align-"|add:block.alignment %}
             {% if block.text_role == "eyebrow" %}
@@ -13,7 +13,7 @@
             {% endif %}
         {% endwith %}
     {% elif block.block_type == "action" %}
-        <div class="home-actions managed-block managed-block-align-{{ block.alignment }}">
+        <div class="managed-action-block managed-block managed-block-align-{{ block.alignment }}">
             {% if block.destination == "register" %}
                 <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:register' %}#sign-up">{{ block.content }}</a>
             {% elif block.destination == "login" %}
@@ -25,14 +25,31 @@
             {% endif %}
         </div>
     {% elif block.block_type == "card_group" %}
-        <div class="managed-card-group managed-block managed-block-align-{{ block.alignment }}">
-            {% if block.content %}<h3>{{ block.content }}</h3>{% endif %}
-            <div class="home-steps managed-block-grid managed-card-columns-{{ block.card_columns }}">
-                {% for item in block.items.all %}
-                <article><strong>{{ forloop.counter }}. {{ item.heading }}</strong><span>{{ item.description }}</span></article>
+        {% visible_managed_cards block as visible_cards %}
+        {% if visible_cards %}
+        <div class="managed-card-group managed-cta-group managed-block managed-block-align-{{ block.alignment }}">
+            {% if block.content %}<h2>{{ block.content }}</h2>{% endif %}
+            <div class="home-steps managed-block-grid managed-cta-grid managed-card-columns-{{ block.card_columns }}">
+                {% for item in visible_cards %}
+                {% if item.card_type == "linked" %}
+                <a class="managed-cta-card" href="{{ item.destination_url }}" aria-label="{{ item.alt_text }}">
+                    {% if item.card_label %}<span class="managed-cta-number" aria-hidden="true">{{ item.card_label }}</span>{% endif %}
+                    <h3>{{ item.heading }}</h3>
+                    <p>{{ item.description }}</p>
+                </a>
+                {% else %}
+                <article><strong>{% if item.card_label %}{{ item.card_label }}. {% endif %}{{ item.heading }}</strong><span>{{ item.description }}</span></article>
+                {% endif %}
                 {% endfor %}
             </div>
         </div>
+        {% endif %}
+    {% elif block.block_type == "separator" %}
+        <div class="managed-separator managed-block managed-separator-spacing-{{ block.separator_spacing }} managed-separator-style-{{ block.separator_style }}" role="separator" aria-hidden="true">
+            {% if block.separator_style != "space" %}<span></span>{% endif %}
+        </div>
+    {% elif block.block_type == "community_stats" %}
+        {% managed_community_stats block %}
     {% elif block.block_type == "image" and block.image_asset %}
         <figure class="managed-image-block managed-block managed-block-align-{{ block.alignment }} managed-image-height-{{ block.image_height }}" style="--managed-image-fit:{{ block.image_fit }};--managed-image-position:{{ block.image_position }};--managed-image-custom-height:{{ block.image_custom_height }}rem">
             {% if block.image_expandable %}<button type="button" class="managed-image-expand" data-image-expand aria-label="Open expanded image">{% endif %}

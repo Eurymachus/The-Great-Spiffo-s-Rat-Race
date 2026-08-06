@@ -131,6 +131,11 @@
 .page-ranking-token .button { width: 1.55rem !important; min-width: 1.55rem; height: 1.55rem; min-height: 1.55rem; margin: 0; padding: 0 !important; border: 0; border-radius: 50%; background: transparent; color: var(--body-fg); line-height: 1; }
 .page-ranking-token .button:hover,
 .page-ranking-token .button:focus { background: var(--selected-row); }
+.page-community-stat-order { display: grid; gap: .4rem; margin-block: .75rem; }
+.page-community-stat-token { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: .4rem; align-items: center; padding: .45rem .55rem .45rem .75rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--body-bg); }
+.page-community-stat-token > span { min-width: 0; font-weight: 600; }
+.page-community-stat-token .button { display: inline-flex; width: 2rem !important; min-width: 2rem; height: 2rem; min-height: 2rem; margin: 0; padding: 0 !important; align-items: center; justify-content: center; }
+.page-community-stat-token .button:disabled { cursor: default; opacity: .35; }
 .page-ranking-empty { color: var(--body-quiet-color); font-style: italic; }
 .page-ranking-settings { margin-top: 0; }
 .page-section-editor > summary,
@@ -177,7 +182,8 @@
     transform: rotate(45deg);
 }
 .page-editor-summary-title { min-width: 0; }
-.page-section-editor > summary .page-editor-summary-title { cursor: text; }
+.page-section-editor > summary .page-editor-summary-title,
+.page-card-editor > summary .page-editor-summary-title { cursor: text; }
 .page-editor-edit-name {
     display: inline-grid;
     flex: 0 0 auto;
@@ -340,13 +346,13 @@
     cursor: default;
     opacity: .35;
 }
-.page-editor-summary-actions .page-editor-remove-icon {
+.page-editor-remove-icon {
     position: relative;
     border-color: #8f4545 !important;
     background: #8f4545 !important;
 }
-.page-editor-summary-actions .page-editor-remove-icon:hover,
-.page-editor-summary-actions .page-editor-remove-icon:focus {
+.page-editor-remove-icon:hover,
+.page-editor-remove-icon:focus {
     border-color: #562a2a !important;
     background: #562a2a !important;
 }

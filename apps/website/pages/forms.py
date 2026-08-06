@@ -41,6 +41,7 @@ class PageEditorForm(forms.ModelForm):
                     "section_type": section.section_type,
                     "layout": section.layout, "background": section.background,
                     "full_bleed_background": section.full_bleed_background,
+                    "vertical_padding": section.vertical_padding,
                     "separator_style": section.separator_style,
                     "separator_spacing": section.separator_spacing,
                     "blocks": [
@@ -54,6 +55,8 @@ class PageEditorForm(forms.ModelForm):
                             "audience": block.audience, "destination": block.destination,
                             "style": block.style,
                             "card_columns": block.card_columns,
+                            "separator_style": block.separator_style,
+                            "separator_spacing": block.separator_spacing,
                             "image_asset": block.image_asset_id,
                             "image_alt": block.image_alt, "image_fit": block.image_fit,
                             "image_height": block.image_height,
@@ -67,6 +70,7 @@ class PageEditorForm(forms.ModelForm):
                             "gallery_show_captions": block.gallery_show_captions,
                             "gallery_expandable": block.gallery_expandable,
                             "ranking_config": block.ranking_config,
+                            "community_stats_config": block.community_stats_config,
                             "gallery_images": [
                                 {"id": item.pk, "image": item.image_id,
                                  "alternative_text": item.alternative_text, "caption": item.caption}
@@ -74,7 +78,11 @@ class PageEditorForm(forms.ModelForm):
                             ],
                             "items": [
                                 {"id": item.pk, "position": item.position,
-                                 "heading": item.heading, "description": item.description}
+                                 "heading": item.heading, "description": item.description,
+                                 "card_type": item.card_type,
+                                 "card_label": item.card_label, "audience": item.audience,
+                                 "alt_text": item.alt_text,
+                                 "destination_url": item.destination_url}
                                 for item in block.items.all()
                             ],
                         }
@@ -109,6 +117,7 @@ class PageEditorForm(forms.ModelForm):
                 layout=raw.get("layout", PageSection.Layout.SINGLE),
                 background=raw.get("background", PageSection.Background.DEFAULT),
                 full_bleed_background=bool(raw.get("full_bleed_background", False)),
+                vertical_padding=raw.get("vertical_padding", PageSection.VerticalPadding.STANDARD),
                 separator_style=raw.get("separator_style", PageSection.SeparatorStyle.SPACE),
                 separator_spacing=raw.get("separator_spacing", PageSection.SeparatorSpacing.STANDARD),
             )
@@ -142,6 +151,8 @@ class PageEditorForm(forms.ModelForm):
                     destination=raw_block.get("destination", PageBlock.Destination.NONE),
                     style=raw_block.get("style", PageBlock.Style.DEFAULT),
                     card_columns=raw_block.get("card_columns", PageBlock.CardColumns.AUTO),
+                    separator_style=raw_block.get("separator_style", PageBlock.SeparatorStyle.SPACE),
+                    separator_spacing=raw_block.get("separator_spacing", PageBlock.SeparatorSpacing.STANDARD),
                     image_asset_id=raw_block.get("image_asset") or None,
                     image_alt=str(raw_block.get("image_alt", "")),
                     image_fit=raw_block.get("image_fit", PageBlock.ImageFit.COVER),
@@ -156,6 +167,7 @@ class PageEditorForm(forms.ModelForm):
                     gallery_show_captions=bool(raw_block.get("gallery_show_captions", True)),
                     gallery_expandable=bool(raw_block.get("gallery_expandable", True)),
                     ranking_config=raw_block.get("ranking_config") or {},
+                    community_stats_config=raw_block.get("community_stats_config") or {},
                 )
                 block.full_clean(exclude=("section",))
                 if block.block_type == PageBlock.BlockType.RANKING_TABLE:
@@ -172,7 +184,7 @@ class PageEditorForm(forms.ModelForm):
                 if not isinstance(raw_items, list):
                     raise ValidationError("Card data must be a list.")
                 if block.block_type != PageBlock.BlockType.CARD_GROUP and raw_items:
-                    raise ValidationError("Only card-group blocks can contain cards.")
+                    raise ValidationError("Only card blocks can contain cards.")
                 for item_index, raw_item in enumerate(raw_items):
                     if not isinstance(raw_item, dict):
                         raise ValidationError("Each card must be an object.")
@@ -183,8 +195,25 @@ class PageEditorForm(forms.ModelForm):
                         position=item_index * 10,
                         heading=str(raw_item.get("heading", "")),
                         description=str(raw_item.get("description", "")),
+                        card_type=raw_item.get("card_type", SectionItem.CardType.STANDARD),
+                        card_label=str(raw_item.get("card_label", "")),
+                        audience=raw_item.get("audience", SectionItem.Audience.INHERIT),
+                        alt_text=str(raw_item.get("alt_text", "")),
+                        destination_url=str(raw_item.get("destination_url", "")),
                     )
                     item.full_clean(exclude=("block",))
+                    if (
+                        block.block_type == PageBlock.BlockType.CARD_GROUP
+                        and item.card_type == SectionItem.CardType.LINKED
+                    ):
+                        from .destinations import is_safe_managed_destination
+
+                        if not item.alt_text.strip():
+                            raise ValidationError("Each call-to-action card needs alt text.")
+                        if not is_safe_managed_destination(item.destination_url):
+                            raise ValidationError(
+                                "Each call-to-action card needs a site-relative path or an https address."
+                            )
                     items.append({"id": item_id, "model": item})
                 gallery_images = []
                 raw_gallery_images = raw_block.get("gallery_images", [])

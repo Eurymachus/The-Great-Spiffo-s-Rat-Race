@@ -1,0 +1,23 @@
+<section class="community-stats" aria-labelledby="community-stats-heading">
+    <details class="community-stats-disclosure" open>
+        <summary class="community-stats-summary">Community Stats</summary>
+        <div class="community-stats-content">
+    {% if stats.config.show_heading %}
+    <header class="community-stats-header">
+        {% if stats.config.eyebrow %}<p class="eyebrow">{{ stats.config.eyebrow }}</p>{% endif %}
+        <h2 id="community-stats-heading">{{ stats.config.heading }}</h2>
+    </header>
+    {% else %}
+    <h2 id="community-stats-heading" class="visually-hidden">Rat Race community statistics</h2>
+    {% endif %}
+    <dl class="community-stats-grid" style="--community-stat-count: {{ stats.metrics|length }}">
+        {% for metric in stats.metrics %}
+        <div class="community-stat community-stat-{{ metric.key }}">
+            <dd>{{ metric.value }}</dd>
+            <dt>{{ metric.label }}</dt>
+        </div>
+        {% endfor %}
+    </dl>
+        </div>
+    </details>
+</section>

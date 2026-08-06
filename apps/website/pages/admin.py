@@ -132,7 +132,7 @@ class PageAdmin(admin.ModelAdmin):
                     for field in (
                         "position", "name", "is_visible", "section_type", "width", "layout",
                         "background", "full_bleed_background", "separator_style",
-                        "separator_spacing",
+                        "separator_spacing", "vertical_padding",
                     ):
                         setattr(section, field, getattr(submitted_section, field))
                 section.page = form.instance
@@ -150,11 +150,13 @@ class PageAdmin(admin.ModelAdmin):
                             "content", "audience", "alignment", "text_role", "text_font",
                             "text_size", "text_weight", "destination", "style",
                             "card_columns",
+                            "separator_style", "separator_spacing",
                             "image_asset", "image_alt", "image_fit", "image_height",
                             "image_custom_height", "image_position", "image_expandable",
                             "gallery_auto_scroll", "gallery_scroll_speed", "gallery_loop",
                             "gallery_show_controls", "gallery_show_captions", "gallery_expandable",
                             "ranking_config",
+                            "community_stats_config",
                         ):
                             setattr(block, field, getattr(submitted_block, field))
                     block.section = section
@@ -167,7 +169,10 @@ class PageAdmin(admin.ModelAdmin):
                         item = submitted_item
                         if item_data["id"]:
                             item = block.items.get(pk=item_data["id"])
-                            for field in ("position", "heading", "description"):
+                            for field in (
+                                "position", "heading", "description", "card_type", "card_label", "audience",
+                                "alt_text", "destination_url",
+                            ):
                                 setattr(item, field, getattr(submitted_item, field))
                         item.block = block
                         item.save()

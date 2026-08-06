@@ -272,6 +272,12 @@ class PageSection(models.Model):
         DEFAULT = "default", "Page background"
         SURFACE = "surface", "Raised surface"
         ALTERNATE = "alternate", "Alternate surface"
+        ALTERNATE_FULL = "alternate_full", "Alternate surface - full width"
+
+    class VerticalPadding(models.TextChoices):
+        STANDARD = "standard", "Standard"
+        COMPACT = "compact", "Compact"
+        NONE = "none", "None"
 
     class SeparatorStyle(models.TextChoices):
         SPACE = "space", "Space only"
@@ -279,6 +285,7 @@ class PageSection(models.Model):
         ACCENT = "accent", "Accent line"
 
     class SeparatorSpacing(models.TextChoices):
+        VERY_SMALL = "very_small", "Very small"
         SMALL = "small", "Small"
         STANDARD = "standard", "Standard"
         LARGE = "large", "Large"
@@ -299,6 +306,9 @@ class PageSection(models.Model):
         default=False,
         help_text="Extend the section background to the viewport edges while keeping content constrained.",
     )
+    vertical_padding = models.CharField(
+        max_length=16, choices=VerticalPadding.choices, default=VerticalPadding.STANDARD
+    )
     separator_style = models.CharField(
         max_length=16, choices=SeparatorStyle.choices, default=SeparatorStyle.SPACE
     )
@@ -314,12 +324,19 @@ class PageSection(models.Model):
     def __str__(self):
         return f"{self.page}: {self.name}"
 
+    def clean(self):
+        super().clean()
+        if self.background != self.Background.ALTERNATE:
+            self.full_bleed_background = False
+
 
 class PageBlock(models.Model):
     class BlockType(models.TextChoices):
         TEXT = "text", "Text"
         ACTION = "action", "Button or link"
         CARD_GROUP = "card_group", "Card group"
+        SEPARATOR = "separator", "Separator"
+        COMMUNITY_STATS = "community_stats", "Community statistics"
         IMAGE = "image", "Image"
         GALLERY = "gallery", "Gallery"
         RANKING_TABLE = "ranking_table", "Ranking table"
@@ -376,6 +393,17 @@ class PageBlock(models.Model):
         THREE = "3", "3 cards per row"
         FOUR = "4", "4 cards per row"
 
+    class SeparatorStyle(models.TextChoices):
+        SPACE = "space", "Space only"
+        LINE = "line", "Subtle line"
+        ACCENT = "accent", "Accent line"
+
+    class SeparatorSpacing(models.TextChoices):
+        VERY_SMALL = "very_small", "Very small"
+        SMALL = "small", "Small"
+        STANDARD = "standard", "Standard"
+        LARGE = "large", "Large"
+
     class Audience(models.TextChoices):
         EVERYONE = "everyone", "Everyone"
         VISITORS = "visitors", "Signed-out visitors"
@@ -415,6 +443,12 @@ class PageBlock(models.Model):
     card_columns = models.CharField(
         "cards per row", max_length=8, choices=CardColumns.choices, default=CardColumns.AUTO,
     )
+    separator_style = models.CharField(
+        max_length=12, choices=SeparatorStyle.choices, default=SeparatorStyle.SPACE,
+    )
+    separator_spacing = models.CharField(
+        max_length=12, choices=SeparatorSpacing.choices, default=SeparatorSpacing.STANDARD,
+    )
     image_asset = models.ForeignKey(
         ManagedImage, null=True, blank=True, on_delete=models.PROTECT,
         related_name="page_blocks", verbose_name="image",
@@ -441,6 +475,10 @@ class PageBlock(models.Model):
         "ranking table configuration", default=dict, blank=True,
         help_text="Validated filters, result selection, ordering, columns and display controls.",
     )
+    community_stats_config = models.JSONField(
+        "community statistics configuration", default=dict, blank=True,
+        help_text="Validated selection and ordering of verified community metrics.",
+    )
 
     class Meta:
         ordering = ("column", "position", "pk")
@@ -453,6 +491,7 @@ class PageBlock(models.Model):
         if self.block_type not in (
             self.BlockType.CARD_GROUP, self.BlockType.IMAGE,
             self.BlockType.GALLERY, self.BlockType.RANKING_TABLE,
+            self.BlockType.COMMUNITY_STATS, self.BlockType.SEPARATOR,
         ) and not self.content.strip():
             raise ValidationError({"content": "This block needs content."})
         if self.block_type == self.BlockType.RANKING_TABLE:
@@ -462,6 +501,17 @@ class PageBlock(models.Model):
                 self.ranking_config = validate_ranking_config(self.ranking_config)
             except ValidationError as exc:
                 raise ValidationError({"ranking_config": exc.messages}) from exc
+        if self.block_type == self.BlockType.COMMUNITY_STATS:
+            from .community_stats import validate_community_stats_config
+
+            try:
+                self.community_stats_config = validate_community_stats_config(
+                    self.community_stats_config
+                )
+            except ValidationError as exc:
+                raise ValidationError(
+                    {"community_stats_config": exc.messages}
+                ) from exc
         if self.column > 3:
             raise ValidationError({"column": "A block must be in columns 1 to 4."})
 
@@ -470,12 +520,47 @@ class PageBlock(models.Model):
 
 
 class SectionItem(models.Model):
+    class CardType(models.TextChoices):
+        STANDARD = "standard", "Standard card"
+        LINKED = "linked", "Linked action card"
+
+    class Audience(models.TextChoices):
+        INHERIT = "inherit", "Inherit from card group"
+        EVERYONE = "everyone", "Everyone"
+        VISITORS = "visitors", "Signed-out visitors"
+        SIGNED_IN = "signed_in", "Signed-in participants"
+        HIDDEN = "hidden", "Hidden"
+
     block = models.ForeignKey(
         PageBlock, on_delete=models.CASCADE, related_name="items"
+    )
+    card_type = models.CharField(
+        max_length=12, choices=CardType.choices, default=CardType.STANDARD,
     )
     position = models.PositiveSmallIntegerField(default=0)
     heading = models.CharField(max_length=120)
     description = models.TextField(max_length=500, blank=True)
+    card_label = models.CharField(
+        "number or label",
+        max_length=16,
+        blank=True,
+        help_text="Optional text displayed above the card heading, such as 01 or Start.",
+    )
+    audience = models.CharField(
+        max_length=16,
+        choices=Audience.choices,
+        default=Audience.INHERIT,
+    )
+    alt_text = models.CharField(
+        max_length=160,
+        blank=True,
+        help_text="Accessible text describing where the linked card leads.",
+    )
+    destination_url = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="A site-relative path, page anchor, or secure web address.",
+    )
 
     class Meta:
         ordering = ("position", "pk")
@@ -484,6 +569,22 @@ class SectionItem(models.Model):
 
     def __str__(self):
         return self.heading
+
+    def clean(self):
+        super().clean()
+        if (
+            self.block_id
+            and self.block.block_type == PageBlock.BlockType.CARD_GROUP
+            and self.card_type == self.CardType.LINKED
+        ):
+            if not self.alt_text.strip():
+                raise ValidationError({"alt_text": "Enter alt text for the linked card."})
+            from .destinations import is_safe_managed_destination
+
+            if not is_safe_managed_destination(self.destination_url):
+                raise ValidationError(
+                    {"destination_url": "Use a site-relative path or an https address."}
+                )
 
 
 class PageGalleryImage(models.Model):

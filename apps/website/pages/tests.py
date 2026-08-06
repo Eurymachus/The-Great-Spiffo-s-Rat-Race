@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 
 from django.contrib.auth.models import AnonymousUser, Group
 from django.core.exceptions import ValidationError
@@ -8,7 +9,7 @@ from django.urls import reverse
 
 from branding.models import ManagedImage
 from config.context_processors import navigation_tree
-from registry.models import Participant
+from registry.models import ChallengeRun, Participant, RunSubmission
 
 from .models import (
     CodeManagedPage,
@@ -37,6 +38,7 @@ class ManagedPageTests(TestCase):
             "layout": section.layout,
             "background": section.background,
             "full_bleed_background": section.full_bleed_background,
+            "vertical_padding": section.vertical_padding,
             "separator_style": section.separator_style,
             "separator_spacing": section.separator_spacing,
             "blocks": [{
@@ -54,6 +56,8 @@ class ManagedPageTests(TestCase):
                 "destination": block.destination,
                 "style": block.style,
                 "card_columns": block.card_columns,
+                "separator_style": block.separator_style,
+                "separator_spacing": block.separator_spacing,
                 "image_asset": block.image_asset_id,
                 "image_alt": block.image_alt,
                 "image_fit": block.image_fit,
@@ -68,6 +72,7 @@ class ManagedPageTests(TestCase):
                 "gallery_show_captions": block.gallery_show_captions,
                 "gallery_expandable": block.gallery_expandable,
                 "ranking_config": block.ranking_config,
+                "community_stats_config": block.community_stats_config,
                 "gallery_images": [{
                     "image": item.image_id,
                     "alternative_text": item.alternative_text,
@@ -77,6 +82,11 @@ class ManagedPageTests(TestCase):
                     "id": item.pk,
                     "heading": item.heading,
                     "description": item.description,
+                    "card_type": item.card_type,
+                    "card_label": item.card_label,
+                    "audience": item.audience,
+                    "alt_text": item.alt_text,
+                    "destination_url": item.destination_url,
                 } for item in block.items.all()],
             } for block in section.blocks.all()],
         }]
@@ -105,11 +115,166 @@ class ManagedPageTests(TestCase):
     def test_seeded_homepage_preserves_existing_content_and_order(self):
         response = self.client.get(reverse("registry:home"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "A survival challenge measured in stories")
-        self.assertContains(response, "Join The Rat Race")
+        self.assertContains(response, "Enter the Rat Race")
+        self.assertContains(response, "Rats in the Race")
         content = response.content.decode()
-        self.assertLess(content.index("Reserve your name"), content.index("Verify your email"))
-        self.assertLess(content.index("Verify your email"), content.index("Get race-ready"))
+        self.assertLess(content.index("Enter the Rat Race"), content.index("Check Your Mods"))
+        self.assertLess(content.index("Check Your Mods"), content.index("Follow the Competition"))
+
+    def test_community_statistics_use_only_approved_canonical_runs(self):
+        participant = Participant.objects.create_user(
+            email="statistics@example.com",
+            nickname="Statistics Racer",
+            password="test-password-only",
+            status=Participant.Status.VERIFIED,
+            is_active=True,
+        )
+        recorded = datetime(2026, 8, 1, 12, 0, tzinfo=timezone.utc)
+        run = ChallengeRun.objects.create(
+            participant=participant,
+            run_id="statistics-approved-run",
+            status=ChallengeRun.Status.OFFICIAL,
+            lifecycle_status=ChallengeRun.Lifecycle.ACTIVE,
+            export_format=3,
+            generated_at=recorded,
+            current_kills=240,
+            event_sequence=1,
+            event_hash="a" * 64,
+            character_name="Stat Rat",
+            latest_events=[{"world_age_hours": 48}],
+        )
+        submission = RunSubmission.objects.create(
+            run=run,
+            submitter=participant,
+            status=RunSubmission.Status.APPROVED,
+            checksum="b" * 64,
+            raw_export="approved-statistics-export",
+            export_format=3,
+            generated_at=recorded,
+            current_kills=240,
+            event_sequence=1,
+            event_hash="a" * 64,
+            projection={
+                "activeGameplay": {"milliseconds": 7_200_000, "unit": "millisecond"},
+                "outposts": [
+                    {"id": "one", "complete": True},
+                    {"id": "two", "complete": False},
+                ],
+            },
+            reviewed_at=recorded,
+        )
+        run.approved_submission = submission
+        run.save(update_fields=("approved_submission",))
+
+        response = self.client.get(reverse("registry:home"))
+
+        self.assertContains(response, "Rats in the Race")
+        self.assertContains(response, "Zombies Eliminated")
+        self.assertContains(response, ">240<")
+        self.assertContains(response, "Days Endured")
+        self.assertContains(response, ">2<")
+        self.assertContains(response, "Outposts Claimed")
+        self.assertContains(response, ">120.0<")
+        self.assertContains(response, "Real Hours Raced")
+        self.assertContains(response, ">2.0<")
+
+    def test_call_to_action_cards_render_destinations(self):
+        response = self.client.get(reverse("registry:home"))
+
+        self.assertContains(response, 'class="managed-cta-card"', count=3)
+        self.assertContains(
+            response,
+            'href="/signup/#sign-up" aria-label="Sign up to enter the Rat Race"',
+        )
+        self.assertContains(response, 'href="/mods/"')
+        self.assertContains(response, 'href="/leaderboard/"')
+        self.assertNotContains(response, "managed-cta-link")
+
+    def test_card_group_can_mix_standard_and_linked_cards(self):
+        block = PageBlock.objects.get(block_type=PageBlock.BlockType.CARD_GROUP)
+        standard_card = block.items.all()[1]
+        standard_card.card_type = SectionItem.CardType.STANDARD
+        standard_card.save(update_fields=("card_type",))
+
+        response = self.client.get(reverse("registry:home"))
+
+        self.assertContains(response, 'class="managed-cta-card"', count=2)
+        self.assertContains(response, "Check Your Mods")
+        self.assertNotContains(response, 'href="/mods/"')
+
+    def test_page_editor_saves_manual_call_to_action_card_labels(self):
+        self.login_superuser("cta-number-editor@example.com")
+        payload = self.editor_payload()
+        cards = next(
+            block for block in payload[0]["blocks"]
+            if block["block_type"] == PageBlock.BlockType.CARD_GROUP
+        )
+        cards["items"][0]["card_label"] = "JOIN"
+        cards["items"][1]["card_label"] = ""
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        block = PageBlock.objects.get(block_type=PageBlock.BlockType.CARD_GROUP)
+        self.assertEqual(block.items.all()[0].card_label, "JOIN")
+        self.assertEqual(block.items.all()[1].card_label, "")
+        public_response = self.client.get(reverse("registry:home"))
+        self.assertContains(public_response, ">JOIN<")
+
+    def test_card_audience_can_inherit_or_override_its_group(self):
+        block = PageBlock.objects.get(block_type=PageBlock.BlockType.CARD_GROUP)
+        block.audience = PageBlock.Audience.VISITORS
+        block.save(update_fields=("audience",))
+        inherited, participants, hidden = block.items.all()
+        participants.audience = SectionItem.Audience.SIGNED_IN
+        participants.save(update_fields=("audience",))
+        hidden.audience = SectionItem.Audience.HIDDEN
+        hidden.save(update_fields=("audience",))
+
+        anonymous_response = self.client.get(reverse("registry:home"))
+
+        self.assertContains(anonymous_response, inherited.heading)
+        self.assertNotContains(anonymous_response, participants.heading)
+        self.assertNotContains(anonymous_response, hidden.heading)
+
+        participant = Participant.objects.create_user(
+            email="card-audience@example.com",
+            nickname="Card Audience",
+            password="test-password-only",
+            status=Participant.Status.VERIFIED,
+            is_active=True,
+        )
+        self.client.force_login(participant)
+        signed_in_response = self.client.get(reverse("registry:home"))
+
+        self.assertNotContains(signed_in_response, inherited.heading)
+        self.assertContains(signed_in_response, participants.heading)
+        self.assertNotContains(signed_in_response, hidden.heading)
+
+    def test_page_editor_saves_community_stat_selection_and_order(self):
+        self.login_superuser("statistics-editor@example.com")
+        section = self.page.sections.get(name="Community statistics")
+        payload = self.editor_payload(section)
+        stats = payload[0]["blocks"][0]
+        stats["community_stats_config"] = {
+            "metrics": ["total_kills", "active_runs"],
+            "eyebrow": "Verified challenge data",
+            "heading": "The race in numbers",
+            "show_heading": True,
+        }
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        block = PageBlock.objects.get(block_type=PageBlock.BlockType.COMMUNITY_STATS)
+        self.assertEqual(
+            block.community_stats_config["metrics"],
+            ["total_kills", "active_runs"],
+        )
+        public_response = self.client.get(reverse("registry:home"))
+        content = public_response.content.decode()
+        self.assertContains(public_response, "Verified challenge data")
+        self.assertLess(content.index("Zombies Eliminated"), content.index("Rats in the Race"))
 
     def test_sections_blocks_and_cards_render_in_order(self):
         second = PageSection.objects.create(page=self.page, position=20)
@@ -295,9 +460,16 @@ class ManagedPageTests(TestCase):
         payload = self.editor_payload()
         heading = next(block for block in payload[0]["blocks"] if block["text_role"] == "heading")
         heading["content"] = "Edited main heading"
-        card_group = next(block for block in payload[0]["blocks"] if block["block_type"] == "card_group")
+        card_group = next(
+            block for block in payload[0]["blocks"]
+            if block["block_type"] == "card_group"
+        )
         card_group["items"][0]["heading"] = "Edited existing card"
-        card_group["items"].append({"heading": "New nested card", "description": "Created here."})
+        card_group["items"].append({
+            "heading": "New nested card", "description": "Created here.",
+            "card_type": "linked", "card_label": "NEW", "audience": "signed_in",
+            "alt_text": "Open the new card", "destination_url": "/new-card/",
+        })
         card_group["card_columns"] = "2"
         response = self.post_payload(payload)
         self.assertEqual(response.status_code, 302)
@@ -306,6 +478,10 @@ class ManagedPageTests(TestCase):
             list(self.section.blocks.get(block_type="card_group").items.values_list("heading", flat=True))[-1],
             "New nested card",
         )
+        saved_card = self.section.blocks.get(block_type="card_group").items.last()
+        self.assertEqual(saved_card.card_type, SectionItem.CardType.LINKED)
+        self.assertEqual(saved_card.card_label, "NEW")
+        self.assertEqual(saved_card.audience, SectionItem.Audience.SIGNED_IN)
         self.assertEqual(self.section.blocks.get(block_type="card_group").card_columns, "2")
         self.assertContains(self.client.get(reverse("registry:home")), "managed-card-columns-2")
 
@@ -404,6 +580,63 @@ class ManagedPageTests(TestCase):
         self.assertContains(public_response, "managed-page-width-wide")
         self.assertContains(public_response, "managed-section-layout-two")
 
+    def test_alternate_full_width_surface_owns_its_edge_treatment(self):
+        self.login_superuser("full-width-surface@example.com")
+        payload = self.editor_payload()
+        payload[0].update({
+            "background": PageSection.Background.ALTERNATE_FULL,
+            "full_bleed_background": True,
+        })
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.section.refresh_from_db()
+        self.assertEqual(
+            self.section.background,
+            PageSection.Background.ALTERNATE_FULL,
+        )
+        self.assertFalse(self.section.full_bleed_background)
+        public_response = self.client.get(reverse("registry:home"))
+        self.assertContains(
+            public_response,
+            "managed-section-background-alternate_full",
+        )
+
+    def test_page_editor_saves_compact_section_padding(self):
+        self.login_superuser("compact-padding@example.com")
+        payload = self.editor_payload()
+        payload[0]["vertical_padding"] = PageSection.VerticalPadding.COMPACT
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.section.refresh_from_db()
+        self.assertEqual(self.section.vertical_padding, PageSection.VerticalPadding.COMPACT)
+        public_response = self.client.get(reverse("registry:home"))
+        self.assertContains(public_response, "managed-section-padding-compact")
+
+    def test_community_stats_use_a_responsive_disclosure(self):
+        public_response = self.client.get(reverse("registry:home"))
+
+        self.assertContains(public_response, 'class="community-stats-disclosure"')
+        self.assertContains(public_response, 'class="community-stats-disclosure" open')
+        self.assertContains(public_response, 'class="community-stats-summary">Community Stats</summary>')
+
+    def test_raised_surface_cannot_extend_beyond_its_border(self):
+        self.login_superuser("bounded-raised-surface@example.com")
+        payload = self.editor_payload()
+        payload[0].update({
+            "background": PageSection.Background.SURFACE,
+            "full_bleed_background": True,
+        })
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.section.refresh_from_db()
+        self.assertFalse(self.section.full_bleed_background)
+
     def test_page_editor_saves_and_renders_separator_section(self):
         self.login_superuser("separator-editor@example.com")
         payload = self.editor_payload()
@@ -429,6 +662,32 @@ class ManagedPageTests(TestCase):
         public_response = self.client.get(reverse("registry:home"))
         self.assertContains(public_response, "managed-separator-style-accent")
         self.assertContains(public_response, "managed-separator-spacing-large")
+
+    def test_page_editor_saves_and_renders_separator_block(self):
+        self.login_superuser("separator-block-editor@example.com")
+        payload = self.editor_payload()
+        payload[0]["blocks"].append({
+            "column": 0,
+            "is_visible": True,
+            "block_type": PageBlock.BlockType.SEPARATOR,
+            "audience": PageBlock.Audience.EVERYONE,
+            "separator_style": PageBlock.SeparatorStyle.ACCENT,
+            "separator_spacing": PageBlock.SeparatorSpacing.VERY_SMALL,
+            "items": [],
+            "gallery_images": [],
+        })
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        separator = self.section.blocks.get(block_type=PageBlock.BlockType.SEPARATOR)
+        self.assertEqual(separator.separator_style, PageBlock.SeparatorStyle.ACCENT)
+        self.assertEqual(separator.separator_spacing, PageBlock.SeparatorSpacing.VERY_SMALL)
+        public_response = self.client.get(reverse("registry:home"))
+        self.assertContains(
+            public_response,
+            "managed-block managed-separator-spacing-very_small managed-separator-style-accent",
+        )
 
     def test_homepage_cannot_be_deleted_or_have_address_changed(self):
         self.login_superuser("page-admin@example.com")

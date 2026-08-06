@@ -5,6 +5,9 @@ from django import template
 from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
 
+from pages.community_stats import build_community_stats
+from pages.models import SectionItem
+
 
 register = template.Library()
 LINK_PATTERN = re.compile(r"\[([^\]\n]+)\]\(([^\s)]+)\)")
@@ -42,3 +45,34 @@ def safe_text(value):
         content = re.sub(r"\r?\n", "<br>", content)
         rendered.append(f"<p>{content}</p>")
     return mark_safe("\n".join(rendered))
+
+
+def audience_is_visible(audience, user):
+    if audience == "everyone":
+        return True
+    if audience == "visitors":
+        return not user.is_authenticated
+    if audience == "signed_in":
+        return user.is_authenticated
+    return False
+
+
+@register.simple_tag(takes_context=True)
+def visible_managed_cards(context, block):
+    user = context["request"].user
+    visible = []
+    for item in block.items.all():
+        audience = block.audience if item.audience == SectionItem.Audience.INHERIT else item.audience
+        if audience_is_visible(audience, user):
+            visible.append(item)
+    return visible
+
+
+@register.inclusion_tag(
+    "registry/blocks/community_stats.html", takes_context=True
+)
+def managed_community_stats(context, block):
+    return {
+        "request": context.get("request"),
+        "stats": build_community_stats(block.community_stats_config),
+    }
