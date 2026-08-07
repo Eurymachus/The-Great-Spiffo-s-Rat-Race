@@ -55,6 +55,23 @@ records, while aliases and assets remain shared catalogue relationships.
   standard or large spacing and the usual managed section widths.
 - Managed sections can also contain Separator blocks for the same spacing and
   rule treatments within an individual section column.
+- Existing content blocks can be dragged between sections and columns. Moves,
+  removals and their resulting parent changes are saved atomically with the
+  page, preventing an emptied source section from cascade-deleting blocks that
+  have been moved elsewhere in the editor.
+- A public managed Rules page at `/rules/` provides the Stable challenge's
+  concise fair-play contract, objectives, mod policy, evidence requirements,
+  bug-recovery boundary, run endings and moderation expectations. Its seeded
+  sections remain fully editable through the existing page builder, and a
+  top-level Rules navigation item exposes it to everyone.
+- Managed Pages support Tabbed Content sections containing two, three or four
+  tab panels. Each panel reuses the ordinary column block editor, so blocks can
+  be added, reordered and dragged between tabs without introducing a separate
+  content system. Editors manage each tab's label, short description and
+  default selection. Public tabs use accessible keyboard controls, direct-link
+  URL fragments, responsive horizontal scrolling and a reduced-motion-aware
+  content fade. The Rules page presents its detailed material through Getting
+  Started, Fair Play, Evidence, and Endings & Rulings tabs.
 - Managed Pages include dedicated Community Statistics and Card Group blocks.
   Standard and linked action cards can be mixed within one group. The homepage
   uses three destination-led linked cards and replaces

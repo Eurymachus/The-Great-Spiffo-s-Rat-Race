@@ -387,6 +387,9 @@
 .page-section-body,
 .page-block-body,
 .page-card-body { padding: 1rem; }
+.page-tab-editor { border: 1px solid var(--hairline-color); background: var(--body-bg); }
+.page-tab-settings { padding: 1rem; border-bottom: 1px solid var(--hairline-color); background: var(--darkened-bg); }
+.page-tab-settings .page-editor-checkbox { grid-column: 1 / -1; align-self: start; }
 .page-editor-columns { display: grid; gap: 1rem; margin-top: 1rem; }
 .page-editor-column { min-width: 0; padding: 1rem; border: 1px solid var(--hairline-color); background: var(--darkened-bg); }
 .page-editor-column > h3 { margin-top: 0; }

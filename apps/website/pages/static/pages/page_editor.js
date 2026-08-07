@@ -17,9 +17,10 @@ document.addEventListener("DOMContentLoaded", () => {
     try { rankingOptions = JSON.parse(document.querySelector("#ranking-editor-options")?.textContent || "{}"); } catch (_) {}
 
     const choices = {
-        section_type: [["content", "Content section"], ["separator", "Separator"]],
+        section_type: [["content", "Content section"], ["tabs", "Tabbed content"], ["separator", "Separator"]],
         width: [["inherit", "Use page width"], ["narrow", "Narrow"], ["standard", "Standard"], ["wide", "Wide"], ["full", "Full width"]],
         layout: [["single", "Single column"], ["two", "Two equal columns"], ["wide_left", "Two columns - wide left"], ["wide_right", "Two columns - wide right"], ["three", "Three columns"], ["four", "Four columns"]],
+        tab_layout: [["two", "Two tabs"], ["three", "Three tabs"], ["four", "Four tabs"]],
         background: [["default", "Page background"], ["surface", "Raised surface"], ["alternate", "Alternate surface"], ["alternate_full", "Alternate surface - full width"]],
         vertical_padding: [["standard", "Standard"], ["compact", "Compact"], ["none", "None"]],
         separator_style: [["space", "Space only"], ["line", "Subtle line"], ["accent", "Accent line"]],
@@ -166,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
         closeRemoveConfirmation(false);
         resolveRemoveConfirmation = resolve;
         const message = el("strong", "", `Remove this ${type}?`);
-        const detail = el("span", "", "This takes effect immediately and cannot be undone.");
+        const detail = el("span", "", "This will be removed when you save the page.");
         const controls = el("span", "page-editor-remove-confirmation-actions");
         const cancel = el("button", "button", "Cancel");
         cancel.type = "button";
@@ -317,6 +318,13 @@ document.addEventListener("DOMContentLoaded", () => {
         vertical_padding: sectionPanel.querySelector(':scope > .page-section-body [data-key="vertical_padding"]')?.value || "standard",
         separator_style: sectionPanel.querySelector(':scope > .page-section-body [data-key="separator_style"]')?.value || "space",
         separator_spacing: sectionPanel.querySelector(':scope > .page-section-body [data-key="separator_spacing"]')?.value || "standard",
+        tabs_config: [...sectionPanel.querySelectorAll(":scope > .page-section-body .page-column-editor")]
+            .filter((columnPanel) => columnPanel.querySelector('[data-key="tab_label"]'))
+            .map((columnPanel) => ({
+                label: columnPanel.querySelector('[data-key="tab_label"]').value,
+                description: columnPanel.querySelector('[data-key="tab_description"]').value,
+                is_default: columnPanel.querySelector('[data-key="tab_is_default"]').checked,
+            })),
         blocks: [...sectionPanel.querySelectorAll(":scope .page-block-list > .page-block-editor")].map((blockPanel) => ({
             id: blockPanel.dataset.id ? Number(blockPanel.dataset.id) : null,
             column: Number(blockPanel.closest(".page-column-editor").dataset.column),
@@ -600,15 +608,24 @@ document.addEventListener("DOMContentLoaded", () => {
         const copy = JSON.parse(JSON.stringify(source));
         copy.id = null;
         delete copy._saved_name;
-        copy.name = `${copy.name || "Section"} copy`;
+        copy.name = copy.section_type === "separator"
+            ? (copy.name || "Separator")
+            : `${copy.name || "Section"} copy`;
         copy.blocks = (copy.blocks || []).map(duplicateBlock);
         return copy;
     };
+    const defaultTabs = (count = 3) => Array.from({length: count}, (_, index) => ({
+        label: `Tab ${index + 1}`,
+        description: "",
+        is_default: index === 0,
+    }));
     const newSection = (sectionType = "content") => ({
-        name: sectionType === "separator" ? "Separator" : "Section",
+        name: sectionType === "separator" ? "Separator" : sectionType === "tabs" ? "Tabbed content" : "Section",
         is_visible: true, section_type: sectionType, width: "inherit", layout: "single",
         background: "default", full_bleed_background: false, vertical_padding: "standard",
-        separator_style: "space", separator_spacing: "standard", blocks: [],
+        separator_style: "space", separator_spacing: "standard",
+        tabs_config: sectionType === "tabs" ? defaultTabs(3) : [],
+        blocks: [],
     });
     const renderBlock = (block, index, total) => {
         const panel = el("details", "page-block-editor");
@@ -707,6 +724,9 @@ document.addEventListener("DOMContentLoaded", () => {
             panel.dataset.savedName = section._saved_name || section.name || "Section";
             panel.append(summary(`${section.name || "Section"}${section.is_visible === false ? " - Hidden" : ""}`, "section", sectionIndex, sections.length, true));
             const body = el("div", "page-section-body");
+            if ((section.section_type || "content") === "tabs" && !["two", "three", "four"].includes(section.layout)) {
+                section.layout = "three";
+            }
             const settings = el("div", "page-editor-grid");
             settings.append(
                 checkboxField("Visible publicly", "is_visible", section.is_visible),
@@ -720,7 +740,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
             } else {
                 settings.append(
-                    selectField("Column layout", "layout", section.layout || "single", choices.layout),
+                    selectField(
+                        (section.section_type || "content") === "tabs" ? "Number of tabs" : "Column layout",
+                        "layout",
+                        section.layout || ((section.section_type || "content") === "tabs" ? "three" : "single"),
+                        (section.section_type || "content") === "tabs" ? choices.tab_layout : choices.layout
+                    ),
                     selectField("Background", "background", section.background || "default", choices.background),
                     selectField("Vertical padding", "vertical_padding", section.vertical_padding || "standard", choices.vertical_padding)
                 );
@@ -743,6 +768,21 @@ document.addEventListener("DOMContentLoaded", () => {
                     .filter(({block}) => Number(block.column || 0) === column);
                 const columnPanel = el("section", "page-column-editor");
                 columnPanel.dataset.column = column;
+                if ((section.section_type || "content") === "tabs") {
+                    columnPanel.classList.add("page-tab-editor");
+                    const configuredTab = section.tabs_config?.[column] || defaultTabs(columnCount)[column];
+                    const tabSettings = el("div", "page-tab-settings page-editor-grid");
+                    const defaultControl = checkboxField("Open this tab by default", "tab_is_default", configuredTab.is_default === true);
+                    const defaultInput = defaultControl.querySelector("input");
+                    defaultInput.type = "radio";
+                    defaultInput.name = `default-tab-${sectionIndex}`;
+                    tabSettings.append(
+                        field("Tab label", "tab_label", configuredTab.label || `Tab ${column + 1}`),
+                        field("Short tab description", "tab_description", configuredTab.description || ""),
+                        defaultControl
+                    );
+                    columnPanel.append(tabSettings);
+                }
                 const header = el("div", "page-column-header");
                 const columnActions = el("span", "page-editor-summary-actions");
                 const addBlock = button("Add block", "add-block");
@@ -754,7 +794,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     const currentSection = sections[[...list.children].indexOf(currentSectionPanel)];
                     preserve(() => currentSection.blocks.push(newBlock(blockType, column)), false);
                 });
-                header.append(el("strong", "page-editor-summary-title", `Column ${column + 1} (${blocks.length} blocks)`), columnActions);
+                const columnName = (section.section_type || "content") === "tabs"
+                    ? `Tab ${column + 1}: ${section.tabs_config?.[column]?.label || `Tab ${column + 1}`}`
+                    : `Column ${column + 1}`;
+                header.append(el("strong", "page-editor-summary-title", `${columnName} (${blocks.length} blocks)`), columnActions);
                 columnPanel.append(header);
                 const blockList = el("div", "page-block-list");
                 blocks.forEach(({block, index}, columnIndex) => {
@@ -815,13 +858,6 @@ document.addEventListener("DOMContentLoaded", () => {
             window.scrollTo(savedState.scrollX || 0, savedState.scrollY || 0);
         }));
     };
-    const persistRemoval = async (type, id) => {
-        if (!id) return true;
-        const token = form.querySelector('[name="csrfmiddlewaretoken"]')?.value;
-        const url = editor.dataset.removeUrl.replace("CONTENT_TYPE", type).replace(/0\/$/, `${id}/`);
-        return (await fetch(url, {method: "POST", headers: {"X-CSRFToken": token, "X-Requested-With": "XMLHttpRequest"}, credentials: "same-origin"})).ok;
-    };
-
     const libraryDialog = el("dialog", "page-image-library-dialog");
     libraryDialog.innerHTML = `<div class="page-image-library-modal">
         <header><div><h2>Choose images</h2><p>Select existing images or upload new files.</p></div><button type="button" class="page-image-library-close" aria-label="Close">&times;</button></header>
@@ -1031,15 +1067,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }, false);
         } else if (action.startsWith("remove-")) {
             const type = action.replace("remove-", "");
-            const subject = type === "section" ? section : type === "block" ? block : block.items[cardIndex];
             if (!(await confirmRemoval(control, type))) return;
-            if (!(await persistRemoval(type, subject.id))) return window.alert(`The ${type} could not be removed.`);
             preserve(() => {
                 if (type === "section") sections.splice(sectionIndex, 1);
                 else if (type === "block") section.blocks.splice(blockIndex, 1);
                 else block.items.splice(cardIndex, 1);
             }, false);
-            baseline = contentFingerprint();
         }
     });
     list.addEventListener("change", (event) => {
@@ -1057,6 +1090,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
                 section.blocks = [];
+            }
+            if (event.target.value === "tabs") {
+                section.layout = ["two", "three", "four"].includes(section.layout) ? section.layout : "three";
+                section.tabs_config = section.tabs_config?.length
+                    ? section.tabs_config
+                    : defaultTabs(columnCounts[section.layout] || 3);
             }
             preserve(() => {}, false);
         }

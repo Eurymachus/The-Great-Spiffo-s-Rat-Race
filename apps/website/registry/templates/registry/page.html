@@ -8,6 +8,8 @@
         {% if section.is_visible %}
             {% if section.section_type == "separator" %}
                 {% include "registry/sections/separator.html" %}
+            {% elif section.section_type == "tabs" %}
+                {% include "registry/sections/tabs.html" %}
             {% else %}
                 {% include "registry/sections/managed.html" %}
             {% endif %}

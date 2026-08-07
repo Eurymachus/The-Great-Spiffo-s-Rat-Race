@@ -124,6 +124,7 @@ class PageAdmin(admin.ModelAdmin):
             return
         with transaction.atomic():
             retained_sections = []
+            retained_blocks = []
             for section_data in sections:
                 submitted_section = section_data["model"]
                 section = submitted_section
@@ -132,19 +133,20 @@ class PageAdmin(admin.ModelAdmin):
                     for field in (
                         "position", "name", "is_visible", "section_type", "width", "layout",
                         "background", "full_bleed_background", "separator_style",
-                        "separator_spacing", "vertical_padding",
+                        "separator_spacing", "vertical_padding", "tabs_config",
                     ):
                         setattr(section, field, getattr(submitted_section, field))
                 section.page = form.instance
                 section.save()
                 retained_sections.append(section.pk)
 
-                retained_blocks = []
                 for block_data in section_data["blocks"]:
                     submitted_block = block_data["model"]
                     block = submitted_block
                     if block_data["id"]:
-                        block = section.blocks.get(pk=block_data["id"])
+                        block = PageBlock.objects.get(
+                            pk=block_data["id"], section__page=form.instance
+                        )
                         for field in (
                             "position", "column", "is_visible", "block_type",
                             "content", "audience", "alignment", "text_role", "text_font",
@@ -182,7 +184,9 @@ class PageAdmin(admin.ModelAdmin):
                     for gallery_image in block_data["gallery_images"]:
                         gallery_image.block = block
                         gallery_image.save()
-                section.blocks.exclude(pk__in=retained_blocks).delete()
+            PageBlock.objects.filter(section__page=form.instance).exclude(
+                pk__in=retained_blocks
+            ).delete()
             form.instance.sections.exclude(pk__in=retained_sections).delete()
 
     def has_add_permission(self, request):

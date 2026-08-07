@@ -251,6 +251,7 @@ class NavigationItem(models.Model):
 class PageSection(models.Model):
     class SectionType(models.TextChoices):
         CONTENT = "content", "Content section"
+        TABS = "tabs", "Tabbed content"
         SEPARATOR = "separator", "Separator"
 
     class Width(models.TextChoices):
@@ -315,6 +316,12 @@ class PageSection(models.Model):
     separator_spacing = models.CharField(
         max_length=16, choices=SeparatorSpacing.choices, default=SeparatorSpacing.STANDARD
     )
+    tabs_config = models.JSONField(
+        "tabs",
+        default=list,
+        blank=True,
+        help_text="Managed labels and descriptions for a tabbed section's column panels.",
+    )
 
     class Meta:
         ordering = ("position", "pk")
@@ -328,6 +335,43 @@ class PageSection(models.Model):
         super().clean()
         if self.background != self.Background.ALTERNATE:
             self.full_bleed_background = False
+
+    def normalised_tabs(self):
+        from django.utils.text import slugify
+
+        column_count = {
+            self.Layout.SINGLE: 1,
+            self.Layout.TWO: 2,
+            self.Layout.WIDE_LEFT: 2,
+            self.Layout.WIDE_RIGHT: 2,
+            self.Layout.THREE: 3,
+            self.Layout.FOUR: 4,
+        }.get(self.layout, 1)
+        configured = self.tabs_config if isinstance(self.tabs_config, list) else []
+        tabs = []
+        used_slugs = set()
+        default_seen = False
+        for index in range(column_count):
+            raw = configured[index] if index < len(configured) and isinstance(configured[index], dict) else {}
+            label = str(raw.get("label", "")).strip()[:80] or f"Tab {index + 1}"
+            base_slug = slugify(label)[:70] or f"tab-{index + 1}"
+            slug = base_slug
+            suffix = 2
+            while slug in used_slugs:
+                slug = f"{base_slug}-{suffix}"
+                suffix += 1
+            used_slugs.add(slug)
+            is_default = bool(raw.get("is_default")) and not default_seen
+            default_seen = default_seen or is_default
+            tabs.append({
+                "label": label,
+                "description": str(raw.get("description", "")).strip()[:200],
+                "slug": slug,
+                "is_default": is_default,
+            })
+        if tabs and not default_seen:
+            tabs[0]["is_default"] = True
+        return tabs
 
 
 class PageBlock(models.Model):

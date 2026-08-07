@@ -29,7 +29,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from pages.models import Page
+from pages.models import Page, PageSection
 
 from .forms import (
     AccountClosureRequestForm,
@@ -154,6 +154,11 @@ def prepare_managed_page(page):
             if block.is_visible:
                 columns[min(block.column, len(columns) - 1)].append(block)
         section.render_columns = columns
+        if section.section_type == PageSection.SectionType.TABS:
+            section.render_tabs = [
+                {"config": config, "blocks": columns[index], "index": index}
+                for index, config in enumerate(section.normalised_tabs())
+            ]
     return page
 
 

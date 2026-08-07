@@ -44,6 +44,7 @@ class PageEditorForm(forms.ModelForm):
                     "vertical_padding": section.vertical_padding,
                     "separator_style": section.separator_style,
                     "separator_spacing": section.separator_spacing,
+                    "tabs_config": section.normalised_tabs() if section.section_type == PageSection.SectionType.TABS else [],
                     "blocks": [
                         {
                             "id": block.pk, "position": block.position,
@@ -101,13 +102,27 @@ class PageEditorForm(forms.ModelForm):
             raise ValidationError("Page content must contain a list of sections.")
 
         section_ids = set(self.instance.sections.values_list("pk", flat=True)) if self.instance.pk else set()
+        submitted_section_ids = set()
+        page_block_ids = set(
+            PageBlock.objects.filter(section__page=self.instance).values_list("pk", flat=True)
+        ) if self.instance.pk else set()
+        submitted_block_ids = set()
         cleaned = []
         for section_index, raw in enumerate(data):
             if not isinstance(raw, dict):
                 raise ValidationError(f"Section {section_index + 1} is invalid.")
             section_id = raw.get("id")
-            if section_id is not None and section_id not in section_ids:
-                raise ValidationError("A section does not belong to this page.")
+            if section_id is not None:
+                if section_id not in section_ids:
+                    if PageSection.objects.filter(pk=section_id).exists():
+                        raise ValidationError("A section does not belong to this page.")
+                    # Preserve a section left in a bound editor after its
+                    # database row was deleted during an earlier failed move.
+                    section_id = None
+                if section_id in submitted_section_ids:
+                    raise ValidationError("A page section can appear only once.")
+                if section_id is not None:
+                    submitted_section_ids.add(section_id)
             section = PageSection(
                 page=self.instance, position=section_index * 10,
                 name=str(raw.get("name", "Section")).strip() or "Section",
@@ -120,20 +135,39 @@ class PageEditorForm(forms.ModelForm):
                 vertical_padding=raw.get("vertical_padding", PageSection.VerticalPadding.STANDARD),
                 separator_style=raw.get("separator_style", PageSection.SeparatorStyle.SPACE),
                 separator_spacing=raw.get("separator_spacing", PageSection.SeparatorSpacing.STANDARD),
+                tabs_config=raw.get("tabs_config") or [],
             )
             section.full_clean(exclude=("page",))
+            if section.section_type == PageSection.SectionType.TABS:
+                if section.layout not in (
+                    PageSection.Layout.TWO,
+                    PageSection.Layout.THREE,
+                    PageSection.Layout.FOUR,
+                ):
+                    raise ValidationError("Tabbed content must contain two, three or four tabs.")
+                section.tabs_config = section.normalised_tabs()
+            else:
+                section.tabs_config = []
             raw_blocks = raw.get("blocks", [])
             if section.section_type == PageSection.SectionType.SEPARATOR and raw_blocks:
                 raise ValidationError("Separator sections cannot contain content blocks.")
             column_count = LAYOUT_COLUMNS.get(section.layout, 1)
-            block_ids = set(PageBlock.objects.filter(section_id=section_id).values_list("pk", flat=True)) if section_id else set()
             blocks = []
             for block_index, raw_block in enumerate(raw_blocks):
                 if not isinstance(raw_block, dict):
                     raise ValidationError(f"Block {block_index + 1} in section {section_index + 1} is invalid.")
                 block_id = raw_block.get("id")
-                if block_id is not None and block_id not in block_ids:
-                    raise ValidationError("A block does not belong to its section.")
+                if block_id is not None:
+                    if block_id not in page_block_ids:
+                        if PageBlock.objects.filter(pk=block_id).exists():
+                            raise ValidationError("A block does not belong to this page.")
+                        # A previously deleted block can remain in a bound editor after
+                        # a failed save. Preserve its submitted content as a new block.
+                        block_id = None
+                    if block_id in submitted_block_ids:
+                        raise ValidationError("A content block can appear only once on a page.")
+                    if block_id is not None:
+                        submitted_block_ids.add(block_id)
                 column = int(raw_block.get("column", 0))
                 if column < 0 or column >= column_count:
                     raise ValidationError("A block is assigned to a column that is not in its section layout.")

@@ -4,12 +4,12 @@
 {% block extrahead %}
 {{ block.super }}
 {{ ranking_editor_options|json_script:"ranking-editor-options" }}
-<script src="{% static 'pages/page_editor.js' %}?v=20260806-16" defer></script>
+<script src="{% static 'pages/page_editor.js' %}?v=20260807-19" defer></script>
 {% endblock %}
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'pages/page_editor.css' %}?v=20260806-5">
+<link rel="stylesheet" href="{% static 'pages/page_editor.css' %}?v=20260807-1">
 {% endblock %}
 
 {% block after_field_sets %}
@@ -27,6 +27,11 @@
     </div>
     <button type="button" class="button page-editor-add-item" data-add-section>Add section</button>
   </div>
+  {% if adminform.form.page_builder_data.errors %}
+  <div class="page-editor-validation-errors" role="alert">
+    {{ adminform.form.page_builder_data.errors }}
+  </div>
+  {% endif %}
   <div data-section-list></div>
 </section>
 {% endblock %}

@@ -7,8 +7,9 @@
     const continueButton = form?.querySelector('[type="submit"][name="_continue"]');
     if (!form || !continueButton || !window.fetch || !window.DOMParser) return;
 
+    const initialHasErrors = Boolean(document.querySelector(".errornote, .errorlist"));
     let saving = false;
-    let dirty = false;
+    let dirty = initialHasErrors;
     let toastTimer = null;
     const region = document.createElement("div");
     region.className = "admin-save-toast-region";
@@ -64,11 +65,11 @@
     };
 
     continueButton.value = "Save";
-    setDirty(false);
+    setDirty(initialHasErrors);
     form.addEventListener("input", markDirty);
     form.addEventListener("change", markDirty);
     form.addEventListener("rat-race:admin-dirty", () => setDirty(true));
-    form.addEventListener("rat-race:admin-editor-ready", () => setDirty(false));
+    form.addEventListener("rat-race:admin-editor-ready", () => setDirty(initialHasErrors));
 
     form.addEventListener("submit", async (event) => {
         const submitter = event.submitter;

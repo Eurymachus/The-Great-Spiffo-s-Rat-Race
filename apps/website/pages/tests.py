@@ -41,6 +41,7 @@ class ManagedPageTests(TestCase):
             "vertical_padding": section.vertical_padding,
             "separator_style": section.separator_style,
             "separator_spacing": section.separator_spacing,
+            "tabs_config": section.tabs_config,
             "blocks": [{
                 "id": block.pk,
                 "column": block.column,
@@ -96,6 +97,24 @@ class ManagedPageTests(TestCase):
             email=email, nickname="Page Editor", password="test-password-only"
         )
         self.client.force_login(user)
+
+    def test_seeded_rules_page_is_public_managed_content(self):
+        rules = Page.objects.get(public_path="rules")
+
+        response = self.client.get(rules.get_absolute_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Rules of the Race")
+        self.assertContains(response, "Getting Started")
+        self.assertContains(response, "Endings &amp; Rulings")
+        self.assertContains(response, 'data-managed-tabs')
+        self.assertContains(response, "1,000,000 zombie kills")
+        self.assertContains(response, 'href="/mods/"')
+        self.assertTrue(
+            NavigationItem.objects.filter(
+                label="Rules", page=rules, is_visible=True
+            ).exists()
+        )
 
     def post_payload(self, payload, **page_overrides):
         data = {
@@ -191,7 +210,7 @@ class ManagedPageTests(TestCase):
         self.assertNotContains(response, "managed-cta-link")
 
     def test_card_group_can_mix_standard_and_linked_cards(self):
-        block = PageBlock.objects.get(block_type=PageBlock.BlockType.CARD_GROUP)
+        block = self.section.blocks.get(block_type=PageBlock.BlockType.CARD_GROUP)
         standard_card = block.items.all()[1]
         standard_card.card_type = SectionItem.CardType.STANDARD
         standard_card.save(update_fields=("card_type",))
@@ -215,14 +234,14 @@ class ManagedPageTests(TestCase):
         response = self.post_payload(payload)
 
         self.assertEqual(response.status_code, 302)
-        block = PageBlock.objects.get(block_type=PageBlock.BlockType.CARD_GROUP)
+        block = self.section.blocks.get(block_type=PageBlock.BlockType.CARD_GROUP)
         self.assertEqual(block.items.all()[0].card_label, "JOIN")
         self.assertEqual(block.items.all()[1].card_label, "")
         public_response = self.client.get(reverse("registry:home"))
         self.assertContains(public_response, ">JOIN<")
 
     def test_card_audience_can_inherit_or_override_its_group(self):
-        block = PageBlock.objects.get(block_type=PageBlock.BlockType.CARD_GROUP)
+        block = self.section.blocks.get(block_type=PageBlock.BlockType.CARD_GROUP)
         block.audience = PageBlock.Audience.VISITORS
         block.save(update_fields=("audience",))
         inherited, participants, hidden = block.items.all()
@@ -663,6 +682,52 @@ class ManagedPageTests(TestCase):
         self.assertContains(public_response, "managed-separator-style-accent")
         self.assertContains(public_response, "managed-separator-spacing-large")
 
+    def test_page_editor_saves_and_renders_accessible_tabbed_content(self):
+        self.login_superuser("tabbed-content-editor@example.com")
+        payload = self.editor_payload()
+        payload[0].update({
+            "name": "Rules categories",
+            "section_type": PageSection.SectionType.TABS,
+            "layout": PageSection.Layout.THREE,
+            "tabs_config": [
+                {"label": "Getting Started", "description": "Begin your run.", "is_default": True},
+                {"label": "Fair Play", "description": "Play cleanly.", "is_default": False},
+                {"label": "Evidence", "description": "Show your work.", "is_default": False},
+            ],
+        })
+        for index, block in enumerate(payload[0]["blocks"]):
+            block["column"] = index % 3
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.section.refresh_from_db()
+        self.assertEqual(self.section.section_type, PageSection.SectionType.TABS)
+        self.assertEqual(
+            [tab["slug"] for tab in self.section.tabs_config],
+            ["getting-started", "fair-play", "evidence"],
+        )
+        public_response = self.client.get(reverse("registry:home"))
+        self.assertContains(public_response, 'data-managed-tabs')
+        self.assertContains(public_response, 'role="tablist" aria-label="Rules categories"')
+        self.assertContains(public_response, 'data-tab-slug="fair-play"')
+        self.assertContains(public_response, 'role="tabpanel"')
+        self.assertContains(public_response, "Begin your run.")
+
+    def test_tabbed_content_requires_two_to_four_tabs(self):
+        self.login_superuser("invalid-tabbed-content@example.com")
+        payload = self.editor_payload()
+        payload[0].update({
+            "section_type": PageSection.SectionType.TABS,
+            "layout": PageSection.Layout.SINGLE,
+            "tabs_config": [{"label": "Only tab", "is_default": True}],
+        })
+
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Tabbed content must contain two, three or four tabs.")
+
     def test_page_editor_saves_and_renders_separator_block(self):
         self.login_superuser("separator-block-editor@example.com")
         payload = self.editor_payload()
@@ -704,12 +769,12 @@ class ManagedPageTests(TestCase):
     def test_navigation_items_are_managed_separately_from_page_content(self):
         self.login_superuser("navigation-order-editor@example.com")
         second_page = Page.objects.create(
-            title="Rules", public_path="rules", is_published=True,
+            title="Participant guide", public_path="participant-guide", is_published=True,
         )
-        item = NavigationItem.objects.create(label="Rules", page=second_page, position=5)
+        item = NavigationItem.objects.create(label="Guide", page=second_page, position=5)
         response = self.client.get(reverse("admin:pages_navigationitem_change", args=(item.pk,)))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Rules")
+        self.assertContains(response, "Guide")
 
     def test_navigation_changelist_uses_the_tree_editor(self):
         self.login_superuser("navigation-tree-editor@example.com")
@@ -1049,3 +1114,177 @@ class ManagedPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(PageSection.objects.filter(pk=section_id).exists())
         self.assertFalse(PageBlock.objects.filter(pk__in=block_ids).exists())
+
+    def test_existing_block_can_move_between_sections_atomically(self):
+        destination = PageSection.objects.create(
+            page=self.page,
+            position=99,
+            name="Destination",
+            layout=PageSection.Layout.SINGLE,
+        )
+        moved = self.section.blocks.filter(block_type=PageBlock.BlockType.TEXT).first()
+        payload = self.editor_payload()
+        source_blocks = payload[0]["blocks"]
+        moved_payload = next(block for block in source_blocks if block["id"] == moved.pk)
+        source_blocks.remove(moved_payload)
+        payload.append({
+            "id": destination.pk,
+            "name": destination.name,
+            "is_visible": True,
+            "section_type": PageSection.SectionType.CONTENT,
+            "width": PageSection.Width.INHERIT,
+            "layout": PageSection.Layout.SINGLE,
+            "background": PageSection.Background.DEFAULT,
+            "full_bleed_background": False,
+            "vertical_padding": PageSection.VerticalPadding.STANDARD,
+            "separator_style": PageSection.SeparatorStyle.SPACE,
+            "separator_spacing": PageSection.SeparatorSpacing.STANDARD,
+            "blocks": [{**moved_payload, "column": 0}],
+        })
+
+        self.login_superuser("cross-section-editor@example.com")
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        moved.refresh_from_db()
+        self.assertEqual(moved.section, destination)
+        public_response = self.client.get(reverse("registry:home"))
+        self.assertContains(public_response, moved.content)
+
+    def test_block_move_survives_removal_of_its_empty_source_section(self):
+        source = PageSection.objects.create(
+            page=self.page,
+            position=98,
+            name="Temporary source",
+            layout=PageSection.Layout.SINGLE,
+        )
+        moved = PageBlock.objects.create(
+            section=source,
+            position=0,
+            block_type=PageBlock.BlockType.TEXT,
+            content="Moved before its old section is removed",
+        )
+        payload = self.editor_payload()
+        payload[0]["blocks"].append({
+            "id": moved.pk,
+            "column": 0,
+            "is_visible": True,
+            "block_type": PageBlock.BlockType.TEXT,
+            "content": moved.content,
+            "alignment": PageBlock.Alignment.LEFT,
+            "text_role": PageBlock.TextRole.PARAGRAPH,
+            "text_font": PageBlock.TextFont.THEME,
+            "text_size": PageBlock.TextSize.STANDARD,
+            "text_weight": PageBlock.TextWeight.THEME,
+            "audience": PageBlock.Audience.EVERYONE,
+            "destination": PageBlock.Destination.NONE,
+            "style": PageBlock.Style.DEFAULT,
+            "card_columns": PageBlock.CardColumns.AUTO,
+            "separator_style": PageBlock.SeparatorStyle.SPACE,
+            "separator_spacing": PageBlock.SeparatorSpacing.STANDARD,
+            "image_asset": None,
+            "image_alt": "",
+            "image_fit": PageBlock.ImageFit.COVER,
+            "image_height": PageBlock.ImageHeight.STANDARD,
+            "image_custom_height": 24,
+            "image_position": PageBlock.ImagePosition.CENTRE,
+            "image_expandable": False,
+            "gallery_auto_scroll": False,
+            "gallery_scroll_speed": 5,
+            "gallery_loop": True,
+            "gallery_show_controls": True,
+            "gallery_show_captions": True,
+            "gallery_expandable": True,
+            "ranking_config": {},
+            "community_stats_config": {},
+            "gallery_images": [],
+            "items": [],
+        })
+
+        self.login_superuser("move-and-remove-editor@example.com")
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        moved.refresh_from_db()
+        self.assertEqual(moved.section, self.section)
+        self.assertFalse(PageSection.objects.filter(pk=source.pk).exists())
+
+    def test_deleted_ghost_block_is_recreated_from_bound_editor_content(self):
+        payload = self.editor_payload()
+        ghost = payload[0]["blocks"][0]
+        deleted_id = ghost["id"]
+        PageBlock.objects.filter(pk=deleted_id).delete()
+        ghost["content"] = "Recovered from the still-open page editor"
+
+        self.login_superuser("ghost-block-editor@example.com")
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(PageBlock.objects.filter(pk=deleted_id).exists())
+        self.assertTrue(
+            self.section.blocks.filter(
+                content="Recovered from the still-open page editor"
+            ).exists()
+        )
+
+    def test_block_id_from_another_page_is_still_rejected(self):
+        other_page = Page.objects.create(
+            title="Other page", public_path="other-page", is_published=True
+        )
+        other_section = PageSection.objects.create(page=other_page, name="Other")
+        foreign_block = PageBlock.objects.create(
+            section=other_section,
+            block_type=PageBlock.BlockType.TEXT,
+            content="Not available to this editor",
+        )
+        payload = self.editor_payload()
+        payload[0]["blocks"][0]["id"] = foreign_block.pk
+
+        self.login_superuser("foreign-block-editor@example.com")
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A block does not belong to this page.")
+        foreign_block.refresh_from_db()
+        self.assertEqual(foreign_block.section, other_section)
+
+    def test_deleted_ghost_section_is_recreated_from_bound_editor_content(self):
+        ghost_section = PageSection.objects.create(
+            page=self.page,
+            position=90,
+            name="Ghost section",
+            layout=PageSection.Layout.SINGLE,
+        )
+        payload = self.editor_payload(ghost_section)
+        deleted_id = ghost_section.pk
+        ghost_section.delete()
+        payload[0]["name"] = "Recovered section"
+
+        self.login_superuser("ghost-section-editor@example.com")
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(PageSection.objects.filter(pk=deleted_id).exists())
+        self.assertTrue(
+            self.page.sections.filter(name="Recovered section").exists()
+        )
+
+    def test_section_id_from_another_page_is_still_rejected(self):
+        other_page = Page.objects.create(
+            title="Foreign section page",
+            public_path="foreign-section-page",
+            is_published=True,
+        )
+        foreign_section = PageSection.objects.create(
+            page=other_page, name="Foreign section"
+        )
+        payload = self.editor_payload()
+        payload[0]["id"] = foreign_section.pk
+
+        self.login_superuser("foreign-section-editor@example.com")
+        response = self.post_payload(payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A section does not belong to this page.")
+        foreign_section.refresh_from_db()
+        self.assertEqual(foreign_section.page, other_page)
