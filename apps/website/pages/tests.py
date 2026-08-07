@@ -737,7 +737,7 @@ class ManagedPageTests(TestCase):
             "block_type": PageBlock.BlockType.SEPARATOR,
             "audience": PageBlock.Audience.EVERYONE,
             "separator_style": PageBlock.SeparatorStyle.ACCENT,
-            "separator_spacing": PageBlock.SeparatorSpacing.VERY_SMALL,
+            "separator_spacing": PageBlock.SeparatorSpacing.MINIMAL,
             "items": [],
             "gallery_images": [],
         })
@@ -747,11 +747,11 @@ class ManagedPageTests(TestCase):
         self.assertEqual(response.status_code, 302)
         separator = self.section.blocks.get(block_type=PageBlock.BlockType.SEPARATOR)
         self.assertEqual(separator.separator_style, PageBlock.SeparatorStyle.ACCENT)
-        self.assertEqual(separator.separator_spacing, PageBlock.SeparatorSpacing.VERY_SMALL)
+        self.assertEqual(separator.separator_spacing, PageBlock.SeparatorSpacing.MINIMAL)
         public_response = self.client.get(reverse("registry:home"))
         self.assertContains(
             public_response,
-            "managed-block managed-separator-spacing-very_small managed-separator-style-accent",
+            "managed-block managed-separator-spacing-minimal managed-separator-style-accent",
         )
 
     def test_homepage_cannot_be_deleted_or_have_address_changed(self):

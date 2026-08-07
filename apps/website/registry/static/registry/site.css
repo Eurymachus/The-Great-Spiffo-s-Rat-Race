@@ -2497,6 +2497,7 @@ button:hover { background: var(--theme-accent-hover); }
     width: 100%;
 }
 .managed-separator { display: grid; width: 100%; margin-inline: auto; align-items: center; }
+.managed-separator-spacing-minimal { min-height: 0; }
 .managed-separator-spacing-very_small { min-height: 1rem; }
 .managed-separator-spacing-small { min-height: 2rem; }
 .managed-separator-spacing-standard { min-height: 4rem; }

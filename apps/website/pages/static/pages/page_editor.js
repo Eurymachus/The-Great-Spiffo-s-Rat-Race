@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
         background: [["default", "Page background"], ["surface", "Raised surface"], ["alternate", "Alternate surface"], ["alternate_full", "Alternate surface - full width"]],
         vertical_padding: [["standard", "Standard"], ["compact", "Compact"], ["none", "None"]],
         separator_style: [["space", "Space only"], ["line", "Subtle line"], ["accent", "Accent line"]],
-        separator_spacing: [["very_small", "Very small"], ["small", "Small"], ["standard", "Standard"], ["large", "Large"]],
+        separator_spacing: [["minimal", "Minimal"], ["very_small", "Very small"], ["small", "Small"], ["standard", "Standard"], ["large", "Large"]],
         block_type: [["text", "Text"], ["action", "Button or link"], ["card_group", "Card group"], ["separator", "Separator"], ["community_stats", "Community statistics"], ["image", "Image"], ["gallery", "Gallery"], ["ranking_table", "Ranking table"]],
         audience: [["everyone", "Everyone"], ["visitors", "Signed-out visitors"], ["signed_in", "Signed-in participants"], ["hidden", "Hidden"]],
         card_audience: [["inherit", "Inherit from card group"], ["everyone", "Everyone"], ["visitors", "Signed-out visitors"], ["signed_in", "Signed-in participants"], ["hidden", "Hidden"]],

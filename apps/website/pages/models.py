@@ -286,6 +286,7 @@ class PageSection(models.Model):
         ACCENT = "accent", "Accent line"
 
     class SeparatorSpacing(models.TextChoices):
+        MINIMAL = "minimal", "Minimal"
         VERY_SMALL = "very_small", "Very small"
         SMALL = "small", "Small"
         STANDARD = "standard", "Standard"
@@ -443,6 +444,7 @@ class PageBlock(models.Model):
         ACCENT = "accent", "Accent line"
 
     class SeparatorSpacing(models.TextChoices):
+        MINIMAL = "minimal", "Minimal"
         VERY_SMALL = "very_small", "Very small"
         SMALL = "small", "Small"
         STANDARD = "standard", "Standard"
