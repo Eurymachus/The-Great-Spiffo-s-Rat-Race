@@ -1,5 +1,5 @@
-<section class="card managed-section managed-tabs managed-section-width-{{ section.width }} managed-section-background-{{ section.background }} managed-section-padding-{{ section.vertical_padding }}{% if section.full_bleed_background %} managed-section-full-bleed{% endif %}" data-managed-tabs>
-    <div class="managed-tab-list" role="tablist" aria-label="{{ section.name }}">
+<section class="card managed-section managed-tabs managed-tabs-{{ section.tabs_orientation }} managed-section-width-{{ section.width }} managed-section-background-{{ section.background }} managed-section-padding-{{ section.vertical_padding }}{% if section.full_bleed_background %} managed-section-full-bleed{% endif %}" data-managed-tabs>
+    <div class="managed-tab-list" role="tablist" aria-label="{{ section.name }}" aria-orientation="{{ section.tabs_orientation }}">
         {% for tab in section.render_tabs %}
         <button
             type="button"

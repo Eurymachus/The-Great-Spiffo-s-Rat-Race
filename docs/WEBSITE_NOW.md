@@ -68,10 +68,23 @@ records, while aliases and assets remain shared catalogue relationships.
   tab panels. Each panel reuses the ordinary column block editor, so blocks can
   be added, reordered and dragged between tabs without introducing a separate
   content system. Editors manage each tab's label, short description and
-  default selection. Public tabs use accessible keyboard controls, direct-link
-  URL fragments, responsive horizontal scrolling and a reduced-motion-aware
-  content fade. The Rules page presents its detailed material through Getting
+  default selection, plus a horizontal or vertical section orientation. Vertical
+  tabs use a left-hand rail on wider layouts and the established horizontal
+  scroller on narrow layouts. Public tabs use accessible keyboard controls,
+  direct-link URL fragments and a reduced-motion-aware content fade. The Rules
+  page presents its detailed material through Getting
   Started, Fair Play, Evidence, and Endings & Rulings tabs.
+- A public managed Exploits page at `/exploits/` sits beneath Mods in the Rules
+  navigation branch. Exploit rulings are server-managed catalogue records with
+  a classification, concise ruling, optional guidance, publishing state, and
+  display order. The public vertical tabs contain one entry per published
+  exploit, including the settled Spiffo's Council rulings on zombie
+  force-spawning, trapped-animal Nimble farming, and combat-built fence or
+  window grids. Each ruling can include ordered example images selected from
+  the managed image library, with required alternative text and optional
+  captions. Accidental-discovery and evidence guidance avoids treating
+  unpublished edge cases as
+  approved behaviour.
 - Managed Pages include dedicated Community Statistics and Card Group blocks.
   Standard and linked action cards can be mixed within one group. The homepage
   uses three destination-led linked cards and replaces

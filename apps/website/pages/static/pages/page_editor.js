@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         width: [["inherit", "Use page width"], ["narrow", "Narrow"], ["standard", "Standard"], ["wide", "Wide"], ["full", "Full width"]],
         layout: [["single", "Single column"], ["two", "Two equal columns"], ["wide_left", "Two columns - wide left"], ["wide_right", "Two columns - wide right"], ["three", "Three columns"], ["four", "Four columns"]],
         tab_layout: [["two", "Two tabs"], ["three", "Three tabs"], ["four", "Four tabs"]],
+        tabs_orientation: [["horizontal", "Horizontal"], ["vertical", "Vertical"]],
         background: [["default", "Page background"], ["surface", "Raised surface"], ["alternate", "Alternate surface"], ["alternate_full", "Alternate surface - full width"]],
         vertical_padding: [["standard", "Standard"], ["compact", "Compact"], ["none", "None"]],
         separator_style: [["space", "Space only"], ["line", "Subtle line"], ["accent", "Accent line"]],
@@ -318,6 +319,7 @@ document.addEventListener("DOMContentLoaded", () => {
         vertical_padding: sectionPanel.querySelector(':scope > .page-section-body [data-key="vertical_padding"]')?.value || "standard",
         separator_style: sectionPanel.querySelector(':scope > .page-section-body [data-key="separator_style"]')?.value || "space",
         separator_spacing: sectionPanel.querySelector(':scope > .page-section-body [data-key="separator_spacing"]')?.value || "standard",
+        tabs_orientation: sectionPanel.querySelector(':scope > .page-section-body [data-key="tabs_orientation"]')?.value || "horizontal",
         tabs_config: [...sectionPanel.querySelectorAll(":scope > .page-section-body .page-column-editor")]
             .filter((columnPanel) => columnPanel.querySelector('[data-key="tab_label"]'))
             .map((columnPanel) => ({
@@ -624,6 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
         is_visible: true, section_type: sectionType, width: "inherit", layout: "single",
         background: "default", full_bleed_background: false, vertical_padding: "standard",
         separator_style: "space", separator_spacing: "standard",
+        tabs_orientation: "horizontal",
         tabs_config: sectionType === "tabs" ? defaultTabs(3) : [],
         blocks: [],
     });
@@ -749,6 +752,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     selectField("Background", "background", section.background || "default", choices.background),
                     selectField("Vertical padding", "vertical_padding", section.vertical_padding || "standard", choices.vertical_padding)
                 );
+                if ((section.section_type || "content") === "tabs") {
+                    settings.append(selectField(
+                        "Tab orientation",
+                        "tabs_orientation",
+                        section.tabs_orientation || "horizontal",
+                        choices.tabs_orientation
+                    ));
+                }
                 if (section.background === "alternate") {
                     settings.append(checkboxField("Extend background to screen edges", "full_bleed_background", section.full_bleed_background));
                 }
@@ -1093,6 +1104,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             if (event.target.value === "tabs") {
                 section.layout = ["two", "three", "four"].includes(section.layout) ? section.layout : "three";
+                section.tabs_orientation = section.tabs_orientation || "horizontal";
                 section.tabs_config = section.tabs_config?.length
                     ? section.tabs_config
                     : defaultTabs(columnCounts[section.layout] || 3);

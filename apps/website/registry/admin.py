@@ -29,6 +29,8 @@ from .models import (
     LegacyRun,
     LegacyRunClaim,
     LegacyRunSubmission,
+    ExploitRuling,
+    ExploitRulingImage,
     Notification,
     Participant,
     RunSubmission,
@@ -39,6 +41,52 @@ from .models import (
 )
 from .legacy_imports import apply_legacy_import, create_legacy_import_review
 from .legacy_submissions import legacy_submission_strength
+
+
+class ExploitRulingImageInline(admin.TabularInline):
+    model = ExploitRulingImage
+    extra = 0
+    fields = ("image", "alternative_text", "caption", "position")
+    ordering = ("position", "pk")
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+        if db_field.name == "image" and formfield:
+            widget = formfield.widget
+            select_widget = getattr(widget, "widget", widget)
+            select_widget.attrs["class"] = (
+                f"{select_widget.attrs.get('class', '')} media-library-select".strip()
+            )
+            select_widget.attrs["data-library-url"] = reverse(
+                "admin:branding_managedimage_library"
+            )
+            for permission_name in (
+                "can_add_related",
+                "can_change_related",
+                "can_delete_related",
+                "can_view_related",
+            ):
+                if hasattr(widget, permission_name):
+                    setattr(widget, permission_name, False)
+        return formfield
+
+
+@admin.register(ExploitRuling)
+class ExploitRulingAdmin(admin.ModelAdmin):
+    list_display = ("title", "classification", "is_published", "position", "updated_at")
+    list_editable = ("classification", "is_published", "position")
+    list_filter = ("classification", "is_published")
+    search_fields = ("title", "ruling", "guidance")
+    prepopulated_fields = {"slug": ("title",)}
+    fieldsets = (
+        ("Ruling", {"fields": ("title", "slug", "classification", "ruling", "guidance")}),
+        ("Publishing", {"fields": ("is_published", "position")}),
+    )
+    inlines = (ExploitRulingImageInline,)
+
+    class Media:
+        css = {"all": ("branding/media_library.css",)}
+        js = ("branding/media_library.js",)
 
 
 @admin.register(LegacyRun)

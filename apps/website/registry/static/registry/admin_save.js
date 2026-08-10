@@ -39,6 +39,12 @@
         });
     };
 
+    const clearValidationErrors = () => {
+        document.querySelectorAll(".errornote, .errorlist").forEach((error) => error.remove());
+        form.querySelectorAll(".errors").forEach((element) => element.classList.remove("errors"));
+        form.querySelectorAll('[aria-invalid="true"]').forEach((field) => field.removeAttribute("aria-invalid"));
+    };
+
     const adoptSavedLocation = (savedDocument, responseUrl) => {
         const savedForm = savedDocument.querySelector("body.change-form form[id$='_form']");
         const savedEditor = savedDocument.querySelector("[data-page-editor]");
@@ -97,15 +103,16 @@
                 const savedForm = savedDocument.querySelector("body.change-form form[id$='_form']");
                 const hasErrors = savedDocument.querySelector(".errornote, .errorlist");
                 if (savedForm && !hasErrors) {
-                updateReadonlyFields(savedDocument);
-                adoptSavedLocation(savedDocument, response.url);
-                form.querySelectorAll('input[type="file"]').forEach((input) => { input.value = ""; });
-                form.dispatchEvent(new CustomEvent("rat-race:admin-save-success", {
-                    detail: {document: savedDocument, responseUrl: response.url},
-                }));
-                setDirty(false);
-                showToast("Changes saved");
-                return;
+                    clearValidationErrors();
+                    updateReadonlyFields(savedDocument);
+                    adoptSavedLocation(savedDocument, response.url);
+                    form.querySelectorAll('input[type="file"]').forEach((input) => { input.value = ""; });
+                    form.dispatchEvent(new CustomEvent("rat-race:admin-save-success", {
+                        detail: {document: savedDocument, responseUrl: response.url},
+                    }));
+                    setDirty(false);
+                    showToast("Changes saved");
+                    return;
                 }
                 form.dataset.adminSaveBypass = "true";
                 continueButton.disabled = false;

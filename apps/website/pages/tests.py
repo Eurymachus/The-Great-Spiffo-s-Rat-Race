@@ -9,7 +9,13 @@ from django.urls import reverse
 
 from branding.models import ManagedImage
 from config.context_processors import navigation_tree
-from registry.models import ChallengeRun, Participant, RunSubmission
+from registry.models import (
+    ChallengeRun,
+    ExploitRuling,
+    ExploitRulingImage,
+    Participant,
+    RunSubmission,
+)
 
 from .models import (
     CodeManagedPage,
@@ -41,6 +47,7 @@ class ManagedPageTests(TestCase):
             "vertical_padding": section.vertical_padding,
             "separator_style": section.separator_style,
             "separator_spacing": section.separator_spacing,
+            "tabs_orientation": section.tabs_orientation,
             "tabs_config": section.tabs_config,
             "blocks": [{
                 "id": block.pk,
@@ -110,11 +117,94 @@ class ManagedPageTests(TestCase):
         self.assertContains(response, 'data-managed-tabs')
         self.assertContains(response, "1,000,000 zombie kills")
         self.assertContains(response, 'href="/mods/"')
+        self.assertContains(response, 'href="/exploits/"')
         self.assertTrue(
             NavigationItem.objects.filter(
                 label="Rules", page=rules, is_visible=True
             ).exists()
         )
+
+    def test_seeded_exploits_page_is_public_beneath_mods(self):
+        exploits = Page.objects.get(public_path="exploits")
+
+        response = self.client.get(exploits.get_absolute_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Exploits and Edge Cases")
+        self.assertContains(response, "Running skill abuse")
+        self.assertContains(response, "Trapped-animal Nimble farming")
+        self.assertContains(response, "Purposeful zombie force-spawning")
+        self.assertContains(response, "Combat-built fence and window grids")
+        self.assertNotContains(response, "Magic Irvington Gun Field")
+        self.assertContains(response, "Trap bait duplication")
+        self.assertContains(response, "Boosting black levels to see at night")
+        self.assertContains(response, "managed-tabs-vertical")
+        self.assertContains(response, 'aria-orientation="vertical"')
+        self.assertContains(response, "mods-hero exploits-hero")
+        self.assertNotContains(response, "When in doubt, ask before acting.")
+        published_slugs = list(
+            ExploitRuling.objects.filter(is_published=True).values_list("slug", flat=True)
+        )
+        self.assertEqual(
+            published_slugs,
+            [
+                "trapped-animal-nimble-farming",
+                "combat-built-fence-and-window-grids",
+                "purposeful-zombie-force-spawning",
+                "boosting-black-levels-to-see-at-night",
+                "trap-bait-duplication",
+                "running-skill-abuse",
+            ],
+        )
+
+        rules_item = NavigationItem.objects.get(parent__isnull=True, label="Rules")
+        mods_item = NavigationItem.objects.get(parent=rules_item, label="Mods")
+        exploits_item = NavigationItem.objects.get(
+            parent=rules_item,
+            label="Exploits",
+            page=exploits,
+            is_visible=True,
+        )
+        self.assertLess(mods_item.position, exploits_item.position)
+
+    def test_exploit_ruling_displays_managed_example_images(self):
+        image = ManagedImage.objects.bulk_create([ManagedImage(
+            name="Fence exploit example",
+            image="branding/library/fence-example.png",
+            original_filename="fence-example.png",
+        )])[0]
+        ruling = ExploitRuling.objects.get(slug="combat-built-fence-and-window-grids")
+        ExploitRulingImage.objects.create(
+            ruling=ruling,
+            image=image,
+            alternative_text="A combat-built fence grid trapping zombies",
+            caption="This arrangement is prohibited.",
+        )
+
+        response = self.client.get("/exploits/")
+
+        self.assertContains(response, 'src="/media/branding/library/fence-example.png"')
+        self.assertContains(response, 'alt="A combat-built fence grid trapping zombies"')
+        self.assertContains(response, "This arrangement is prohibited.")
+
+    def test_exploit_editor_uses_managed_image_modal_picker(self):
+        administrator = Participant.objects.create_superuser(
+            email="exploit-editor@example.com",
+            nickname="Exploit Editor",
+            password="test-password-only",
+        )
+        self.client.force_login(administrator)
+        ruling = ExploitRuling.objects.get(slug="running-skill-abuse")
+
+        response = self.client.get(
+            reverse("admin:registry_exploitruling_change", args=(ruling.pk,))
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "branding/media_library.js")
+        self.assertContains(response, "branding/media_library.css")
+        self.assertContains(response, "media-library-select")
+        self.assertContains(response, reverse("admin:branding_managedimage_library"))
 
     def post_payload(self, payload, **page_overrides):
         data = {
@@ -219,7 +309,7 @@ class ManagedPageTests(TestCase):
 
         self.assertContains(response, 'class="managed-cta-card"', count=2)
         self.assertContains(response, "Check Your Mods")
-        self.assertNotContains(response, 'href="/mods/"')
+        self.assertContains(response, 'href="/mods/"', count=1)
 
     def test_page_editor_saves_manual_call_to_action_card_labels(self):
         self.login_superuser("cta-number-editor@example.com")
@@ -689,6 +779,7 @@ class ManagedPageTests(TestCase):
             "name": "Rules categories",
             "section_type": PageSection.SectionType.TABS,
             "layout": PageSection.Layout.THREE,
+            "tabs_orientation": PageSection.TabsOrientation.VERTICAL,
             "tabs_config": [
                 {"label": "Getting Started", "description": "Begin your run.", "is_default": True},
                 {"label": "Fair Play", "description": "Play cleanly.", "is_default": False},
@@ -703,13 +794,18 @@ class ManagedPageTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.section.refresh_from_db()
         self.assertEqual(self.section.section_type, PageSection.SectionType.TABS)
+        self.assertEqual(self.section.tabs_orientation, PageSection.TabsOrientation.VERTICAL)
         self.assertEqual(
             [tab["slug"] for tab in self.section.tabs_config],
             ["getting-started", "fair-play", "evidence"],
         )
         public_response = self.client.get(reverse("registry:home"))
         self.assertContains(public_response, 'data-managed-tabs')
-        self.assertContains(public_response, 'role="tablist" aria-label="Rules categories"')
+        self.assertContains(public_response, "managed-tabs-vertical")
+        self.assertContains(
+            public_response,
+            'role="tablist" aria-label="Rules categories" aria-orientation="vertical"',
+        )
         self.assertContains(public_response, 'data-tab-slug="fair-play"')
         self.assertContains(public_response, 'role="tabpanel"')
         self.assertContains(public_response, "Begin your run.")

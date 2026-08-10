@@ -2403,6 +2403,24 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Run moderation")
         self.assertContains(response, "Platform integrations")
 
+    def test_registry_app_landing_redirects_to_first_permitted_group_model(self):
+        user = get_user_model().objects.create_superuser(
+            email="registry-index-admin@example.com",
+            nickname="Registry Index Admin",
+            password="test-password-only",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(
+            reverse("admin:app_list", kwargs={"app_label": "registry"})
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("admin:registry_participant_changelist"),
+            fetch_redirect_response=False,
+        )
+
     def test_csv_export_contains_selected_registration(self):
         self.client.post(reverse("registry:register"), self.registration_data())
 

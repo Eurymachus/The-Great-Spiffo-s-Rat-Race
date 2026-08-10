@@ -51,6 +51,7 @@ from .models import (
     LegacyRun,
     LegacyRunClaim,
     LegacyRunSubmission,
+    ExploitRuling,
     Notification,
     Participant,
     RunSubmission,
@@ -762,6 +763,18 @@ def mods_catalogue(request):
             "submission_form": form,
             "open_submission_modal": open_submission_modal,
         },
+    )
+
+
+@require_http_methods(["GET"])
+def exploits_catalogue(request):
+    rulings = ExploitRuling.objects.filter(is_published=True).prefetch_related(
+        "example_images__image"
+    )
+    return render(
+        request,
+        "registry/exploits.html",
+        {"exploit_rulings": rulings},
     )
 
 

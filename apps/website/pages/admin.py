@@ -133,7 +133,7 @@ class PageAdmin(admin.ModelAdmin):
                     for field in (
                         "position", "name", "is_visible", "section_type", "width", "layout",
                         "background", "full_bleed_background", "separator_style",
-                        "separator_spacing", "vertical_padding", "tabs_config",
+                        "separator_spacing", "vertical_padding", "tabs_orientation", "tabs_config",
                     ):
                         setattr(section, field, getattr(submitted_section, field))
                 section.page = form.instance

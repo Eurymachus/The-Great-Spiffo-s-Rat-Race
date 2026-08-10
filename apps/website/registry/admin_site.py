@@ -1,5 +1,6 @@
 from django.contrib.admin import AdminSite
 from django.contrib.admin.apps import AdminConfig
+from django.shortcuts import redirect
 
 
 class RatRaceAdminConfig(AdminConfig):
@@ -24,6 +25,7 @@ class RatRaceAdminSite(AdminSite):
             ),
         ),
         ("Mod policy", ("WorkshopMod",)),
+        ("Exploit policy", ("ExploitRuling",)),
         (
             "Platform integrations",
             ("StreamingAccount", "StreamingMedia"),
@@ -39,6 +41,21 @@ class RatRaceAdminSite(AdminSite):
             ),
         ),
     )
+
+    def app_index(self, request, app_label, extra_context=None):
+        if app_label in {"registry", "operations"}:
+            app_list = super().get_app_list(request, app_label)
+            models_by_name = {
+                model["object_name"]: model
+                for app in app_list
+                for model in app["models"]
+            }
+            for _group_name, object_names in self.registry_groups:
+                for object_name in object_names:
+                    model = models_by_name.get(object_name)
+                    if model and model.get("admin_url"):
+                        return redirect(model["admin_url"])
+        return super().app_index(request, app_label, extra_context)
 
     def get_app_list(self, request, app_label=None):
         app_list = super().get_app_list(request, app_label)

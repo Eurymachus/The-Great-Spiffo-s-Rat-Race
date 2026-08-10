@@ -1,8 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const selects = [...document.querySelectorAll("select.media-library-select")];
+    const templateSelect = document.querySelector('select.media-library-select[id*="__prefix__"]');
+    let selects = [...document.querySelectorAll("select.media-library-select")]
+        .filter((select) => !select.id.includes("__prefix__"));
     const managerButton = document.querySelector("[data-media-library-manager]");
     const galleryTriggers = [...document.querySelectorAll(".managed-image-gallery-trigger")];
-    if (!selects.length && !managerButton && !galleryTriggers.length) return;
+    if (!selects.length && !templateSelect && !managerButton && !galleryTriggers.length) return;
 
     if (galleryTriggers.length) {
         const galleryDialog = document.createElement("dialog");
@@ -60,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    const libraryUrl = selects[0]?.dataset.libraryUrl || managerButton?.dataset.mediaLibraryManager;
+    const libraryUrl = selects[0]?.dataset.libraryUrl || templateSelect?.dataset.libraryUrl || managerButton?.dataset.mediaLibraryManager;
     if (!libraryUrl) return;
     const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]')?.value || "";
     let activeSelect = null;
@@ -282,9 +284,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || "Upload failed.");
             library = result.images;
+            const uploaded = result.results.filter((item) => item.ok);
             const failures = result.results.filter((item) => !item.ok);
             pending = failures.map((item) => ({file: {name: item.filename, size: 0}, name: "", error: item.error, preview: ""}));
             refreshSelects();
+            if (activeSelect && uploaded.length === 1 && failures.length === 0) {
+                activeSelect.value = String(uploaded[0].image.id);
+                activeSelect.dispatchEvent(new Event("change", {bubbles: true}));
+                updateControlPreview(activeSelect);
+                dialog.close();
+                return;
+            }
             if (!uploadOnly) renderLibrary();
             renderPending();
             uploadSummary.textContent = failures.length ? "Some files could not be uploaded." : "Upload complete.";
@@ -309,7 +319,10 @@ document.addEventListener("DOMContentLoaded", () => {
     dialog.querySelector(".media-modal-close").addEventListener("click", () => dialog.close());
     dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
 
-    selects.forEach((select) => {
+    const bindSelect = (select) => {
+        if (select.dataset.mediaLibraryBound === "true") return;
+        select.dataset.mediaLibraryBound = "true";
+        if (!selects.includes(select)) selects.push(select);
         const wrapper = document.createElement("div");
         wrapper.className = "media-picker-control";
         select.parentNode.insertBefore(wrapper, select);
@@ -334,6 +347,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         wrapper.append(current, choose, clear);
         select.addEventListener("change", () => updateControlPreview(select));
+        updateControlPreview(select);
+    };
+
+    selects.forEach(bindSelect);
+    document.addEventListener("formset:added", (event) => {
+        event.target.querySelectorAll?.("select.media-library-select").forEach(bindSelect);
+        loadLibrary().catch(() => {});
     });
 
     managerButton?.addEventListener("click", () => openModal({uploadsOnly: true}));

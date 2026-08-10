@@ -320,6 +320,66 @@ class WorkshopMod(models.Model):
         return self.title
 
 
+class ExploitRuling(models.Model):
+    class Classification(models.TextChoices):
+        BANNED = "banned", "Banned exploit"
+        AVOID = "avoid", "Avoid if possible"
+
+    title = models.CharField(max_length=160, unique=True)
+    slug = models.SlugField(max_length=170, unique=True)
+    classification = models.CharField(
+        max_length=16,
+        choices=Classification.choices,
+        db_index=True,
+    )
+    ruling = models.TextField(
+        help_text="The concise public ruling shown first on the Exploits page."
+    )
+    guidance = models.TextField(
+        blank=True,
+        help_text="Optional clarification, examples, or boundaries for this ruling.",
+    )
+    position = models.PositiveSmallIntegerField(default=0, db_index=True)
+    is_published = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("position", "title")
+        verbose_name = "exploit ruling"
+        verbose_name_plural = "exploit rulings"
+
+    def __str__(self):
+        return self.title
+
+
+class ExploitRulingImage(models.Model):
+    ruling = models.ForeignKey(
+        ExploitRuling,
+        on_delete=models.CASCADE,
+        related_name="example_images",
+    )
+    image = models.ForeignKey(
+        "branding.ManagedImage",
+        on_delete=models.PROTECT,
+        related_name="exploit_ruling_examples",
+    )
+    alternative_text = models.CharField(
+        max_length=240,
+        help_text="Describe the useful content of the image for visitors who cannot see it.",
+    )
+    caption = models.CharField(max_length=240, blank=True)
+    position = models.PositiveSmallIntegerField(default=0, db_index=True)
+
+    class Meta:
+        ordering = ("position", "pk")
+        verbose_name = "exploit example image"
+        verbose_name_plural = "exploit example images"
+
+    def __str__(self):
+        return self.caption or self.image.name
+
+
 class WorkshopModVote(models.Model):
     class Decision(models.TextChoices):
         ALLOW = "allow", "Allow"

@@ -44,6 +44,7 @@ class PageEditorForm(forms.ModelForm):
                     "vertical_padding": section.vertical_padding,
                     "separator_style": section.separator_style,
                     "separator_spacing": section.separator_spacing,
+                    "tabs_orientation": section.tabs_orientation,
                     "tabs_config": section.normalised_tabs() if section.section_type == PageSection.SectionType.TABS else [],
                     "blocks": [
                         {
@@ -135,6 +136,7 @@ class PageEditorForm(forms.ModelForm):
                 vertical_padding=raw.get("vertical_padding", PageSection.VerticalPadding.STANDARD),
                 separator_style=raw.get("separator_style", PageSection.SeparatorStyle.SPACE),
                 separator_spacing=raw.get("separator_spacing", PageSection.SeparatorSpacing.STANDARD),
+                tabs_orientation=raw.get("tabs_orientation", PageSection.TabsOrientation.HORIZONTAL),
                 tabs_config=raw.get("tabs_config") or [],
             )
             section.full_clean(exclude=("page",))

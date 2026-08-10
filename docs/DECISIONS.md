@@ -818,3 +818,19 @@ a normal run-moderation bulk action.
   card is one complete accessible link with a heading, concise explanation,
   alt text and validated destination rather than presenting passive numbered
   registration steps or a separate button.
+# 2026-08-09 - Publish exploit guidance beneath Rules
+
+- Exploit guidance is a dedicated managed public page at `/exploits/`, not a
+  hard-coded template or an extension of the Mods catalogue.
+- The Exploits navigation item sits under Rules immediately after Mods.
+- The page publishes the general fair-play boundary, evidence expectations for
+  accidental discovery and a managed area for specific rulings.
+- An exploit or edge case is not approved merely because no specific ruling has
+  been published. Rat Racers should ask publicly before relying on uncertain
+  behaviour in an official run.
+# 2026-08-09 - Managed tab sections support horizontal and vertical orientation
+
+- Tab orientation is configured at section level, independently of tab count and content.
+- Existing and newly created tab sections default to horizontal orientation.
+- Vertical tabs use a left-hand rail on wider layouts and return to the horizontal mobile scroller on narrow layouts.
+- Both orientations retain the existing card styling, fade transition, URL fragments, and accessible tab semantics.

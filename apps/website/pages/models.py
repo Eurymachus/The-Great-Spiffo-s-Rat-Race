@@ -269,6 +269,10 @@ class PageSection(models.Model):
         THREE = "three", "Three columns"
         FOUR = "four", "Four columns"
 
+    class TabsOrientation(models.TextChoices):
+        HORIZONTAL = "horizontal", "Horizontal"
+        VERTICAL = "vertical", "Vertical"
+
     class Background(models.TextChoices):
         DEFAULT = "default", "Page background"
         SURFACE = "surface", "Raised surface"
@@ -316,6 +320,11 @@ class PageSection(models.Model):
     )
     separator_spacing = models.CharField(
         max_length=16, choices=SeparatorSpacing.choices, default=SeparatorSpacing.STANDARD
+    )
+    tabs_orientation = models.CharField(
+        max_length=16,
+        choices=TabsOrientation.choices,
+        default=TabsOrientation.HORIZONTAL,
     )
     tabs_config = models.JSONField(
         "tabs",

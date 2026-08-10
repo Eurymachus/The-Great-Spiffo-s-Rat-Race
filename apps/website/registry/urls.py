@@ -54,6 +54,7 @@ urlpatterns = [
     ),
     path("leaderboard/", views.leaderboard, name="leaderboard"),
     path("mods/", views.mods_catalogue, name="mods"),
+    path("exploits/", views.exploits_catalogue, name="exploits"),
     path("mods/workshop-lookup/", views.workshop_mod_lookup, name="workshop_mod_lookup"),
     path("runs/<uuid:run_id>/", views.public_run_detail, name="public_run_detail"),
     path(
