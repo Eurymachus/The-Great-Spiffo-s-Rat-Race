@@ -19,6 +19,18 @@ if (-not (Test-Path -LiteralPath $environmentPath)) {
     throw "The local .env file is required."
 }
 
+# Windows environment names are case-insensitive, but Start-Process can receive
+# both PATH and Path from some parent applications and reject the duplicate key.
+$processEnvironment = [Environment]::GetEnvironmentVariables("Process")
+$pathKeys = @($processEnvironment.Keys | Where-Object { $_ -ieq "Path" })
+if ($pathKeys.Count -gt 1) {
+    $pathValue = [Environment]::GetEnvironmentVariable("Path", "Process")
+    foreach ($pathKey in $pathKeys) {
+        [Environment]::SetEnvironmentVariable([string]$pathKey, $null, "Process")
+    }
+    [Environment]::SetEnvironmentVariable("Path", $pathValue, "Process")
+}
+
 Get-Content -LiteralPath $environmentPath | ForEach-Object {
     $line = $_.Trim()
     if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
