@@ -291,6 +291,9 @@ TRUST_CLOUDFLARE_CONNECTING_IP = False
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+RELEASE_ID = os.environ.get("RELEASE_ID", "development")
+REFERENCE_WORKER_HEARTBEAT_INTERVAL_SECONDS = 15
+REFERENCE_WORKER_HEARTBEAT_TTL_SECONDS = 60
 
 # The full Project Zomboid reference installation is maintained by a scheduled,
 # host-level command. Steam's cached session remains in SteamCMD's protected

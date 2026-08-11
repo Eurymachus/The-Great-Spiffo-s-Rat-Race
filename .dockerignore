@@ -1,0 +1,15 @@
+.env
+.env.production
+.git
+.github
+.venv
+.codex-runtime
+**/__pycache__
+**/*.pyc
+apps/website/db.sqlite3
+apps/website/media
+apps/website/private_uploads
+apps/website/staticfiles
+deployment/runtime
+server-*.log
+website-server*.log

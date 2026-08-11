@@ -20,6 +20,8 @@ from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import include, path
 
+from . import health
+
 
 def admin_home(request):
     if request.user.is_authenticated and request.user.has_perm(
@@ -37,6 +39,8 @@ def admin_home(request):
     return redirect("admin:index")
 
 urlpatterns = [
+    path("health/live/", health.liveness, name="health-live"),
+    path("health/ready/", health.readiness, name="health-ready"),
     path(
         'admin/',
         admin_home,

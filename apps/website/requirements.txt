@@ -1,5 +1,8 @@
 Django>=5.2,<5.3
 Pillow>=11,<13
 cryptography>=45,<47
+psycopg[binary]>=3.2,<4
+redis>=6,<7
+whitenoise>=6.9,<7
 uvicorn>=0.35,<1
 pywinpty>=3,<4; sys_platform == "win32"

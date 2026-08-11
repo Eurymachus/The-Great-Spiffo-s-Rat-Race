@@ -10,6 +10,7 @@ from operations.decompilation import run_decompilation
 from operations.models import ReferenceUpdateJob
 from operations.catalogue_review import generate_catalogue_review
 from operations.models import CatalogueImportReview, PZWikiArtworkSyncJob
+from operations.worker_health import WorkerHeartbeat
 from django.db import transaction
 from django.utils import timezone
 
@@ -99,40 +100,45 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         once = options["once"]
         interval = max(options["poll_interval"], 0.25)
+        heartbeat = WorkerHeartbeat()
+        heartbeat.start()
         self.stdout.write("Reference update worker ready.")
-        while True:
-            job = claim_next_reference_update()
-            if job:
-                self.stdout.write(f"Processing reference update #{job.pk}.")
-                if job.operation == ReferenceUpdateJob.Operation.DECOMPILE:
-                    run_decompilation(job)
-                else:
-                    run_reference_update(job)
-                job.refresh_from_db()
-                self.stdout.write(
-                    f"Reference update #{job.pk}: {job.get_status_display()}."
-                )
-            else:
-                review = claim_next_catalogue_review()
-                if review:
-                    self.stdout.write(f"Generating catalogue review #{review.pk}.")
-                    generate_catalogue_review(review)
-                    review.refresh_from_db()
+        try:
+            while True:
+                job = claim_next_reference_update()
+                if job:
+                    self.stdout.write(f"Processing reference update #{job.pk}.")
+                    if job.operation == ReferenceUpdateJob.Operation.DECOMPILE:
+                        run_decompilation(job)
+                    else:
+                        run_reference_update(job)
+                    job.refresh_from_db()
                     self.stdout.write(
-                        f"Catalogue review #{review.pk}: {review.get_status_display()}."
+                        f"Reference update #{job.pk}: {job.get_status_display()}."
                     )
                 else:
-                    artwork_job = claim_next_wiki_icon_sync()
-                    if artwork_job:
+                    review = claim_next_catalogue_review()
+                    if review:
+                        self.stdout.write(f"Generating catalogue review #{review.pk}.")
+                        generate_catalogue_review(review)
+                        review.refresh_from_db()
                         self.stdout.write(
-                            f"Processing PZWiki artwork sync #{artwork_job.pk}."
+                            f"Catalogue review #{review.pk}: {review.get_status_display()}."
                         )
-                        run_wiki_icon_sync(artwork_job)
-                        artwork_job.refresh_from_db()
-                        self.stdout.write(
-                            f"PZWiki artwork sync #{artwork_job.pk}: "
-                            f"{artwork_job.get_status_display()}."
-                        )
-            if once:
-                return
-            time.sleep(interval)
+                    else:
+                        artwork_job = claim_next_wiki_icon_sync()
+                        if artwork_job:
+                            self.stdout.write(
+                                f"Processing PZWiki artwork sync #{artwork_job.pk}."
+                            )
+                            run_wiki_icon_sync(artwork_job)
+                            artwork_job.refresh_from_db()
+                            self.stdout.write(
+                                f"PZWiki artwork sync #{artwork_job.pk}: "
+                                f"{artwork_job.get_status_display()}."
+                            )
+                if once:
+                    return
+                time.sleep(interval)
+        finally:
+            heartbeat.stop()

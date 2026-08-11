@@ -439,3 +439,13 @@ Do not rotate `STREAMING_TOKEN_ENCRYPTION_KEY` without an explicit credential
 migration. Existing encrypted provider tokens must remain decryptable across
 deployments, restarts and rollbacks. A pre-deployment check should verify this
 against stored credentials without printing decrypted tokens.
+
+The repository now includes a strict `config.settings_production` boundary and
+the non-secret environment contract in `.env.example`. Production startup
+requires PostgreSQL, Redis, SMTP email, live Turnstile, avatar moderation, all
+supported connected providers, and the complete Steam reference and
+decompilation toolchain. `/health/live/` identifies the running release, while
+`/health/ready/` verifies the database, shared cache, persistent storage, and a
+recent reference-worker heartbeat from that same release. The full audited
+contract and remaining host-specific work live in
+`docs/PRODUCTION_DEPLOYMENT.md`.

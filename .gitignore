@@ -1,5 +1,6 @@
 # Local development
 .env
+.env.production
 .venv/
 __pycache__/
 *.py[cod]
@@ -14,6 +15,8 @@ server-*.log
 website-server*.log
 *.log
 .codex-runtime/
+deployment/runtime/*
+!deployment/runtime/.gitkeep
 tempwiki.html
 
 # Editors and operating systems
