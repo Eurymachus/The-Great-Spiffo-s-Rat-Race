@@ -10,25 +10,12 @@ it part of the active deliverable.
   coherent interaction system. Revisit spacing, alignment, hierarchy,
   open/close behaviour and third-level navigation on both layouts rather than
   continuing with isolated cosmetic adjustments.
-- Participant accounts and profiles
-- Paste-to-submit encoded run updates
-- Moderator approval, rejection, review, and invalidation tools
-- Public leaderboards with active and ended runs
-- Detailed player and run analysis
-- After the final export contract is settled, keep the dashboard run modal as a
-  concise summary and add a **View details** action to a dedicated page for that
-  run. Present the complete approved dataset in participant-friendly language,
-  with useful chronology, comparisons, and charts rather than raw import fields.
-  Give each eligible run a stable, publicly accessible and shareable address.
-  Public pages expose only the canonical moderator-approved run state; pending
-  and declined submissions, review notes, raw hashes, and ingestion metadata
-  remain private.
-- Extend managed Pages with reusable dynamic page templates rather than creating
-  one Page record per database object. Initial template types should include
-  **Run details** (rendered with one approved run as context) and **Leaderboard**
-  (rendered with an approved, filterable ranking dataset). Administrators retain
-  control of surrounding copy, section ordering, and enabled data/chart blocks;
-  Django owns querying, eligibility, privacy, and canonical values.
+- Add a signed-in, filterable Run History page.
+- Add a concise public Top Ten summary if it provides a useful destination
+  beyond the configurable Rankings page.
+- Add signed-in participant search as a discovery layer for public profiles.
+- Add separately cached provider online status to ranking rows.
+- Expand approved run details with useful chronology, comparisons, and charts.
 - Aggregate charts such as traits and weapons used
 
 ## Challenge Operations
@@ -49,9 +36,8 @@ it part of the active deliverable.
 
 ## Report Data
 
-- Original and current traits
-- Current skill levels
 - Per-day aggregate deltas
-- Lifetime kills by weapon
-- Outpost progress
-- Versioned report schema and synthetic long-run size tests
+- Public presentation of lifetime kills by weapon, literature, and collectible
+  evidence already present in approved exports.
+- Additional versioned report-schema and synthetic long-run size tests when the
+  export contract changes.

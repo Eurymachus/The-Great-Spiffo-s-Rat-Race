@@ -8,8 +8,9 @@
 
 ## Goal
 
-Launch a small public website where prospective Rat Race participants can reserve
-a nickname using a verified email address.
+Prepare the public Rat Race platform for deployment. Participants can create a
+verified account, submit evidence-backed runs, follow rankings, inspect approved
+records, and read the managed rules, mod policy, and exploit rulings.
 
 The Project Zomboid catalogue remains a lean lookup and resolver layer.
 Kind-specific classifications and gameplay fields belong to typed detail
@@ -17,12 +18,14 @@ records, while aliases and assets remain shared catalogue relationships.
 
 ## Done When
 
-- The registration page is publicly available.
-- Participant nicknames are unique.
-- Email addresses are verified.
-- A human-verification check protects registration.
-- Registrations can be viewed and administered securely.
-- Basic privacy, deletion, and unsubscribe needs are covered.
+- The production environment, database, persistent media, web process, and
+  reference worker are deployed and recoverable.
+- Required secrets and provider integrations pass deployment health checks.
+- Registration, account, submission, moderation, ranking, Rules, Mods, and
+  Exploits journeys pass a representative production-shaped acceptance test.
+- Retention automation and the final pre-launch privacy review are complete.
+- The final Unstable legacy dataset is imported only after the team selects its
+  cutoff date.
 
 ## Implemented
 
@@ -104,6 +107,12 @@ records, while aliases and assets remain shared catalogue relationships.
   visitors, signed-in participants, or remain hidden. Editors add either card
   type from a split Add card control, and linked-only destination fields remain
   contextual to linked cards.
+- The reusable `Ranking Table` block and editorial `/leaderboard/` Page share
+  one official-run query implementation. Editors can configure additive mode,
+  build, lifecycle, and participant filters; result selection; ordering; row
+  limits; visible columns; and supporting presentation without controlling
+  eligibility or canonical values. Public rendering preserves signed-in detail
+  gates and uses a horizontally scrollable compact table on narrow screens.
 - Flat backend-managed public pages at protected `/pages/<slug>/` addresses,
   with page-owned navigation labels, visibility, and ordering.
 - An immutable Code-managed Pages registry in Website Content administration.
@@ -383,44 +392,30 @@ outward.
 
 ## Recommended next action
 
-Test the complete legacy import, claim and participant-update journeys with the
-final representative development export, then leave the production dataset
-empty until the team selects its final cutoff date.
+Prepare and test the production deployment path, including persistent database
+and media storage, independent web and worker supervision, secret validation,
+health checks, backup, restore, restart, and rollback procedures.
 
-The reusable `Ranking Table` managed-page block is now implemented. Its typed,
-validated configuration supports additive filters for challenge modes, game and
-challenge builds, run lifecycles and selected participants; all, best-per-
-participant and latest-per-participant result selection; ordering and row limits;
-ordered visible columns; and optional heading, introduction, weighting, build and
-detail controls. The editor presents add/remove selectors and an effective-query
-summary. Public rendering uses official runs with approved submissions only and
-preserves the existing signed-in survivor/build detail gates. The current
-leaderboard and managed block share the same ranking query implementation.
+## Remaining work
 
-The public current leaderboard at `/leaderboard/` is now an editorial managed
-Page containing a code-backed `Ranking Table` block. Its former Code-managed Page
-record was retired and existing Navigation Items were transferred to the managed
-Page. Editors can now control its page layout and validated ranking configuration
-without changing scoring or querying code. It ranks each participant's strongest
-active official run using approved snapshots only, omits inactive runs and
-exposes signed-in survivor records and starting-build modals. Guest detail and
-build actions instead open the appropriate sign-up or sign-in prompt. Its
-desktop and mobile presentations use the same compact columnar list; narrow
-screens scroll the leaderboard panel horizontally instead of converting rows
-into cards. The PZWiki Ball-peen Hammer icon identifies the Build column and
-each row's occupation icon opens that survivor's build modal.
+### Before launch
 
-Add reconciled online status to the leaderboard as a separately cached provider
-concern. Keep that work separate from the ranking calculation so the scoring
-formula and public columns can be changed after team review without disturbing
-provider state.
+- Complete retention automation and the final privacy review.
+- Run a production-shaped acceptance test across registration, account,
+  submission, moderation, rankings, Rules, Mods, and Exploits.
+- Test the full legacy import, claim, and participant-update journey with a
+  representative export. Keep production legacy data empty until the team
+  chooses its final cutoff date.
+- Replace any remaining development-only navigation or gallery records before
+  launch.
 
-Participant search remains a nice-to-have discovery layer for the signed-in
-participant profiles. Ranking links provide the initial route into profiles.
-Replace development gallery and navigation records only as their real launch
-destinations become available.
+### Approved later work
 
-Retention automation and a final pre-launch privacy review remain required.
+- Notify participants when an authorised reviewer publishes a final mod ruling.
+- Add separately cached provider online status to the leaderboard.
+- Add signed-in participant search.
+- Build the planned Top Ten summary and signed-in Run History pages when their
+  product requirements are agreed.
 
 ## Launch-critical operational safeguards
 
