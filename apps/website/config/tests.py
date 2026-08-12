@@ -5,11 +5,57 @@ from pathlib import Path
 from unittest import TestCase
 
 from cryptography.fernet import Fernet
+from django.http import HttpResponse
+from django.test import RequestFactory, SimpleTestCase, override_settings
 
+from .middleware import MaintenanceModeMiddleware
 from .production_environment import (
     TURNSTILE_TEST_SITE_KEY,
     validate_production_environment,
 )
+
+
+@override_settings(
+    SITE_MAINTENANCE_MODE=True,
+    ALLOWED_HOSTS=["tgsrr.com", "127.0.0.1"],
+)
+class MaintenanceModeMiddlewareTests(SimpleTestCase):
+    def setUp(self):
+        self.requests = RequestFactory()
+        self.middleware = MaintenanceModeMiddleware(
+            lambda request: HttpResponse("application")
+        )
+
+    def test_public_request_receives_temporary_maintenance_page(self):
+        response = self.middleware(
+            self.requests.get("/", HTTP_HOST="tgsrr.com")
+        )
+        response.render()
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response["Retry-After"], "3600")
+        self.assertEqual(response["Cache-Control"], "no-store, max-age=0")
+        self.assertContains(
+            response,
+            "We're preparing the starting line.",
+            status_code=503,
+        )
+
+    def test_local_request_reaches_application(self):
+        response = self.middleware(
+            self.requests.get("/", HTTP_HOST="127.0.0.1:8000")
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"application")
+
+    def test_health_checks_remain_available_on_public_host(self):
+        for path in ("/health/live/", "/health/ready/"):
+            with self.subTest(path=path):
+                response = self.middleware(
+                    self.requests.get(path, HTTP_HOST="tgsrr.com")
+                )
+                self.assertEqual(response.status_code, 200)
 
 
 def valid_environment():

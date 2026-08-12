@@ -46,6 +46,9 @@ SITE_PRIVACY_EMAIL = os.environ.get(
     "SITE_PRIVACY_EMAIL", "thegreatspiffo@machus.co.uk"
 )
 SITE_PUBLIC_URL = os.environ.get("SITE_PUBLIC_URL", "http://127.0.0.1:8000")
+SITE_MAINTENANCE_MODE = os.environ.get(
+    "SITE_MAINTENANCE_MODE", "false"
+).strip().lower() in {"1", "true", "yes", "on"}
 SITE_FULL_TITLE = os.environ.get(
     "SITE_FULL_TITLE", "The Great Spiffo's Rat Race"
 )
@@ -149,6 +152,7 @@ LOGOUT_REDIRECT_URL = 'registry:home'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'config.middleware.MaintenanceModeMiddleware',
     'config.middleware.DevelopmentNoStoreMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

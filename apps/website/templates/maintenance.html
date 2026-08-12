@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>The Great Spiffo's Rat Race — Preparing the starting line</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f2ecd7;
+      --muted: #b9b6a8;
+      --panel: #151d13;
+      --edge: #3d4d31;
+      --accent: #f2a12d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+      background:
+        radial-gradient(circle at 50% 15%, #27351f 0, #11170f 44%, #090d08 100%);
+      color: var(--ink);
+      font-family: "Arial Narrow", "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(44rem, 100%);
+      padding: clamp(2rem, 6vw, 4rem);
+      text-align: center;
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      border: 1px solid var(--edge);
+      border-top: 4px solid var(--accent);
+      box-shadow: 0 1.5rem 5rem #0008;
+    }
+    .eyebrow {
+      margin: 0 0 1rem;
+      color: var(--accent);
+      font-size: .8rem;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 8vw, 4.5rem);
+      line-height: .95;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .rule {
+      width: 5rem;
+      height: 3px;
+      margin: 2rem auto;
+      background: var(--accent);
+    }
+    p {
+      max-width: 32rem;
+      margin: 0 auto;
+      color: var(--muted);
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      line-height: 1.65;
+    }
+    strong { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">An unofficial Project Zomboid challenge</p>
+    <h1>The Great Spiffo's Rat Race</h1>
+    <div class="rule" aria-hidden="true"></div>
+    <p><strong>We're preparing the starting line.</strong><br>
+      The official Rat Race challenge website will be opening soon.</p>
+  </main>
+</body>
+</html>
