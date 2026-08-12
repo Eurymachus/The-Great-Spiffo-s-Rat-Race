@@ -26,6 +26,19 @@ Copy-Item -LiteralPath (Join-Path $modSource "common") -Destination $modOutput -
 Copy-Item -LiteralPath (Join-Path $modSource "42.20") -Destination $modOutput -Recurse
 Copy-Item -LiteralPath $previewSource -Destination $resolvedOutput
 
+$testModInfoPath = Join-Path $modOutput "42.20/mod.info"
+$testModInfo = Get-Content -LiteralPath $testModInfoPath
+$testModInfo = $testModInfo | ForEach-Object {
+    if ($_ -match '^id=') {
+        "id=TGSRR-test"
+    } elseif ($_ -match '^name=') {
+        "name=The Great Spiffo's Rat Race - Team Test"
+    } else {
+        $_
+    }
+}
+Set-Content -LiteralPath $testModInfoPath -Value $testModInfo -Encoding UTF8
+
 $metadata = Get-Content -LiteralPath $metadataTemplate
 $metadata = $metadata | ForEach-Object {
     if ($_ -match '^id=') {
@@ -41,5 +54,6 @@ $totalBytes = (Get-ChildItem -LiteralPath $resolvedOutput -Recurse -File | Measu
 
 Write-Output "Prepared unlisted team-test Workshop package: $resolvedOutput"
 Write-Output "Workshop ID: $(if ($WorkshopId) { $WorkshopId } else { '<new item>' })"
+Write-Output "Mod ID: TGSRR-test"
 Write-Output "Files: $fileCount"
 Write-Output "Bytes: $totalBytes"
