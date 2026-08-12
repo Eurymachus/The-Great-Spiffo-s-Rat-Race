@@ -153,7 +153,7 @@ the export contract; their policy and test surfaces are documented in
   accumulated without per-repair ledger events or daily deltas.
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
 - One-second refresh that updates stable list entries in place.
-- Weighted Outposts percentage derived from the arithmetic mean of the 13 weighted individual percentages.
+- Weighted Outposts percentage derived from the arithmetic mean of the 14 weighted individual percentages.
 - Overall Overview progress derived from available required category
   percentages, excluding optional Landmarks.
 - Duplicate-safe vanilla world-map annotations for landmarks and outposts,
@@ -161,7 +161,7 @@ the export contract; their policy and test surfaces are documented in
 - Outpost registration API, 13 definitions, configured core zones, `150x150` clearance bounds, registered BuildingDefs, and manual inaccessible-room exclusions.
 - Room activation via `RoomDef:isExplored()` and loaded-square diagnostics.
 - Persistent outpost discovery when the player enters a configured `150x150` clearance area.
-- Weighted per-outpost progress across all 13 deliverables, strict Complete derivation, Completed / 13 Overview count, and arithmetic-mean aggregate progress.
+- Weighted per-outpost progress across all 14 deliverables, strict Complete derivation, Completed / 13 Overview count, and arithmetic-mean aggregate progress.
 - Persisted per-deliverable discovery baselines and a monotonic `In Progress` stage triggered by non-zombie improvement.
 - Live outpost evaluation on area entry/load, room changes, zombie deaths, and a one-second in-area fallback.
 - Disposable-schema `shared/TGSRR/Outposts/ProgressStore` with normalized, change-only persistent deliverable snapshots.

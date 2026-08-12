@@ -23,35 +23,17 @@ local WINDOW_WIDTH = 800
 local WINDOW_HEIGHT = 650
 local LAUNCHER_SIZE = 58
 local LAUNCHER_MARGIN = 4
-local LAUNCHER_TEXTURE = "Item_DeadRat.png"
-local LAUNCHER_ICON_SIZE = LAUNCHER_SIZE - 8
-local LAUNCHER_STROKE_OFFSETS = {
-    { -1, -1 }, { 0, -1 }, { 1, -1 },
-    { -1,  0 },            { 1,  0 },
-    { -1,  1 }, { 0,  1 }, { 1,  1 },
-}
+local LAUNCHER_TEXTURE_OFF = "media/ui/TGSRR_TrackerLauncher48_off.png"
+local LAUNCHER_TEXTURE_ON = "media/ui/TGSRR_TrackerLauncher48_on.png"
 local DRAG_THRESHOLD = 4
 
 local TGSRRTrackerLauncher = ISButton:derive("TGSRRTrackerLauncher")
 
 function TGSRRTrackerLauncher:render()
-    local image = self.image
-    self.image = nil
+    local window = TGSRRChallengeTrackerWindow.instance
+    local active = self.mouseOver or (window and window:getIsVisible())
+    self.image = active and self.imageOn or self.imageOff
     ISButton.render(self)
-    self.image = image
-    if not image then return end
-
-    local x = (self.width - LAUNCHER_ICON_SIZE) / 2
-    local y = (self.height - LAUNCHER_ICON_SIZE) / 2
-    local alpha = self.textureColor.a
-    local intensity = (self.mouseOver or self.pressed) and 1 or 0.65
-    for _, offset in ipairs(LAUNCHER_STROKE_OFFSETS) do
-        self:drawTextureScaledAspect(image, x + offset[1], y + offset[2],
-            LAUNCHER_ICON_SIZE, LAUNCHER_ICON_SIZE, alpha, 0, 0, 0)
-    end
-    self:drawTextureScaledAspect(image, x, y, LAUNCHER_ICON_SIZE, LAUNCHER_ICON_SIZE,
-        alpha, self.textureColor.r * intensity, self.textureColor.g * intensity,
-        self.textureColor.b * intensity)
 end
 
 function TGSRRTrackerLauncher:onMouseDown(x, y)
@@ -237,7 +219,9 @@ local function createTracker()
             end)
         launcher:initialise()
         launcher:instantiate()
-        launcher:setImage(getTexture(LAUNCHER_TEXTURE))
+        launcher.imageOff = getTexture(LAUNCHER_TEXTURE_OFF)
+        launcher.imageOn = getTexture(LAUNCHER_TEXTURE_ON)
+        launcher:setImage(launcher.imageOff)
         launcher:setTooltip(L.text("UI_TGSRR_Tracker_Launcher_Tooltip",
             "Open the Rat Race Challenge Tracker (drag to move)"))
         launcher:setDisplayBackground(false)

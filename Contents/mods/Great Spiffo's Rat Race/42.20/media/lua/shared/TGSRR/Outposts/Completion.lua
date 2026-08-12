@@ -13,13 +13,14 @@ local WEIGHTS = {
     generator = 8,
     food = 8,
     plumbed_sink = 8,
-    spare_car = 13,
+    spare_car = 10,
+    engine_start = 3,
 }
 
 local REQUIRED = {
     "room_activation", "floor_activation", "zombie_clearance",
     "window_barricades", "enclosed", "doors_fitted", "doors_closed",
-    "good_bed", "generator", "food", "plumbed_sink", "spare_car",
+    "good_bed", "generator", "food", "plumbed_sink", "spare_car", "engine_start",
 }
 
 local function clamp(value)
@@ -41,12 +42,7 @@ end
 local function spareCarRatio(deliverable)
     if not deliverable then return 0 end
     if deliverable.passed then return 1 end
-    local details = deliverable.details
-    local vehicle = details and details.vehicle or nil
-    local tyres = vehicle and vehicle.tyres or nil
-    if type(tyres) ~= "table" then return 0 end
-    local total = 5 + #tyres * 2
-    if #tyres == 0 then total = total + 1 end
+    local total = 5
     local failures = math.max(0, tonumber(deliverable.current) or total)
     return clamp((total - failures) / total)
 end
@@ -72,6 +68,7 @@ function Completion.calculate(record)
         food = ratio(deliverables.food),
         plumbed_sink = deliverables.plumbed_sink and deliverables.plumbed_sink.passed and 1 or 0,
         spare_car = spareCarRatio(deliverables.spare_car),
+        engine_start = deliverables.engine_start and deliverables.engine_start.passed and 1 or 0,
     }
 
     local percent = 0

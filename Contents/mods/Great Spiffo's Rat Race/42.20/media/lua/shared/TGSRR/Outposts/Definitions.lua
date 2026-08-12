@@ -55,11 +55,17 @@ add("echo_creek", "Echo Creek", {3538, 11207, 0}, {3531, 11198, 3555, 11224}, {3
 
 add("ekron", "Ekron", {443, 9923, 0}, {438, 9913, 470, 9942}, {450, 9926}, {
     building("10696053409972226", { underground = true }),
-    building("10696053409972269"),
+    building("10696053409972269", {
+        -- Floors 3 through 5 are inaccessible decorative church-spire rooms.
+        activationLevels = { min = 0, max = 1 },
+    }),
 })
 
 add("fallas_lake", "Fallas Lake", {7222, 8526, 0}, {7217, 8520, 7229, 8539}, {7223, 8529}, {
-    building("9288794490535943"),
+    building("9288794490535943", {
+        -- Floors 2 through 4 are inaccessible decorative church-spire rooms.
+        activationLevels = { min = 0, max = 0 },
+    }),
 })
 
 add("hog_wallow_military_base", "Hog Wallow Military Base", {5559, 12487, 0}, {5536, 12439, 5583, 12505}, {5560, 12472}, {
@@ -70,6 +76,8 @@ add("hog_wallow_military_base", "Hog Wallow Military Base", {5559, 12487, 0}, {5
 add("irvington", "Irvington", {2433, 14227, 0}, {2406, 14211, 2440, 14255}, {2423, 14233}, {
     building("15481162373791744", { underground = true }),
     building("15481162373791782", {
+        -- Floors 3 through 5 are inaccessible decorative church-spire rooms.
+        activationLevels = { min = 0, max = 1 },
         excludeRoomIds = {
             "15481162373792021", -- inaccessible decorative bell tower
         },
@@ -85,15 +93,24 @@ add("march_ridge", "March Ridge", {10330, 12788, 0}, {10317, 12779, 10345, 12816
 })
 
 add("muldraugh", "Muldraugh", {10760, 10165, 0}, {10750, 10160, 10773, 10170}, {10761, 10165}, {
-    building("10977700185374723"),
+    building("10977700185374723", {
+        -- Floors 3 and 4 are inaccessible decorative church-spire rooms.
+        activationLevels = { min = 0, max = 1 },
+    }),
 })
 
 add("riverside", "Riverside", {6549, 5368, 0}, {6542, 5351, 6585, 5387}, {6564, 5369}, {
-    building("5629606908395530"),
+    building("5629606908395530", {
+        -- Floors 3 through 6 are inaccessible decorative church-spire rooms.
+        activationLevels = { min = 0, max = 1 },
+    }),
 })
 
 add("rosewood", "Rosewood", {8134, 11518, 0}, {8118, 11504, 8155, 11525}, {8136, 11514}, {
-    building("12385032119255075"),
+    building("12385032119255075", {
+        -- Floors 4 through 7 are inaccessible decorative church-spire rooms.
+        activationLevels = { min = 0, max = 2 },
+    }),
 })
 
 add("valley_station", "Valley Station", {12849, 4953, 0}, {12843, 4949, 12869, 4965}, {12848, 4957}, {

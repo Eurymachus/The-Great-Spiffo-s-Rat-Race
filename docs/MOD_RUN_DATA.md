@@ -23,6 +23,8 @@ Use [MOD_EXPORT_CHECKLIST.md](MOD_EXPORT_CHECKLIST.md) as the live implementatio
 - Current trait IDs.
 - Kills by full weapon item ID.
 - Loaded mod ID / Workshop ID mappings at run start and timestamped added/removed deltas for both identifier sets at every later session start.
+- Timestamped neutral evidence for every play session started with Project
+  Zomboid debug mode enabled.
 
 Kills, current skill state, and outpost deliverables remain existing normalized challenge capabilities and are not duplicated into every history event.
 
@@ -135,6 +137,12 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   through `LocationTracker.hasVisitedBuilding()` and `getBuildingVisit()`.
   This internal registry is deliberately absent from both ledger and export;
   existing or bootstrapped histories carry `buildingVisitsPartial = true`.
+- Debug mode: after each persisted `session.started` record, TGSRR checks
+  Project Zomboid's exposed `isDebugEnabled()` global. When enabled it writes a
+  console notice and appends one `run.debug.enabled` event for that session.
+  The event carries the session sequence and `session_start` observation reason;
+  the standard ledger envelope supplies UTC and world-age timestamps. It is
+  neutral evidence for website review, not an automatic invalidation decision.
 - Broken weapons use Build 42 `OnBreak` callbacks where defined and a short
   post-`OnWeaponSwing` condition check otherwise. The same item is weakly
   deduplicated across both paths. TGSRR maintains cumulative per-ID totals and
@@ -170,8 +178,8 @@ TGSRR collectors are always registered for Rat Race runs. They use Project Zombo
   speed/step bound to reject teleports and loading discontinuities, retains only
   cumulative metres and a rejected-sample count, and seals daily metre deltas.
 - Day starts, visits, literature, milestones, outposts, injuries,
-  production, and mod sessions: TGSRR records using their appropriate events,
-  aggregates, or semantic checkpoints.
+  production, mod sessions, and debug-enabled sessions: TGSRR records using
+  their appropriate events, aggregates, or semantic checkpoints.
 
 High-frequency values are not appended on every tick. TGSRR records meaningful state transitions and periodic/session/day checkpoints so the canonical history remains compact.
 

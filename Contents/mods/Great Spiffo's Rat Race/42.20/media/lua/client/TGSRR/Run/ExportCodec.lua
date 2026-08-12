@@ -322,7 +322,7 @@ function ExportCodec.selfTest(work)
                     complete = false,
                     progress = 0.42,
                     passedRequirements = 5,
-                    totalRequirements = 13,
+                    totalRequirements = 14,
                     workStartedWorldAgeHours = 15,
                     deliverables = {
                         {

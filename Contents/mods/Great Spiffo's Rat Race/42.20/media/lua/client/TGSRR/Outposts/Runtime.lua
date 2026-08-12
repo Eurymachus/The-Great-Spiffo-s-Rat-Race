@@ -8,12 +8,13 @@ require "TGSRR/Outposts/Checks/RoomActivation"
 require "TGSRR/Outposts/Checks/GroundFloorWindows"
 require "TGSRR/Outposts/Checks/Enclosure"
 require "TGSRR/Outposts/Checks/Fixtures"
-require "TGSRR/Outposts/Checks/Vehicle"
+local VehicleCheck = require "TGSRR/Outposts/Checks/Vehicle"
 
 local Runtime = {}
 local FALLBACK_INTERVAL_MS = 1000
 local CERTIFICATION_GRACE_MS = 10000
 local BASELINE_SETTLE_MS = 10000
+local VEHICLE_LATCH_STREAM_GRACE_MS = 10000
 
 local activeOutpost = nil
 local lastRoom = nil
@@ -22,8 +23,12 @@ local lastPlayerY = nil
 local nextFallbackAt = 0
 local canCertifyAt = 0
 local canSealBaselineAt = 0
+local canValidateMissingLatchedVehicleAt = 0
 local evaluationPending = false
 local updateDeliverable
+local observedEngineStates = {}
+local observedStartingStates = {}
+local armedEngineStarts = {}
 
 local function markDiscovered(outpost)
     return Store.markDiscovered(outpost.id)
@@ -65,6 +70,30 @@ function Runtime.evaluate(outpost, player)
     local food = inspection.checks and inspection.checks.food or nil
     local plumbedSink = inspection.checks and inspection.checks.plumbed_sink or nil
     local spareCar = inspection.checks and inspection.checks.spare_car or nil
+    local previousStart = Store.getDeliverable(outpost.id, "engine_start")
+    local started = previousStart and previousStart.passed == true or false
+    if started then
+        local latchedVehicleId = previousStart.details and previousStart.details.vehicleId or nil
+        local latchedVehicle = latchedVehicleId and VehicleCheck.findBySqlId(latchedVehicleId) or nil
+        if latchedVehicle and VehicleCheck.inSupportArea(outpost, latchedVehicle)
+                and VehicleCheck.hasRequiredLatchState(latchedVehicle) then
+            local facts = VehicleCheck.inspect(latchedVehicle)
+            spareCar = {
+                available = true,
+                passed = true,
+                current = 0,
+                required = 0,
+                state = "latched",
+                fingerprint = "latched:" .. tostring(latchedVehicleId),
+                details = { candidateCount = 1, vehicle = facts, failures = {},
+                    latchedVehicleId = tostring(latchedVehicleId) },
+            }
+        elseif latchedVehicle or (getTimestampMs() >= canValidateMissingLatchedVehicleAt
+                and VehicleCheck.supportAreaFullyLoaded(outpost)) then
+            started = false
+            previousStart = nil
+        end
+    end
     local zombies = countZombies(outpost)
     local activationAvailable = activation and activation.error == nil
         and activation.activatedRooms ~= nil and activation.totalRooms ~= nil
@@ -121,6 +150,16 @@ function Runtime.evaluate(outpost, player)
     if spareCar and spareCar.available == true then
         updateDeliverable(outpost, "spare_car", spareCar)
     end
+    local engineStartAvailable = started or (spareCar and spareCar.passed == true)
+    updateDeliverable(outpost, "engine_start", {
+        available = engineStartAvailable,
+        passed = started,
+        current = started and 1 or 0,
+        required = 1,
+        state = started and "started" or "not_started",
+        fingerprint = started and previousStart and previousStart.fingerprint or nil,
+        details = started and previousStart and previousStart.details or nil,
+    }, true)
     local record = Store.get(outpost.id)
     local completion = Completion.calculate(record)
     if Store.observeCompletion(outpost.id, completion.complete) then
@@ -138,6 +177,7 @@ function Runtime.evaluate(outpost, player)
         food = food and food.available == true,
         plumbed_sink = plumbedSink and plumbedSink.available == true,
         spare_car = spareCar and spareCar.available == true,
+        engine_start = engineStartAvailable,
     }
     local allAuthoritative = true
     for _, available in pairs(progressAvailability) do
@@ -164,8 +204,8 @@ function Runtime.getStatus(id)
     return "discovered"
 end
 
-updateDeliverable = function(outpost, deliverableId, result)
-    if not result or result.available == false then return false end
+updateDeliverable = function(outpost, deliverableId, result, allowUnavailable)
+    if not result or (result.available == false and allowUnavailable ~= true) then return false end
     local changed, current, previous = Store.updateDeliverable(outpost.id, deliverableId, result)
     if not changed then return false end
     Notifications.emit(outpost.id, deliverableId)
@@ -192,6 +232,7 @@ local function updateActiveOutpost(player)
         nextFallbackAt = now + FALLBACK_INTERVAL_MS
         canCertifyAt = now + CERTIFICATION_GRACE_MS
         canSealBaselineAt = now + BASELINE_SETTLE_MS
+        canValidateMissingLatchedVehicleAt = now + VEHICLE_LATCH_STREAM_GRACE_MS
         if outpost then
             markDiscovered(outpost)
         end
@@ -210,6 +251,48 @@ local function onPlayerUpdate(player)
     end
     local outpost = activeOutpost
     if not outpost then return end
+
+    local vehicle = player:getVehicle()
+    if vehicle then
+        local vehicleId = tostring(vehicle:getSqlId())
+        local running = vehicle:isEngineRunning() == true
+        local starting = vehicle:isEngineStarted() == true
+        local previouslyRunning = observedEngineStates[vehicleId]
+        local previouslyStarting = observedStartingStates[vehicleId]
+        observedEngineStates[vehicleId] = running
+        observedStartingStates[vehicleId] = starting
+        local spareCarRecord = Store.getDeliverable(outpost.id, "spare_car")
+        if previouslyStarting ~= true and starting
+                and spareCarRecord and spareCarRecord.passed == true
+                and VehicleCheck.inSupportArea(outpost, vehicle)
+                and VehicleCheck.qualifiesSuccessfulStart(vehicle) then
+            armedEngineStarts[vehicleId] = outpost.id
+        end
+        if previouslyRunning == false and running
+                and armedEngineStarts[vehicleId] == outpost.id
+                and VehicleCheck.inSupportArea(outpost, vehicle)
+                and VehicleCheck.qualifiesSuccessfulStart(vehicle) then
+            local previousStart = Store.getDeliverable(outpost.id, "engine_start")
+            if not previousStart or previousStart.passed ~= true then
+                updateDeliverable(outpost, "engine_start", {
+                    available = true,
+                    passed = true,
+                    current = 1,
+                    required = 1,
+                    state = "started",
+                    fingerprint = vehicleId,
+                    details = {
+                        vehicleId = vehicleId,
+                        scriptName = vehicle:getScriptName(),
+                    },
+                })
+                evaluationPending = true
+            end
+            armedEngineStarts[vehicleId] = nil
+        elseif not starting and not running then
+            armedEngineStarts[vehicleId] = nil
+        end
+    end
 
     local square = player:getCurrentSquare()
     local room = square and square:getRoom() or nil
@@ -231,6 +314,9 @@ local function onZombieDead()
 end
 
 local function onGameStart()
+    observedEngineStates = {}
+    observedStartingStates = {}
+    armedEngineStarts = {}
     local player = getSpecificPlayer(0) or getPlayer()
     if player then
         updateActiveOutpost(player)

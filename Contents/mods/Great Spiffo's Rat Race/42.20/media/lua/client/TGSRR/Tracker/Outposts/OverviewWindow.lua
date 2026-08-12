@@ -78,41 +78,31 @@ local function spareCarTooltip(deliverable)
     local failures = details and details.failures or nil
     if not facts or type(failures) ~= "table" or #failures == 0 then return base end
 
-    local target = "75% " .. L.text("UI_TGSRR_Tracker_Required", "required")
     local labels = {
-        engine = L.text("UI_TGSRR_Vehicle_EngineCondition", "Engine condition"),
+        engine_condition = L.text("UI_TGSRR_Vehicle_EngineCondition", "Engine condition"),
+        engine_quality = L.text("UI_TGSRR_Vehicle_EngineQuality", "Engine quality"),
         fuel = L.text("UI_TGSRR_Vehicle_Fuel", "Fuel"),
-        battery_condition = L.text("UI_TGSRR_Vehicle_BatteryCondition", "Battery condition"),
+        battery = L.text("UI_TGSRR_Vehicle_Battery", "Battery"),
         battery_charge = L.text("UI_TGSRR_Vehicle_BatteryCharge", "Battery charge"),
         driver_seat = L.text("UI_TGSRR_Vehicle_DriverSeat", "Driver's seat"),
-        tyres = L.text("UI_TGSRR_Vehicle_Tyres", "Tyres"),
     }
     local values = {
-        engine = facts.engine and facts.engine.condition or 0,
-        fuel = facts.fuel and facts.fuel.percent or 0,
-        battery_condition = facts.battery and facts.battery.condition or 0,
-        battery_charge = facts.battery and facts.battery.charge or 0,
-        driver_seat = facts.driverSeat and facts.driverSeat.condition or 0,
+        engine_condition = roundedPercent(facts.engine and facts.engine.condition or 0) .. " / 50%",
+        engine_quality = tostring(math.floor(tonumber(facts.engineQuality) or 0)) .. " / >0",
+        fuel = tostring(facts.fuel and facts.fuel.currentRounded or 0) .. " L / >0 L",
+        battery = L.text("UI_TGSRR_Vehicle_NotInstalled", "Not installed"),
+        battery_charge = roundedPercent(facts.battery and facts.battery.charge or 0) .. " / 12.5%",
+        driver_seat = L.text("UI_TGSRR_Vehicle_NotInstalled", "Not installed"),
     }
     local lines = {
         L.text("UI_TGSRR_Vehicle_DoesNotQualify", "This vehicle does not qualify:"),
     }
     for _, failure in ipairs(failures) do
-        local id, partId = tostring(failure):match("^([^:]+):?(.*)$")
+        local id = tostring(failure)
         local label = labels[id]
         local value = values[id]
-        if id == "tyre_condition" or id == "tyre_pressure" then
-            local tyre = facts.parts and facts.parts[partId] or nil
-            local tyreName = getTextOrNull("IGUI_VehiclePart" .. partId)
-                or partId:gsub("Tire", ""):gsub("(%l)(%u)", "%1 %2")
-            local suffix = id == "tyre_condition"
-                and L.text("UI_TGSRR_Vehicle_Condition", "condition")
-                or L.text("UI_TGSRR_Vehicle_Pressure", "pressure")
-            label = tyreName .. " " .. suffix
-            value = tyre and (id == "tyre_condition" and tyre.condition or tyre.pressurePercent) or 0
-        end
         if label then
-            lines[#lines + 1] = "- " .. label .. ": " .. roundedPercent(value) .. " / " .. target
+            lines[#lines + 1] = "- " .. label .. ": " .. tostring(value)
         end
     end
     return table.concat(lines, "\n")
@@ -132,6 +122,9 @@ local function buildRequirements(row)
     local food = deliverables.food
     local plumbedSink = deliverables.plumbed_sink
     local spareCar = deliverables.spare_car
+    local engineStart = deliverables.engine_start
+    local engineStartAvailable = engineStart and engineStart.available == true
+        or spareCar and spareCar.passed == true
     local discovered = runtime.discovered == true
     local activationPassed = activation and activation.passed == true
     local windowValue = windows and
@@ -160,8 +153,18 @@ local function buildRequirements(row)
         sinkValue = L.text("UI_TGSRR_Tracker_Connected", "Connected")
     end
     local spareCarValue = L.text("UI_TGSRR_Tracker_None", "None")
-    if spareCar and spareCar.state == "ready" then
+    if spareCar and (spareCar.state == "ready" or spareCar.state == "latched") then
         spareCarValue = L.text("UI_TGSRR_Tracker_Ready", "Ready")
+    elseif spareCar and spareCar.state == "needs_fuel" then
+        spareCarValue = L.text("UI_TGSRR_Tracker_NeedsFuel", "Needs fuel")
+    elseif spareCar and spareCar.state == "needs_battery_charge" then
+        spareCarValue = L.text("UI_TGSRR_Tracker_NeedsBatteryCharge", "Needs battery charge")
+    elseif spareCar and spareCar.state == "needs_battery" then
+        spareCarValue = L.text("UI_TGSRR_Tracker_NeedsBattery", "Needs battery")
+    elseif spareCar and spareCar.state == "needs_tyres" then
+        spareCarValue = L.text("UI_TGSRR_Tracker_NeedsTyres", "Needs tyres")
+    elseif spareCar and spareCar.state == "needs_driver_seat" then
+        spareCarValue = L.text("UI_TGSRR_Tracker_NeedsDriverSeat", "Needs driver's seat")
     elseif spareCar and spareCar.state == "requirements_unmet" then
         spareCarValue = L.text("UI_TGSRR_Tracker_NeedsRepairs", "Needs repairs")
     end
@@ -212,6 +215,11 @@ local function buildRequirements(row)
             "UI_TGSRR_Tracker_Tooltip_SpareCar", "Park a qualifying spare car within the outpost's support area.",
             spareCarValue, spareCar and (spareCar.passed and "passed" or "pending") or "unavailable",
             spareCarTooltip(spareCar)),
+        requirement("UI_TGSRR_Tracker_EngineStart", "Spare car started",
+            "UI_TGSRR_Tracker_Tooltip_EngineStart",
+            "Available after the Spare car deliverable passes. Successfully start that qualifying car to latch both car deliverables while it remains in the support area with fuel and all required parts installed.",
+            nil, engineStart and engineStart.passed and "passed"
+                or (engineStartAvailable and "pending" or "unavailable")),
     }
     result[4].binaryStatus = true
     return result

@@ -20,7 +20,8 @@ A Completed outpost requires:
 - A connected generator at 100% fuel within the configured outpost core zone; it need not be running.
 - At least 5000 calories of non-spoilable food stored in world-object containers within registered ground-floor outpost rooms. Nested containers stored within those containers count; vehicles, corpses, player inventory, and loose floor items do not.
 - At least one sink in a registered ground-floor outpost room with vanilla `usesExternalWaterSource` plumbing enabled and a currently resolvable external water-source barrel. The barrel may be empty but must remain installed. Other water-piped fixtures do not qualify.
-- A spare car within the outpost support area. The provisional first rule requires a non-wrecked, non-trailer vehicle with at least 75% engine condition, fuel, battery condition and charge, driver-seat condition, and condition and inflation in every script-defined tyre.
+- A spare car within the outpost support area. A qualifying non-wrecked, non-trailer vehicle must have an installed driver's seat, all configured tyres installed, fuel, at least 12.5% battery charge, positive engine quality, and at least 50% engine condition. The 50% engine threshold prevents vanilla's condition-based random running stalls. A key is not required. Battery item condition, tyre condition, and tyre pressure are not checked.
+- `Spare car started`: available only after the `Spare car` deliverable passes. One successful engine start from a qualifying car inside the outpost support area latches both car deliverables to that specific vehicle. They ignore ordinary condition deterioration and battery drain while it remains inside the support area, but both unlatch if that vehicle leaves, runs out of fuel, or loses its engine, fuel tank, battery, driver's seat, or any tyre. Another qualifying car can then satisfy `Spare car`, but requires its own successful start.
 
 ## Consequences
 

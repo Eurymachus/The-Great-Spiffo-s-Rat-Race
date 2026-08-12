@@ -60,7 +60,13 @@ See [MOD_DECISION_004_OUTPOST_CLEARING_AND_COMPLETION.md](MOD_DECISION_004_OUTPO
 - A generator placed within the configured core zone, connected, and at 100% fuel. It need not be running or actively supplying electricity.
 - At least 5000 calories of non-spoilable food stored in world-object containers within registered ground-floor rooms. Food inside nested bags counts; vehicles, corpses, player inventory, and loose floor items do not.
 - At least one sink in a registered ground-floor room plumbed to a currently installed external water-source barrel using vanilla plumbing. The barrel may be empty but must remain resolvable by `FindExternalWaterSource()`. Toilets, showers, baths, and dishwashers do not qualify.
-- Spare car within the support area. The current provisional rule requires 75% engine condition, fuel, battery condition and charge, driver-seat condition, and condition and inflation for every script-defined tyre.
+- Spare car within the support area. A qualifying non-wrecked, non-trailer vehicle must have an installed driver's seat, all configured tyres installed, fuel, at least 12.5% battery charge, positive engine quality, and at least 50% engine condition. This uses the practical Build 42.20 ignition requirements, excludes engines subject to vanilla's below-50% random running stalls, and additionally requires a complete set of tyres. No key is required. Battery item condition, tyre condition, and tyre pressure are not checked.
+
+When fuel, an installed battery, battery charge, installed tyres, or the driver's seat is the car's only unmet requirement, the tracker reports `Needs fuel`, `Needs battery`, `Needs battery charge`, `Needs tyres`, or `Needs driver's seat`. Other failed combinations report `Needs repairs`.
+
+`Spare car started` becomes available only after `Spare car` passes. It requires one observed successful engine start from a qualifying car while it is inside the support area. The runtime arms the proof when the engine enters its starting sequence while `Spare car` is passed, then awards it only if that attempt reaches the running state. This preserves the valid attempt if vanilla's immediate 2.5% starter drain causes `Spare car` to regress before the delayed running transition. Failed attempts clear the arm and award nothing. The first observation of an already-running vehicle does not count.
+
+A successful start latches both `Spare car` and `Spare car started` to that vehicle's SQL ID. Ordinary condition deterioration and battery drain do not regress either while the vehicle remains inside the support area. Running out of fuel or removing its engine, fuel tank, battery, driver's seat, or any tyre immediately unlatches both. Once the support area is fully streamed and that specific vehicle is confirmed outside it, both also unlatch. Reloading grants the vehicle registry a short streaming grace before an absent vehicle can be treated as authoritative. `Spare car` immediately returns to live inspection, allowing another qualifying vehicle to satisfy it, while `Spare car started` requires a new successful start.
 
 The original map summarizes these as `Good Bed`, `Power`, `5000+ Calories of Food`, `Sealed Entrances`, `Plumbed Sink`, and `A Spare Car`.
 
@@ -102,11 +108,17 @@ A spare car is allowed within the core zone or within the provisional `supportRa
 - `supportRadius = 15` is implemented for spare-car discovery but remains provisional pending release review.
 - `RoomDef:isExplored()` is the activation proxy because `doneSpawn` has no Lua-visible getter.
 - Known inaccessible rooms are excluded manually; there is no generic accessibility detector.
+- Rosewood excludes the inaccessible decorative church-spire rooms on floors 4 through 7 (Z-levels 3 through 6) from room and floor activation.
+- Fallas Lake excludes the inaccessible decorative church-spire rooms on floors 2 through 4 (Z-levels 1 through 3) from room and floor activation.
+- Riverside excludes the inaccessible decorative church-spire rooms on floors 3 through 6 (Z-levels 2 through 5) from room and floor activation.
+- Ekron excludes the above-ground church's inaccessible decorative spire rooms on floors 3 through 5 (Z-levels 2 through 4). Its registered underground BuildingDef remains included.
+- Muldraugh excludes the inaccessible decorative church-spire rooms on floors 3 and 4 (Z-levels 2 and 3) from room and floor activation.
+- Irvington excludes the above-ground church's inaccessible decorative spire rooms on floors 3 through 5 (Z-levels 2 through 4). Its registered underground BuildingDef and existing explicit bell-tower room exclusion are preserved.
 
 ## Open questions
 
 - Must bed, food, and sink be inside a more narrowly defined sealed contained space than the registered ground-floor outpost rooms, and how is that containment evaluated?
-- Whether the provisional **spare car** thresholds, support radius, and omission of a key requirement are correct for release.
+- Whether the provisional **spare car** support radius is correct for release.
 - Final support-radius origin and distance.
 - Awarded zombie clearance is permanently latched and cannot regress when zombies return.
 - Final per-outpost partial-progress formula.

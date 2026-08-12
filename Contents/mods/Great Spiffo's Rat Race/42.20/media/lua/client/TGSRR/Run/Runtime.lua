@@ -490,6 +490,24 @@ initialize = function()
     run.lastWorkshopIds = copyList(currentWorkshopIds)
     run.lastModRefs = copyModReferences(current.mods)
     run.integrityStatus = "ok"
+    if isDebugEnabled and isDebugEnabled() then
+        print("[TGSRR Run] Debug mode enabled for session "
+            .. tostring(nextSequence) .. " of run " .. tostring(run.runId))
+        local debugRecorded, debugResult = Recorder.record("run.debug.enabled", {
+            sessionSequence = nextSequence,
+            observation = "session_start",
+        })
+        if not debugRecorded then
+            run.integrityStatus = debugResult
+            print("[TGSRR Run] Debug-mode evidence append failed: "
+                .. tostring(debugResult))
+            TrackingHealth.stop(
+                debugResult,
+                "Debug-mode evidence could not be recorded."
+            )
+            return
+        end
+    end
     WeaponKillTracker.initialize(run, player)
     TownTracker.initialize(run, player)
     LocationTracker.initialize(run, player, created)

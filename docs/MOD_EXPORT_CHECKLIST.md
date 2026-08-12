@@ -105,6 +105,10 @@ Implementation and persisted test-run audit completed on 2026-07-24:
   `outpost.completed` records. Compact rolled-over `day.started` records contain
   `completedDay` with only non-zero scalar deltas and non-empty delta maps;
   missing delta fields canonically mean zero.
+- A session started with Project Zomboid debug mode enabled logs that state and
+  appends one timestamped `run.debug.enabled` event. The complete verified
+  ledger carries this neutral evidence into format-3 exports without declaring
+  the run invalid.
 - The outpost progress store separately persists the latest observation for every
   deliverable and the data required to derive current outpost completion.
 - Format-3 currently exports the complete verified event ledger plus a comprehensive live

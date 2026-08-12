@@ -3,17 +3,22 @@ local Inspector = require "TGSRR/Outposts/VehicleInspector"
 
 local Check = {}
 
--- Provisional first consumer of the generic inspector. These remain deliberately
--- centralized so a run definition can replace them without changing inspection.
+-- Match the practical B42.20 ignition requirements. Vanilla permits an engine
+-- above 0% to start, but engines below 50% are subject to random running stalls,
+-- so a Rat Race spare car requires 50% for reliable operation.
 local REQUIREMENTS = {
-    engineCondition = 75,
-    fuelPercent = 75,
-    batteryCondition = 75,
-    batteryCharge = 75,
-    driverSeatCondition = 75,
-    tyreCondition = 75,
-    tyrePressurePercent = 75,
+    engineCondition = 50,
+    engineQuality = 1,
+    batteryCharge = 12.5,
 }
+
+local function hasAllTyresInstalled(facts)
+    if not facts or #facts.tyres == 0 then return false end
+    for _, tyre in ipairs(facts.tyres) do
+        if tyre.installed ~= true then return false end
+    end
+    return true
+end
 
 local function inSupportArea(outpost, vehicle)
     local zone = outpost.coreZone
@@ -57,18 +62,17 @@ local function evaluate(facts)
     local function requireFact(ok, id)
         if not ok then failures[#failures + 1] = id end
     end
-    requireFact(facts.engine.installed and facts.engine.condition >= REQUIREMENTS.engineCondition, "engine")
-    requireFact(facts.fuel.installed and facts.fuel.percent >= REQUIREMENTS.fuelPercent, "fuel")
-    requireFact(facts.battery.installed and facts.battery.condition >= REQUIREMENTS.batteryCondition, "battery_condition")
-    requireFact(facts.battery.installed and facts.battery.charge >= REQUIREMENTS.batteryCharge, "battery_charge")
-    requireFact(facts.driverSeat.installed and facts.driverSeat.condition >= REQUIREMENTS.driverSeatCondition, "driver_seat")
-    requireFact(#facts.tyres > 0, "tyres")
-    for _, tyre in ipairs(facts.tyres) do
-        requireFact(tyre.installed and tyre.condition >= REQUIREMENTS.tyreCondition,
-            "tyre_condition:" .. tyre.id)
-        requireFact(tyre.installed and tyre.pressurePercent >= REQUIREMENTS.tyrePressurePercent,
-            "tyre_pressure:" .. tyre.id)
+    requireFact(facts.engine.installed and facts.engine.condition >= REQUIREMENTS.engineCondition,
+        "engine_condition")
+    requireFact(facts.engineQuality >= REQUIREMENTS.engineQuality, "engine_quality")
+    requireFact(facts.fuel.installed and facts.fuel.currentRounded > 0, "fuel")
+    if not facts.battery.installed then
+        requireFact(false, "battery")
+    else
+        requireFact(facts.battery.charge >= REQUIREMENTS.batteryCharge, "battery_charge")
     end
+    requireFact(facts.driverSeat.installed, "driver_seat")
+    requireFact(hasAllTyresInstalled(facts), "tyres")
     return failures
 end
 
@@ -110,12 +114,26 @@ local function vehicleResult(outpost)
     if not bestFacts then
         return { available = true, passed = false, current = 0, required = 0, state = "none" }
     end
+    local state = "requirements_unmet"
+    if #bestFailures == 0 then
+        state = "ready"
+    elseif #bestFailures == 1 and bestFailures[1] == "fuel" then
+        state = "needs_fuel"
+    elseif #bestFailures == 1 and bestFailures[1] == "battery_charge" then
+        state = "needs_battery_charge"
+    elseif #bestFailures == 1 and bestFailures[1] == "battery" then
+        state = "needs_battery"
+    elseif #bestFailures == 1 and bestFailures[1] == "tyres" then
+        state = "needs_tyres"
+    elseif #bestFailures == 1 and bestFailures[1] == "driver_seat" then
+        state = "needs_driver_seat"
+    end
     return {
         available = true,
         passed = #bestFailures == 0,
         current = #bestFailures,
         required = 0,
-        state = #bestFailures == 0 and "ready" or "requirements_unmet",
+        state = state,
         fingerprint = Inspector.fingerprint(bestFacts),
         details = { candidateCount = candidates, vehicle = bestFacts, failures = bestFailures },
     }
@@ -123,6 +141,48 @@ end
 
 Check.requirements = REQUIREMENTS
 Check.evaluate = evaluate
+Check.inSupportArea = inSupportArea
+Check.supportAreaFullyLoaded = supportAreaFullyLoaded
+Check.isCar = isCar
+Check.inspect = Inspector.inspect
+function Check.hasRequiredLatchState(vehicle)
+    if not isCar(vehicle) then return false end
+    local facts = Inspector.inspect(vehicle)
+    return facts ~= nil
+        and facts.engine.installed == true
+        and facts.fuel.installed == true
+        and facts.fuel.currentRounded > 0
+        and facts.battery.installed == true
+        and facts.driverSeat.installed == true
+        and hasAllTyresInstalled(facts)
+end
+function Check.findBySqlId(sqlId)
+    local cell = getCell and getCell() or nil
+    local vehicles = cell and cell:getVehicles() or nil
+    if not vehicles then return nil end
+    local wanted = tostring(sqlId)
+    for _, vehicle in ipairs(vehicles:toArray()) do
+        if tostring(vehicle:getSqlId()) == wanted then return vehicle end
+    end
+    return nil
+end
+function Check.qualifies(vehicle)
+    if not isCar(vehicle) then return false end
+    local facts = Inspector.inspect(vehicle)
+    return facts ~= nil and #evaluate(facts) == 0
+end
+function Check.qualifiesSuccessfulStart(vehicle)
+    if not isCar(vehicle) then return false end
+    local facts = Inspector.inspect(vehicle)
+    if not facts then return false end
+    -- The starter has already consumed 2.5% charge by the time Running is
+    -- observable. A successful transition itself proves that the pre-crank
+    -- battery requirement was met, so only that post-start failure is ignored.
+    for _, failure in ipairs(evaluate(facts)) do
+        if failure ~= "battery_charge" then return false end
+    end
+    return true
+end
 Outposts.addCheck("spare_car", vehicleResult, 100)
 
 return Check

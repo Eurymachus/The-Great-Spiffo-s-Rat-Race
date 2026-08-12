@@ -5,6 +5,11 @@ local function percent(current, capacity)
     return math.max(0, math.min(100, current / capacity * 100))
 end
 
+local function roundTo(value, places)
+    local scale = 10 ^ places
+    return math.floor((tonumber(value) or 0) * scale + 0.5) / scale
+end
+
 local function partFacts(part)
     local item = part:getInventoryItem()
     return {
@@ -50,10 +55,12 @@ function Inspector.inspect(vehicle)
     result.fuel = tank and {
         installed = not tank:isInventoryItemUninstalled(),
         current = tank:getContainerContentAmount(),
+        currentRounded = roundTo(tank:getContainerContentAmount(), 3),
         capacity = tank:getContainerCapacity(),
         percent = percent(tank:getContainerContentAmount(), tank:getContainerCapacity()),
         condition = tank:getCondition(),
-    } or { installed = false, current = 0, capacity = 0, percent = 0, condition = 0 }
+    } or { installed = false, current = 0, currentRounded = 0,
+        capacity = 0, percent = 0, condition = 0 }
 
     local battery = vehicle:getBattery()
     result.battery = battery and {
@@ -85,7 +92,8 @@ function Inspector.fingerprint(result)
     end
     local values = {
         tostring(result.sqlId), tostring(result.scriptName),
-        rounded(result.engine.condition), rounded(result.fuel.percent),
+        rounded(result.engine.condition), rounded(result.engineQuality),
+        rounded(result.fuel.percent),
         rounded(result.battery.condition), rounded(result.battery.charge),
         tostring(result.driverSeat.installed), rounded(result.driverSeat.condition),
     }
