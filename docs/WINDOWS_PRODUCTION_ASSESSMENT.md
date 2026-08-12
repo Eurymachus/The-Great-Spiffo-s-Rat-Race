@@ -41,6 +41,32 @@ version-controlled Project Zomboid artwork from
 preferred manual presentation for all 35 skill catalogue entries. Existing
 PZwiki artwork remains available as a fallback.
 
+The approved database-authored site design is versioned in
+`deployment/site-presentation`. It contains branding, themes, managed public
+images, editorial pages, navigation, challenge-mode display configuration, and
+exploit rulings. It deliberately excludes accounts, participants, runs,
+submissions, credentials, notifications, secrets, logs, and operational state.
+
+After an editor approves local presentation changes, rebuild the package from
+the development database:
+
+```powershell
+python manage.py export_site_presentation
+```
+
+Commit the resulting package through the normal Git workflow. After pulling the
+release on the host and applying migrations, install it with:
+
+```powershell
+python manage.py import_site_presentation
+```
+
+The importer validates the manifest and every file checksum before changing the
+database. Database changes are transactional, references are validated, and the
+command is safe to rerun without duplicating presentation records. Operational
+records remain untouched, so development statistics and test participants are
+not transferred to production.
+
 WinSW is a proposed free service wrapper, not a bundled binary. Its version,
 checksum, installation, service identity, and recovery policy must be approved
 and recorded before the example definitions are activated.

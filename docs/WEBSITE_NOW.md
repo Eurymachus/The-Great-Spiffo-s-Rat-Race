@@ -399,6 +399,11 @@ Prepare and test the production deployment path, including persistent database
 and media storage, independent web and worker supervision, secret validation,
 health checks, backup, restore, restart, and rollback procedures.
 
+The customized public presentation now has a checksum-validated, transactional,
+idempotent export and import path through `deployment/site-presentation`. Use it
+to transfer approved local editing work without moving users, participants,
+runs, submissions, credentials, notifications, or operational state.
+
 ## Remaining work
 
 ### Before launch

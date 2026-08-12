@@ -1,13 +1,18 @@
 import json
+import base64
+import tempfile
 from datetime import datetime, timezone
+from pathlib import Path
 
 from django.contrib.auth.models import AnonymousUser, Group
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.core.management import call_command
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
-from branding.models import ManagedImage
+from branding.models import ManagedImage, SiteBranding, WebsiteTheme
 from config.context_processors import navigation_tree
 from registry.models import (
     ChallengeRun,
@@ -15,7 +20,83 @@ from registry.models import (
     ExploitRulingImage,
     Participant,
     RunSubmission,
+    ChallengeMode,
 )
+
+from .site_presentation import export_presentation, import_presentation
+
+
+TINY_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
+
+
+class SitePresentationPackageTests(TestCase):
+    def test_export_import_reconstructs_presentation_without_operational_data(self):
+        temporary_root = settings.BASE_DIR / "tmp"
+        temporary_root.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=temporary_root) as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            media_root = temporary_path / "media"
+            package_path = temporary_path / "package"
+            with override_settings(MEDIA_ROOT=media_root):
+                image = ManagedImage.objects.create(
+                    name="Presentation test image",
+                    image=ContentFile(TINY_PNG, name="presentation-test.png"),
+                    original_filename="presentation-test.png",
+                )
+                theme = WebsiteTheme.objects.create(name="Presentation test theme")
+                branding = SiteBranding.current()
+                branding.active_theme = theme
+                branding.header_logo_asset = image
+                branding.save()
+                page = Page.objects.create(
+                    title="Presentation Test",
+                    slug="presentation-test",
+                    public_path="presentation-test",
+                    is_published=True,
+                )
+                section = PageSection.objects.create(page=page, name="Test section")
+                PageBlock.objects.create(
+                    section=section,
+                    block_type=PageBlock.BlockType.IMAGE,
+                    image_asset=image,
+                    image_alt="Presentation test",
+                )
+                ChallengeMode.objects.create(
+                    key="presentation-test-mode",
+                    display_name="Presentation Test Mode",
+                )
+                ExploitRuling.objects.create(
+                    title="Presentation test ruling",
+                    slug="presentation-test-ruling",
+                    classification=ExploitRuling.Classification.AVOID,
+                    ruling="Avoid this test case.",
+                )
+
+                exported = export_presentation(package_path)
+
+                Page.objects.all().delete()
+                ExploitRuling.objects.all().delete()
+                branding.header_logo_asset = None
+                branding.active_theme = None
+                branding.save()
+                ManagedImage.objects.all().delete()
+                WebsiteTheme.objects.all().delete()
+
+                imported = import_presentation(package_path)
+                import_presentation(package_path)
+
+                self.assertEqual(imported, exported)
+                self.assertTrue(Page.objects.filter(slug="presentation-test").exists())
+                self.assertTrue(ExploitRuling.objects.filter(slug="presentation-test-ruling").exists())
+                self.assertTrue(ChallengeMode.objects.filter(key="presentation-test-mode").exists())
+                restored_branding = SiteBranding.current()
+                self.assertEqual(restored_branding.active_theme.name, "Presentation test theme")
+                self.assertEqual(restored_branding.header_logo_asset.name, "Presentation test image")
+                self.assertEqual(ManagedImage.objects.filter(name="Presentation test image").count(), 1)
+                for managed_image in ManagedImage.objects.all():
+                    managed_image.image.close()
 
 from .models import (
     CodeManagedPage,
