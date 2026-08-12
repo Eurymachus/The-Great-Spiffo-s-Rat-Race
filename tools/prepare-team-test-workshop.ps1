@@ -6,8 +6,12 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-$resolvedOutput = Join-Path $repositoryRoot $OutputPath
-$contentsSource = Join-Path $repositoryRoot "Contents"
+$resolvedOutput = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
+    $OutputPath
+} else {
+    Join-Path $repositoryRoot $OutputPath
+}
+$modSource = Join-Path $repositoryRoot "Contents/mods/Great Spiffo's Rat Race"
 $previewSource = Join-Path $repositoryRoot "preview.png"
 $metadataTemplate = Join-Path $PSScriptRoot "team-test-workshop.txt"
 
@@ -16,7 +20,10 @@ if (Test-Path -LiteralPath $resolvedOutput) {
 }
 
 New-Item -ItemType Directory -Path $resolvedOutput | Out-Null
-Copy-Item -LiteralPath $contentsSource -Destination $resolvedOutput -Recurse
+$modOutput = Join-Path $resolvedOutput "Contents/mods/Great Spiffo's Rat Race"
+New-Item -ItemType Directory -Path $modOutput -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $modSource "common") -Destination $modOutput -Recurse
+Copy-Item -LiteralPath (Join-Path $modSource "42.20") -Destination $modOutput -Recurse
 Copy-Item -LiteralPath $previewSource -Destination $resolvedOutput
 
 $metadata = Get-Content -LiteralPath $metadataTemplate
