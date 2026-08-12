@@ -121,6 +121,22 @@ increments against one rate-limit bucket produced every value from 1 through
 removed. This satisfies gate 2; the remaining host and recovery gates still
 require explicit approval before production installation.
 
+On 12 August 2026 the native Windows acceptance stack was provisioned on the
+target host at release `ed3fd6003c9d`. PostgreSQL 18.4, Uvicorn, and the
+reference worker were bound to loopback only. All migrations, production
+deployment checks, catalogue data, 35 skill icons, approved site presentation,
+and collected static assets succeeded. Both health endpoints returned HTTP 200
+with the same release ID and every readiness component true. The Rat Race
+processes used approximately 321 MB of working memory while idle, leaving 13.3
+GB system memory free. A PostgreSQL custom-format dump and media archive were
+created under `D:\RatRaceBackups` and their archive structures validated; a
+complete isolated restore test remains required for gate 6.
+
+The acceptance environment contains conspicuously labelled provider
+placeholders. It must not receive public traffic until SMTP, Turnstile, OpenAI,
+Twitch, Discord, YouTube, Steam, DNS/tunnel, supervision, and recovery settings
+are replaced and individually exercised.
+
 ## Owner-controlled changes
 
 Installing PostgreSQL, Java, SteamCMD, Cloudflare Tunnel, or service wrappers;
