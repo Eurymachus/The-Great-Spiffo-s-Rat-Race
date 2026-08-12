@@ -1,0 +1,12 @@
+version=1
+id=
+title=The Great Spiffo's Rat Race - Team Test
+description=[h1]Rat Race Team Test Build[/h1]
+description=
+description=Unlisted development build for invited Rat Race testers.
+description=
+description=[b]Do not use this alongside the public Rat Race Workshop item.[/b] Both items intentionally provide the same internal mod ID so this package tests the exact release configuration.
+description=
+description=Testers should disable or unsubscribe from the public item before enabling this build. Existing test saves may be incompatible between revisions.
+tags=Build 42;Hardmode
+visibility=unlisted
