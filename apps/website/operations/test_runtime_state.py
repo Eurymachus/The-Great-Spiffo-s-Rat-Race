@@ -1,12 +1,14 @@
 from datetime import timedelta
 from concurrent.futures import ThreadPoolExecutor
 from unittest import skipUnless
+from unittest.mock import patch
 
 from django.db import close_old_connections, connection, connections
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
 from .models import RateLimitBucket, WorkerHeartbeatRecord
+from .deployment_checks import production_deployment_checks
 from .runtime_state import (
     clear_rate_limit,
     clear_worker_heartbeat_state,
@@ -17,6 +19,18 @@ from .runtime_state import (
     record_worker_heartbeat_state,
     runtime_state_ready,
 )
+
+
+class ProductionDeploymentSettingsTests(TestCase):
+    @override_settings(DEBUG=False)
+    def test_windows_production_settings_are_accepted(self):
+        with patch.dict(
+            "os.environ",
+            {"DJANGO_SETTINGS_MODULE": "config.settings_windows_production"},
+        ):
+            self.assertTrue(
+                production_deployment_checks()["production settings"]
+            )
 
 
 @override_settings(RUNTIME_STATE_BACKEND="database")

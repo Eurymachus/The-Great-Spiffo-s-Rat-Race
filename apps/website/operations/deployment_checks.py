@@ -58,7 +58,11 @@ def production_deployment_checks():
     )
     return {
         "production settings": (
-            os.environ.get("DJANGO_SETTINGS_MODULE") == "config.settings_production"
+            os.environ.get("DJANGO_SETTINGS_MODULE")
+            in {
+                "config.settings_production",
+                "config.settings_windows_production",
+            }
             and settings.DEBUG is False
         ),
         "database": database_available,
