@@ -240,8 +240,8 @@ available only to superusers under Website Administration because changing them
 affects every editor and may alter storage, performance, or security exposure.
 
 The maximum individual image upload size is the first managed setting. Browser
-feedback and server-side validation both use the same stored value, with a safe
-5 MB fallback while the database is unavailable during initial setup.
+feedback and server-side validation both use the same stored value, with a
+10 MB fallback while the database is unavailable during initial setup.
 ## Branding image presentation controls
 
 - Uploaded images remain reusable source assets. Visual adjustments are stored as branding configuration and do not modify the original files.

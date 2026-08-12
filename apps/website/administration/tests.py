@@ -17,6 +17,12 @@ class WebsiteSettingsAdminTests(TestCase):
         )
         self.client.force_login(self.superuser)
 
+    def test_default_image_upload_limit_is_ten_megabytes(self):
+        self.assertEqual(
+            WebsiteSettings.maximum_image_upload_size_mb(),
+            10,
+        )
+
     def test_superuser_can_change_image_upload_limit(self):
         settings = WebsiteSettings.current()
         change_url = reverse(

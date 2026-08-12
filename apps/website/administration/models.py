@@ -5,7 +5,7 @@ from django.db.utils import OperationalError, ProgrammingError
 
 class WebsiteSettings(models.Model):
     SINGLETON_PK = 1
-    DEFAULT_MAXIMUM_IMAGE_UPLOAD_SIZE_MB = 5
+    DEFAULT_MAXIMUM_IMAGE_UPLOAD_SIZE_MB = 10
 
     id = models.PositiveSmallIntegerField(
         primary_key=True, default=SINGLETON_PK, editable=False
