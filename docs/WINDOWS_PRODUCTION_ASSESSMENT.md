@@ -34,6 +34,13 @@ point. The example WinSW definitions supervise each process separately.
 `Test-RatRaceProduction.ps1` runs Django's deployment checks and the Rat Race
 production contract check without printing secret values.
 
+After catalogue data is installed or refreshed, run
+`python manage.py install_skill_icon_pack`. The command installs the
+version-controlled Project Zomboid artwork from
+`deployment/assets/skill-icons` into persistent media and records it as the
+preferred manual presentation for all 35 skill catalogue entries. Existing
+PZwiki artwork remains available as a fallback.
+
 WinSW is a proposed free service wrapper, not a bundled binary. Its version,
 checksum, installation, service identity, and recovery policy must be approved
 and recorded before the example definitions are activated.

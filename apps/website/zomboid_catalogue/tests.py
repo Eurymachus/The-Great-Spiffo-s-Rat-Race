@@ -27,6 +27,33 @@ from .resolver import resolve_identifier
 
 
 class CatalogueResolverTests(TestCase):
+    def test_version_controlled_skill_icon_pack_installs_idempotently(self):
+        call_command("import_zomboid_catalogue", stdout=StringIO())
+
+        with tempfile.TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                first_output = StringIO()
+                call_command("install_skill_icon_pack", stdout=first_output)
+                self.assertIn("35 installed, 0 unchanged", first_output.getvalue())
+
+                assets = CatalogueAsset.objects.filter(
+                    entry__kind=CatalogueEntry.Kind.SKILL,
+                    source_type=CatalogueAsset.SourceType.MANUAL,
+                    availability=CatalogueAsset.Availability.IMPORTED,
+                ).exclude(file="")
+                self.assertEqual(assets.count(), 35)
+                aiming = assets.get(entry__stable_id="Aiming")
+                self.assertEqual(aiming.source_key, "perk_Aiming")
+                self.assertTrue(aiming.file.name.endswith("TGSRR_Skill_Aiming.png"))
+                self.assertEqual(
+                    aiming.source_path,
+                    "deployment/assets/skill-icons/TGSRR_Skill_Aiming.png",
+                )
+
+                second_output = StringIO()
+                call_command("install_skill_icon_pack", stdout=second_output)
+                self.assertIn("0 installed, 35 unchanged", second_output.getvalue())
+
     def test_resolves_direct_identifier_for_applicable_version(self):
         entry = CatalogueEntry.objects.create(
             kind=CatalogueEntry.Kind.SKILL,

@@ -244,7 +244,10 @@ records, while aliases and assets remain shared catalogue relationships.
   submission history, pending or declined submissions, or moderation details.
 - Signed-in verified-run page presentation at UUID-based addresses. The initial view
   presents challenge progress, character traits, current skills in a grouped
-  Project Zomboid-style panel using the mod's complete 35-icon skill set,
+  Project Zomboid-style panel using the complete version-controlled 35-icon
+  in-game artwork pack from `deployment/assets/skill-icons`, installed into the
+  catalogue as the preferred manual presentation with PZwiki artwork retained
+  as a fallback,
   outposts, town visits, activity totals and clearly distinguished in-game
   export and website receipt timestamps without exposing raw run IDs, checksums
   or ledger hashes. Charts remain a later signed-in presentation layer.
