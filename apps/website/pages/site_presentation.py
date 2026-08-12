@@ -243,7 +243,11 @@ def load_and_validate_package(package_path):
     if actual_names != set(expected_files):
         raise PresentationPackageError("Presentation package files do not match the manifest.")
     for relative_name, checksum in expected_files.items():
-        if _checksum((package_path / relative_name).read_bytes()) != checksum:
+        if relative_name == PRESENTATION_FILENAME:
+            checked_payload = (_canonical_json(presentation) + "\n").encode("utf-8")
+        else:
+            checked_payload = (package_path / relative_name).read_bytes()
+        if _checksum(checked_payload) != checksum:
             raise PresentationPackageError(f"Checksum mismatch: {relative_name}")
     _validate_references(presentation)
     image_keys = [item.get("key") for item in presentation["managed_images"]]

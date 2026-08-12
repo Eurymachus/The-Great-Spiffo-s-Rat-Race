@@ -76,6 +76,13 @@ class SitePresentationPackageTests(TestCase):
 
                 exported = export_presentation(package_path)
 
+                # Git may check text files out with CRLF on Windows. Validate
+                # the canonical JSON content rather than platform line endings.
+                presentation_path = package_path / "presentation.json"
+                presentation_path.write_bytes(
+                    presentation_path.read_bytes().replace(b"\n", b"\r\n")
+                )
+
                 Page.objects.all().delete()
                 ExploitRuling.objects.all().delete()
                 branding.header_logo_asset = None
