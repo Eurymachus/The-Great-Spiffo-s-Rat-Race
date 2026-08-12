@@ -1,5 +1,7 @@
 param(
     [int]$Port = 8001,
+    [string]$BindAddress = "127.0.0.1",
+    [string]$LanAddress = "",
     [switch]$Background
 )
 
@@ -47,7 +49,11 @@ Get-Content -LiteralPath $environmentPath | ForEach-Object {
     }
 }
 
-$env:DJANGO_ALLOWED_HOSTS = "localhost,127.0.0.1,[::1],192.168.4.100"
+$allowedHosts = @("localhost", "127.0.0.1", "[::1]")
+if ($LanAddress) {
+    $allowedHosts += $LanAddress
+}
+$env:DJANGO_ALLOWED_HOSTS = $allowedHosts -join ","
 $env:RAT_RACE_CANONICAL_DEV_LAUNCHER = "1"
 
 function Get-ReferenceWorkerProcesses {
@@ -94,7 +100,7 @@ if ($Background) {
     if ($listeners.Count -eq 0) {
         $webProcess = Start-Process `
             -FilePath $pythonPath `
-            -ArgumentList @("manage.py", "runserver", "0.0.0.0:$Port", "--noreload") `
+            -ArgumentList @("manage.py", "runserver", "${BindAddress}:$Port", "--noreload") `
             -WorkingDirectory $websitePath `
             -WindowStyle Hidden `
             -PassThru
@@ -113,8 +119,10 @@ if ($Background) {
         Write-Output "Website already running with PID $($listenerProcess.ProcessId)."
     }
     Write-Output "Local website: http://127.0.0.1:$Port/"
-    Write-Output "LAN website: http://192.168.4.100:$Port/"
+    if ($LanAddress) {
+        Write-Output "LAN website: http://${LanAddress}:$Port/"
+    }
     return
 }
 
-& $pythonPath $managePath runserver "0.0.0.0:$Port" --noreload
+& $pythonPath $managePath runserver "${BindAddress}:$Port" --noreload

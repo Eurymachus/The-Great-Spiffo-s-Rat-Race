@@ -27,6 +27,17 @@ Open `http://127.0.0.1:8001/`. Local development uses SQLite and an in-process
 cache. The canonical launcher loads `.env`, starts the ASGI application and the
 reference-update worker, and verifies both before reporting the site ready.
 
+The launcher binds to loopback by default. On the original development computer,
+explicitly opt into LAN access when it is required:
+
+```powershell
+.\scripts\start_website_dev.ps1 -Port 8001 -BindAddress 0.0.0.0 -LanAddress 192.168.4.100 -Background
+```
+
+Do not use that LAN form on an internet-facing host. Production and host-side
+acceptance testing must keep the application on loopback and use the documented
+proxy or tunnel boundary.
+
 Do not replace the canonical launcher with a bare `manage.py runserver` or
 Uvicorn command. Doing so omits the environment and required worker process.
 
