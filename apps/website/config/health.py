@@ -2,27 +2,22 @@ import tempfile
 from pathlib import Path
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db import connection
 from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
-from operations.worker_health import HEARTBEAT_CACHE_KEY
+from operations.runtime_state import (
+    get_worker_heartbeat_state,
+    runtime_state_ready,
+    uses_database_runtime_state,
+)
 
 
 def _database_ready():
     with connection.cursor() as cursor:
         cursor.execute("SELECT 1")
         return cursor.fetchone() == (1,)
-
-
-def _cache_ready():
-    key = "health:readiness"
-    cache.set(key, "ready", timeout=10)
-    ready = cache.get(key) == "ready"
-    cache.delete(key)
-    return ready
 
 
 def _directory_writable(value):
@@ -47,9 +42,10 @@ def liveness(request):
 @require_GET
 def readiness(request):
     checks = {}
+    state_check_name = "runtime_state" if uses_database_runtime_state() else "cache"
     operations = {
         "database": _database_ready,
-        "cache": _cache_ready,
+        state_check_name: runtime_state_ready,
         "media_storage": lambda: _directory_writable(settings.MEDIA_ROOT),
         "private_storage": lambda: _directory_writable(
             settings.AVATAR_QUARANTINE_ROOT
@@ -65,7 +61,7 @@ def readiness(request):
         except Exception:
             checks[name] = False
 
-    heartbeat = cache.get(HEARTBEAT_CACHE_KEY)
+    heartbeat = get_worker_heartbeat_state()
     checks["reference_worker"] = bool(
         heartbeat and heartbeat.get("release_id") == settings.RELEASE_ID
     )

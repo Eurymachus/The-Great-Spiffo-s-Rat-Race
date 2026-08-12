@@ -2,6 +2,28 @@ from django.db import models
 from django.conf import settings
 
 
+class RateLimitBucket(models.Model):
+    key = models.CharField(max_length=96, primary_key=True)
+    attempts = models.PositiveIntegerField(default=0)
+    expires_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        verbose_name = "operational rate-limit bucket"
+        verbose_name_plural = "operational rate-limit buckets"
+
+
+class WorkerHeartbeatRecord(models.Model):
+    key = models.CharField(max_length=64, primary_key=True)
+    worker_id = models.CharField(max_length=64)
+    release_id = models.CharField(max_length=128)
+    process_id = models.PositiveIntegerField()
+    recorded_at = models.DateTimeField()
+
+    class Meta:
+        verbose_name = "worker heartbeat"
+        verbose_name_plural = "worker heartbeats"
+
+
 class ReferenceSource(models.Model):
     class AuthenticationStatus(models.TextChoices):
         NOT_CONFIGURED = "not_configured", "Not configured"

@@ -66,6 +66,7 @@ class ProductionEnvironmentTests(TestCase):
         self.assertEqual(result["secure_hsts_seconds"], 3600)
         self.assertTrue(result["email_use_tls"])
         self.assertTrue(result["trust_cloudflare_connecting_ip"])
+        self.assertEqual(result["runtime_state_backend"], "cache")
         self.assertEqual(result["allowed_hosts"], ["tgsrr.com", "www.tgsrr.com"])
 
     def test_missing_variables_are_reported_by_name_without_values(self):
@@ -113,6 +114,22 @@ class ProductionEnvironmentTests(TestCase):
         with self.assertRaisesRegex(RuntimeError, "production-only"):
             validate_production_environment(environment)
 
+    def test_database_runtime_state_does_not_require_redis(self):
+        environment = valid_environment()
+        environment["RUNTIME_STATE_BACKEND"] = "database"
+        del environment["REDIS_URL"]
+
+        result = validate_production_environment(environment)
+
+        self.assertEqual(result["runtime_state_backend"], "database")
+
+    def test_runtime_state_backend_is_validated(self):
+        environment = valid_environment()
+        environment["RUNTIME_STATE_BACKEND"] = "filesystem"
+
+        with self.assertRaisesRegex(RuntimeError, "cache or database"):
+            validate_production_environment(environment)
+
 
 class ProductionSettingsImportTests(TestCase):
     def test_complete_environment_loads_production_settings(self):
@@ -141,3 +158,34 @@ class ProductionSettingsImportTests(TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "False abcdef12 True")
+
+    def test_windows_production_settings_use_database_runtime_state(self):
+        website_root = Path(__file__).resolve().parents[1]
+        environment = os.environ.copy()
+        environment.update(valid_environment())
+        environment.pop("REDIS_URL")
+        environment["DJANGO_SETTINGS_MODULE"] = "config.settings_windows_production"
+        environment["PYTHONPATH"] = str(website_root)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import django; django.setup(); "
+                "from django.conf import settings; "
+                "print(settings.RUNTIME_STATE_BACKEND, "
+                "settings.CACHES['default']['BACKEND'])",
+            ],
+            cwd=website_root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout.strip(),
+            "database django.core.cache.backends.locmem.LocMemCache",
+        )

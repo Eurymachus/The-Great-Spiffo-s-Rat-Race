@@ -15,7 +15,6 @@ REQUIRED_PRODUCTION_VARIABLES = (
     "POSTGRES_PASSWORD",
     "POSTGRES_HOST",
     "POSTGRES_PORT",
-    "REDIS_URL",
     "EMAIL_HOST",
     "EMAIL_PORT",
     "EMAIL_HOST_USER",
@@ -73,9 +72,14 @@ def split_list(value):
 
 
 def validate_production_environment(environ):
+    runtime_state_backend = environ.get("RUNTIME_STATE_BACKEND", "cache").strip().lower()
+    if runtime_state_backend not in {"cache", "database"}:
+        raise RuntimeError("RUNTIME_STATE_BACKEND must be cache or database.")
     missing = [
         name for name in REQUIRED_PRODUCTION_VARIABLES if not environ.get(name, "").strip()
     ]
+    if runtime_state_backend == "cache" and not environ.get("REDIS_URL", "").strip():
+        missing.append("REDIS_URL")
     if missing:
         raise RuntimeError(
             "Production configuration is incomplete. Missing: "
@@ -161,6 +165,7 @@ def validate_production_environment(environ):
     return {
         **split_values,
         **integer_values,
+        "runtime_state_backend": runtime_state_backend,
         "email_use_tls": parse_boolean(
             environ.get("EMAIL_USE_TLS", "true"), name="EMAIL_USE_TLS"
         ),

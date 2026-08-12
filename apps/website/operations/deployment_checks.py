@@ -4,12 +4,13 @@ import tempfile
 from pathlib import Path
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 
 from registry.models import StreamingAccount
 from registry.streaming import decrypt_token
+
+from .runtime_state import runtime_state_ready, uses_database_runtime_state
 
 
 def executable_available(value):
@@ -35,14 +36,6 @@ def database_available():
         return cursor.fetchone() == (1,)
 
 
-def cache_available():
-    key = "operations:deployment-check"
-    cache.set(key, "ready", timeout=10)
-    ready = cache.get(key) == "ready"
-    cache.delete(key)
-    return ready
-
-
 def migrations_current():
     executor = MigrationExecutor(connection)
     targets = executor.loader.graph.leaf_nodes()
@@ -60,13 +53,16 @@ def stored_provider_tokens_decryptable():
 
 
 def production_deployment_checks():
+    state_check_name = (
+        "runtime state" if uses_database_runtime_state() else "cache"
+    )
     return {
         "production settings": (
             os.environ.get("DJANGO_SETTINGS_MODULE") == "config.settings_production"
             and settings.DEBUG is False
         ),
         "database": database_available,
-        "cache": cache_available,
+        state_check_name: runtime_state_ready,
         "migrations": migrations_current,
         "stored provider credentials": stored_provider_tokens_decryptable,
         "static storage": lambda: directory_writable(settings.STATIC_ROOT),

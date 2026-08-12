@@ -274,8 +274,7 @@ TURNSTILE_VERIFY_URL = (
 )
 TURNSTILE_TIMEOUT_SECONDS = 5
 
-# Cache-backed fixed-window limits. A shared production cache will replace the
-# local in-process cache when the site is deployed across multiple processes.
+# Fixed-window limits use the selected shared production runtime-state backend.
 SIGNUP_RATE_LIMIT = 5
 SIGNUP_RATE_WINDOW_SECONDS = 60 * 60
 RESEND_IP_RATE_LIMIT = 5

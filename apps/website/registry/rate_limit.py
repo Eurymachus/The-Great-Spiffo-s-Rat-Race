@@ -1,6 +1,4 @@
-import hashlib
-
-from django.core.cache import cache
+from operations.runtime_state import rate_limit_exceeded
 
 
 def request_ip(request):
@@ -14,13 +12,4 @@ def request_ip(request):
 
 
 def exceeded(scope, identifier, limit, window_seconds):
-    digest = hashlib.sha256(identifier.casefold().encode("utf-8")).hexdigest()
-    key = f"rat-race-rate:{scope}:{digest}"
-    if cache.add(key, 1, timeout=window_seconds):
-        return False
-    try:
-        attempts = cache.incr(key)
-    except ValueError:
-        cache.set(key, 1, timeout=window_seconds)
-        return False
-    return attempts > limit
+    return rate_limit_exceeded(scope, identifier, limit, window_seconds)

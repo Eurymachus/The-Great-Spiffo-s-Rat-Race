@@ -1,0 +1,17 @@
+<service>
+  <id>RatRaceReferenceWorker</id>
+  <name>Rat Race Reference Worker</name>
+  <description>Rat Race independently supervised reference-update worker.</description>
+  <executable>powershell.exe</executable>
+  <arguments>-NoProfile -ExecutionPolicy Bypass -File "C:\ProgramData\RatRace\bin\Start-RatRaceProcess.ps1" -Process Worker -ReleaseRoot "C:\ProgramData\RatRace\current" -EnvironmentFile "C:\ProgramData\RatRace\config\production.env" -PythonExecutable "C:\ProgramData\RatRace\venv\Scripts\python.exe"</arguments>
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="10 sec" />
+  <resetfailure>1 hour</resetfailure>
+  <log mode="roll-by-size-time">
+    <sizeThreshold>10240</sizeThreshold>
+    <pattern>yyyyMMdd</pattern>
+    <autoRollAtTime>00:00:00</autoRollAtTime>
+    <zipOlderThanNumDays>7</zipOlderThanNumDays>
+    <zipDateFormat>yyyyMM</zipDateFormat>
+  </log>
+</service>

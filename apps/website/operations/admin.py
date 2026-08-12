@@ -3,7 +3,6 @@ from pathlib import Path
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
-from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -23,6 +22,11 @@ from zomboid_catalogue.models import (
 )
 
 from .catalogue_review import approve_catalogue_review
+from .runtime_state import (
+    clear_rate_limit,
+    increment_rate_limit,
+    rate_limit_attempts,
+)
 from .models import (
     CatalogueImportReview,
     PZWikiArtworkSyncJob,
@@ -462,12 +466,13 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
         initial = {"account_name": source.account_name}
         form = ConnectSteamForm(request.POST or None, initial=initial)
         if request.method == "POST" and form.is_valid():
-            rate_key = f"steam-auth:{request.user.pk}"
-            attempts = cache.get(rate_key, 0)
+            rate_scope = "steam-auth"
+            rate_identifier = str(request.user.pk)
+            attempts = rate_limit_attempts(rate_scope, rate_identifier)
             if attempts >= 5:
                 form.add_error(None, "Too many attempts. Try again in 15 minutes.")
             elif not request.user.check_password(form.cleaned_data["admin_password"]):
-                cache.set(rate_key, attempts + 1, 900)
+                increment_rate_limit(rate_scope, rate_identifier, 900)
                 form.add_error("admin_password", "Your administrator password is incorrect.")
             else:
                 executable = source.steamcmd_path or settings.STEAMCMD_EXECUTABLE
@@ -484,7 +489,7 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
                         status, token = "failed", ""
                     if status == "authenticated":
                         self._mark_authenticated(source, form.cleaned_data["account_name"])
-                        cache.delete(rate_key)
+                        clear_rate_limit(rate_scope, rate_identifier)
                         messages.success(request, "Steam authentication completed.")
                         return redirect("admin:operations_referencesource_change", source.pk)
                     if status == "guard_required":
@@ -492,7 +497,7 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
                         request.session["steam_guard_source"] = source.pk
                         request.session["steam_guard_account"] = form.cleaned_data["account_name"]
                         return redirect("admin:operations_referencesource_guard", source.pk)
-                    cache.set(rate_key, attempts + 1, 900)
+                    increment_rate_limit(rate_scope, rate_identifier, 900)
                     form.add_error(None, "Steam rejected the authentication attempt.")
         return self._form_response(request, source, form, "Connect Steam")
 

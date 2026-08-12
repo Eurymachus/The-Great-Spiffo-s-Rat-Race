@@ -28,13 +28,23 @@ DATABASES = {
     }
 }
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": os.environ["REDIS_URL"],
-        "TIMEOUT": 300,
+RUNTIME_STATE_BACKEND = production["runtime_state_backend"]
+if RUNTIME_STATE_BACKEND == "cache":
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": os.environ["REDIS_URL"],
+            "TIMEOUT": 300,
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "rat-race-production-non-shared",
+            "TIMEOUT": 300,
+        }
+    }
 
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 STORAGES = {

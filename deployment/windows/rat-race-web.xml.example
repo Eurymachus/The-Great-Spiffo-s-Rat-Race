@@ -1,0 +1,17 @@
+<service>
+  <id>RatRaceWeb</id>
+  <name>Rat Race Website</name>
+  <description>Rat Race Django ASGI application bound to Windows loopback.</description>
+  <executable>powershell.exe</executable>
+  <arguments>-NoProfile -ExecutionPolicy Bypass -File "C:\ProgramData\RatRace\bin\Start-RatRaceProcess.ps1" -Process Web -ReleaseRoot "C:\ProgramData\RatRace\current" -EnvironmentFile "C:\ProgramData\RatRace\config\production.env" -PythonExecutable "C:\ProgramData\RatRace\venv\Scripts\python.exe" -Port 8000</arguments>
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="10 sec" />
+  <resetfailure>1 hour</resetfailure>
+  <log mode="roll-by-size-time">
+    <sizeThreshold>10240</sizeThreshold>
+    <pattern>yyyyMMdd</pattern>
+    <autoRollAtTime>00:00:00</autoRollAtTime>
+    <zipOlderThanNumDays>7</zipOlderThanNumDays>
+    <zipDateFormat>yyyyMM</zipDateFormat>
+  </log>
+</service>

@@ -1071,7 +1071,11 @@ class RegistrationTests(TestCase):
         )
         self.assertEqual(Participant.objects.count(), 0)
 
-    @override_settings(SIGNUP_RATE_LIMIT=1)
+    @override_settings(
+        RUNTIME_STATE_BACKEND="database",
+        SECURE_SSL_REDIRECT=False,
+        SIGNUP_RATE_LIMIT=1,
+    )
     def test_signup_rate_limit_blocks_repeated_attempts(self):
         self.client.post(reverse("registry:register"), self.registration_data())
 
@@ -2253,7 +2257,11 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "If a pending registration exists")
         self.assertEqual(len(mail.outbox), 0)
 
-    @override_settings(RESEND_EMAIL_RATE_LIMIT=1)
+    @override_settings(
+        RUNTIME_STATE_BACKEND="database",
+        SECURE_SSL_REDIRECT=False,
+        RESEND_EMAIL_RATE_LIMIT=1,
+    )
     def test_resend_rate_limit_blocks_repeated_email_requests(self):
         first = self.client.post(
             reverse("registry:resend"), {"email": "unknown@example.com"}
