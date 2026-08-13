@@ -1,4 +1,5 @@
 param(
+    [string]$InstallationRoot = "G:\RatRace",
     [string]$RuntimeRoot = "G:\RatRace\postgres\runtime\pgsql",
     [string]$DataRoot = "G:\RatRace\postgres\data",
     [string]$EnvironmentFragment = "C:\ProgramData\RatRace\config\postgres.generated.env",
@@ -19,7 +20,9 @@ foreach ($executable in ($initdb, $pgCtl, $psql)) {
 }
 
 $dataPath = [System.IO.Path]::GetFullPath($DataRoot)
-if ($dataPath -ne "G:\RatRace\postgres\data") {
+$installationPath = [System.IO.Path]::GetFullPath($InstallationRoot).TrimEnd('\')
+$expectedDataPath = Join-Path $installationPath "postgres\data"
+if ($dataPath -ne $expectedDataPath) {
     throw "Refusing unexpected PostgreSQL data path: $dataPath"
 }
 if ((Get-ChildItem -LiteralPath $dataPath -Force | Measure-Object).Count -ne 0) {
@@ -56,7 +59,8 @@ try {
     Remove-Item -LiteralPath $temporaryPasswordFile -Force -ErrorAction SilentlyContinue
 }
 
-$logPath = "C:\ProgramData\RatRace\logs\postgres.log"
+$logPath = Join-Path $installationPath "logs\postgres.log"
+New-Item -ItemType Directory -Path (Split-Path -Parent $logPath) -Force | Out-Null
 & $pgCtl -D $dataPath -l $logPath -o "-h 127.0.0.1 -p $Port" start
 if ($LASTEXITCODE) { throw "PostgreSQL startup failed with exit code $LASTEXITCODE." }
 

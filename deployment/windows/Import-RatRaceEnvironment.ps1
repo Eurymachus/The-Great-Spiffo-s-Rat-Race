@@ -28,5 +28,7 @@ Get-Content -LiteralPath $resolvedEnvironmentFile | ForEach-Object {
     [Environment]::SetEnvironmentVariable($name, $value, "Process")
 }
 
-$env:DJANGO_SETTINGS_MODULE = "config.settings_windows_production"
+if (-not $env:DJANGO_SETTINGS_MODULE) {
+    $env:DJANGO_SETTINGS_MODULE = "config.settings_windows_production"
+}
 $env:RUNTIME_STATE_BACKEND = "database"

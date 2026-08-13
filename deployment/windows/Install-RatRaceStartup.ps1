@@ -1,10 +1,15 @@
 param(
+    [string]$InstallationRoot = "G:\RatRace",
+    [ValidatePattern('^[A-Za-z][A-Za-z0-9_-]*$')]
+    [string]$DeploymentName = "RatRace",
     [string]$ReleaseRoot = "G:\RatRace\releases\ed3fd6003c9d",
     [string]$EnvironmentFile = "G:\RatRace\config\acceptance.env",
     [string]$PythonExecutable = "G:\RatRace\venv\Scripts\python.exe",
     [string]$PostgresRoot = "G:\RatRace\postgres",
     [string]$LogRoot = "G:\RatRace\logs",
-    [int]$WebPort = 8000
+    [int]$WebPort = 8000,
+    [ValidateRange(1, 65535)]
+    [int]$PostgresPort = 5432
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,12 +20,19 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 
 $releasePath = (Resolve-Path -LiteralPath $ReleaseRoot).Path
+$installationPath = (Resolve-Path -LiteralPath $InstallationRoot).Path
 $environmentPath = (Resolve-Path -LiteralPath $EnvironmentFile).Path
 $pythonPath = (Resolve-Path -LiteralPath $PythonExecutable).Path
 $postgresPath = (Resolve-Path -LiteralPath $PostgresRoot).Path
 $scheduledLauncher = Join-Path $releasePath "deployment\windows\Start-RatRaceScheduledProcess.ps1"
 $pgCtl = Join-Path $postgresPath "runtime\pgsql\bin\pg_ctl.exe"
 $dataRoot = Join-Path $postgresPath "data"
+
+foreach ($scopedPath in @($releasePath, $environmentPath, $pythonPath, $postgresPath, [IO.Path]::GetFullPath($LogRoot))) {
+    if (-not ($scopedPath -eq $installationPath -or $scopedPath.StartsWith($installationPath + "\", [StringComparison]::OrdinalIgnoreCase))) {
+        throw "Deployment path is outside installation root ${installationPath}: $scopedPath"
+    }
+}
 
 foreach ($requiredPath in @($scheduledLauncher, $pgCtl, $dataRoot)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
@@ -29,13 +41,13 @@ foreach ($requiredPath in @($scheduledLauncher, $pgCtl, $dataRoot)) {
 }
 New-Item -ItemType Directory -Path $LogRoot -Force | Out-Null
 
-$postgresServiceName = "RatRacePostgres"
+$postgresServiceName = "${DeploymentName}Postgres"
 if (-not (Get-Service -Name $postgresServiceName -ErrorAction SilentlyContinue)) {
     & $pgCtl register `
         -D $dataRoot `
         -N $postgresServiceName `
         -S auto `
-        -o "-h 127.0.0.1 -p 5432"
+        -o "-h 127.0.0.1 -p $PostgresPort"
     if ($LASTEXITCODE) {
         throw "PostgreSQL service registration failed with exit code $LASTEXITCODE."
     }
@@ -48,7 +60,7 @@ function New-RatRaceStartupTask {
         [string]$Process
     )
 
-    $taskName = "RatRace$Process"
+    $taskName = "${DeploymentName}$Process"
     $logFile = Join-Path $LogRoot ($Process.ToLowerInvariant() + ".log")
     $arguments = @(
         "-NoProfile",
@@ -59,7 +71,8 @@ function New-RatRaceStartupTask {
         "-EnvironmentFile `"$environmentPath`"",
         "-PythonExecutable `"$pythonPath`"",
         "-LogFile `"$logFile`"",
-        "-Port $WebPort"
+        "-Port $WebPort",
+        "-DatabasePort $PostgresPort"
     ) -join " "
     $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $arguments
     $trigger = New-ScheduledTaskTrigger -AtStartup
@@ -112,6 +125,7 @@ $manualRoots = @(
     $allProcesses |
         Where-Object {
             $_.Name -eq "powershell.exe" -and
+            $_.CommandLine -match ([regex]::Escape($installationPath)) -and
             $_.CommandLine -match "Start-RatRaceProcess\.ps1" -and
             $_.CommandLine -match "-Process (Web|Worker)"
         } |
@@ -132,8 +146,8 @@ foreach ($processId in @($processesToStop) | Sort-Object -Descending) {
     Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
 }
 
-Start-ScheduledTask -TaskName "RatRaceWeb"
-Start-ScheduledTask -TaskName "RatRaceWorker"
+Start-ScheduledTask -TaskName "${DeploymentName}Web"
+Start-ScheduledTask -TaskName "${DeploymentName}Worker"
 
 $readinessStatus = "000"
 for ($attempt = 0; $attempt -lt 30; $attempt++) {
@@ -153,8 +167,8 @@ if ($readinessStatus -ne "200") {
 
 $result = [pscustomobject]@{
     PostgreSQL = (Get-Service -Name $postgresServiceName).Status.ToString()
-    WebTask = (Get-ScheduledTask -TaskName "RatRaceWeb").State.ToString()
-    WorkerTask = (Get-ScheduledTask -TaskName "RatRaceWorker").State.ToString()
+    WebTask = (Get-ScheduledTask -TaskName "${DeploymentName}Web").State.ToString()
+    WorkerTask = (Get-ScheduledTask -TaskName "${DeploymentName}Worker").State.ToString()
     Readiness = $readinessStatus
 }
 $result | ConvertTo-Json -Compress

@@ -18,6 +18,9 @@ param(
     [ValidateRange(1, 65535)]
     [int]$Port = 8000,
 
+    [ValidateRange(1, 65535)]
+    [int]$DatabasePort = 5432,
+
     [ValidateRange(1, 600)]
     [int]$DatabaseWaitSeconds = 300
 )
@@ -36,7 +39,7 @@ try {
     do {
         $databaseReady = Test-NetConnection `
             -ComputerName 127.0.0.1 `
-            -Port 5432 `
+            -Port $DatabasePort `
             -InformationLevel Quiet `
             -WarningAction SilentlyContinue
         if ($databaseReady) { break }

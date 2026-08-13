@@ -105,3 +105,24 @@ switching, destructive data changes, or approval of public policy wording.
 - Complete retention automation and the final privacy review.
 - Exercise the legacy import and claim journey with representative data.
 - Remove development-only records before the final production data snapshot.
+
+## Windows staging deployment
+
+The persistent acceptance environment mirrors the production layout beneath a
+separate installation root, `G:\RatRace_Staging`. Production defaults remain
+`G:\RatRace`; staging must pass explicit identity and port values:
+
+- deployment name `RatRaceStaging`;
+- web port `8002`;
+- PostgreSQL port `5433`;
+- tasks `RatRaceStagingWeb` and `RatRaceStagingWorker`;
+- service `RatRaceStagingPostgres`;
+- hostname `dev.tgsrr.com`.
+
+`Install-RatRaceStartup.ps1` validates that every supplied release, environment,
+Python, PostgreSQL, and log path stays beneath its `InstallationRoot`. Process
+cleanup is installation-root scoped so staging cannot terminate production.
+Create the protected staging environment with
+`New-RatRaceStagingEnvironment.ps1` only after its isolated PostgreSQL fragment
+exists. Cloudflare routing and Access protection are configured last, after the
+local staging readiness endpoint passes.
