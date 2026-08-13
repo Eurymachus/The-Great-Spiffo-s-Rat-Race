@@ -15,10 +15,10 @@ REQUIRED_PRODUCTION_VARIABLES = (
     "POSTGRES_PASSWORD",
     "POSTGRES_HOST",
     "POSTGRES_PORT",
-    "EMAIL_HOST",
-    "EMAIL_PORT",
-    "EMAIL_HOST_USER",
-    "EMAIL_HOST_PASSWORD",
+    "MICROSOFT_GRAPH_TENANT_ID",
+    "MICROSOFT_GRAPH_CLIENT_ID",
+    "MICROSOFT_GRAPH_CLIENT_SECRET",
+    "MICROSOFT_GRAPH_SENDER",
     "DEFAULT_FROM_EMAIL",
     "TURNSTILE_SITE_KEY",
     "TURNSTILE_SECRET_KEY",
@@ -147,9 +147,6 @@ def validate_production_environment(environ):
         "postgres_port": parse_positive_integer(
             environ["POSTGRES_PORT"], name="POSTGRES_PORT"
         ),
-        "email_port": parse_positive_integer(
-            environ["EMAIL_PORT"], name="EMAIL_PORT"
-        ),
         "postgres_conn_max_age": parse_positive_integer(
             environ.get("POSTGRES_CONN_MAX_AGE", "60"),
             name="POSTGRES_CONN_MAX_AGE",
@@ -166,9 +163,6 @@ def validate_production_environment(environ):
         **split_values,
         **integer_values,
         "runtime_state_backend": runtime_state_backend,
-        "email_use_tls": parse_boolean(
-            environ.get("EMAIL_USE_TLS", "true"), name="EMAIL_USE_TLS"
-        ),
         "trust_cloudflare_connecting_ip": parse_boolean(
             environ.get("TRUST_CLOUDFLARE_CONNECTING_IP", "true"),
             name="TRUST_CLOUDFLARE_CONNECTING_IP",

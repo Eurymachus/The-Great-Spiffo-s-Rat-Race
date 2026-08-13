@@ -70,10 +70,10 @@ def valid_environment():
         "POSTGRES_HOST": "database",
         "POSTGRES_PORT": "5432",
         "REDIS_URL": "redis://cache:6379/0",
-        "EMAIL_HOST": "smtp.example.com",
-        "EMAIL_PORT": "587",
-        "EMAIL_HOST_USER": "mailer",
-        "EMAIL_HOST_PASSWORD": "mail-secret",
+        "MICROSOFT_GRAPH_TENANT_ID": "tenant-id",
+        "MICROSOFT_GRAPH_CLIENT_ID": "client-id",
+        "MICROSOFT_GRAPH_CLIENT_SECRET": "mail-secret",
+        "MICROSOFT_GRAPH_SENDER": "noreply@tgsrr.com",
         "DEFAULT_FROM_EMAIL": "Rat Race <no-reply@tgsrr.com>",
         "TURNSTILE_SITE_KEY": "live-site-key",
         "TURNSTILE_SECRET_KEY": "live-secret-key",
@@ -107,10 +107,8 @@ class ProductionEnvironmentTests(TestCase):
         result = validate_production_environment(valid_environment())
 
         self.assertEqual(result["postgres_port"], 5432)
-        self.assertEqual(result["email_port"], 587)
         self.assertEqual(result["postgres_conn_max_age"], 60)
         self.assertEqual(result["secure_hsts_seconds"], 3600)
-        self.assertTrue(result["email_use_tls"])
         self.assertTrue(result["trust_cloudflare_connecting_ip"])
         self.assertEqual(result["runtime_state_backend"], "cache")
         self.assertEqual(result["allowed_hosts"], ["tgsrr.com", "www.tgsrr.com"])

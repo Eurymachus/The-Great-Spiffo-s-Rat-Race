@@ -56,12 +56,11 @@ STORAGES = {
     },
 }
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.environ["EMAIL_HOST"]
-EMAIL_PORT = production["email_port"]
-EMAIL_HOST_USER = os.environ["EMAIL_HOST_USER"]
-EMAIL_HOST_PASSWORD = os.environ["EMAIL_HOST_PASSWORD"]
-EMAIL_USE_TLS = production["email_use_tls"]
+EMAIL_BACKEND = "config.graph_email.MicrosoftGraphEmailBackend"
+MICROSOFT_GRAPH_TENANT_ID = os.environ["MICROSOFT_GRAPH_TENANT_ID"]
+MICROSOFT_GRAPH_CLIENT_ID = os.environ["MICROSOFT_GRAPH_CLIENT_ID"]
+MICROSOFT_GRAPH_CLIENT_SECRET = os.environ["MICROSOFT_GRAPH_CLIENT_SECRET"]
+MICROSOFT_GRAPH_SENDER = os.environ["MICROSOFT_GRAPH_SENDER"]
 DEFAULT_FROM_EMAIL = os.environ["DEFAULT_FROM_EMAIL"]
 SERVER_EMAIL = os.environ.get("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 
