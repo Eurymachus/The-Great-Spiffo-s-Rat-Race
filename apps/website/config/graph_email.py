@@ -47,9 +47,18 @@ class MicrosoftGraphEmailBackend(BaseEmailBackend):
         graph_message = {
             "subject": message.subject,
             "body": {"contentType": content_type, "content": body},
+            "from": {
+                "emailAddress": {
+                    "name": parseaddr(message.from_email)[0],
+                    "address": parseaddr(message.from_email)[1],
+                }
+            },
             "toRecipients": self._recipients(message.to),
             "ccRecipients": self._recipients(message.cc),
             "bccRecipients": self._recipients(message.bcc),
+            "replyTo": self._recipients(
+                message.reply_to or [settings.MICROSOFT_GRAPH_REPLY_TO]
+            ),
         }
         attachments = []
         for attachment in message.attachments:

@@ -28,7 +28,9 @@ class Response:
     MICROSOFT_GRAPH_TENANT_ID="tenant",
     MICROSOFT_GRAPH_CLIENT_ID="client",
     MICROSOFT_GRAPH_CLIENT_SECRET="secret",
-    MICROSOFT_GRAPH_SENDER="noreply@tgsrr.com",
+    MICROSOFT_GRAPH_SENDER="support@tgsrr.com",
+    MICROSOFT_GRAPH_REPLY_TO="support@tgsrr.com",
+    DEFAULT_FROM_EMAIL="The Great Spiffo's Rat Race <noreply@tgsrr.com>",
 )
 class MicrosoftGraphEmailBackendTests(SimpleTestCase):
     @patch("config.graph_email.request.urlopen")
@@ -51,7 +53,7 @@ class MicrosoftGraphEmailBackendTests(SimpleTestCase):
         self.assertIn("tenant/oauth2/v2.0/token", token_request.full_url)
         self.assertEqual(
             mail_request.full_url,
-            "https://graph.microsoft.com/v1.0/users/noreply%40tgsrr.com/sendMail",
+            "https://graph.microsoft.com/v1.0/users/support%40tgsrr.com/sendMail",
         )
         self.assertEqual(mail_request.headers["Authorization"], "Bearer token")
         payload = json.loads(mail_request.data)
@@ -59,4 +61,15 @@ class MicrosoftGraphEmailBackendTests(SimpleTestCase):
         self.assertEqual(
             payload["message"]["toRecipients"][0]["emailAddress"]["address"],
             "rat@example.com",
+        )
+        self.assertEqual(
+            payload["message"]["from"]["emailAddress"],
+            {
+                "name": "The Great Spiffo's Rat Race",
+                "address": "noreply@tgsrr.com",
+            },
+        )
+        self.assertEqual(
+            payload["message"]["replyTo"][0]["emailAddress"]["address"],
+            "support@tgsrr.com",
         )
