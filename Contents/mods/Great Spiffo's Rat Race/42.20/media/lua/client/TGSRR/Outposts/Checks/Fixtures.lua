@@ -6,6 +6,7 @@ local ChallengeEvents = require "TGSRR/Core/Events"
 
 local Fixtures = {}
 local BoxedFood = require "TGSRR/Outposts/Checks/BoxedFood"
+local GeneratorCoverage = require "TGSRR/Outposts/Checks/GeneratorCoverage"
 local roomsByOutpost = {}
 local outpostByRoom = {}
 local generatorObjects = {}
@@ -51,13 +52,6 @@ local function fixtureKey(object)
     local spriteName = sprite and sprite:getName() or object:getObjectName() or "<unknown>"
     return tostring(square:getX()) .. ":" .. tostring(square:getY()) .. ":"
         .. tostring(square:getZ()) .. ":" .. tostring(spriteName)
-end
-
-local function squareInsideCore(outpost, square)
-    local zone = outpost and outpost.coreZone or nil
-    return zone and square
-        and square:getX() >= zone.minX and square:getX() <= zone.maxX
-        and square:getY() >= zone.minY and square:getY() <= zone.maxY
 end
 
 local function goodBedResult(outpost)
@@ -226,7 +220,7 @@ local function registerGenerator(object)
     local square = object:getSquare()
     if not square then return nil end
     for _, outpost in ipairs(Outposts.getAll()) do
-        if squareInsideCore(outpost, square) then
+        if GeneratorCoverage.covers(outpost, object) then
             local key = fixtureKey(object)
             if not key then return nil end
             Store.addFixture(outpost.id, "generator", key, {
@@ -298,7 +292,7 @@ local function generatorResult(outpost)
     local bestConnectedFuel = nil
     for key, entry in pairs(entries) do
         local generator, squareLoaded = findGeneratorAt(entry, key)
-        if generator then
+        if generator and GeneratorCoverage.covers(outpost, generator) then
             found = found + 1
             if generator:isConnected() then
                 local fuel = generator:getFuelPercentage()
@@ -324,6 +318,7 @@ local function generatorResult(outpost)
         current = fuel,
         required = 100,
         state = "fuel",
+        details = { fuelPercent = fuel },
     }
 end
 
