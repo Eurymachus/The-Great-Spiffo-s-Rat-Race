@@ -4,14 +4,11 @@ require "ISUI/ISScrollingListBox"
 local Data = require "TGSRR/Tracker/Skills/Data"
 local L = require "TGSRR/Core/Localization"
 local State = require "TGSRR/Tracker/State"
+local Layout = require "TGSRR/Tracker/Layout"
 
 local View = ISPanel:derive("TGSRRSkillsTrackerView")
 local HEADER_Y = 8
-local HEADER_HEIGHT = 28
-local FOOTER_HEIGHT = 22
 local MARGIN = 8
-local ROW_HEIGHT = 27
-local PROGRESS_COLUMN_WIDTH = 220
 local SEGMENT_GAP = 2
 local TREE_EXPANDED = getTexture("media/ui/inventoryPanes/Button_TreeExpanded.png")
 local TREE_COLLAPSED = getTexture("media/ui/inventoryPanes/Button_TreeCollapsed.png")
@@ -20,6 +17,11 @@ local PIP_ACQUIRED = { 1, 0.89, 0.38 }
 local PIP_CURRENT = { 0.48, 0.48, 0.48 }
 local PIP_LOCKED = { 0.20, 0.20, 0.20 }
 local SKILL_ICON_CACHE = {}
+local SKILL_ICON_SIZE = 19
+local function headerHeight() return Layout.boxHeight(UIFont.Small, 7, 28) end
+local function footerHeight() return Layout.boxHeight(UIFont.Small, 5, 22) end
+local function listTop() return HEADER_Y + headerHeight() end
+local function rowHeight() return Layout.rowHeight(SKILL_ICON_SIZE) end
 
 local function skillIcon(skillId)
     local cached = SKILL_ICON_CACHE[skillId]
@@ -30,11 +32,13 @@ local function skillIcon(skillId)
 end
 
 local function skillRight(width)
-    return math.min(PROGRESS_COLUMN_WIDTH, math.floor((width - 100) / 2))
+    local first = Layout.threeColumns(width)
+    return first
 end
 
 local function progressLeft(width)
-    return width - skillRight(width)
+    local _, second = Layout.threeColumns(width)
+    return second
 end
 
 local function scrollGutter(list)
@@ -59,13 +63,13 @@ end
 
 function View:createChildren()
     ISPanel.createChildren(self)
-    local listY = HEADER_Y + HEADER_HEIGHT
+    local listY = listTop()
     self.list = ISScrollingListBox:new(MARGIN, listY, self.width - MARGIN * 2,
-        self.height - listY - FOOTER_HEIGHT - MARGIN * 2)
+        self.height - listY - footerHeight() - MARGIN * 2)
     self.list:initialise()
     self.list:instantiate()
     self.list.owner = self
-    self.list.itemheight = ROW_HEIGHT
+    self.list.itemheight = rowHeight()
     self.list.doDrawItem = self.drawRow
     self.list.drawBorder = true
     self.list:setOnMouseDownFunction(self, View.onRowClicked)
@@ -79,33 +83,35 @@ function View:prerender()
     local scrollWidth = scrollGutter(self.list)
     local frameWidth = self.width - MARGIN * 2
     local width = frameWidth - scrollWidth
-    self:drawRect(MARGIN, HEADER_Y, frameWidth, HEADER_HEIGHT, 0.9, 0.12, 0.12, 0.12)
-    self:drawRectBorder(MARGIN, HEADER_Y, frameWidth, HEADER_HEIGHT, 0.7, 0.65, 0.65, 0.65)
-    local textY = HEADER_Y + math.floor((HEADER_HEIGHT - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    local header = headerHeight()
+    local footer = footerHeight()
+    self:drawRect(MARGIN, HEADER_Y, frameWidth, header, 0.9, 0.12, 0.12, 0.12)
+    self:drawRectBorder(MARGIN, HEADER_Y, frameWidth, header, 0.7, 0.65, 0.65, 0.65)
+    local textY = HEADER_Y + math.floor((header - Layout.lineHeight(UIFont.Small)) / 2)
     self:drawText(L.text("UI_TGSRR_Tracker_Skill", "Skill"), MARGIN + 8, textY, 1, 1, 1, 1, UIFont.Small)
-    local levelX = skillRight(frameWidth)
-    local progressX = progressLeft(frameWidth)
+    local levelX = skillRight(width)
+    local progressX = progressLeft(width)
     self:drawTextCentre(L.text("UI_TGSRR_Tracker_Level", "Level"),
         MARGIN + levelX + math.floor((progressX - levelX) / 2), textY, 1, 1, 1, 1, UIFont.Small)
     self:drawTextCentre(L.text("UI_TGSRR_Tracker_Progress", "Progress"),
-        MARGIN + progressX + math.floor((frameWidth - progressX) / 2),
+        MARGIN + progressX + math.floor((width - progressX) / 2),
         textY, 1, 1, 1, 1, UIFont.Small)
 
-    local footerY = self.height - MARGIN - FOOTER_HEIGHT
-    self:drawRect(MARGIN, footerY, frameWidth, FOOTER_HEIGHT, 0.8, 0.02, 0.02, 0.02)
+    local footerY = self.height - MARGIN - footer
+    self:drawRect(MARGIN, footerY, frameWidth, footer, 0.8, 0.02, 0.02, 0.02)
     local snapshot = self.snapshot
     local percent = snapshot and snapshot.percent or 0
     if percent > 0 then
         self:drawRect(MARGIN + 1, footerY + 1, math.floor((frameWidth - 2) * percent / 100),
-            FOOTER_HEIGHT - 2, 0.76, 0.12, 0.58, 0.18)
+            footer - 2, 0.76, 0.12, 0.58, 0.18)
     end
-    self:drawRectBorder(MARGIN, footerY, frameWidth, FOOTER_HEIGHT, 0.62, 0.55, 0.55, 0.55)
+    self:drawRectBorder(MARGIN, footerY, frameWidth, footer, 0.62, 0.55, 0.55, 0.55)
     local mastered = snapshot and snapshot.mastered or 0
     local total = snapshot and snapshot.total or 0
     local footerText = tostring(mastered) .. " " .. L.text("UI_TGSRR_Tracker_Of", "of") .. " " ..
         tostring(total) .. " " .. L.text("UI_TGSRR_Tracker_SkillsMastered", "skills mastered") ..
         " (" .. string.format("%.1f%%", percent) .. ")"
-    local footerTextY = footerY + math.floor((FOOTER_HEIGHT - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    local footerTextY = footerY + math.floor((footer - Layout.lineHeight(UIFont.Small)) / 2)
     self:drawTextCentre(footerText, MARGIN + frameWidth / 2, footerTextY, 1, 1, 1, 1, UIFont.Small)
 end
 
@@ -171,22 +177,26 @@ function View:drawRow(y, item, alt)
     local textY = y + math.floor((self.itemheight - getTextManager():getFontHeight(UIFont.Small)) / 2)
     if data.kind == "category" then
         local category = data.category
-        local frameWidth = rowWidth
+        local frameWidth = contentWidth
         local levelX = skillRight(frameWidth)
         local progressX = progressLeft(frameWidth)
         self:drawRect(0, y, rowWidth, self.itemheight - 1, 0.45, 0.12, 0.12, 0.12)
         self:drawRect(0, y + self.itemheight - 1, rowWidth, 1, 0.4, 0.55, 0.55, 0.55)
         local icon = self.owner.collapsed[category.id] and TREE_COLLAPSED or TREE_EXPANDED
-        if icon then self:drawTextureScaledAspect(icon, 6, y + 4, 19, 19, 1, 1, 1, 1) end
+        if icon then self:drawTextureScaledAspect(icon, 6,
+            y + math.floor((self.itemheight - SKILL_ICON_SIZE) / 2),
+            SKILL_ICON_SIZE, SKILL_ICON_SIZE, 1, 1, 1, 1) end
         self:drawText(data.name, 30, textY, 1, 1, 1, 1, UIFont.Small)
         self:drawTextCentre(tostring(category.mastered) .. " / " .. tostring(category.total),
             levelX + math.floor((progressX - levelX) / 2), textY,
             category.mastered == category.total and 0.35 or 1,
             category.mastered == category.total and 1 or 1,
             category.mastered == category.total and 0.45 or 1, 1, UIFont.Small)
-        drawCategoryProgress(self, progressX + 6,
-            y + math.floor((self.itemheight - 17) / 2),
-            contentWidth - progressX - 12, 17, category)
+        local padding = Layout.columnPadding()
+        local barHeight = Layout.progressBarHeight()
+        drawCategoryProgress(self, progressX + padding,
+            y + math.floor((self.itemheight - barHeight) / 2),
+            contentWidth - progressX - padding * 2, barHeight, category)
         return y + self.itemheight
     end
 
@@ -196,15 +206,20 @@ function View:drawRow(y, item, alt)
     local r, g, b = skill.complete and 0.35 or 1, skill.complete and 1 or 1, skill.complete and 0.45 or 1
     local nameR, nameG, nameB = boostColor(skill.xpBoost)
     local icon = skillIcon(skill.id)
-    if icon then self:drawTextureScaledAspect(icon, 6, y + 4, 19, 19, 1, 1, 1, 1) end
+    if icon then self:drawTextureScaledAspect(icon, 6,
+        y + math.floor((self.itemheight - SKILL_ICON_SIZE) / 2),
+        SKILL_ICON_SIZE, SKILL_ICON_SIZE, 1, 1, 1, 1) end
     self:drawText(skill.name, icon and 30 or 6, textY, nameR, nameG, nameB, 1, UIFont.Small)
-    local frameWidth = rowWidth
+    local frameWidth = contentWidth
     local levelX = skillRight(frameWidth)
     local progressX = progressLeft(frameWidth)
     self:drawTextCentre(tostring(skill.level) .. " / 10",
         levelX + math.floor((progressX - levelX) / 2), textY, r, g, b, 1, UIFont.Small)
-    drawSegments(self, progressX + 6, y + math.floor((self.itemheight - 17) / 2),
-        contentWidth - progressX - 12, 17, skill)
+    local padding = Layout.columnPadding()
+    local barHeight = Layout.progressBarHeight()
+    drawSegments(self, progressX + padding,
+        y + math.floor((self.itemheight - barHeight) / 2),
+        contentWidth - progressX - padding * 2, barHeight, skill)
     return y + self.itemheight
 end
 
@@ -229,7 +244,7 @@ function View:refresh(player)
             end
         end
         local item = self.list:addItem(row.name or (row.skill and row.skill.name) or "", row, tooltip)
-        item.height = row.kind == "skill" and self.collapsed[row.skill.categoryId] and 0 or ROW_HEIGHT
+        item.height = row.kind == "skill" and self.collapsed[row.skill.categoryId] and 0 or rowHeight()
         if row.id == selectedId and item.height > 0 then self.list.selected = item.itemindex end
     end
     self.list:setYScroll(scrollY)
@@ -245,7 +260,7 @@ function View:setCategoryCollapsed(categoryId, collapsed)
         if row.kind == "category" and row.category.id == categoryId then
             categoryIndex = index
         elseif row.kind == "skill" and row.skill.categoryId == categoryId then
-            item.height = collapsed and 0 or ROW_HEIGHT
+            item.height = collapsed and 0 or rowHeight()
             if collapsed and selectedItem == item then selectedWasHidden = true end
         end
     end
@@ -280,9 +295,9 @@ function View:onResize(width, height)
     self:setWidth(width)
     self:setHeight(height)
     if self.list then
-        local listY = HEADER_Y + HEADER_HEIGHT
+        local listY = listTop()
         self.list:setWidth(width - MARGIN * 2)
-        self.list:setHeight(height - listY - FOOTER_HEIGHT - MARGIN * 2)
+        self.list:setHeight(height - listY - footerHeight() - MARGIN * 2)
     end
 end
 

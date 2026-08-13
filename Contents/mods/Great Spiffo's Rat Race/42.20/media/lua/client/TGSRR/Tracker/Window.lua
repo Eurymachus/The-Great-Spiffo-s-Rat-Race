@@ -5,6 +5,7 @@ local Tracker = require "TGSRR/Challenge/TrackerRegistry"
 local State = require "TGSRR/Tracker/State"
 local L = require "TGSRR/Core/Localization"
 local Identity = require "TGSRR/Run/Identity"
+local Layout = require "TGSRR/Tracker/Layout"
 require "TGSRR/Tracker/Overview/Module"
 require "TGSRR/Tracker/Kills/Module"
 require "TGSRR/Notifications/MilestonePresenter"
@@ -16,8 +17,6 @@ TGSRRChallengeTrackerWindow = ISCollapsableWindow:derive("TGSRRChallengeTrackerW
 TGSRRChallengeTrackerWindow.instance = nil
 TGSRRChallengeTrackerWindow.launcher = nil
 
-local TAB_HEIGHT = 28
-local TAB_WIDTH = 100
 local CONTENT_MARGIN = 6
 local WINDOW_WIDTH = 800
 local WINDOW_HEIGHT = 650
@@ -26,6 +25,29 @@ local LAUNCHER_MARGIN = 4
 local LAUNCHER_TEXTURE_OFF = "media/ui/TGSRR_TrackerLauncher48_off.png"
 local LAUNCHER_TEXTURE_ON = "media/ui/TGSRR_TrackerLauncher48_on.png"
 local DRAG_THRESHOLD = 4
+
+local function windowWidth()
+    local contentWidth = Layout.textWidth(UIFont.Small, string.rep("M", 60)) + 180
+    return math.min(getCore():getScreenWidth(), math.max(WINDOW_WIDTH, contentWidth))
+end
+
+local function tabHeight()
+    return Layout.boxHeight(UIFont.Small, 7, 28)
+end
+
+local function tabWidths(modules, availableWidth)
+    local widths = {}
+    local count = #modules
+    if count == 0 then return widths end
+
+    local baseWidth = math.floor(availableWidth / count)
+    local remainder = availableWidth - baseWidth * count
+    for index = 1, count do
+        widths[index] = baseWidth
+        if index <= remainder then widths[index] = widths[index] + 1 end
+    end
+    return widths
+end
 
 local TGSRRTrackerLauncher = ISButton:derive("TGSRRTrackerLauncher")
 
@@ -98,20 +120,24 @@ function TGSRRChallengeTrackerWindow:createChildren()
     self.tabs = {}
     self.views = {}
     local tabY = self:titleBarHeight()
-    self.tabPanel = ISPanel:new(0, tabY, self.width, TAB_HEIGHT)
+    local tabsHeight = tabHeight()
+    self.tabPanel = ISPanel:new(0, tabY, self.width, tabsHeight)
     self.tabPanel:initialise()
     self.tabPanel.backgroundColor = { r = 0, g = 0, b = 0, a = 0.65 }
     self:addChild(self.tabPanel)
 
     local modules = Tracker.getModules()
+    local widths = tabWidths(modules, self.width)
+    local tabX = 0
     for index, module in ipairs(modules) do
-        local button = ISButton:new((index - 1) * TAB_WIDTH, 0, TAB_WIDTH, TAB_HEIGHT,
+        local button = ISButton:new(tabX, 0, widths[index], tabsHeight,
             module.title, self, self.onTab)
         button.moduleId = module.id
         button:initialise(); button:instantiate(); self.tabPanel:addChild(button)
         self.tabs[module.id] = button
 
-        local contentY = tabY + TAB_HEIGHT
+        tabX = tabX + widths[index]
+        local contentY = tabY + tabsHeight
         local contentHeight = self.height - contentY - CONTENT_MARGIN
         local view = module.createView(self, CONTENT_MARGIN, contentY,
             self.width - CONTENT_MARGIN * 2, contentHeight)
@@ -143,7 +169,8 @@ end
 function TGSRRChallengeTrackerWindow:onResize()
     ISCollapsableWindow.onResize(self)
     local tabY = self:titleBarHeight()
-    local y = tabY + TAB_HEIGHT
+    local tabsHeight = tabHeight()
+    local y = tabY + tabsHeight
     local width = self.width - CONTENT_MARGIN * 2
     local height = self.height - y - CONTENT_MARGIN
     if self.tabPanel then
@@ -151,11 +178,14 @@ function TGSRRChallengeTrackerWindow:onResize()
         self.tabPanel:setWidth(self.width)
     end
     local modules = Tracker.getModules()
+    local widths = tabWidths(modules, self.width)
+    local tabX = 0
     for index, module in ipairs(modules) do
         local tab = self.tabs and self.tabs[module.id]
         if tab then
-            tab:setX((index - 1) * TAB_WIDTH); tab:setY(0); tab:setWidth(TAB_WIDTH)
+            tab:setX(tabX); tab:setY(0); tab:setWidth(widths[index]); tab:setHeight(tabsHeight)
         end
+        tabX = tabX + widths[index]
         local view = self.views and self.views[module.id]
         if view and view.onResize then view:onResize(width, height) end
     end
@@ -188,7 +218,7 @@ function TGSRRChallengeTrackerWindow.open()
         return window
     end
     local saved = State.load()
-    local width = WINDOW_WIDTH
+    local width = windowWidth()
     local height = WINDOW_HEIGHT
     local maxX = math.max(0, getCore():getScreenWidth() - width)
     local maxY = math.max(0, getCore():getScreenHeight() - height)

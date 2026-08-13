@@ -6,22 +6,26 @@ local L = require "TGSRR/Core/Localization"
 local Icons = require "TGSRR/Tracker/Outposts/Icons"
 local Notifications = require "TGSRR/Challenge/Notifications"
 local Overview = require "TGSRR/Tracker/Outposts/OverviewWindow"
+local Layout = require "TGSRR/Tracker/Layout"
 
 local View = ISPanel:derive("TGSRROutpostTrackerView")
 local REFRESH_INTERVAL_MS = 1000
 local HEADER_Y = 8
-local HEADER_HEIGHT = 28
-local FOOTER_HEIGHT = 22
 local MARGIN = 8
-local PROGRESS_COLUMN_WIDTH = 220
 local OUTPOST_ICON_SIZE = 19
+local function headerHeight() return Layout.boxHeight(UIFont.Small, 7, 28) end
+local function footerHeight() return Layout.boxHeight(UIFont.Small, 5, 22) end
+local function listTop() return HEADER_Y + headerHeight() end
+local function rowHeight() return Layout.rowHeight(OUTPOST_ICON_SIZE) end
 
 local function outpostRight(width)
-    return math.min(PROGRESS_COLUMN_WIDTH, math.floor((width - 100) / 2))
+    local first = Layout.threeColumns(width)
+    return first
 end
 
 local function progressLeft(width)
-    return width - outpostRight(width)
+    local _, second = Layout.threeColumns(width)
+    return second
 end
 
 local function scrollGutter(list)
@@ -30,12 +34,12 @@ end
 
 function View:createChildren()
     ISPanel.createChildren(self)
-    local listY = HEADER_Y + HEADER_HEIGHT
+    local listY = listTop()
     self.list = ISScrollingListBox:new(MARGIN, listY, self.width - MARGIN * 2,
-        self.height - listY - FOOTER_HEIGHT - MARGIN * 2)
+        self.height - listY - footerHeight() - MARGIN * 2)
     self.list:initialise()
     self.list:instantiate()
-    self.list.itemheight = 27
+    self.list.itemheight = rowHeight()
     self.list.doDrawItem = self.drawOutpost
     self.list.drawBorder = true
     self.list:setOnMouseDoubleClick(self, View.onActivate)
@@ -47,34 +51,37 @@ function View:prerender()
     ISPanel.prerender(self)
     local x = 8
     local frameWidth = self.width - 16
-    self:drawRect(x, HEADER_Y, frameWidth, HEADER_HEIGHT, 0.9, 0.12, 0.12, 0.12)
-    self:drawRectBorder(x, HEADER_Y, frameWidth, HEADER_HEIGHT, 0.7, 0.65, 0.65, 0.65)
+    local header = headerHeight()
+    local footer = footerHeight()
+    self:drawRect(x, HEADER_Y, frameWidth, header, 0.9, 0.12, 0.12, 0.12)
+    self:drawRectBorder(x, HEADER_Y, frameWidth, header, 0.7, 0.65, 0.65, 0.65)
 
-    local textY = HEADER_Y + math.floor((HEADER_HEIGHT - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    local textY = HEADER_Y + math.floor((header - Layout.lineHeight(UIFont.Small)) / 2)
     self:drawText(L.text("UI_TGSRR_Tracker_Outpost", "Outpost"),
         x + 8, textY, 1, 1, 1, 1, UIFont.Small)
     local headers = {
         L.text("UI_TGSRR_Tracker_Stage", "Stage"),
         L.text("UI_TGSRR_Tracker_Progress", "Progress"),
     }
-    local stageLeft = outpostRight(frameWidth)
-    local progressX = progressLeft(frameWidth)
+    local columnWidth = frameWidth - scrollGutter(self.list)
+    local stageLeft = outpostRight(columnWidth)
+    local progressX = progressLeft(columnWidth)
     self:drawTextCentre(headers[1], x + stageLeft + math.floor((progressX - stageLeft) / 2),
         textY, 1, 1, 1, 1, UIFont.Small)
     self:drawTextCentre(headers[2], x + progressX + math.floor((frameWidth - progressX) / 2),
         textY, 1, 1, 1, 1, UIFont.Small)
 
-    local footerY = self.height - MARGIN - FOOTER_HEIGHT
-    self:drawRect(x, footerY, frameWidth, FOOTER_HEIGHT, 0.8, 0.02, 0.02, 0.02)
+    local footerY = self.height - MARGIN - footer
+    self:drawRect(x, footerY, frameWidth, footer, 0.8, 0.02, 0.02, 0.02)
     local snapshot = self.snapshot
     local percent = snapshot and snapshot.percent or 0
     if percent > 0 then
         self:drawRect(x + 1, footerY + 1,
-            math.floor((frameWidth - 2) * percent / 100), FOOTER_HEIGHT - 2,
+            math.floor((frameWidth - 2) * percent / 100), footer - 2,
             0.76, 0.12, 0.58, 0.18)
     end
-    self:drawRectBorder(x, footerY, frameWidth, FOOTER_HEIGHT, 0.62, 0.55, 0.55, 0.55)
-    local footerTextY = footerY + math.floor((FOOTER_HEIGHT - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    self:drawRectBorder(x, footerY, frameWidth, footer, 0.62, 0.55, 0.55, 0.55)
+    local footerTextY = footerY + math.floor((footer - Layout.lineHeight(UIFont.Small)) / 2)
     local completed = snapshot and snapshot.completed or 0
     local total = snapshot and #snapshot.rows or 0
     local footerText = tostring(completed) .. " " .. L.text("UI_TGSRR_Tracker_Of", "of") .. " " ..
@@ -115,22 +122,24 @@ function View:drawOutpost(y, item, alt)
         (data.status == "undiscovered" and
             L.text("UI_TGSRR_Tracker_Stage_Undiscovered", "Undiscovered") or
             L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered")))
-    local stageLeft = outpostRight(rowWidth)
-    local progressX = progressLeft(rowWidth)
+    local stageLeft = outpostRight(contentWidth)
+    local progressX = progressLeft(contentWidth)
     self:drawTextCentre(stage,
         stageLeft + math.floor((progressX - stageLeft) / 2), textY,
         statusColor[1], statusColor[2], statusColor[3], 1, UIFont.Small)
 
-    local progressBarX = progressX + 6
-    local progressWidth = math.max(1, contentWidth - progressBarX - 6)
-    local progressY = y + math.floor((self.itemheight - 17) / 2)
-    self:drawRect(progressBarX, progressY, progressWidth, 17, 0.8, 0.02, 0.02, 0.02)
+    local padding = Layout.columnPadding()
+    local progressBarX = progressX + padding
+    local progressWidth = math.max(1, contentWidth - progressBarX - padding)
+    local progressHeight = Layout.progressBarHeight()
+    local progressY = y + math.floor((self.itemheight - progressHeight) / 2)
+    self:drawRect(progressBarX, progressY, progressWidth, progressHeight, 0.8, 0.02, 0.02, 0.02)
     if data.percent > 0 then
         self:drawRect(progressBarX + 1, progressY + 1,
-            math.floor((progressWidth - 2) * data.percent / 100), 15,
+            math.floor((progressWidth - 2) * data.percent / 100), progressHeight - 2,
             0.76, 0.12, 0.58, 0.18)
     end
-    self:drawRectBorder(progressBarX, progressY, progressWidth, 17, 0.62, 0.55, 0.55, 0.55)
+    self:drawRectBorder(progressBarX, progressY, progressWidth, progressHeight, 0.62, 0.55, 0.55, 0.55)
     self:drawTextCentre(data.requirements .. " (" .. tostring(data.percent) .. "%)",
         progressBarX + math.floor(progressWidth / 2), textY,
         labelColor[1], labelColor[2], labelColor[3], 1, UIFont.Small)
@@ -229,7 +238,8 @@ function View:onResize(width, height)
     self:setHeight(height)
     if self.list then
         self.list:setWidth(width - MARGIN * 2)
-        self.list:setHeight(height - HEADER_Y - HEADER_HEIGHT - FOOTER_HEIGHT - MARGIN * 2)
+        self.list:setY(listTop())
+        self.list:setHeight(height - listTop() - footerHeight() - MARGIN * 2)
         self.list.vscroll:bringToTop()
     end
 end

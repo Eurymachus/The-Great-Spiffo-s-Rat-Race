@@ -42,19 +42,19 @@ landmark("cockayne_inc", "Cockayne Inc.", "Louisville",
     "Industrial", { "3377957418565636" }, 15488, 3079, 0)
 landmark("wizards_keep", "The Wizard's Keep", "Irvington",
     "Entertainment", { "16044099442311170" }, 1760, 14784, 0)
-landmark("doe_valley_bunker", "Doe Valley Bunker", "Doe Valley Forest",
+landmark("doe_valley_bunker", "Bunker", "Doe Valley Forest",
     "Remote", { "10133189355896832" }, 5576, 9365, -1)
-landmark("muldraugh_radio_tower", "Muldraugh Radio Tower", "Muldraugh",
+landmark("muldraugh_radio_tower", "Radio Tower", "Muldraugh",
     "Infrastructure", { "9570321006854147" }, 10253, 8734, 0)
-landmark("riverside_radio_tower", "Riverside Radio Tower", "Riverside",
+landmark("riverside_radio_tower", "Radio Tower", "Riverside",
     "Infrastructure", { "6755476750467072" }, 4833, 6279, 0)
-landmark("brandenburg_detention_center", "Brandenburg Detention Center",
+landmark("brandenburg_detention_center", "Detention Centre",
     "Brandenburg", "Civic", { "6192470962470913" }, 1411, 5899, 0)
 landmark("mccoy_estate", "McCoy Estate", "Muldraugh",
     "Estate", { "9007366758465536" }, 10086, 8261, 1)
-landmark("fallas_luxury_cabins", "Fallas Lake Remote Luxury Cabins",
+landmark("fallas_luxury_cabins", "Remote Luxury Cabins",
     "Fallas Lake", "Remote", { "8162877403824129" }, 6367, 7620, 2)
-landmark("airport_atc_tower", "Louisville Airport ATC Tower", "Louisville",
+landmark("airport_atc_tower", "Airport ATC Tower", "Louisville",
     "Infrastructure", { "2815003170177024" }, 15361, 2669, 8)
 
 -- Increment whenever the canonical landmark membership changes. Existing runs

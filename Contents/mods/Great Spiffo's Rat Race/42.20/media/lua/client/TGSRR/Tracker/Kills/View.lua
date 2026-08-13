@@ -3,25 +3,28 @@ require "ISUI/ISScrollingListBox"
 
 local KillsData = require "TGSRR/Tracker/Kills/Data"
 local L = require "TGSRR/Core/Localization"
+local Layout = require "TGSRR/Tracker/Layout"
 
 local View = ISPanel:derive("TGSRRKillsTrackerView")
 local TARGET_KILLS = 1000000
 local MARGIN = 8
-local GOAL_BAR_HEIGHT = 22
 local HEADER_Y = 8
-local HEADER_HEIGHT = 28
-local LIST_TOP = HEADER_Y + HEADER_HEIGHT
-local ROW_HEIGHT = 27
-local PROGRESS_COLUMN_WIDTH = 220
 local MILESTONE_ICON_SIZE = 19
 local MILESTONE_ICON = getTexture("media/ui/LootableMaps/map_skull.png")
 
+local function headerHeight() return Layout.boxHeight(UIFont.Small, 7, 28) end
+local function footerHeight() return Layout.boxHeight(UIFont.Small, 5, 22) end
+local function listTop() return HEADER_Y + headerHeight() end
+local function rowHeight() return Layout.rowHeight(MILESTONE_ICON_SIZE) end
+
 local function milestoneRight(width)
-    return math.min(PROGRESS_COLUMN_WIDTH, math.floor((width - 100) / 2))
+    local first = Layout.threeColumns(width)
+    return first
 end
 
 local function progressLeft(width)
-    return width - milestoneRight(width)
+    local _, second = Layout.threeColumns(width)
+    return second
 end
 
 local function scrollGutter(list)
@@ -58,11 +61,11 @@ end
 
 function View:createChildren()
     ISPanel.createChildren(self)
-    self.list = ISScrollingListBox:new(MARGIN, LIST_TOP, self.width - MARGIN * 2,
-        self.height - LIST_TOP - GOAL_BAR_HEIGHT - MARGIN * 2)
+    self.list = ISScrollingListBox:new(MARGIN, listTop(), self.width - MARGIN * 2,
+        self.height - listTop() - footerHeight() - MARGIN * 2)
     self.list:initialise()
     self.list:instantiate()
-    self.list.itemheight = ROW_HEIGHT
+    self.list.itemheight = rowHeight()
     self.list.doDrawItem = self.drawMilestone
     self.list.drawBorder = true
     self.list.backgroundColor = { r = 0, g = 0, b = 0, a = 0.35 }
@@ -114,31 +117,34 @@ function View:prerender()
     self.percent = record.percent
 
     local frameWidth = self.width - MARGIN * 2
-    local goalBarY = self.height - MARGIN - GOAL_BAR_HEIGHT
-    self:drawRect(MARGIN, goalBarY, frameWidth, GOAL_BAR_HEIGHT, 0.8, 0.02, 0.02, 0.02)
+    local goalHeight = footerHeight()
+    local header = headerHeight()
+    local goalBarY = self.height - MARGIN - goalHeight
+    self:drawRect(MARGIN, goalBarY, frameWidth, goalHeight, 0.8, 0.02, 0.02, 0.02)
     if self.percent > 0 then
         self:drawRect(MARGIN + 1, goalBarY + 1, math.floor((frameWidth - 2) * self.percent / 100),
-            GOAL_BAR_HEIGHT - 2, 0.76, 0.12, 0.58, 0.18)
+            goalHeight - 2, 0.76, 0.12, 0.58, 0.18)
     end
-    self:drawRectBorder(MARGIN, goalBarY, frameWidth, GOAL_BAR_HEIGHT, 0.62, 0.55, 0.55, 0.55)
-    local textY = goalBarY + math.floor((GOAL_BAR_HEIGHT - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    self:drawRectBorder(MARGIN, goalBarY, frameWidth, goalHeight, 0.62, 0.55, 0.55, 0.55)
+    local textY = goalBarY + math.floor((goalHeight - Layout.lineHeight(UIFont.Small)) / 2)
     local progressText = self.playerAvailable and
         (commaValue(self.current) .. " " .. L.text("UI_TGSRR_Tracker_Of", "of") .. " " ..
             commaValue(TARGET_KILLS) .. " (" .. percentValue(self.percent / 100) .. "%)") or
         L.text("UI_TGSRR_Tracker_PlayerUnavailable", "Player data is unavailable.")
     self:drawTextCentre(progressText, MARGIN + frameWidth / 2, textY, 1, 1, 1, 1, UIFont.Small)
 
-    self:drawRect(MARGIN, HEADER_Y, frameWidth, HEADER_HEIGHT, 0.9, 0.12, 0.12, 0.12)
-    self:drawRectBorder(MARGIN, HEADER_Y, frameWidth, HEADER_HEIGHT, 0.7, 0.65, 0.65, 0.65)
-    local headerTextY = HEADER_Y + math.floor((HEADER_HEIGHT - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    self:drawRect(MARGIN, HEADER_Y, frameWidth, header, 0.9, 0.12, 0.12, 0.12)
+    self:drawRectBorder(MARGIN, HEADER_Y, frameWidth, header, 0.7, 0.65, 0.65, 0.65)
+    local headerTextY = HEADER_Y + math.floor((header - Layout.lineHeight(UIFont.Small)) / 2)
     self:drawText(L.text("UI_TGSRR_Tracker_Milestone", "Milestone"),
         MARGIN + 8, headerTextY, 1, 1, 1, 1, UIFont.Small)
     local headers = {
         L.text("UI_TGSRR_Tracker_Status", "Status"),
         L.text("UI_TGSRR_Tracker_Progress", "Progress"),
     }
-    local statusLeft = milestoneRight(frameWidth)
-    local progressX = progressLeft(frameWidth)
+    local columnWidth = frameWidth - scrollGutter(self.list)
+    local statusLeft = milestoneRight(columnWidth)
+    local progressX = progressLeft(columnWidth)
     self:drawTextCentre(headers[1], MARGIN + statusLeft + math.floor((progressX - statusLeft) / 2),
         headerTextY, 1, 1, 1, 1, UIFont.Small)
     self:drawTextCentre(headers[2], MARGIN + progressX + math.floor((frameWidth - progressX) / 2),
@@ -171,13 +177,16 @@ function View:drawMilestone(y, item, alt)
     end
     self:drawText(commaValue(data.threshold), 30, textY,
         labelColor[1], labelColor[2], labelColor[3], 1, UIFont.Small)
-    local statusLeft = milestoneRight(rowWidth)
-    local progressX = progressLeft(rowWidth)
+    local statusLeft = milestoneRight(contentWidth)
+    local progressX = progressLeft(contentWidth)
     self:drawTextCentre(status, statusLeft + math.floor((progressX - statusLeft) / 2),
         textY, r, g, b, 1, UIFont.Small)
 
-    local barX, barY, barWidth, barHeight = progressX + 6,
-        y + math.floor((self.itemheight - 17) / 2), contentWidth - progressX - 12, 17
+    local padding = Layout.columnPadding()
+    local barHeight = Layout.progressBarHeight()
+    local barX, barY, barWidth = progressX + padding,
+        y + math.floor((self.itemheight - barHeight) / 2),
+        contentWidth - progressX - padding * 2
     self:drawRect(barX, barY, barWidth, barHeight, 0.82, 0.02, 0.02, 0.02)
     if data.progress > 0 then
         local fillR, fillG, fillB = 0.18, 0.58, 0.12
@@ -214,7 +223,8 @@ function View:onResize(width, height)
     self:setHeight(height)
     if self.list then
         self.list:setWidth(width - MARGIN * 2)
-        self.list:setHeight(height - LIST_TOP - GOAL_BAR_HEIGHT - MARGIN * 2)
+        self.list:setY(listTop())
+        self.list:setHeight(height - listTop() - footerHeight() - MARGIN * 2)
     end
 end
 

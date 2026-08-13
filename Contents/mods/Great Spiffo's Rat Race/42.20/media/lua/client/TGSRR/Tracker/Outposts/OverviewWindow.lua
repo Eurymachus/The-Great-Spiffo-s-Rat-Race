@@ -10,6 +10,7 @@ local Notifications = require "TGSRR/Challenge/Notifications"
 local State = require "TGSRR/Tracker/State"
 local Identity = require "TGSRR/Run/Identity"
 local LandmarkMap = require "TGSRR/Tracker/Landmarks/WorldMap"
+local Layout = require "TGSRR/Tracker/Layout"
 
 local Window = ISCollapsableWindow:derive("TGSRROutpostOverviewWindow")
 Window.instance = nil
@@ -17,9 +18,8 @@ Window.instance = nil
 local WIDTH = 640
 local HEIGHT = 650
 local MARGIN = 12
-local HEADER_HEIGHT = 112
-local COLUMN_VALUE_X = 0.58
-local COLUMN_STATUS_X = 0.80
+local COLUMN_VALUE_X = 0.55
+local COLUMN_STATUS_X = 0.76
 local REFRESH_INTERVAL_MS = 1000
 local HELP_ICON = getTexture("media/ui/foraging/questionMark.png")
 local CHECK_ICON = getTexture("media/ui/inventoryPanes/Tickbox_Tick.png")
@@ -29,6 +29,20 @@ local STATUS_ICON_SIZE = 18
 local MAP_BUTTON_SIZE = 44
 local MAP_ICON_SIZE = 34
 local MAP_ICON = getTexture("media/textures/worldMap/Map_On.png")
+
+local function windowWidth()
+    local contentWidth = Layout.textWidth(UIFont.Small, string.rep("M", 48)) + 120
+    return math.min(getCore():getScreenWidth(), math.max(WIDTH, contentWidth))
+end
+
+local function headerMetrics(titleBarHeight)
+    local top = titleBarHeight + 10
+    local stageY = top + Layout.lineHeight(UIFont.Large) + 4
+    local textBottom = stageY + Layout.lineHeight(UIFont.Small)
+    local barY = math.max(top + 68, textBottom + 12)
+    local bottom = barY + Layout.boxHeight(UIFont.Small, 4, 22) + 12
+    return top, stageY, barY, bottom - titleBarHeight
+end
 local function loadWindowState()
     local state = State.load()
     local x = tonumber(state["outpostOverview.x"])
@@ -247,12 +261,13 @@ function Window:createChildren()
         "UI_TGSRR_Tracker_ViewOnMap", "View outpost on world map"))
     self:addChild(self.mapButton)
 
-    local top = self:titleBarHeight() + HEADER_HEIGHT
+    local _, _, _, headerHeight = headerMetrics(self:titleBarHeight())
+    local top = self:titleBarHeight() + headerHeight
     self.list = ISScrollingListBox:new(MARGIN, top, self.width - MARGIN * 2,
         self.height - top - MARGIN)
     self.list:initialise()
     self.list:instantiate()
-    self.list.itemheight = 36
+    self.list.itemheight = Layout.rowHeight(math.max(STATUS_ICON_SIZE, HELP_ICON_SIZE))
     self.list.doDrawItem = self.drawRequirement
     self.list.updateTooltip = Window.updateRequirementTooltip
     self.list.drawBorder = true
@@ -268,7 +283,7 @@ function Window:prerender()
     ISCollapsableWindow.prerender(self)
     if not self.row then return end
 
-    local top = self:titleBarHeight() + 10
+    local top, stageY, barY = headerMetrics(self:titleBarHeight())
     local icon = Icons.get(self.row.outpost)
     local iconR, iconG, iconB = Icons.getColor(self.row.status, self.row.complete)
     if icon then self:drawTextureScaledAspect(icon, MARGIN, top, 54, 54, 1, iconR, iconG, iconB) end
@@ -281,18 +296,19 @@ function Window:prerender()
             L.text("UI_TGSRR_Tracker_Stage_Undiscovered", "Undiscovered") or
             L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered")))
     self:drawText(L.text("UI_TGSRR_Tracker_Stage", "Stage") .. ": " .. stage,
-        78, top + 34, 0.76, 0.76, 0.76, 1, UIFont.Small)
+        78, stageY, 0.76, 0.76, 0.76, 1, UIFont.Small)
 
-    local barX, barY = MARGIN, top + 68
+    local barX = MARGIN
     local barWidth = self.width - MARGIN * 2
-    self:drawRect(barX, barY, barWidth, 22, 0.8, 0.02, 0.02, 0.02)
+    local barHeight = Layout.boxHeight(UIFont.Small, 4, 22)
+    self:drawRect(barX, barY, barWidth, barHeight, 0.8, 0.02, 0.02, 0.02)
     if self.row.percent > 0 then
         self:drawRect(barX + 1, barY + 1,
-            math.floor((barWidth - 2) * self.row.percent / 100), 20,
+            math.floor((barWidth - 2) * self.row.percent / 100), barHeight - 2,
             0.76, 0.12, 0.58, 0.18)
     end
-    self:drawRectBorder(barX, barY, barWidth, 22, 0.62, 0.55, 0.55, 0.55)
-    local progressTextY = barY + math.floor((22 - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    self:drawRectBorder(barX, barY, barWidth, barHeight, 0.62, 0.55, 0.55, 0.55)
+    local progressTextY = barY + math.floor((barHeight - Layout.lineHeight(UIFont.Small)) / 2)
     self:drawTextCentre(L.text("UI_TGSRR_Tracker_Progress", "Progress") .. ": " ..
         tostring(self.row.percent) .. "%", barX + barWidth / 2, progressTextY,
         1, 1, 1, 1, UIFont.Small)
@@ -395,7 +411,7 @@ end
 function Window.showFor(outpost)
     local window = Window.instance
     if not window then
-        local width = math.min(WIDTH, getCore():getScreenWidth())
+        local width = windowWidth()
         local height = math.min(HEIGHT, getCore():getScreenHeight())
         local state = loadWindowState()
         local x = state and state.x or math.floor((getCore():getScreenWidth() - width) / 2)

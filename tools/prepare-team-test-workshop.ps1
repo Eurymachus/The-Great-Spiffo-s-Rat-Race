@@ -1,6 +1,6 @@
 param(
     [string]$OutputPath = "outputs/team-test-workshop",
-    [string]$WorkshopId = ""
+    [string]$WorkshopId = "3782093082"
 )
 
 $ErrorActionPreference = "Stop"

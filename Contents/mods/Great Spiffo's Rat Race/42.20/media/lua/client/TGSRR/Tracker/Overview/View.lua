@@ -4,12 +4,17 @@ require "ISUI/ISScrollingListBox"
 local Deliverables = require "TGSRR/Challenge/Deliverables"
 local L = require "TGSRR/Core/Localization"
 local Notifications = require "TGSRR/Challenge/Notifications"
+local Layout = require "TGSRR/Tracker/Layout"
 
 local View = ISPanel:derive("TGSRROverviewTrackerView")
 local REFRESH_INTERVAL_MS = 1000
 local CONTENT_MARGIN = 8
-local CARD_HEIGHT = 104
-local FOOTER_HEIGHT = 22
+local function footerHeight() return Layout.boxHeight(UIFont.Small, 5, 22) end
+local function cardHeight()
+    return math.max(104,
+        12 + math.max(Layout.lineHeight(UIFont.Medium), Layout.lineHeight(UIFont.Small))
+            + 8 + 18 + 5 + Layout.lineHeight(UIFont.Small) + 12)
+end
 
 local function commaValue(value)
     local text = tostring(math.max(0, math.floor(tonumber(value) or 0)))
@@ -48,10 +53,10 @@ function View:createChildren()
     ISPanel.createChildren(self)
     self.list = ISScrollingListBox:new(CONTENT_MARGIN, CONTENT_MARGIN,
         self.width - CONTENT_MARGIN * 2,
-        self.height - CONTENT_MARGIN * 3 - FOOTER_HEIGHT)
+        self.height - CONTENT_MARGIN * 3 - footerHeight())
     self.list:initialise()
     self.list:instantiate()
-    self.list.itemheight = CARD_HEIGHT
+    self.list.itemheight = cardHeight()
     self.list.doDrawItem = self.drawDeliverable
     self.list.drawBorder = false
     self.list:setOnMouseDoubleClick(self, View.onActivate)
@@ -62,19 +67,19 @@ end
 function View:prerender()
     ISPanel.prerender(self)
     local x = CONTENT_MARGIN
-    local y = self.height - CONTENT_MARGIN - FOOTER_HEIGHT
+    local footer = footerHeight()
+    local y = self.height - CONTENT_MARGIN - footer
     local width = self.width - CONTENT_MARGIN * 2
     local percent = self.overallPercent or 0
-    self:drawRect(x, y, width, FOOTER_HEIGHT, 0.8, 0.02, 0.02, 0.02)
+    self:drawRect(x, y, width, footer, 0.8, 0.02, 0.02, 0.02)
     if percent > 0 then
         self:drawRect(x + 1, y + 1,
-            math.floor((width - 2) * percent / 100), FOOTER_HEIGHT - 2,
+            math.floor((width - 2) * percent / 100), footer - 2,
             0.76, 0.12, 0.58, 0.18)
     end
-    self:drawRectBorder(x, y, width, FOOTER_HEIGHT,
+    self:drawRectBorder(x, y, width, footer,
         0.62, 0.55, 0.55, 0.55)
-    local textY = y + math.floor((FOOTER_HEIGHT
-        - getTextManager():getFontHeight(UIFont.Small)) / 2)
+    local textY = y + math.floor((footer - Layout.lineHeight(UIFont.Small)) / 2)
     self:drawTextCentre(
         L.text("UI_TGSRR_Tracker_OverallProgress", "Overall progress")
             .. ": " .. formatPercent(percent),
@@ -103,7 +108,8 @@ function View:drawDeliverable(y, item, alt)
         titleColor, titleColor, titleColor, 1, UIFont.Small)
 
     local barX = 12
-    local barY = y + 43
+    local barY = titleY + math.max(Layout.lineHeight(UIFont.Medium),
+        Layout.lineHeight(UIFont.Small)) + 8
     local barWidth = width - 24
     self:drawRect(barX, barY, barWidth, 18, 0.8, 0.02, 0.02, 0.02)
     if available and record.percent > 0 then
@@ -115,9 +121,10 @@ function View:drawDeliverable(y, item, alt)
 
     local percentText = available and formatPercent(record.percent) or
         L.text("UI_TGSRR_Tracker_Unavailable", "Unavailable")
-    self:drawTextRight(percentText, width - 12, y + 66,
+    local detailY = barY + 18 + 5
+    self:drawTextRight(percentText, width - 12, detailY,
         titleColor, titleColor, titleColor, 1, UIFont.Small)
-    self:drawText(record.detail or "", 12, y + 66,
+    self:drawText(record.detail or "", 12, detailY,
         0.7, 0.7, 0.7, 1, UIFont.Small)
     return y + self.itemheight
 end
@@ -182,7 +189,8 @@ function View:onResize(width, height)
     self:setHeight(height)
     if self.list then
         self.list:setWidth(width - CONTENT_MARGIN * 2)
-        self.list:setHeight(height - CONTENT_MARGIN * 3 - FOOTER_HEIGHT)
+        self.list.itemheight = cardHeight()
+        self.list:setHeight(height - CONTENT_MARGIN * 3 - footerHeight())
     end
 end
 
