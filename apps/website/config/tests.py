@@ -131,6 +131,16 @@ class ProductionEnvironmentTests(TestCase):
         with self.assertRaisesRegex(RuntimeError, "localhost test key"):
             validate_production_environment(environment)
 
+    def test_turnstile_test_credentials_are_allowed_for_staging(self):
+        environment = valid_environment()
+        environment["STAGING_ENVIRONMENT"] = "true"
+        environment["TURNSTILE_SITE_KEY"] = TURNSTILE_TEST_SITE_KEY
+        environment["TURNSTILE_SECRET_KEY"] = (
+            "1x0000000000000000000000000000000AA"
+        )
+
+        validate_production_environment(environment)
+
     def test_invalid_encryption_key_is_rejected(self):
         environment = valid_environment()
         environment["STREAMING_TOKEN_ENCRYPTION_KEY"] = "not-a-fernet-key"

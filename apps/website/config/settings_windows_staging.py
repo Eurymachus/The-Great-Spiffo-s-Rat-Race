@@ -1,5 +1,7 @@
 import os
 
+os.environ["STAGING_ENVIRONMENT"] = "true"
+
 from .settings_windows_production import *  # noqa: F403
 
 

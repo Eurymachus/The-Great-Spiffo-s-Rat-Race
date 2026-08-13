@@ -87,9 +87,13 @@ def validate_production_environment(environ):
             + ", ".join(sorted(missing))
         )
 
-    if environ["TURNSTILE_SITE_KEY"] == TURNSTILE_TEST_SITE_KEY:
+    staging_environment = parse_boolean(
+        environ.get("STAGING_ENVIRONMENT", "false"),
+        name="STAGING_ENVIRONMENT",
+    )
+    if not staging_environment and environ["TURNSTILE_SITE_KEY"] == TURNSTILE_TEST_SITE_KEY:
         raise RuntimeError("TURNSTILE_SITE_KEY must not use the localhost test key.")
-    if environ["TURNSTILE_SECRET_KEY"] == TURNSTILE_TEST_SECRET_KEY:
+    if not staging_environment and environ["TURNSTILE_SECRET_KEY"] == TURNSTILE_TEST_SECRET_KEY:
         raise RuntimeError("TURNSTILE_SECRET_KEY must not use the localhost test key.")
 
     public_url = environ["SITE_PUBLIC_URL"].strip()

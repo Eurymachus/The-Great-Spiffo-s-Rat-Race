@@ -25,6 +25,7 @@ $expectedDataPath = Join-Path $installationPath "postgres\data"
 if ($dataPath -ne $expectedDataPath) {
     throw "Refusing unexpected PostgreSQL data path: $dataPath"
 }
+New-Item -ItemType Directory -Path $dataPath -Force | Out-Null
 if ((Get-ChildItem -LiteralPath $dataPath -Force | Measure-Object).Count -ne 0) {
     throw "PostgreSQL data directory is not empty."
 }
