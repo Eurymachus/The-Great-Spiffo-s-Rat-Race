@@ -1,6 +1,7 @@
 local Identity = {}
 local CharacterSnapshot = require "TGSRR/Run/CharacterSnapshot"
 local SelectedChallenge = require "TGSRR/Run/SelectedChallenge"
+local ChallengeContext = require "TGSRR/Challenge/Context"
 
 local MOD_DATA_KEY = "TGSRR_Run"
 local SCHEMA_VERSION = 19
@@ -97,7 +98,7 @@ local function recognizedChallengeId()
 end
 
 function Identity.isRatRaceChallenge()
-    return CHALLENGE_MODES[recognizedChallengeId()] ~= nil
+    return ChallengeContext.isActive()
 end
 
 local function newRunId()

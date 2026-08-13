@@ -4,6 +4,7 @@ require "ISUI/ISCollapsableWindow"
 local AlarmRuntime = require "TGSRR/Alarms/CustomDecayRuntime"
 local State = require "TGSRR/Tracker/State"
 local LauncherPalette = require "TGSRR/Debug/LauncherPalette"
+local ChallengeContext = require "TGSRR/Challenge/Context"
 
 local function debugEnabled()
     return isDebugEnabled and isDebugEnabled()
@@ -455,6 +456,7 @@ local function toggleWindow()
 end
 
 local function restoreWindow()
+    if not ChallengeContext.isActive() then return end
     if State.getValue("alarmDebug.open", "false") == "true" then
         toggleWindow()
     end

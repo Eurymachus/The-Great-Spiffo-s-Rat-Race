@@ -1,6 +1,10 @@
 local loadedMapZonesHandler = nil
 local loadChunkHandler = nil
 
+package.loaded["TGSRR/Challenge/Context"] = {
+    isActive = function() return true end,
+}
+
 local populateRolls = 0
 package.loaded["TGSRR/Animals/RanchSpawner"] = {
     ranchSpawnChance = function(setting)

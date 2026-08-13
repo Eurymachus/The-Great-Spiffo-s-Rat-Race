@@ -1,5 +1,6 @@
 local HelicopterScheduler = require "TGSRR/Core/HelicopterScheduler"
 local BasicSchedule = require "TGSRR/Helicopter/BasicSchedule"
+local ChallengeContext = require "TGSRR/Challenge/Context"
 
 local Runtime = {}
 
@@ -18,6 +19,7 @@ local function claimVanillaScheduler()
 end
 
 function Runtime.update()
+    if not ChallengeContext.isActive() then return false, "inactive" end
     if not BasicSchedule.isEnabledInSandbox() then
         return false
     end

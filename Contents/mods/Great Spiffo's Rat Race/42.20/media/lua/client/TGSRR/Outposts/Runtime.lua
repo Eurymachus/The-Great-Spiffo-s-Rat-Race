@@ -9,6 +9,7 @@ require "TGSRR/Outposts/Checks/GroundFloorWindows"
 require "TGSRR/Outposts/Checks/Enclosure"
 require "TGSRR/Outposts/Checks/Fixtures"
 local VehicleCheck = require "TGSRR/Outposts/Checks/Vehicle"
+local ChallengeContext = require "TGSRR/Challenge/Context"
 
 local Runtime = {}
 local FALLBACK_INTERVAL_MS = 1000
@@ -53,7 +54,9 @@ local function countZombies(outpost)
 end
 
 function Runtime.evaluate(outpost, player)
-    if not outpost or not player then return nil end
+    if not ChallengeContext.isActive() or not outpost or not player then
+        return nil
+    end
     markDiscovered(outpost)
 
     local inspection = Outposts.inspect(outpost, {
@@ -241,6 +244,7 @@ local function updateActiveOutpost(player)
 end
 
 local function onPlayerUpdate(player)
+    if not ChallengeContext.isActive() then return end
     if player ~= (getSpecificPlayer(0) or getPlayer()) then return end
     local playerX = math.floor(player:getX())
     local playerY = math.floor(player:getY())
@@ -310,6 +314,7 @@ local function onPlayerUpdate(player)
 end
 
 local function onZombieDead()
+    if not ChallengeContext.isActive() then return end
     if activeOutpost then evaluationPending = true end
 end
 
@@ -317,6 +322,12 @@ local function onGameStart()
     observedEngineStates = {}
     observedStartingStates = {}
     armedEngineStarts = {}
+    activeOutpost = nil
+    lastRoom = nil
+    lastPlayerX = nil
+    lastPlayerY = nil
+    evaluationPending = false
+    if not ChallengeContext.isActive() then return end
     local player = getSpecificPlayer(0) or getPlayer()
     if player then
         updateActiveOutpost(player)

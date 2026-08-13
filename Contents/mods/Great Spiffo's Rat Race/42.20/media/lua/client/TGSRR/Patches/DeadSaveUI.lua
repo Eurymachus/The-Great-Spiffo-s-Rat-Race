@@ -12,12 +12,17 @@ local function isRatRaceSave(info)
 end
 
 local function isDeadRatRaceSave(info)
-    return isRatRaceSave(info) and not info.playerAlive
+    return isRatRaceSave(info) and info.playerAlive == false
 end
 
 local function isDeadRatRaceGameMode(info, gameMode)
-    return info and RAT_RACE_GAME_MODES[gameMode] == true
-        and not info.playerAlive
+    return isRatRaceSave(info)
+        and info.gameMode == gameMode
+        and info.playerAlive == false
+end
+
+local function getSaveInfoForGameMode(gameMode, saveName)
+    return getSaveInfo(gameMode .. getFileSeparator() .. saveName)
 end
 
 if SaveInfoPanel and not SaveInfoPanel.TGSRR_deadSavePatched then
@@ -88,7 +93,10 @@ end
 if MainScreen and not MainScreen.TGSRR_deadSavePatched then
     local function applyDeadSavePolicy(screen)
         if not screen or not MainScreen.latestSaveWorld then return end
-        local info = getSaveInfo(MainScreen.latestSaveWorld)
+        local info = getSaveInfoForGameMode(
+            MainScreen.latestSaveGameMode,
+            MainScreen.latestSaveWorld
+        )
         if not isDeadRatRaceGameMode(
                 info,
                 MainScreen.latestSaveGameMode
@@ -113,7 +121,7 @@ if MainScreen and not MainScreen.TGSRR_deadSavePatched then
 
     MainScreen.continueLatestSave = function(gameMode, saveName)
         if RAT_RACE_GAME_MODES[gameMode] and saveName then
-            local info = getSaveInfo(saveName)
+            local info = getSaveInfoForGameMode(gameMode, saveName)
             if isDeadRatRaceGameMode(info, gameMode) then
                 return
             end

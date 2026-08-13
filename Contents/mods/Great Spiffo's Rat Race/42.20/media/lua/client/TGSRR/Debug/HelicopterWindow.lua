@@ -5,6 +5,7 @@ local HelicopterScheduler = require "TGSRR/Core/HelicopterScheduler"
 local HelicopterRuntime = require "TGSRR/Helicopter/Runtime"
 local WindowState = require "TGSRR/Debug/HelicopterWindowState"
 local LauncherPalette = require "TGSRR/Debug/LauncherPalette"
+local ChallengeContext = require "TGSRR/Challenge/Context"
 
 TGSRRHelicopterDebugWindow =
     ISCollapsableWindow:derive("TGSRRHelicopterDebugWindow")
@@ -235,6 +236,7 @@ local function toggleWindow()
 end
 
 local function restoreWindow()
+    if not ChallengeContext.isActive() then return end
     local window = getOrCreateWindow()
     addWindow(window)
     if WindowState.isOpen() then

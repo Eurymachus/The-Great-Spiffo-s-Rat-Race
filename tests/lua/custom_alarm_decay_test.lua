@@ -1,5 +1,9 @@
 local failures = 0
 
+package.loaded["TGSRR/Challenge/Context"] = {
+    isActive = function() return true end,
+}
+
 local function expect(label, actual, expected)
     if actual ~= expected then
         io.stderr:write(label .. ": expected " .. tostring(expected)

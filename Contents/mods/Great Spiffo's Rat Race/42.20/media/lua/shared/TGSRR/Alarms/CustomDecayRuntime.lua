@@ -1,4 +1,5 @@
 local Runtime = {}
+local ChallengeContext = require "TGSRR/Challenge/Context"
 
 local MOD_DATA_KEY = "TGSRR_CustomAlarmDecay"
 local SCHEMA_VERSION = 1
@@ -329,6 +330,11 @@ end
 function Runtime.capture()
     if not authoritative() then return false, "not_authoritative" end
 
+    if not ChallengeContext.isActive() then
+        restoreVanillaAlarms()
+        return false, "inactive"
+    end
+
     local config = configuration()
     local data = root()
     if not config.enabled then
@@ -371,7 +377,8 @@ function Runtime.capture()
 end
 
 function Runtime.onLoadChunk(chunk, deferredRescan)
-    if not authoritative() or not chunk then return false end
+    if not authoritative() or not ChallengeContext.isActive()
+            or not chunk then return false end
     local config = configuration()
     local data = root()
     if not config.enabled then return false end
@@ -587,7 +594,8 @@ local function forceVanillaAlarm(building, roomDef)
 end
 
 function Runtime.tryTrigger(building, preferredRoom, cause, triggerSquare)
-    if not authoritative() or not configuration().enabled or not building then
+    if not authoritative() or not ChallengeContext.isActive()
+            or not configuration().enabled or not building then
         return false
     end
 
@@ -798,7 +806,8 @@ local function reconcileRoomNullifiers()
 end
 
 function Runtime.onSeeNewRoom(room)
-    if not authoritative() or not configuration().enabled or not room then
+    if not authoritative() or not ChallengeContext.isActive()
+            or not configuration().enabled or not room then
         return
     end
     local isoBuilding = room:getBuilding()
@@ -819,6 +828,7 @@ function Runtime.onSeeNewRoom(room)
 end
 
 local function onPlayerUpdate(player)
+    if not ChallengeContext.isActive() then return end
     reconcileRoomNullifiers()
     if not player then return end
     local square = player:getCurrentSquare()
@@ -1037,7 +1047,8 @@ local function onWeaponHitThumpable(character, weapon, target)
 end
 
 local function onWeaponSwingHitPoint(character, weapon)
-    if not authoritative() or not character or not instanceof then return end
+    if not authoritative() or not ChallengeContext.isActive()
+            or not character or not instanceof then return end
     if character.isZombie and character:isZombie() then return end
 
     local square = character:getSquare()
@@ -1071,6 +1082,7 @@ local function onWeaponSwingHitPoint(character, weapon)
 end
 
 local function inspectWindowChanges()
+    if not ChallengeContext.isActive() then return end
     processPendingChunkRescans()
     processPendingChunkClaims()
     reconcileRoomNullifiers()

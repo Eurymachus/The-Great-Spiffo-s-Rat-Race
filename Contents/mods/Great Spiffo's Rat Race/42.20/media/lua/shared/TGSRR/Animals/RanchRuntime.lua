@@ -1,6 +1,7 @@
 local RanchControl = require "TGSRR/Animals/RanchControl"
 local RanchSpawner = require "TGSRR/Animals/RanchSpawner"
 local RanchMortality = require "TGSRR/Animals/RanchMortality"
+local ChallengeContext = require "TGSRR/Challenge/Context"
 
 local Runtime = {}
 
@@ -242,6 +243,15 @@ function Runtime.onLoadedMapZones()
         return
     end
 
+    if not ChallengeContext.isActive() then
+        RanchControl.restoreVanilla(metaGrid)
+        ranches = {}
+        ranchGroups = {}
+        readyConfirmed = {}
+        initialized = false
+        return
+    end
+
     local mortality = RanchMortality.configuration()
     if mortality.enabled ~= true then
         local restored = RanchControl.restoreVanilla(metaGrid)
@@ -260,7 +270,8 @@ function Runtime.onLoadedMapZones()
 end
 
 function Runtime.onLoadChunk()
-    if not authoritative() or not initialized then return end
+    if not authoritative() or not ChallengeContext.isActive()
+            or not initialized then return end
 
     for key, entry in pairs(ranches) do
         local zone = entry.zone

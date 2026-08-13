@@ -3,6 +3,7 @@ require "ISUI/ISPanel"
 require "ISUI/ISTickBox"
 
 TGSRR_SoundDebug = TGSRR_SoundDebug or {}
+local TGSRR_ChallengeContext = require "TGSRR/Challenge/Context"
 
 local ENABLE_SOUND_DEBUG_UI = true
 
@@ -2280,7 +2281,8 @@ function TGSRR_SoundDebug.onTick()
 end
 
 function TGSRR_SoundDebug.onCreatePlayer(playerNum, player)
-    if not TGSRR_SoundDebug_IsDebugAllowed() then
+    if not TGSRR_ChallengeContext.isActive()
+            or not TGSRR_SoundDebug_IsDebugAllowed() then
         TGSRR_SoundDebug_RemoveUI()
         return
     end

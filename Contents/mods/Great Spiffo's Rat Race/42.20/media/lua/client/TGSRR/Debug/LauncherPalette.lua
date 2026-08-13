@@ -2,6 +2,7 @@ require "ISUI/ISButton"
 require "ISUI/ISCollapsableWindow"
 
 local Palette = {}
+local ChallengeContext = require "TGSRR/Challenge/Context"
 local Panel = ISCollapsableWindow:derive("TGSRRDebugLauncherPalette")
 
 local STATE_FILE = "TGSRR/DebugLauncherPalette.ini"
@@ -123,7 +124,8 @@ function Palette.register(id, label, callback, order)
 end
 
 local function createPalette()
-    if not isDebugEnabled() or panelInstance or #entries == 0 then return end
+    if not ChallengeContext.isActive() or not isDebugEnabled()
+            or panelInstance or #entries == 0 then return end
     local width = BUTTON_WIDTH + PADDING * 2
     local height = TITLE_HEIGHT + PADDING * 2
         + #entries * BUTTON_HEIGHT + math.max(0, #entries - 1) * 4

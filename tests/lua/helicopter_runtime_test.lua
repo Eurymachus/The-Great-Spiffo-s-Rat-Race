@@ -2,6 +2,10 @@ local sourceRoot = "Contents/mods/Great Spiffo's Rat Race/42.20/media/lua/"
 package.path = sourceRoot .. "client/?.lua;"
     .. sourceRoot .. "shared/?.lua;" .. package.path
 
+package.loaded["TGSRR/Challenge/Context"] = {
+    isActive = function() return true end,
+}
+
 local gameStartHandler = nil
 local dailyHandler = nil
 Events = {

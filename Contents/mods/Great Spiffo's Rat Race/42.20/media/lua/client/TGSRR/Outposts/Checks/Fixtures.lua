@@ -5,6 +5,7 @@ local Notifications = require "TGSRR/Challenge/Notifications"
 local ChallengeEvents = require "TGSRR/Core/Events"
 
 local Fixtures = {}
+local BoxedFood = require "TGSRR/Outposts/Checks/BoxedFood"
 local roomsByOutpost = {}
 local outpostByRoom = {}
 local generatorObjects = {}
@@ -166,6 +167,8 @@ local function caloriesInContainer(container, visited)
         local item = items:get(index)
         if instanceof(item, "Food") and item:getOffAgeMax() == NEVER_SPOILS then
             calories = calories + math.max(0, item:getCalories())
+        else
+            calories = calories + BoxedFood.calories(item, NEVER_SPOILS)
         end
         if instanceof(item, "InventoryContainer") then
             calories = calories + caloriesInContainer(item:getItemContainer(), visited)
