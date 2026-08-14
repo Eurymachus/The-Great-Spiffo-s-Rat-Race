@@ -137,12 +137,13 @@ regenerating the complete file.
 
 ### Current deployed staging state (2026-08-14)
 
-- Release `cdd02e1` is deployed beneath `G:\RatRace_Staging\releases`.
+- Release `1676dba` is deployed beneath `G:\RatRace_Staging\releases`.
 - The isolated PostgreSQL cluster is registered as `RatRaceStagingPostgres` and
   listens only on `127.0.0.1:5433`.
 - `RatRaceStagingWeb` serves `127.0.0.1:8002`; `RatRaceStagingWorker` runs the
-  reference-update worker. Both are registered scheduled tasks for restart
-  recovery. No reboot was performed during installation.
+  reference-update worker. Release `1676dba` is currently running, but updating
+  the scheduled-task actions to this release still requires an actual elevated
+  Windows PowerShell session. No reboot was performed during installation.
 - The protected environment is `G:\RatRace_Staging\config\staging.env`. It has
   staging-only Django and encryption secrets, filesystem roots, callback URLs,
   database credentials and Turnstile test keys. Staging defaults
