@@ -10,7 +10,7 @@ checks completed before deployment work begins.
    privacy-notice acknowledgement, and Turnstile verification.
 3. Verification confirmation activates the participant login.
 4. Login provides password recovery and verification-resend routes.
-5. The draft privacy notice remains available from primary navigation and the
+5. The versioned privacy notice remains available from primary navigation and the
    footer.
 
 ## Participant journey
@@ -38,5 +38,6 @@ checks completed before deployment work begins.
 
 - Repeat the journey against the production-like Docker/PostgreSQL environment.
 - Test real transactional email and production Turnstile credentials.
-- Complete the final privacy notice and account-deletion operator procedure.
+- Complete final owner/legal review of the privacy notice and the
+  account-deletion operator procedure.
 - Perform a broader accessibility review before inviting real participants.

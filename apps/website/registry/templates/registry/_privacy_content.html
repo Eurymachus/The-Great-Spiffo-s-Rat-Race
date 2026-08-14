@@ -1,76 +1,87 @@
-<p class="draft-label">Draft for development review</p>
 <h2>Participant privacy notice</h2>
-<p>This notice explains the participant information used to operate {{ site_full_title }} challenge platform. It must be reviewed and completed before public launch.</p>
+<p><strong>Effective date:</strong> 14 August 2026 · <strong>Version:</strong> {{ privacy_notice_version }}</p>
+<p>This notice explains how personal information is used to operate the {{ site_full_title }} challenge platform.</p>
+
+{% if staging_environment %}
+<div class="development-note">
+    <p><strong>Development and test environment:</strong> information entered on this site is test data and may be reset or deleted before launch. Please do not submit sensitive or irreplaceable material.</p>
+</div>
+{% endif %}
 
 <h3>Who is responsible for your information</h3>
-<p>The data controller for {{ site_full_title }} challenge platform is {{ site_legal_name }} (company number <a href="{{ site_companies_house_url }}">{{ site_company_number }}</a>).</p>
+<p>The data controller is {{ site_legal_name }} (company number <a href="{{ site_companies_house_url }}">{{ site_company_number }}</a>).</p>
 <p>Registered office: {{ site_registered_office }}.</p>
+<p>Privacy and account-data enquiries can be sent to <a href="mailto:{{ site_privacy_email }}">{{ site_privacy_email }}</a>.</p>
 
-<h3>Information we collect</h3>
+<h3>Information we use</h3>
 <ul>
-    <li>Your participant nickname and email address.</li>
-    <li>Your securely hashed password and account-security records.</li>
-    <li>Registration, privacy-notice acknowledgement, verification, and account-status timestamps.</li>
-    <li>Your confirmation that you meet the challenge's 18+ participation rule, including the confirmation time and policy version. Your date of birth is processed only to make that eligibility check and is not stored.</li>
-    <li>Identity and profile information from optional connected accounts, such as Twitch or Discord, together with encrypted access credentials needed to maintain those connections.</li>
-    <li>Challenge run updates when that feature opens.</li>
-    <li>Administrative records needed to moderate entries and investigate abuse.</li>
+    <li>Your participant nickname, email address, securely hashed password and account-security records.</li>
+    <li>Registration, privacy-notice acknowledgement, email-verification, account-status and security timestamps.</li>
+    <li>Your confirmation that you meet the 18+ participation rule. Your date of birth is used only to perform that check and is not stored.</li>
+    <li>Challenge submissions and evidence, including game exports, character and run statistics, moderation history, uploaded images, evidence links and mod-review requests.</li>
+    <li>Messages, privacy requests, account-closure requests and records needed to respond to them.</li>
+    <li>Technical and security information such as IP address, browser or user-agent information, request times, security events and email-delivery results.</li>
+    <li>If you choose to connect Twitch, Discord or YouTube: the provider identity, public profile or channel information, granted permissions, encrypted access credentials and selected public or unlisted media needed for the requested connection.</li>
+    <li>Public Steam Workshop information returned when a mod is searched for or submitted for review.</li>
 </ul>
+<p>We obtain most information directly from you or your Rat Race game export. Connected-account information comes from the provider you choose, and Workshop information comes from Steam.</p>
 
-<h3>Why we use it</h3>
-<p>We use this information to create and secure participant accounts, reserve public nicknames, operate the challenge, moderate entries, publish approved results, and respond to participant requests.</p>
-
-<h3>Age eligibility</h3>
-<p>Participation is limited to people aged 18 or over. Before signup, the date you enter is used to calculate whether you meet that requirement and is then discarded. The account stores only the time of the successful eligibility check and the applicable policy version. This is not identity verification. If we reasonably believe that an account belongs to someone under 18, we may disable the account while we investigate and may remove it.</p>
-
-<h3>Our lawful bases</h3>
+<h3>Why we use it and our lawful bases</h3>
 <ul>
-    <li><strong>Contract:</strong> to create and operate the participant account and provide the requested challenge service, including essential account messages, run updates, and publication of the participant's nickname and approved results.</li>
-    <li><strong>Legitimate interests:</strong> to secure and administer the website, prevent abuse, moderate and validate entries, preserve challenge integrity, maintain essential technical logs, and anonymise information for aggregate statistics. We balance these interests against participants' rights and expectations.</li>
-    <li><strong>Legal obligation:</strong> where information must be used or retained to meet an applicable legal requirement or respond to a data-rights request.</li>
+    <li><strong>Contract:</strong> to create and operate your participant account, verify and recover access, process run updates, provide requested connected-account features, moderate submissions and publish your nickname and approved results.</li>
+    <li><strong>Legitimate interests:</strong> to secure and administer the service, prevent abuse, validate entries, investigate challenge-integrity concerns, maintain essential technical logs, preserve fair moderation records and create anonymised challenge statistics. We consider these uses necessary and proportionate to operating a secure and credible public challenge.</li>
+    <li><strong>Legal obligation:</strong> where processing or retention is necessary to comply with applicable law or respond to a data-protection request.</li>
 </ul>
-<p>We do not currently rely on consent for core challenge operations. If we later introduce optional marketing or non-essential tracking, it will have a separate choice where required.</p>
+<p>Acknowledging this notice records that it was presented to you; it is not consent to core processing. We do not currently send marketing or use personal information for advertising.</p>
 
-<h3>Public and private information</h3>
-<p>Your nickname and approved challenge results may be public. Your email address, password record, connected-account credentials, private account notes, and unapproved submissions are not displayed publicly.</p>
+<h3>What you must provide and what is optional</h3>
+<p>A nickname, email address, password and successful 18+ check are required to create an account. Without them, we cannot provide the participant service. Run submissions and supporting evidence are required only if you want a run reviewed. Twitch, Discord and YouTube connections, avatar uploads and mod-review requests are optional. There is no statutory requirement to provide this information.</p>
 
-<h3>Emails</h3>
-<p>Current emails are transactional messages required for verification, password recovery, or account security. The site does not currently send marketing mail or maintain a marketing subscription.</p>
+<h3>What is public</h3>
+<p>Your nickname, approved challenge results, selected public evidence and authorised public moderation decisions may be displayed publicly. Your email address, password record, connected-account credentials, private notes and pending or declined submissions are not displayed publicly.</p>
 
-<h3>Service providers</h3>
-<p>The planned service providers are OVHcloud for hosting, Microsoft 365 for transactional email, Cloudflare for connection security and human verification, Twitch and Discord when you choose to connect those accounts, and OpenAI for automated moderation of participant-supplied avatar images when that feature is enabled. Avatar images are submitted without the participant's nickname or email address. The final production configuration will be recorded before launch.</p>
-
-<h3>Your choices</h3>
-<p>After logging in, you can download a copy of your participant data or request account closure and deletion. Requests are reviewed so challenge integrity, legal obligations, backups, and legitimate moderation records can be handled correctly.</p>
-
-<h3>Your UK data-protection rights</h3>
-<p>Depending on the circumstances, you may ask us to:</p>
+<h3>Service providers and sharing</h3>
+<p>We share information only as needed to operate the relevant feature:</p>
 <ul>
-    <li>give you access to the personal information we hold about you;</li>
-    <li>correct information that is inaccurate or incomplete;</li>
-    <li>erase personal information we no longer have a lawful reason to keep;</li>
-    <li>restrict how we use your information while an issue is considered;</li>
-    <li>provide applicable information in a portable format; or</li>
-    <li>consider an objection to processing based on legitimate interests.</li>
+    <li><strong>OVHcloud</strong> provides server hosting.</li>
+    <li><strong>Microsoft 365</strong> delivers verification, password-recovery and account-security email.</li>
+    <li><strong>Cloudflare</strong> provides DNS, secure tunnelling, traffic protection and Turnstile human verification.</li>
+    <li><strong>Twitch, Discord and Google/YouTube</strong> process information when you choose to connect the corresponding account or select media.</li>
+    <li><strong>Valve/Steam</strong> supplies public Workshop information used for mod search and review.</li>
+    <li><strong>OpenAI</strong> may screen an uploaded avatar for safety when avatar moderation is enabled. The image is sent without your nickname or email address, and a human remains responsible for any moderation decision.</li>
 </ul>
-<p>These rights are not absolute and their application depends on the circumstances. We may need to verify your identity. We normally respond without undue delay and within one calendar month; if the law permits more time for a complex request, we will explain why.</p>
+<p>We may also disclose information where required by law, or where reasonably necessary to establish, exercise or defend legal claims.</p>
+
+<h3>International processing</h3>
+<p>Some providers may process information outside the United Kingdom. Where UK data-protection law requires safeguards, we rely on an applicable UK adequacy regulation or contractual safeguards used by the provider, such as the UK International Data Transfer Agreement or the UK Addendum to approved standard contractual clauses. Contact us if you would like further information about the safeguard relevant to a particular provider.</p>
+
+<h3>Cookies and similar storage</h3>
+<p>The site uses only storage needed to provide and protect the service, including session, sign-in, security, CSRF-protection and Turnstile functions. We do not currently use advertising cookies, behavioural analytics or non-essential tracking. If that changes, we will update this notice and request a separate choice where required.</p>
+
+<h3>Automated checks</h3>
+<p>Turnstile and rate limits use automated signals to detect likely bots or abuse. When avatar moderation is enabled, an automated service may flag an image for review. These checks help protect the platform, but we do not use solely automated decisions that produce legal or similarly significant effects. Challenge and account moderation decisions remain subject to human review.</p>
 
 <h3>How long we keep information</h3>
 <ul>
-    <li>Unverified registrations are deleted after 30 days.</li>
+    <li>Unverified registrations are kept for no more than 30 days.</li>
     <li>Active participant accounts are kept while the account and challenge platform remain active. We do not delete an account merely because it has not recently been used.</li>
-    <li>When an account closure is approved, its login credentials and identifying account information are removed.</li>
-    <li>Challenge reports and results may be retained indefinitely after being genuinely anonymised. Each retained run remains separate, its participant link is removed, and its public owner is displayed as {{ site_former_participant_label }}.</li>
-    <li>Moderation notes and evidence are kept until two years after the relevant run, decision, or account closure, unless an active dispute or legal obligation requires longer.</li>
-    <li>Routine security and email-delivery logs are kept for 90 days, unless they are needed for an active investigation.</li>
-    <li>Backups are retained on a rolling 30-day schedule. Deleted personal information disappears as those backups expire and is not restored to the live service.</li>
-    <li>Non-personal account-closure receipts containing only a random reference and timestamps may be kept indefinitely.</li>
+    <li>When an account closure is approved, login credentials and identifying account information are removed, subject to any information we must retain for an active dispute or legal obligation.</li>
+    <li>Challenge reports and results may be retained indefinitely after genuine anonymisation. Each retained run remains separate, its participant link is removed, and its public owner is displayed as {{ site_former_participant_label }}.</li>
+    <li>Moderation notes and evidence are kept until two years after the relevant run, decision or account closure, unless an active dispute or legal obligation requires longer.</li>
+    <li>Routine security and email-delivery logs are kept for up to 90 days, unless needed for an active investigation.</li>
+    <li>Backups are retained on a rolling 30-day schedule. Deleted personal information expires with those backups and is not intentionally restored to the live service.</li>
+    <li>Non-personal closure receipts containing only a random reference and timestamps may be kept indefinitely.</li>
 </ul>
-<p>{{ site_legal_name }} reviews this schedule at least once a year and when the purpose of the platform changes.</p>
+<p>{{ site_legal_name }} reviews this schedule at least annually and whenever the platform's purpose or processing changes. Development and test information may be deleted sooner.</p>
 
-<h3>Contact</h3>
-<p>Privacy and account-data enquiries can be sent to <a href="mailto:{{ site_privacy_email }}">{{ site_privacy_email }}</a>.</p>
-<p>You may also contact us to object to processing based on legitimate interests. We will consider the circumstances and explain our response.</p>
+<h3>Your UK data-protection rights</h3>
+<p>Depending on the circumstances, you may ask us to give you access to your personal information; correct it; erase it where we no longer have a lawful reason to keep it; restrict its use; provide applicable information in a portable format; or consider an objection.</p>
+<p><strong>Your right to object:</strong> you may object to processing based on our legitimate interests. We will consider your circumstances and stop the processing unless we have compelling legitimate grounds to continue or it is needed for legal claims.</p>
+<p>These rights are not absolute. We may need to verify your identity, and we will explain any lawful limitation that applies. We normally respond without undue delay and within one calendar month; if the law permits more time for a complex request, we will explain why.</p>
+<p>After signing in, you can download a copy of your participant data or request account closure. You can disconnect an optional provider from account settings, although records already required for moderation or challenge integrity may still be retained under the schedule above.</p>
+
+<h3>Changes to this notice</h3>
+<p>We will keep this notice under review. If we plan to use personal information for a materially different purpose, we will update the notice and bring the change to participants' attention before that processing begins where required.</p>
 
 <h3>Complaints</h3>
-<p>If you believe we have handled your personal information incorrectly, please contact us so we have an opportunity to investigate and put things right. You also have the right to complain to the UK Information Commissioner's Office. Visit <a href="https://ico.org.uk/make-a-complaint/">ico.org.uk/make-a-complaint</a> or call its helpline on 0303 123 1113.</p>
+<p>Please contact <a href="mailto:{{ site_privacy_email }}">{{ site_privacy_email }}</a> first so we can investigate. You also have the right to complain to the UK Information Commissioner's Office. Visit <a href="https://ico.org.uk/make-a-complaint/">ico.org.uk/make-a-complaint</a> or call 0303 123 1113.</p>

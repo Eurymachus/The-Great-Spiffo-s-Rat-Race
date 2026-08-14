@@ -43,8 +43,9 @@ SITE_REGISTERED_OFFICE = os.environ.get(
     "Suite 15 The Enterprise Centre, Coxbridge Business Park, Farnham, Surrey, England, GU10 5EH",
 )
 SITE_PRIVACY_EMAIL = os.environ.get(
-    "SITE_PRIVACY_EMAIL", "thegreatspiffo@machus.co.uk"
+    "SITE_PRIVACY_EMAIL", "support@tgsrr.com"
 )
+PRIVACY_NOTICE_VERSION = "2026-08-14"
 SITE_PUBLIC_URL = os.environ.get("SITE_PUBLIC_URL", "http://127.0.0.1:8000")
 SITE_MAINTENANCE_MODE = os.environ.get(
     "SITE_MAINTENANCE_MODE", "false"

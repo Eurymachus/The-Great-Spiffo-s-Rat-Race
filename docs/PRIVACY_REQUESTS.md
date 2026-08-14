@@ -1,8 +1,7 @@
 # Privacy Requests and Complaints
 
 Sentinel Tech Ltd receives privacy and account-data requests at
-`thegreatspiffo@machus.co.uk` until the final Rat Race domain address replaces
-it.
+`support@tgsrr.com`.
 
 ## Operator checklist
 

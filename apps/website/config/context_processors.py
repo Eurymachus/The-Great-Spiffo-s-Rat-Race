@@ -217,6 +217,7 @@ def site_identity(request):
             "https://find-and-update.company-information.service.gov.uk/company/"
             f"{company_number}"
         ),
+        "privacy_notice_version": settings.PRIVACY_NOTICE_VERSION,
         "site_theme": theme,
         "site_theme_is_preview": bool(
             theme and preview_theme_id and str(theme.pk) == preview_theme_id

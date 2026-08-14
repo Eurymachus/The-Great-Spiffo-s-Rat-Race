@@ -44,8 +44,11 @@ records, while aliases and assets remain shared catalogue relationships.
 - Participant login and secure password recovery.
 - Participant account summary, password change, staff administration link, and
   secure logout controls.
-- Draft privacy notice, participant JSON data download, and authenticated
-  account-closure requests visible to administrators.
+- A versioned participant privacy notice, participant JSON data download, and
+  authenticated account-closure requests visible to administrators. The notice
+  identifies the configured providers and purposes, international processing,
+  essential storage, automated checks, retention schedule, rights and the
+  `support@tgsrr.com` contact. Staging adds a test-data warning.
 - Central environment-backed `SITE_*` configuration for public operator identity,
   company details, privacy contact, eventual public URL, and brand fallbacks.
 - Singleton Branding backend with safe environment defaults, immediate

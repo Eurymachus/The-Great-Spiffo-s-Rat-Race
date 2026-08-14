@@ -20,13 +20,16 @@ disabled until verification succeeds.
 - Private administrator notes
 
 Normalised values exist only for reliable matching. They are not shown publicly.
-The website does not collect dates of birth or identity documents.
+The website does not store dates of birth or collect identity documents. A date
+of birth is processed transiently to perform the 18+ eligibility check and is
+discarded immediately.
 
 ## Current Development Limitations
 
 - Verification emails use Django's local console backend rather than Microsoft
   365. With debug mode enabled, the confirmation page displays a test shortcut.
-- The privacy notice is a labelled draft rather than final legal copy.
+- The versioned privacy notice is implemented and undergoing staging acceptance
+  and final owner/legal review before production launch.
 - Local development uses Cloudflare's official always-pass Turnstile test keys.
   Production must supply its own site and secret keys through environment
   variables.

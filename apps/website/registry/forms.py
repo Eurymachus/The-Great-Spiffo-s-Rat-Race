@@ -127,7 +127,7 @@ class RegistrationForm(forms.Form):
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
     )
     acknowledge_privacy = forms.BooleanField(
-        label="I have read the draft privacy notice.",
+        label="I have read the privacy notice.",
         error_messages={"required": "You must confirm that you have read the privacy notice."},
     )
     def __init__(self, *args, **kwargs):

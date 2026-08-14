@@ -170,7 +170,8 @@ unavailable, a VOD is unlisted, or official API support is insufficient.
 - Permit participants to disconnect either provider independently.
 - Do not request video-management, upload or deletion permissions.
 - Review Google verification requirements before public YouTube authorisation.
-- Add provider data and retention behaviour to the privacy notice before launch.
+- Keep provider data and retention behaviour in the versioned privacy notice
+  accurate as integrations change. **Implemented for the current provider set.**
 
 ## Intended implementation order
 

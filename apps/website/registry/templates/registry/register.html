@@ -44,7 +44,7 @@
             {% if field.name == "acknowledge_privacy" %}
                 <div class="field signup-consent{% if field.errors %} field-error{% endif %}">
                     <label class="checkbox">{{ field }} <span>{{ field.label }}</span></label>
-                    <p class="help"><a href="{% url 'registry:privacy' %}" data-privacy-modal>Read the draft privacy notice</a></p>
+                    <p class="help"><a href="{% url 'registry:privacy' %}" data-privacy-modal>Read the privacy notice</a></p>
                     {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
                 </div>
             {% else %}

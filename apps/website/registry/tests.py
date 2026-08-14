@@ -897,21 +897,33 @@ class RegistrationTests(TestCase):
         )
         self.assertContains(response, reverse("registry:resend"))
 
-    def test_draft_privacy_notice_is_public(self):
+    def test_versioned_privacy_notice_is_public(self):
         response = self.client.get(reverse("registry:privacy"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Participant privacy notice")
-        self.assertContains(response, "Draft for development review")
+        self.assertNotContains(response, "Draft for development review")
+        self.assertContains(response, "Version:</strong> 2026-08-14")
         self.assertContains(response, "Sentinel Tech Ltd")
-        self.assertContains(response, "thegreatspiffo@machus.co.uk")
-        self.assertContains(response, "Unverified registrations are deleted after 30 days")
-        self.assertContains(response, "Routine security and email-delivery logs are kept for 90 days")
-        self.assertContains(response, "We do not currently rely on consent")
+        self.assertContains(response, "support@tgsrr.com")
+        self.assertContains(response, "Unverified registrations are kept for no more than 30 days")
+        self.assertContains(response, "Routine security and email-delivery logs are kept for up to 90 days")
+        self.assertContains(response, "Acknowledging this notice")
         self.assertContains(response, "Former Rat Racer")
         self.assertContains(response, "Your UK data-protection rights")
+        self.assertContains(response, "Your right to object")
+        self.assertContains(response, "International processing")
+        self.assertContains(response, "Cookies and similar storage")
+        self.assertContains(response, "Automated checks")
         self.assertContains(response, "within one calendar month")
         self.assertContains(response, "https://ico.org.uk/make-a-complaint/")
+
+    @override_settings(STAGING_ENVIRONMENT=True)
+    def test_staging_privacy_notice_warns_that_test_data_may_be_reset(self):
+        response = self.client.get(reverse("registry:privacy"))
+
+        self.assertContains(response, "Development and test environment")
+        self.assertContains(response, "test data and may be reset or deleted")
 
     @override_settings(
         SITE_LEGAL_NAME="Configured Operator Ltd",
@@ -1098,6 +1110,11 @@ class RegistrationTests(TestCase):
         self.assertRedirects(response, reverse("registry:thanks"))
         self.assertEqual(participant.nickname, "Spiffo Fan")
         self.assertEqual(participant.status, Participant.Status.PENDING)
+        self.assertIsNotNone(participant.privacy_notice_acknowledged_at)
+        self.assertEqual(
+            participant.privacy_notice_version,
+            settings.PRIVACY_NOTICE_VERSION,
+        )
         self.assertIsNotNone(participant.verification_sent_at)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn(participant.email, mail.outbox[0].to)

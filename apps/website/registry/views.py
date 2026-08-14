@@ -361,7 +361,7 @@ def register(request):
             password=form.cleaned_data["password"],
             is_active=False,
             privacy_notice_acknowledged_at=timezone.now(),
-            privacy_notice_version="draft-1",
+            privacy_notice_version=settings.PRIVACY_NOTICE_VERSION,
             age_eligibility_confirmed_at=timezone.now(),
             age_policy_version=settings.AGE_ELIGIBILITY_POLICY_VERSION,
         )
