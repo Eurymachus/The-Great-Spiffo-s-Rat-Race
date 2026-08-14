@@ -127,6 +127,11 @@ Create the protected staging environment with
 exists. Cloudflare routing and any optional Access policy are configured last,
 after the local staging readiness endpoint passes.
 
+Update individual non-secret deployment values such as `RELEASE_ID` or an
+explicit staging feature switch with `Set-RatRaceEnvironmentValue.ps1`. This
+preserves the protected environment and its existing secrets instead of
+regenerating the complete file.
+
 ### Current deployed staging state (2026-08-14)
 
 - Release `337f810` is deployed beneath `G:\RatRace_Staging\releases`.
