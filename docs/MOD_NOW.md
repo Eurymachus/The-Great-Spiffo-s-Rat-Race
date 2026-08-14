@@ -2,9 +2,12 @@
 
 ## Branch and worktree
 
-- Development branch: `codex/outpost-tracker-dev`.
+- Canonical development branch: `codex/rat-race-dev`.
+- Canonical local worktree: `The Great Spiffo's Rat Race - Integration`.
 - Live challenge branch: `master`.
-- Project Zomboid loads the main mod worktree. Switch to `master` for an active run and back to the development branch for tracker work.
+- Website and Project Zomboid mod contracts evolve together on the unified
+  development branch. The separate historical development worktrees are no
+  longer authoring workspaces.
 - The modular tracker baseline is committed at `737331b`.
 
 ## Current deliverable

@@ -2,9 +2,10 @@
 
 ## Branch and worktree
 
-- Development branch: `codex/website-dev`
-- Website worktree: `The Great Spiffo's Rat Race - Website`
-- Project Zomboid mod development is isolated in its own worktree and branch.
+- Canonical development branch: `codex/rat-race-dev`
+- Canonical local worktree: `The Great Spiffo's Rat Race - Integration`
+- Website and Project Zomboid mod contracts evolve together on the unified
+  development branch.
 
 ## Goal
 
