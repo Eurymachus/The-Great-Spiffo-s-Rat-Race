@@ -134,7 +134,7 @@ regenerating the complete file.
 
 ### Current deployed staging state (2026-08-14)
 
-- Release `337f810` is deployed beneath `G:\RatRace_Staging\releases`.
+- Release `cdd02e1` is deployed beneath `G:\RatRace_Staging\releases`.
 - The isolated PostgreSQL cluster is registered as `RatRaceStagingPostgres` and
   listens only on `127.0.0.1:5433`.
 - `RatRaceStagingWeb` serves `127.0.0.1:8002`; `RatRaceStagingWorker` runs the
@@ -164,3 +164,6 @@ regenerating the complete file.
   administration page carries a persistent development/test warning.
 - Local staging readiness and the public staging homepage returned HTTP 200;
   production readiness remained HTTP 200. GSA services were not modified.
+- Open staging email registration is enabled, allowing testers to complete the
+  ordinary self-registration, verification and password-recovery journeys
+  without administrators maintaining a recipient list.
