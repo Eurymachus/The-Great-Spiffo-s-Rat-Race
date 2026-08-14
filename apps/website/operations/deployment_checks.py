@@ -62,6 +62,7 @@ def production_deployment_checks():
             in {
                 "config.settings_production",
                 "config.settings_windows_production",
+                "config.settings_windows_staging",
             }
             and settings.DEBUG is False
         ),

@@ -32,6 +32,16 @@ class ProductionDeploymentSettingsTests(TestCase):
                 production_deployment_checks()["production settings"]
             )
 
+    @override_settings(DEBUG=False)
+    def test_windows_staging_settings_are_accepted(self):
+        with patch.dict(
+            "os.environ",
+            {"DJANGO_SETTINGS_MODULE": "config.settings_windows_staging"},
+        ):
+            self.assertTrue(
+                production_deployment_checks()["production settings"]
+            )
+
 
 @override_settings(RUNTIME_STATE_BACKEND="database")
 class DatabaseRuntimeStateTests(TestCase):
