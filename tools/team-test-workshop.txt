@@ -1,0 +1,12 @@
+version=1
+id=3782093082
+title=The Great Spiffo's Rat Race - Team Test
+description=[h1]Rat Race Team Test Build[/h1]
+description=
+description=Unlisted development build for invited Rat Race testers.
+description=
+description=This test item uses the distinct internal mod ID TGSRR-test.
+description=
+description=Existing test saves may be incompatible between revisions.
+tags=Build 42;Hardmode
+visibility=unlisted

@@ -1,0 +1,10 @@
+name=The Great Spiffo's Rat Race
+id=TGSRR
+author=Eurymachus
+description=<RGB:1,0.6,0.9>Adds The Great Spiffo's Rat Race as a Challenge Mode to Project Zomboid allowing participants a quick route for starting a new Rat Race session with the official sandbox settings found in the Discord.
+icon=tgsrr.png
+modversion=0.1
+versionMin=42.20
+poster=tgsrr.png
+poster=rules.png
+poster=media/lua/client/LastStand/outpostmap.png

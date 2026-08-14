@@ -39,8 +39,25 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
 - Steam workshop mods: `C:\Games\Steam\steamapps\workshop\content\108600`
 - Local workshop mods / style references: `C:\Users\refle\Zomboid\Workshop`
 - Project Zomboid install: `C:\Games\Steam\steamapps\common\ProjectZomboid`
-- Latest decompiled Java reference: `C:\Games\Steam\steamapps\common\ProjectZomboid\zombie_decompiled`
+- Versioned decompiled Java root: `C:\Games\Steam\steamapps\common\ProjectZomboid\tgsrr_decompiled`
 - Legacy decompiled Java reference: `C:\Games\Steam\steamapps\common\PZJava`
+
+### Authoritative Decompiled Java Selection
+
+- Treat the versioned directories under `tgsrr_decompiled` as the source of
+  truth for current Project Zomboid Java code. Do not use
+  `ProjectZomboid\zombie_decompiled` as a current reference.
+- Directory names follow `build-<SteamBuildId>-job-<jobId>`. The Steam build
+  ID identifies the exact Project Zomboid binary build; the job ID identifies
+  the website decompilation run.
+- Select a directory whose `.tgsrr-build-id` matches the currently installed
+  Steam build ID. When multiple successful directories exist for that build,
+  use the one with the greatest numeric job ID.
+- For the currently installed Build 42.20 / Steam build `24449119`, the
+  authoritative reference is:
+  `C:\Games\Steam\steamapps\common\ProjectZomboid\tgsrr_decompiled\build-24449119-job-5`
+- Continue to use `C:\Games\Steam\steamapps\common\PZJava` only when legacy
+  behavior or API mapping is useful.
 
 ## Working Rules
 
@@ -51,7 +68,8 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
   3. Local workshop mods under `C:\Users\refle\Zomboid\Workshop` when code style or established Eurymachus patterns matter.
   4. Steam workshop mods when checking compatibility or comparable mod behavior.
   5. Project Zomboid game files.
-  6. Latest decompiled Java references in `ProjectZomboid\zombie_decompiled`.
+  6. The matching authoritative versioned Java decompile under
+     `ProjectZomboid\tgsrr_decompiled`.
   7. Legacy decompiled Java references in `PZJava` when legacy comparison is useful.
 - Do not edit files outside this mod workspace unless the user explicitly asks for that.
 - Use external workshop, local workshop, Project Zomboid, and Java paths as read-only references by default.
@@ -68,3 +86,26 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
   services.
 - Before reporting the website as ready, confirm an HTTP 200 response and one
   logical `run_reference_update_worker` process tree.
+
+## Project Zomboid Lua Restrictions
+
+- Before relying on a Java class, method, field, constructor, or global from
+  shipped Lua, verify that it is actually exposed through Project Zomboid's
+  Kahlua bridge. A public Java API in the decompile is not sufficient proof.
+  For the current build, inspect `zombie.Lua.LuaManager.Exposer`: classes must
+  be admitted by its `setExposed(...)` list (directly or through an exposed
+  type), and callable members must be public and not marked `@HiddenFromLua`.
+  Lua globals are generally methods registered from
+  `LuaManager.GlobalObject`, commonly with `@LuaMethod(global = true)`, or by
+  another explicit `register`/exposure path. `@UsedFromLua` is useful evidence
+  of intended Lua use, but do not treat that annotation alone as proof that a
+  particular member is callable. Confirm against `LuaManager.Exposer`, an
+  established vanilla Lua call site, or an in-game probe before designing
+  around the API.
+- Project Zomboid's restricted Kahlua environment does **not** expose the
+  standard Lua `next()` global. Never use `next(table)` in shipped mod Lua.
+  Test table emptiness with a `pairs()` loop instead.
+- Desktop Lua tests do not reproduce every missing Kahlua global. Before
+  handing off Lua changes, run:
+  `rg -n "\bnext\s*\(" "Contents/mods/Great Spiffo's Rat Race" --glob "*.lua"`
+  and require zero matches.

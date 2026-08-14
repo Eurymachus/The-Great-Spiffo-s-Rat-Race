@@ -19,6 +19,9 @@ deployment/runtime/*
 !deployment/runtime/.gitkeep
 tempwiki.html
 
+# Mod tooling
+/outputs/
+
 # Editors and operating systems
 .idea/
 .vscode/

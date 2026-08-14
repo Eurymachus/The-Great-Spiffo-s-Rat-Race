@@ -1,0 +1,162 @@
+VERSION = 1,
+
+option TGSRRHelicopter.Enabled
+{
+    type = boolean, default = false,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.Enabled,
+}
+
+option TGSRRHelicopter.Year1Months
+{
+    type = string, default = ,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.Year1Months,
+}
+
+option TGSRRHelicopter.Year2Months
+{
+    type = string, default = ,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.Year2Months,
+}
+
+option TGSRRHelicopter.Year3Months
+{
+    type = string, default = ,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.Year3Months,
+}
+
+option TGSRRHelicopter.Year4Months
+{
+    type = string, default = ,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.Year4Months,
+}
+
+option TGSRRHelicopter.Year5Months
+{
+    type = string, default = ,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.Year5Months,
+}
+
+option TGSRRHelicopter.Year6Months
+{
+    type = string, default = ,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.Year6Months,
+}
+
+option TGSRRHelicopter.Year7Months
+{
+    type = string, default = ,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.Year7Months,
+}
+
+option TGSRRHelicopter.Year8Months
+{
+    type = string, default = ,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.Year8Months,
+}
+
+option TGSRRHelicopter.Year9Months
+{
+    type = string, default = ,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.Year9Months,
+}
+
+option TGSRRHelicopter.DayMinimum
+{
+    type = integer, min = 0, max = 31, default = 6,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.DayMinimum,
+}
+
+option TGSRRHelicopter.DayMaximum
+{
+    type = integer, min = 1, max = 32, default = 10,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.DayMaximum,
+}
+
+option TGSRRHelicopter.StartHourMinimum
+{
+    type = integer, min = 0, max = 23, default = 9,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.StartHourMinimum,
+}
+
+option TGSRRHelicopter.StartHourMaximum
+{
+    type = integer, min = 0, max = 23, default = 18,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.StartHourMaximum,
+}
+
+option TGSRRHelicopter.DurationMinimum
+{
+    type = integer, min = 1, max = 24, default = 1,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.DurationMinimum,
+}
+
+option TGSRRHelicopter.DurationMaximum
+{
+    type = integer, min = 1, max = 24, default = 4,
+    page = TGSRRHelicopter,
+    translation = TGSRRHelicopter.DurationMaximum,
+}
+
+option TGSRRRanchMortality.Enabled
+{
+    type = boolean, default = false,
+    page = TGSRRRanchMortality,
+    translation = TGSRRRanchMortality.Enabled,
+}
+
+option TGSRRRanchMortality.RollStartDay
+{
+    type = integer, min = 0, max = 10000, default = 60,
+    page = TGSRRRanchMortality,
+    translation = TGSRRRanchMortality.RollStartDay,
+}
+
+option TGSRRRanchMortality.FemaleDeathDay
+{
+    type = integer, min = -1, max = 10000, default = 190,
+    page = TGSRRRanchMortality,
+    translation = TGSRRRanchMortality.FemaleDeathDay,
+}
+
+option TGSRRRanchMortality.MaleDeathDay
+{
+    type = integer, min = -1, max = 10000, default = 250,
+    page = TGSRRRanchMortality,
+    translation = TGSRRRanchMortality.MaleDeathDay,
+}
+
+option TGSRRAlarmDecay.Enabled
+{
+    type = boolean, default = true,
+    page = TGSRRAlarmDecay,
+    translation = TGSRRAlarmDecay.Enabled,
+}
+
+option TGSRRAlarmDecay.MinimumDay
+{
+    type = integer, min = 0, max = 10000, default = 0,
+    page = TGSRRAlarmDecay,
+    translation = TGSRRAlarmDecay.MinimumDay,
+}
+
+option TGSRRAlarmDecay.MaximumDay
+{
+    type = integer, min = 0, max = 10000, default = 730,
+    page = TGSRRAlarmDecay,
+    translation = TGSRRAlarmDecay.MaximumDay,
+}

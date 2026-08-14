@@ -1,0 +1,123 @@
+local Identity = require "TGSRR/Run/Identity"
+local SkillSnapshot = require "TGSRR/Run/SkillSnapshot"
+local WeaponKillSnapshot = require "TGSRR/Run/WeaponKillSnapshot"
+local BrokenWeaponSnapshot = require "TGSRR/Run/BrokenWeaponSnapshot"
+local AnimalSlaughterSnapshot = require "TGSRR/Run/AnimalSlaughterSnapshot"
+local AnimalTrapSnapshot = require "TGSRR/Run/AnimalTrapSnapshot"
+local AnimalBirthSnapshot = require "TGSRR/Run/AnimalBirthSnapshot"
+local InjurySnapshot = require "TGSRR/Run/InjurySnapshot"
+local MilkSnapshot = require "TGSRR/Run/MilkSnapshot"
+local FishCaughtSnapshot = require "TGSRR/Run/FishCaughtSnapshot"
+
+local DailySnapshot = {}
+
+local function weightKilograms(player)
+    local nutrition = player and player.getNutrition
+        and player:getNutrition() or nil
+    return math.max(0,
+        tonumber(nutrition and nutrition:getWeight()) or 0)
+end
+
+function DailySnapshot.current(player, run)
+    return {
+        kills = math.max(0, tonumber(player and player:getZombieKills()) or 0),
+        weightKilograms = weightKilograms(player),
+        skills = SkillSnapshot.totals(player),
+        weaponKills = WeaponKillSnapshot.copy(run and run.weaponKills),
+        fireDeaths = math.max(0, tonumber(run and run.fireDeaths) or 0),
+        distanceTravelledMeters =
+            math.max(0, tonumber(run and run.distanceTravelledMeters) or 0),
+        brokenWeapons =
+            BrokenWeaponSnapshot.copy(run and run.brokenWeapons),
+        animalsSlaughtered =
+            AnimalSlaughterSnapshot.copy(run and run.animalsSlaughtered),
+        animalsTrapped =
+            AnimalTrapSnapshot.copy(run and run.animalsTrapped),
+        animalBirths =
+            AnimalBirthSnapshot.copy(run and run.animalBirths),
+        milkCollected =
+            MilkSnapshot.copy(run and run.milkCollected),
+        butterProduced =
+            math.max(0, math.floor(tonumber(run and run.butterProduced) or 0)),
+        fishCaught = FishCaughtSnapshot.copy(run and run.fishCaught),
+        injuries = InjurySnapshot.copy(run and run.injuries),
+        zombieAssociatedInjuries =
+            InjurySnapshot.copy(run and run.zombieAssociatedInjuries),
+    }
+end
+
+function DailySnapshot.deltas(current, baseline)
+    local result = {}
+    local keys = {}
+    for id in pairs(current or {}) do keys[id] = true end
+    for id in pairs(baseline or {}) do keys[id] = true end
+    for id in pairs(keys) do
+        local delta = (tonumber(current and current[id]) or 0)
+            - (tonumber(baseline and baseline[id]) or 0)
+        if delta ~= 0 then result[id] = delta end
+    end
+    return result
+end
+
+function DailySnapshot.active(run, player)
+    local baseline = run and run.dailyState or nil
+    if type(baseline) ~= "table" then return nil end
+    local current = DailySnapshot.current(player, run)
+    local gameTime = getGameTime and getGameTime() or nil
+    local currentWorldAgeHours = gameTime and gameTime:getWorldAgeHours() or 0
+    local startedWorldAgeHours = tonumber(baseline.startedWorldAgeHours) or 0
+    return {
+        dayIndex = math.max(1, math.floor(tonumber(baseline.dayIndex) or 1)),
+        baselinePartial = baseline.partial == true,
+        startedUtc = math.max(0, math.floor(tonumber(baseline.startedUtc) or 0)),
+        startedWorldAgeHours = startedWorldAgeHours,
+        observedUtc = Identity.utcSeconds(),
+        observedWorldAgeHours = currentWorldAgeHours,
+        elapsedWorldHours = math.max(0, currentWorldAgeHours - startedWorldAgeHours),
+        killDelta = current.kills - (tonumber(baseline.kills) or 0),
+        weightDeltaKilograms = current.weightKilograms
+            - (tonumber(baseline.weightKilograms) or 0),
+        xpDeltas = DailySnapshot.deltas(current.skills, baseline.skills),
+        weaponKillDeltas =
+            DailySnapshot.deltas(current.weaponKills, baseline.weaponKills),
+        weaponKillsPartial = baseline.weaponKillsPartial == true,
+        fireDeathDelta =
+            current.fireDeaths - (tonumber(baseline.fireDeaths) or 0),
+        fireDeathsPartial = baseline.fireDeathsPartial == true,
+        distanceDeltaMeters = math.max(0,
+            current.distanceTravelledMeters
+                - (tonumber(baseline.distanceTravelledMeters) or 0)),
+        distancePartial = baseline.distancePartial == true,
+        brokenWeaponDeltas =
+            DailySnapshot.deltas(current.brokenWeapons, baseline.brokenWeapons),
+        brokenWeaponsPartial = baseline.brokenWeaponsPartial == true,
+        animalSlaughterDeltas = DailySnapshot.deltas(
+            current.animalsSlaughtered, baseline.animalsSlaughtered),
+        animalsSlaughteredPartial =
+            baseline.animalsSlaughteredPartial == true,
+        animalTrapDeltas = AnimalTrapSnapshot.deltaPairs(
+            current.animalsTrapped, baseline.animalsTrapped),
+        animalsTrappedPartial = baseline.animalsTrappedPartial == true,
+        animalBirthDeltas =
+            DailySnapshot.deltas(current.animalBirths, baseline.animalBirths),
+        animalBirthsPartial = baseline.animalBirthsPartial == true,
+        milkCollectedDeltas =
+            DailySnapshot.deltas(current.milkCollected, baseline.milkCollected),
+        milkCollectedPartial = baseline.milkCollectedPartial == true,
+        butterProducedDelta = current.butterProduced
+            - math.max(0, math.floor(
+                tonumber(baseline.butterProduced) or 0)),
+        butterProducedPartial = baseline.butterProducedPartial == true,
+        fishCaughtDeltas =
+            DailySnapshot.deltas(current.fishCaught, baseline.fishCaught),
+        fishCaughtPartial = baseline.fishCaughtPartial == true,
+        injuryDeltas =
+            InjurySnapshot.deltaPairs(current.injuries, baseline.injuries),
+        zombieAssociatedInjuryDeltas = InjurySnapshot.deltaPairs(
+            current.zombieAssociatedInjuries,
+            baseline.zombieAssociatedInjuries),
+        injuriesPartial = baseline.injuriesPartial == true,
+    }
+end
+
+return DailySnapshot
