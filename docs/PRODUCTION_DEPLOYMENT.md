@@ -137,8 +137,11 @@ after the local staging readiness endpoint passes.
   recovery. No reboot was performed during installation.
 - The protected environment is `G:\RatRace_Staging\config\staging.env`. It has
   staging-only Django and encryption secrets, filesystem roots, callback URLs,
-  database credentials, Turnstile test keys, and an explicit outbound-email
-  recipient allowlist.
+  database credentials and Turnstile test keys. `STAGING_EMAIL_ALLOW_ALL=true`
+  permits invited testers to self-register with arbitrary email addresses.
+  Graph mail still uses the dedicated Rat Race sender, and the ordinary
+  Turnstile and registration, resend and password-reset rate limits remain
+  enforced. Set it to `false` to restore `STAGING_EMAIL_ALLOWLIST` enforcement.
 - Only the working Microsoft Graph mail configuration is reused from the
   protected production environment. OpenAI, Twitch, Discord, YouTube, and Steam
   provider credentials remain explicitly unconfigured until each integration

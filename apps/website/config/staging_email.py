@@ -7,6 +7,9 @@ class AllowlistedStagingEmailBackend(MicrosoftGraphEmailBackend):
     """Prevent staging from emailing any address outside its explicit allowlist."""
 
     def send_messages(self, email_messages):
+        if settings.STAGING_EMAIL_ALLOW_ALL:
+            return super().send_messages(email_messages)
+
         allowed = settings.STAGING_EMAIL_ALLOWLIST
         for message in email_messages:
             recipients = {
