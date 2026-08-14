@@ -9,7 +9,7 @@ EMAIL_BACKEND = "config.staging_email.AllowlistedStagingEmailBackend"
 STAGING_ENVIRONMENT = True
 MIDDLEWARE.insert(0, "config.staging.StagingNoIndexMiddleware")  # noqa: F405
 STAGING_EMAIL_ALLOW_ALL = os.environ.get(
-    "STAGING_EMAIL_ALLOW_ALL", "false"
+    "STAGING_EMAIL_ALLOW_ALL", "true"
 ).strip().lower() in {"1", "true", "yes", "on"}
 STAGING_EMAIL_ALLOWLIST = {
     address.strip().lower()
