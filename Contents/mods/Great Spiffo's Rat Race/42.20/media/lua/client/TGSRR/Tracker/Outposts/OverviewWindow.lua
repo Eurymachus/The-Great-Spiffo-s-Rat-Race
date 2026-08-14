@@ -11,6 +11,7 @@ local State = require "TGSRR/Tracker/State"
 local Identity = require "TGSRR/Run/Identity"
 local LandmarkMap = require "TGSRR/Tracker/Landmarks/WorldMap"
 local Layout = require "TGSRR/Tracker/Layout"
+local VisualGuidance = require "TGSRR/Outposts/VisualGuidance"
 
 local Window = ISCollapsableWindow:derive("TGSRROutpostOverviewWindow")
 Window.instance = nil
@@ -29,6 +30,36 @@ local STATUS_ICON_SIZE = 18
 local MAP_BUTTON_SIZE = 44
 local MAP_ICON_SIZE = 34
 local MAP_ICON = getTexture("media/textures/worldMap/Map_On.png")
+local GUIDANCE_BUTTON_WIDTH = 52
+local GUIDANCE_BUTTON_HEIGHT = 28
+local TOGGLE_WIDTH = 36
+local TOGGLE_HEIGHT = 18
+local TOGGLE_ON = getTexture("media/ui/Entity/widget_toggle_on.png")
+local TOGGLE_ON_OVER = getTexture("media/ui/Entity/widget_toggle_on_over.png")
+local TOGGLE_OFF = getTexture("media/ui/Entity/widget_toggle_off.png")
+local TOGGLE_OFF_OVER = getTexture("media/ui/Entity/widget_toggle_off_over.png")
+
+local GuidanceToggle = ISButton:derive("TGSRRVisualGuidanceToggle")
+
+function GuidanceToggle:render()
+    local texture
+    if self.selected then
+        texture = self.mouseOver and TOGGLE_ON_OVER or TOGGLE_ON
+    else
+        texture = self.mouseOver and TOGGLE_OFF_OVER or TOGGLE_OFF
+    end
+    if texture then
+        self:drawTextureScaled(texture, math.floor((self.width - TOGGLE_WIDTH) / 2),
+            math.floor((self.height - TOGGLE_HEIGHT) / 2), TOGGLE_WIDTH, TOGGLE_HEIGHT,
+            1, 1, 1, 1)
+    end
+end
+
+function GuidanceToggle:new(x, y, width, height, title, target, onclick)
+    local o = ISButton.new(self, x, y, width, height, title, target, onclick)
+    o.selected = false
+    return o
+end
 
 local function windowWidth()
     local contentWidth = Layout.textWidth(UIFont.Small, string.rep("M", 48)) + 120
@@ -261,6 +292,17 @@ function Window:createChildren()
         "UI_TGSRR_Tracker_ViewOnMap", "View outpost on world map"))
     self:addChild(self.mapButton)
 
+    self.guidanceButton = GuidanceToggle:new(
+        self.mapButton:getX() - 8 - GUIDANCE_BUTTON_WIDTH,
+        mapY + math.floor((MAP_BUTTON_SIZE - GUIDANCE_BUTTON_HEIGHT) / 2),
+        GUIDANCE_BUTTON_WIDTH, GUIDANCE_BUTTON_HEIGHT, "", self, Window.onGuidance)
+    self.guidanceButton:initialise()
+    self.guidanceButton:instantiate()
+    self.guidanceButton:setTooltip(L.text("UI_TGSRR_Tracker_Tooltip_VisualGuidance",
+        "Highlight incomplete outpost requirements in the world."))
+    self:addChild(self.guidanceButton)
+    self:updateGuidanceButton()
+
     local _, _, _, headerHeight = headerMetrics(self:titleBarHeight())
     local top = self:titleBarHeight() + headerHeight
     self.list = ISScrollingListBox:new(MARGIN, top, self.width - MARGIN * 2,
@@ -277,6 +319,16 @@ end
 
 function Window:onMap()
     if self.outpost then LandmarkMap.showAt(self.outpost.anchor, 0) end
+end
+
+function Window:updateGuidanceButton()
+    if not self.guidanceButton then return end
+    self.guidanceButton.selected = VisualGuidance.isEnabled(self.outpost)
+end
+
+function Window:onGuidance()
+    if self.outpost then VisualGuidance.toggle(self.outpost) end
+    self:updateGuidanceButton()
 end
 
 function Window:prerender()
@@ -385,6 +437,7 @@ function Window:update()
 end
 
 function Window:close()
+    if VisualGuidance.isEnabled(self.outpost) then VisualGuidance.setEnabled(nil, false) end
     saveWindowState(self, false)
     self:setVisible(false)
 end
@@ -422,8 +475,12 @@ function Window.showFor(outpost)
         window:initialise()
         Window.instance = window
     else
+        if VisualGuidance.isEnabled() and not VisualGuidance.isEnabled(outpost) then
+            VisualGuidance.setEnabled(nil, false)
+        end
         window.outpost = outpost
         window:refresh()
+        window:updateGuidanceButton()
     end
     window:addToUIManager()
     window:setVisible(true)

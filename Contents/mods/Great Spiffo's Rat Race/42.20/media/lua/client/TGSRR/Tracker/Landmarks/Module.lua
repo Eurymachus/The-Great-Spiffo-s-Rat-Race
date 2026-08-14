@@ -25,7 +25,7 @@ Deliverables.register({
             status = total > 0 and discovered == total
                 and "complete" or "active",
             detail = L.text("UI_TGSRR_Tracker_LandmarksOptionalDetail",
-                "Optional discoveries for fun. They do not affect overall challenge progress."),
+                "Optional discoveries. They do not affect challenge progress."),
             detailTab = "landmarks",
         }
     end,

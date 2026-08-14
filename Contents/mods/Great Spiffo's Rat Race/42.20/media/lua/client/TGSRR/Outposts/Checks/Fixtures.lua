@@ -382,6 +382,32 @@ function Fixtures.getRoomsForOutpost(outpostId)
     return roomsByOutpost[outpostId]
 end
 
+function Fixtures.getSinksForOutpost(outpost)
+    if not outpost or not roomCache(outpost) then return nil end
+    return sinksByOutpost[outpost.id]
+end
+
+function Fixtures.inspectPlumbedSink(outpost)
+    return plumbedSinkResult(outpost)
+end
+
+function Fixtures.getGeneratorsForOutpost(outpost)
+    if not outpost then return {} end
+    reconcileGeneratorsFromCell()
+    local result = {}
+    for key, entry in pairs(Store.getFixtureEntries(outpost.id, "generator")) do
+        local generator = findGeneratorAt(entry, key)
+        if generator and GeneratorCoverage.covers(outpost, generator) then
+            result[#result + 1] = generator
+        end
+    end
+    return result
+end
+
+function Fixtures.inspectGenerator(outpost)
+    return generatorResult(outpost)
+end
+
 Outposts.addCheck("good_bed", goodBedResult, 60)
 Outposts.addCheck("generator", generatorResult, 70)
 Outposts.addCheck("food", foodResult, 80)

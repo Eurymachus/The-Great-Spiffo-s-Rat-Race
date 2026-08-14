@@ -1,6 +1,6 @@
 local State = {}
 local FILENAME = "TGSRR/ChallengeTrackerWindow.ini"
-local KEY_ORDER = { "x", "y", "width", "height", "tab", "launcherX", "launcherY", "open" }
+local KEY_ORDER = { "x", "y", "tab", "launcherX", "launcherY", "open" }
 local values = nil
 local dirty = false
 
@@ -52,9 +52,12 @@ function State.save(window, launcher, isOpen)
     if window then
         set("x", math.floor(window:getX()))
         set("y", math.floor(window:getY()))
-        set("width", math.floor(window:getWidth()))
-        set("height", math.floor(window:getHeight()))
         set("tab", window.activeModuleId or "")
+        if state.width ~= nil or state.height ~= nil then
+            state.width = nil
+            state.height = nil
+            changed = true
+        end
     end
     if launcher then
         set("launcherX", math.floor(launcher:getX()))
