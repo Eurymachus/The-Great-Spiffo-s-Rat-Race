@@ -925,7 +925,9 @@ end
 
 local function watchWindow(window, condition, character,
         requiresSmashSuccess)
-    if not window then return end
+    if not window or not instanceof or not instanceof(window, "IsoWindow") then
+        return
+    end
     local conditions = pendingWindowChanges[window]
     if not conditions then
         conditions = {}
@@ -983,7 +985,7 @@ local function patchWindowActions()
             local window = self.window or self.object
             local wasDestroyed = window and window:isDestroyed()
             local result = originalStart(self)
-            if window and not wasDestroyed then
+            if window and not self.vehiclePart and not wasDestroyed then
                 -- Vanilla sets OwnerSmashedIt only at the animation's actual
                 -- AttackCollisionCheck. A cancelled action may leave this
                 -- watcher briefly, but can never satisfy the success gate.

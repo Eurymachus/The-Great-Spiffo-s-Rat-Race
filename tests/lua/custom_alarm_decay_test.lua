@@ -35,13 +35,18 @@ ModData = {
 }
 
 local playerUpdateHandler
+local gameStartHandlers = {}
+local tickHandler
 Events = {
     OnLoadedMapZones = { Add = function() end },
     OnNewGame = { Add = function() end },
-    OnGameStart = { Add = function() end },
+    OnGameStart = { Add = function(handler)
+        gameStartHandlers[#gameStartHandlers + 1] = handler
+    end },
     OnPlayerUpdate = { Add = function(handler) playerUpdateHandler = handler end },
     LoadChunk = { Add = function() end },
     OnSeeNewRoom = { Add = function() end },
+    OnTick = { Add = function(handler) tickHandler = handler end },
 }
 
 local runtimePath = "Contents/mods/Great Spiffo's Rat Race/42.20/media/lua/"
@@ -455,6 +460,24 @@ SandboxVars.TGSRRAlarmDecay.MaximumDay = 10
 config = Runtime.configuration()
 expect("reversed minimum normalized", config.minimum, 10)
 expect("reversed maximum normalized", config.maximum, 20)
+
+package.loaded["TimedActions/ISOpenCloseWindow"] = true
+package.loaded["TimedActions/ISSmashWindow"] = true
+ISOpenCloseWindow = { perform = function() end }
+ISSmashWindow = { start = function() end }
+isServer = function() return true end
+gameStartHandlers[2]()
+
+local vehicleWindow = {
+    isDestroyed = function() return false end,
+}
+ISSmashWindow.start({
+    window = vehicleWindow,
+    vehiclePart = {},
+    character = {},
+})
+local vehicleTickOk = pcall(tickHandler)
+expect("vehicle window ignored by building alarm watcher", vehicleTickOk, true)
 
 if failures > 0 then os.exit(1) end
 print("custom_alarm_decay_test: ok")
