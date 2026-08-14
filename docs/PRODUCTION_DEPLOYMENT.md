@@ -122,6 +122,9 @@ separate installation root, `G:\RatRace_Staging`. Production defaults remain
 `Install-RatRaceStartup.ps1` validates that every supplied release, environment,
 Python, PostgreSQL, and log path stays beneath its `InstallationRoot`. Process
 cleanup is installation-root scoped so staging cannot terminate production.
+Use `Install-RatRaceStagingStartup.ps1 -ReleaseRoot <release>` for the standard
+staging identity, paths and ports; this keeps the elevated invocation short and
+repeatable.
 Create the protected staging environment with
 `New-RatRaceStagingEnvironment.ps1` only after its isolated PostgreSQL fragment
 exists. Cloudflare routing and any optional Access policy are configured last,
