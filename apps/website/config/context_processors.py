@@ -221,4 +221,5 @@ def site_identity(request):
         "site_theme_is_preview": bool(
             theme and preview_theme_id and str(theme.pk) == preview_theme_id
         ),
+        "staging_environment": getattr(settings, "STAGING_ENVIRONMENT", False),
     }

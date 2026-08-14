@@ -21,6 +21,7 @@ from django.shortcuts import redirect
 from django.urls import include, path
 
 from . import health
+from .staging import robots_txt
 
 
 def admin_home(request):
@@ -39,6 +40,7 @@ def admin_home(request):
     return redirect("admin:index")
 
 urlpatterns = [
+    path("robots.txt", robots_txt, name="robots-txt"),
     path("health/live/", health.liveness, name="health-live"),
     path("health/ready/", health.readiness, name="health-ready"),
     path(

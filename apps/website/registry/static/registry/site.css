@@ -3081,3 +3081,14 @@ button:hover { background: var(--theme-accent-hover); }
     .managed-tabs.is-enhanced .managed-tab-panel { transition: none; }
     .managed-tab:hover { transform: none; }
 }
+.staging-banner {
+    background: #f3a52b;
+    border-bottom: 2px solid #ffe4a8;
+    color: #171007;
+    font-weight: 800;
+    letter-spacing: .045em;
+    padding: .7rem 1rem;
+    position: relative;
+    text-align: center;
+    z-index: 1000;
+}

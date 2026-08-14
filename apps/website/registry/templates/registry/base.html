@@ -4,7 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ site_full_title }}{% block title_suffix %}{% endblock %}</title>
+    <title>{% if staging_environment %}[DEV] {% endif %}{{ site_full_title }}{% block title_suffix %}{% endblock %}</title>
+    {% if staging_environment %}<meta name="robots" content="noindex, nofollow, noarchive">{% endif %}
     {% if site_favicon_url %}<link rel="icon" href="{{ site_favicon_url }}">{% endif %}
     <meta property="og:title" content="{{ site_full_title }}">
     <meta property="og:type" content="website">
@@ -132,6 +133,11 @@
 </head>
 <body class="theme-background-{{ site_theme.background_style|default:'radial' }}{% if site_background_image_url %} has-brand-background{% endif %}">
     <a class="skip-link" href="#main-content">Skip to main content</a>
+    {% if staging_environment %}
+    <div class="staging-banner" role="status">
+        <strong>DEVELOPMENT / TEST SITE</strong> — Data may be reset at any time. Use test submissions only.
+    </div>
+    {% endif %}
     <div class="page-shell">
         {% if site_theme_is_preview %}
         <aside class="theme-preview-banner" role="status">

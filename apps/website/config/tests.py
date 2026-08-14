@@ -9,6 +9,7 @@ from django.http import HttpResponse
 from django.test import RequestFactory, SimpleTestCase, override_settings
 
 from .middleware import MaintenanceModeMiddleware
+from .staging import StagingNoIndexMiddleware, robots_txt
 from .production_environment import (
     TURNSTILE_TEST_SITE_KEY,
     validate_production_environment,
@@ -57,6 +58,19 @@ class MaintenanceModeMiddlewareTests(SimpleTestCase):
                 )
                 self.assertEqual(response.status_code, 200)
 
+
+class StagingIsolationTests(SimpleTestCase):
+    def test_staging_responses_are_not_indexable(self):
+        middleware = StagingNoIndexMiddleware(lambda request: HttpResponse("ok"))
+
+        response = middleware(RequestFactory().get("/"))
+
+        self.assertEqual(response["X-Robots-Tag"], "noindex, nofollow, noarchive")
+
+    def test_staging_robots_disallows_everything(self):
+        response = robots_txt(RequestFactory().get("/robots.txt"))
+
+        self.assertEqual(response.content, b"User-agent: *\nDisallow: /\n")
 
 def valid_environment():
     return {

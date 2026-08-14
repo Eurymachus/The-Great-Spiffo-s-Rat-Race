@@ -1,11 +1,12 @@
 {% extends "admin/base.html" %}
 {% load i18n static %}
 
-{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_short_title }} admin{% endblock %}
+{% block title %}{% if staging_environment %}[DEV] {% endif %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_short_title }} admin{% endblock %}
 
 {% block extrastyle %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'registry/admin.css' %}?v=20260731-1">
+    {% if staging_environment %}<style>.staging-admin-banner{background:#ffb12b;color:#171007;font-weight:800;padding:.7rem;text-align:center;letter-spacing:.06em}</style>{% endif %}
 {% endblock %}
 
 {% block extrahead %}
@@ -25,6 +26,7 @@
 {% endblock %}
 
 {% block branding %}
+{% if staging_environment %}<div class="staging-admin-banner">DEVELOPMENT / TEST SITE — Data may be reset</div>{% endif %}
 <div id="site-name"><a href="{% url 'admin:index' %}">{{ site_short_title }} administration</a></div>
 {% if user.is_anonymous %}
   {% include "admin/color_theme_toggle.html" %}

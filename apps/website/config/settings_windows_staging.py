@@ -7,6 +7,7 @@ from .settings_windows_production import *  # noqa: F403
 
 EMAIL_BACKEND = "config.staging_email.AllowlistedStagingEmailBackend"
 STAGING_ENVIRONMENT = True
+MIDDLEWARE.insert(0, "config.staging.StagingNoIndexMiddleware")  # noqa: F405
 STAGING_EMAIL_ALLOWLIST = {
     address.strip().lower()
     for address in os.environ["STAGING_EMAIL_ALLOWLIST"].split(",")
