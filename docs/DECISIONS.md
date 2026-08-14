@@ -834,3 +834,23 @@ a normal run-moderation bulk action.
 - Existing and newly created tab sections default to horizontal orientation.
 - Vertical tabs use a left-hand rail on wider layouts and return to the horizontal mobile scroller on narrow layouts.
 - Both orientations retain the existing card styling, fade transition, URL fragments, and accessible tab semantics.
+
+# 2026-08-14 - Keep acceptance staging persistent and operationally isolated
+
+- `dev.tgsrr.com` is the persistent acceptance environment. It follows the
+  Windows production deployment shape beneath `G:\RatRace_Staging`, but uses
+  separate database, ports, services, scheduled tasks, secrets, storage, logs,
+  releases and callback URLs.
+- Staging may be publicly reachable for team testing because application account
+  verification remains required. It must always carry conspicuous development
+  labelling and crawler exclusion, and its data may be reset without notice.
+- Production data is not cloned wholesale. If representative data becomes
+  necessary, copy only the minimum sanitised run-submission fixture required for
+  the acceptance case; never copy account credentials, tokens or private media.
+- Provider integrations are configured and proven in staging first. Promotion
+  to production copies only the individually verified provider fields or adds
+  the verified production callback explicitly; the staging environment file is
+  never copied wholesale.
+- Reusing a production integration is opt-in, not implicit. At initial staging
+  deployment only Microsoft Graph mail is reused, protected by the staging
+  recipient allowlist. Other providers remain explicitly unconfigured.

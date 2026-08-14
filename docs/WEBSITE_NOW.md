@@ -29,6 +29,14 @@ records, while aliases and assets remain shared catalogue relationships.
 
 ## Implemented
 
+- A persistent production-shaped staging environment is live at
+  `https://dev.tgsrr.com` from the isolated `G:\RatRace_Staging` root. It uses
+  its own PostgreSQL cluster, protected configuration, web and worker startup
+  tasks, filesystem state, empty application data and repository-controlled
+  presentation. `[DEV]` titles, a persistent development/test banner,
+  anti-indexing headers and a full-disallow `robots.txt` distinguish it from
+  production. Only the working Graph mail integration is currently shared;
+  all other external providers remain deliberately unconfigured.
 - Permanent participant accounts using nickname, email, and password.
 - Self-declared 18+ participation eligibility with versioned confirmation and no
   collection of dates of birth or identity documents.

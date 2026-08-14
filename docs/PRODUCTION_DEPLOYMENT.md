@@ -124,5 +124,34 @@ Python, PostgreSQL, and log path stays beneath its `InstallationRoot`. Process
 cleanup is installation-root scoped so staging cannot terminate production.
 Create the protected staging environment with
 `New-RatRaceStagingEnvironment.ps1` only after its isolated PostgreSQL fragment
-exists. Cloudflare routing and Access protection are configured last, after the
-local staging readiness endpoint passes.
+exists. Cloudflare routing and any optional Access policy are configured last,
+after the local staging readiness endpoint passes.
+
+### Current deployed staging state (2026-08-14)
+
+- Release `337f810` is deployed beneath `G:\RatRace_Staging\releases`.
+- The isolated PostgreSQL cluster is registered as `RatRaceStagingPostgres` and
+  listens only on `127.0.0.1:5433`.
+- `RatRaceStagingWeb` serves `127.0.0.1:8002`; `RatRaceStagingWorker` runs the
+  reference-update worker. Both are registered scheduled tasks for restart
+  recovery. No reboot was performed during installation.
+- The protected environment is `G:\RatRace_Staging\config\staging.env`. It has
+  staging-only Django and encryption secrets, filesystem roots, callback URLs,
+  database credentials, Turnstile test keys, and an explicit outbound-email
+  recipient allowlist.
+- Only the working Microsoft Graph mail configuration is reused from the
+  protected production environment. OpenAI, Twitch, Discord, YouTube, and Steam
+  provider credentials remain explicitly unconfigured until each integration
+  is set up and tested deliberately.
+- The database began empty, all migrations were applied, and the deterministic
+  repository presentation package imported 8 pages and 8 images. No production
+  participant or run data was copied.
+- The existing Cloudflare tunnel publishes `dev.tgsrr.com` to
+  `http://127.0.0.1:8002`; Cloudflare created the corresponding proxied CNAME.
+- Staging is intentionally public for team acceptance rather than protected by
+  Cloudflare Access. Normal account verification still applies. Every staging
+  response sends `X-Robots-Tag: noindex, nofollow, noarchive`, `robots.txt`
+  disallows all crawling, browser titles begin `[DEV]`, and every ordinary and
+  administration page carries a persistent development/test warning.
+- Local staging readiness and the public staging homepage returned HTTP 200;
+  production readiness remained HTTP 200. GSA services were not modified.
