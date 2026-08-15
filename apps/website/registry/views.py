@@ -1730,11 +1730,38 @@ def delete_avatar(request):
 
 @login_required
 def notifications(request):
-    page = Paginator(request.user.notifications.all(), 25).get_page(request.GET.get("page"))
+    notification_filter = request.GET.get("filter", "all")
+    if notification_filter not in {"all", "unread"}:
+        notification_filter = "all"
+    notification_queryset = request.user.notifications.all()
+    if notification_filter == "unread":
+        notification_queryset = notification_queryset.filter(read_at__isnull=True)
+    page = Paginator(notification_queryset, 25).get_page(request.GET.get("page"))
+    today = timezone.localdate()
+    grouped_notifications = []
+    group_lookup = {}
+    for notification in page.object_list:
+        if notification_filter == "unread":
+            group_name = "Unread"
+        elif not notification.is_read:
+            group_name = "New"
+        elif timezone.localdate(notification.created_at) == today:
+            group_name = "Today"
+        else:
+            group_name = "Earlier"
+        if group_name not in group_lookup:
+            group_lookup[group_name] = {"label": group_name, "notifications": []}
+            grouped_notifications.append(group_lookup[group_name])
+        group_lookup[group_name]["notifications"].append(notification)
     return render(
         request,
         "registry/notifications.html",
-        {"notifications": page, "notification_page": page},
+        {
+            "notifications": page,
+            "notification_page": page,
+            "notification_filter": notification_filter,
+            "grouped_notifications": grouped_notifications,
+        },
     )
 
 
@@ -1746,8 +1773,10 @@ def notification_summary_payload(user):
             {
                 "id": str(notification.pk),
                 "title": notification.title,
-                "message": notification.message,
-                "created_at": notification.created_at.isoformat(),
+                  "message": notification.message,
+                  "category": notification.category,
+                  "category_label": notification.get_category_display(),
+                  "created_at": notification.created_at.isoformat(),
                 "age": f"{timesince(notification.created_at, timezone.now())} ago",
                 "is_read": notification.is_read,
                 "open_url": reverse(

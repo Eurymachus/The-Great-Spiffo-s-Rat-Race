@@ -73,10 +73,10 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260810-4">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260815-12">
     <script src="{% static 'registry/leaderboard.js' %}?v=20260803-3" defer></script>
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
-    <script src="{% static 'registry/site_menu.js' %}?v=20260731-1" defer></script>
+    <script src="{% static 'registry/site_menu.js' %}?v=20260815-12" defer></script>
     <script src="{% static 'registry/account_menu.js' %}?v=20260722-1" defer></script>
     <script src="{% static 'registry/avatar_modal.js' %}?v=20260723-2" defer></script>
     <script src="{% static 'registry/connection_modal.js' %}?v=20260725-1" defer></script>
@@ -211,27 +211,33 @@
                             </button>
                         </span>
                         <div class="site-nav-submenu notification-dropdown">
-                            <div class="utility-panel-heading">
+                            <div class="notification-popup-heading">
                                 <strong>Notifications</strong>
-                                <div class="notification-panel-actions">
+                                <details class="notification-popup-menu">
+                                    <summary aria-label="Notification actions">&hellip;</summary>
+                                    <div class="notification-popup-menu-panel">
                                     <form method="post" action="{% url 'registry:mark_notifications_read' %}" data-notifications-read-form{% if not header_unread_notification_count %} hidden{% endif %}>
                                         {% csrf_token %}
                                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                         <button type="submit">Mark all as read</button>
                                     </form>
-                                    <a href="{% url 'registry:notifications' %}">View all</a>
-                                </div>
+                                    <a href="{% url 'registry:notifications' %}">Open notifications</a>
+                                    </div>
+                                </details>
                             </div>
+                            <div class="notification-popup-filters" aria-label="Notification filters">
+                                <button class="is-active" type="button" data-notification-preview-filter="all">All</button>
+                                <button type="button" data-notification-preview-filter="unread">Unread</button>
+                            </div>
+                            <div class="notification-popup-section-heading"><strong>Recent</strong><a href="{% url 'registry:notifications' %}">View all</a></div>
                             <div class="notification-preview-list">
                                 {% for notification in header_notifications %}
-                                <a class="notification-preview{% if not notification.is_read %} is-unread{% endif %}" href="{% url 'registry:open_notification' notification.pk %}" data-notification-id="{{ notification.pk }}">
-                                    <strong>{{ notification.title }}</strong>
-                                    <span>{{ notification.message }}</span>
-                                    <time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|timesince }} ago</time>
+                                <a class="notification-preview{% if not notification.is_read %} is-unread{% endif %}" href="{% url 'registry:open_notification' notification.pk %}" data-notification-id="{{ notification.pk }}" data-is-read="{% if notification.is_read %}true{% else %}false{% endif %}">
+                                    <span class="notification-preview-badge is-{{ notification.category }}" role="img" aria-label="{{ notification.get_category_display }} notification">{{ notification.get_category_display|slice:":1" }}</span>
+                                    <span class="notification-preview-copy"><strong>{{ notification.title }}</strong><span>{{ notification.message }}</span><time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|timesince }} ago</time></span>
                                 </a>
                                 {% empty %}<p class="utility-empty-state">You have no notifications.</p>{% endfor %}
                             </div>
-                            <a class="utility-panel-footer" href="{% url 'registry:notifications' %}">View all notifications</a>
                         </div>
                     </li>
                 </ul>

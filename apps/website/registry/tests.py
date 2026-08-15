@@ -1909,11 +1909,38 @@ class RegistrationTests(TestCase):
         self.assertContains(account_response, 'class="notification-count">1</span>')
         history_response = self.client.get(reverse("registry:notifications"))
         self.assertContains(history_response, "Your submission has been received.")
+        self.assertContains(history_response, 'aria-label="Submission notification"')
+        self.assertContains(history_response, "New")
+        self.assertContains(history_response, "?filter=unread")
+        self.assertContains(history_response, "data-notifications-read-form")
 
         opened = self.client.get(reverse("registry:open_notification", args=(notification.pk,)))
         self.assertRedirects(opened, reverse("registry:account"))
         notification.refresh_from_db()
         self.assertIsNotNone(notification.read_at)
+
+    def test_notification_history_can_be_filtered_to_unread(self):
+        participant = Participant.objects.create_user(
+            email="notify-filter@example.com", nickname="Notify Filter",
+            password="Local-test-password-482!", is_active=True,
+            status=Participant.Status.VERIFIED,
+        )
+        Notification.objects.create(
+            recipient=participant, title="Unread update", message="Still new."
+        )
+        Notification.objects.create(
+            recipient=participant, title="Read update", message="Already seen.",
+            read_at=timezone.now(),
+        )
+        self.client.force_login(participant)
+
+        response = self.client.get(
+            reverse("registry:notifications"), {"filter": "unread"}
+        )
+
+        visible_titles = [item.title for item in response.context["notifications"]]
+        self.assertEqual(visible_titles, ["Unread update"])
+        self.assertContains(response, "Unread")
 
     def test_notification_summary_returns_authoritative_dropdown_state(self):
         participant = Participant.objects.create_user(

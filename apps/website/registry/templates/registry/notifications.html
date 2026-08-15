@@ -3,38 +3,44 @@
 {% block content %}
 <section class="card notifications-page">
     <header class="notifications-page-heading">
-        <div><p class="eyebrow">Your Account</p><h2>Notifications</h2></div>
-        <div class="notifications-page-actions">
-            {% if header_unread_notification_count %}
-            <form method="post" action="{% url 'registry:mark_notifications_read' %}">
-                {% csrf_token %}<button class="secondary-action" type="submit">Mark all as read</button>
-            </form>
-            {% endif %}
-            <a class="dashboard-header-action" href="{% url 'registry:account' %}">Dashboard</a>
-        </div>
+        <h2>Notifications</h2>
+        <details class="notifications-page-menu">
+            <summary aria-label="Notification actions">&hellip;</summary>
+            <div class="notifications-page-menu-panel">
+                <form method="post" action="{% url 'registry:mark_notifications_read' %}" data-notifications-read-form{% if not header_unread_notification_count %} hidden{% endif %}>
+                    {% csrf_token %}<button type="submit">Mark all as read</button>
+                </form>
+                <a href="{% url 'registry:account' %}">Dashboard</a>
+            </div>
+        </details>
     </header>
-    <div class="notification-history">
-        {% for notification in notifications %}
-        <a class="notification-history-item{% if not notification.is_read %} is-unread{% endif %}" href="{% url 'registry:open_notification' notification.pk %}">
-            <span class="notification-state" aria-hidden="true"></span>
-            <span class="notification-history-copy">
-                <strong>{{ notification.title }}</strong>
-                <span>{{ notification.message }}</span>
-            </span>
-            <span class="notification-history-meta">
-                <span>{{ notification.get_category_display }}</span>
-                <time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|date:"j M Y, H:i" }}</time>
-            </span>
-        </a>
+    <nav class="notification-filters" aria-label="Notification filters">
+        <a class="{% if notification_filter == 'all' %}is-active{% endif %}" href="{% url 'registry:notifications' %}"{% if notification_filter == 'all' %} aria-current="page"{% endif %}>All</a>
+        <a class="{% if notification_filter == 'unread' %}is-active{% endif %}" href="{% url 'registry:notifications' %}?filter=unread"{% if notification_filter == 'unread' %} aria-current="page"{% endif %}>Unread</a>
+    </nav>
+    <div class="notification-history" data-notification-filter="{{ notification_filter }}">
+        {% for group in grouped_notifications %}
+        <section class="notification-history-group">
+            <h3>{{ group.label }}</h3>
+            {% for notification in group.notifications %}
+            <a class="notification-history-item{% if not notification.is_read %} is-unread{% endif %}" href="{% url 'registry:open_notification' notification.pk %}">
+                <span class="notification-category-badge is-{{ notification.category }}" role="img" aria-label="{{ notification.get_category_display }} notification">{{ notification.get_category_display|slice:":1" }}</span>
+                <span class="notification-history-copy">
+                    <span class="notification-history-text"><strong>{{ notification.title }}</strong><span>{{ notification.message }}</span></span>
+                    <span class="notification-history-meta"><time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|timesince }} ago</time></span>
+                </span>
+            </a>
+            {% endfor %}
+        </section>
         {% empty %}
         <div class="notifications-empty"><h3>You have no notifications</h3><p>Important account and participation updates will appear here.</p></div>
         {% endfor %}
     </div>
     {% if notification_page.paginator.num_pages > 1 %}
     <nav class="notification-pagination" aria-label="Notification pages">
-        {% if notification_page.has_previous %}<a href="?page={{ notification_page.previous_page_number }}">Newer</a>{% endif %}
+        {% if notification_page.has_previous %}<a href="?filter={{ notification_filter }}&amp;page={{ notification_page.previous_page_number }}">Newer</a>{% endif %}
         <span>Page {{ notification_page.number }} of {{ notification_page.paginator.num_pages }}</span>
-        {% if notification_page.has_next %}<a href="?page={{ notification_page.next_page_number }}">Older</a>{% endif %}
+        {% if notification_page.has_next %}<a href="?filter={{ notification_filter }}&amp;page={{ notification_page.next_page_number }}">Older</a>{% endif %}
     </nav>
     {% endif %}
 </section>
