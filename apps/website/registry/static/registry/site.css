@@ -1845,20 +1845,24 @@ button:hover { background: var(--theme-accent-hover); }
 .account-dashboard-header h2 { margin: 0; }
 .account-dashboard-header p:last-child { margin: .3rem 0 0; color: var(--theme-muted); }
 .dashboard-header-action {
+    display: inline-flex;
+    min-height: 2.75rem;
     padding: .7rem 1rem;
+    align-items: center;
+    justify-content: center;
     border: 1px solid var(--theme-accent);
     border-radius: var(--theme-radius);
     background: transparent;
     color: var(--theme-accent-hover) !important;
     font-weight: 800;
+    line-height: 1.1;
     text-decoration: none;
+    white-space: nowrap;
 }
 .dashboard-header-action:hover { background: var(--theme-accent); color: var(--theme-accent-text) !important; }
 .dashboard-header-action-subtle {
-    padding: .55rem .75rem;
     border-color: var(--theme-border);
     color: var(--theme-muted) !important;
-    font-size: .88rem;
 }
 .dashboard-header-action-subtle:hover { border-color: var(--theme-accent); }
 .account-dashboard-grid {
@@ -2785,7 +2789,7 @@ button:hover { background: var(--theme-accent-hover); }
     .community-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .community-stat:nth-child(odd)::before { display: none; }
     .account-dashboard-header { grid-template-columns: auto minmax(0, 1fr); }
-    .account-dashboard-header .dashboard-header-action { grid-column: 2; justify-self: start; }
+    .account-dashboard-header .dashboard-header-actions { grid-column: 2; justify-self: start; }
     .account-dashboard-grid { grid-template-columns: 1fr; }
     .settings-hub-grid { grid-template-columns: 1fr; }
     .settings-danger-zone { grid-column: auto; }
@@ -2821,7 +2825,7 @@ button:hover { background: var(--theme-accent-hover); }
         border-left: 0;
     }
     .account-dashboard-avatar { width: 3.25rem; height: 3.25rem; }
-    .account-dashboard-header .dashboard-header-action { grid-column: 1; }
+    .account-dashboard-header .dashboard-header-actions { grid-column: 1; }
     .dashboard-notification { grid-template-columns: auto minmax(0, 1fr); }
     .dashboard-notification time { grid-column: 2; }
     .dashboard-onboarding, .dashboard-challenge-state { align-items: flex-start; flex-direction: column; }
