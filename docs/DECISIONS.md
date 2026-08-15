@@ -860,7 +860,7 @@ a normal run-moderation bulk action.
   `codex/rat-race-dev` branch.
 - GitHub is the synchronization point for development and deployment consumers.
 - The canonical authoring workspace is the local
-  `The Great Spiffo's Rat Race - Integration` worktree.
+  `The Great Spiffo's Rat Race` worktree.
 - Deployment hosts consume commits read-only through fast-forward fetch or pull
   operations and immutable releases. They do not author or merge changes.
 - The old `codex/website-dev` and `codex/outpost-tracker-dev` worktrees are

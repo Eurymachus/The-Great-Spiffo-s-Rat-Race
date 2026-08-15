@@ -122,4 +122,6 @@ add("west_point", "West Point", {11970, 7000, 0}, {11959, 6975, 11985, 7007}, {1
     building("7600021939683331"),
 })
 
+Outposts.setVersion(1)
+
 return Outposts

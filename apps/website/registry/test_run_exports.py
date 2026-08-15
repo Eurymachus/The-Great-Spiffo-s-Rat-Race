@@ -138,6 +138,16 @@ def make_export(
         "currentKills": kills,
         "character": {
             "starting": {"displayName": "Starting Survivor"},
+            "startingLocation": {
+                "x": 10835,
+                "y": 10144,
+                "z": 0,
+                "buildingId": "10835,10144,0",
+                "registeredLocation": None,
+                "capturedUtc": 1784800000,
+                "worldAgeHours": 0,
+                "partial": False,
+            },
             "current": {"displayName": "Test Survivor"},
             "selectedStartingTraits": ["base:Strong"],
             "selectedStartingTraitsPartial": False,
@@ -280,8 +290,49 @@ class RunExportCodecTests(TestCase):
             ["base:Strong"],
         )
         self.assertEqual(
+            decoded.projection["character"]["startingLocation"]["x"],
+            10835,
+        )
+        self.assertEqual(
             decoded.generated_at,
             datetime.fromtimestamp(1784800100, tz=timezone.utc),
+        )
+
+    def test_rejects_malformed_starting_location(self):
+        projection = {
+            "schema": 1,
+            "currentKills": 42,
+            "character": {
+                "current": {"displayName": "Test Survivor"},
+                "startingLocation": {
+                    "x": "10835",
+                    "y": 10144,
+                    "z": 0,
+                    "buildingId": "",
+                    "capturedUtc": 1784800000,
+                    "worldAgeHours": 0,
+                    "partial": False,
+                },
+            },
+        }
+        with self.assertRaisesRegex(InvalidRunExport, "starting-location"):
+            decode_run_export(make_export(projection=projection))
+
+    def test_accepts_registered_starting_location(self):
+        export = make_export()
+        decoded = decode_run_export(export)
+        location = decoded.projection["character"]["startingLocation"]
+        location["registeredLocation"] = {
+            "kind": "landmark",
+            "id": "star_eplex_cinema",
+            "registryVersion": 1,
+        }
+        decoded = decode_run_export(make_export(projection=decoded.projection))
+        self.assertEqual(
+            decoded.projection["character"]["startingLocation"][
+                "registeredLocation"
+            ]["id"],
+            "star_eplex_cinema",
         )
 
     def test_accepts_current_event_schema_two(self):

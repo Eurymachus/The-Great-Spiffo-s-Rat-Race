@@ -19,6 +19,8 @@ from .models import (
     DeliverableDetails,
     ItemDisplayCategory,
     ItemDetails,
+    MapLocationBuilding,
+    MapLocationVersion,
     OccupationDetails,
     SkillDetails,
     TraitDetails,
@@ -27,6 +29,35 @@ from .resolver import resolve_identifier
 
 
 class CatalogueResolverTests(TestCase):
+    def test_deployment_installs_versioned_tgsrr_geography(self):
+        landmark = CatalogueEntry.objects.get(
+            kind=CatalogueEntry.Kind.LOCATION,
+            stable_id="star_eplex_cinema",
+            introduced_in="42.20",
+        )
+        version = MapLocationVersion.objects.get(
+            entry=landmark, game_version="42.20", registry_version=1
+        )
+        self.assertEqual(version.location_type, MapLocationVersion.LocationType.LANDMARK)
+        self.assertEqual((version.anchor_x, version.anchor_y, version.anchor_z), (13637, 5887, 0))
+        self.assertTrue(
+            MapLocationBuilding.objects.filter(
+                location_version=version, building_id="6192677120901126"
+            ).exists()
+        )
+
+        outpost = CatalogueEntry.objects.get(
+            kind=CatalogueEntry.Kind.OUTPOST,
+            stable_id="echo_creek",
+            introduced_in="42.20",
+        )
+        outpost_version = MapLocationVersion.objects.get(entry=outpost)
+        self.assertEqual(
+            (outpost_version.min_x, outpost_version.min_y,
+             outpost_version.max_x, outpost_version.max_y),
+            (3531, 11198, 3555, 11224),
+        )
+
     def test_version_controlled_skill_icon_pack_installs_idempotently(self):
         call_command("import_zomboid_catalogue", stdout=StringIO())
 
@@ -89,6 +120,7 @@ class CatalogueResolverTests(TestCase):
     def test_bundled_catalogue_import_is_idempotent(self):
         call_command("import_zomboid_catalogue", stdout=StringIO())
         first_count = CatalogueEntry.objects.count()
+        imported_count = CatalogueEntry.objects.filter(introduced_in="42.19").count()
         self.assertGreaterEqual(first_count, 60)
         self.assertEqual(
             resolve_identifier(
@@ -122,7 +154,7 @@ class CatalogueResolverTests(TestCase):
         output = StringIO()
         call_command("import_zomboid_catalogue", stdout=output)
         self.assertEqual(CatalogueEntry.objects.count(), first_count)
-        self.assertIn(f"{first_count} unchanged", output.getvalue())
+        self.assertIn(f"{imported_count} unchanged", output.getvalue())
 
     def test_installed_game_import_builds_typed_records_and_asset_links(self):
         with tempfile.TemporaryDirectory() as directory:

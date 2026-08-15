@@ -314,6 +314,42 @@ def decode_run_export(value):
         or len(challenge["gameMode"]) > 255
     ):
         raise InvalidRunExport("The export contains invalid challenge evidence.")
+    starting_location = projection["character"].get("startingLocation")
+    registered_location = (
+        starting_location.get("registeredLocation")
+        if isinstance(starting_location, dict)
+        else None
+    )
+    if starting_location is not None and (
+        not isinstance(starting_location, dict)
+        or any(
+            isinstance(starting_location.get(key), bool)
+            or not isinstance(starting_location.get(key), int)
+            for key in ("x", "y", "z", "capturedUtc")
+        )
+        or starting_location["capturedUtc"] < 0
+        or isinstance(starting_location.get("worldAgeHours"), bool)
+        or not isinstance(starting_location.get("worldAgeHours"), (int, float))
+        or not math.isfinite(starting_location["worldAgeHours"])
+        or starting_location["worldAgeHours"] < 0
+        or not isinstance(starting_location.get("buildingId"), str)
+        or len(starting_location["buildingId"]) > 160
+        or not isinstance(starting_location.get("partial"), bool)
+        or (
+            registered_location is not None
+            and (
+                not isinstance(registered_location, dict)
+                or registered_location.get("kind") not in {"outpost", "landmark"}
+                or not isinstance(registered_location.get("id"), str)
+                or not registered_location["id"]
+                or len(registered_location["id"]) > 255
+                or isinstance(registered_location.get("registryVersion"), bool)
+                or not isinstance(registered_location.get("registryVersion"), int)
+                or registered_location["registryVersion"] < 1
+            )
+        )
+    ):
+        raise InvalidRunExport("The export contains invalid starting-location evidence.")
 
     bodies = []
     body_cursor = 0

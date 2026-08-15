@@ -250,6 +250,73 @@ class DeliverableDetails(models.Model):
         return f"{self.entry.display_name}: {self.category}"
 
 
+class MapLocationVersion(models.Model):
+    class LocationType(models.TextChoices):
+        OUTPOST = "outpost", "Outpost"
+        LANDMARK = "landmark", "Landmark"
+        START_AREA = "start_area", "Starting area"
+        TOWN = "town", "Town"
+
+    entry = models.ForeignKey(
+        CatalogueEntry, on_delete=models.CASCADE, related_name="map_versions"
+    )
+    location_type = models.CharField(max_length=16, choices=LocationType.choices)
+    game_version = models.CharField(max_length=32)
+    registry_version = models.PositiveIntegerField(default=1)
+    anchor_x = models.IntegerField()
+    anchor_y = models.IntegerField()
+    anchor_z = models.IntegerField(default=0)
+    min_x = models.IntegerField(null=True, blank=True)
+    min_y = models.IntegerField(null=True, blank=True)
+    max_x = models.IntegerField(null=True, blank=True)
+    max_y = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("location_type", "entry__display_name", "game_version")
+        constraints = (
+            models.UniqueConstraint(
+                fields=("entry", "game_version", "registry_version"),
+                name="unique_map_location_version",
+            ),
+        )
+
+    def clean(self):
+        bounds = (self.min_x, self.min_y, self.max_x, self.max_y)
+        if any(value is not None for value in bounds) and any(
+            value is None for value in bounds
+        ):
+            raise ValidationError("Map bounds must be entirely present or absent.")
+        if self.min_x is not None and (
+            self.min_x > self.max_x or self.min_y > self.max_y
+        ):
+            raise ValidationError("Map bounds cannot be inverted.")
+
+    def __str__(self):
+        return f"{self.entry.display_name}, {self.game_version} registry {self.registry_version}"
+
+
+class MapLocationBuilding(models.Model):
+    location_version = models.ForeignKey(
+        MapLocationVersion, on_delete=models.CASCADE, related_name="buildings"
+    )
+    building_id = models.CharField(
+        max_length=160,
+        help_text="The raw BuildingDef ID observed in this exact game/map version.",
+    )
+
+    class Meta:
+        ordering = ("building_id",)
+        constraints = (
+            models.UniqueConstraint(
+                fields=("location_version", "building_id"),
+                name="unique_map_location_building",
+            ),
+        )
+
+    def __str__(self):
+        return f"{self.location_version}: {self.building_id}"
+
+
 def catalogue_asset_upload_to(instance, filename):
     version = instance.entry.introduced_in or "unversioned"
     return f"catalogue/{version}/{instance.entry.kind}/{filename}"

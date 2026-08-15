@@ -25,7 +25,7 @@ package.loaded["TGSRR/Run/CharacterSnapshot"] = {
 local Identity = require "TGSRR/Run/Identity"
 local run, reason = Identity.get()
 assert(run == nil and reason == nil)
-assert(values.TGSRR_Run.schemaVersion == 19)
+assert(values.TGSRR_Run.schemaVersion == 20)
 assert(values.TGSRR_Run.contractVersion == 1)
 assert(values.TGSRR_Run.runId == nil)
 

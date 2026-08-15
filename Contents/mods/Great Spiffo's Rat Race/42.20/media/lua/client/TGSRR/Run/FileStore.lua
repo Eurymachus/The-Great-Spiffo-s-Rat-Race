@@ -51,6 +51,17 @@ local function writeMeta(run)
         { "surname", run.startingCharacter and run.startingCharacter.surname },
         { "displayName", run.startingCharacter and run.startingCharacter.displayName },
         { "professionId", run.startingCharacter and run.startingCharacter.professionId },
+        { "startingX", run.startingLocation and run.startingLocation.x },
+        { "startingY", run.startingLocation and run.startingLocation.y },
+        { "startingZ", run.startingLocation and run.startingLocation.z },
+        { "startingBuildingId", run.startingLocation and run.startingLocation.buildingId },
+        { "startingRegisteredLocationKind", run.startingLocation
+            and run.startingLocation.registeredLocation
+            and run.startingLocation.registeredLocation.kind },
+        { "startingRegisteredLocationId", run.startingLocation
+            and run.startingLocation.registeredLocation
+            and run.startingLocation.registeredLocation.id },
+        { "startingLocationPartial", run.startingLocation and run.startingLocation.partial },
     }
     for _, field in ipairs(fields) do
         writer:write(field[1] .. "=" .. encode(field[2]) .. "\n")

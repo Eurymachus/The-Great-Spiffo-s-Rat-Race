@@ -3,7 +3,7 @@
 ## Branch and worktree
 
 - Canonical development branch: `codex/rat-race-dev`.
-- Canonical local worktree: `The Great Spiffo's Rat Race - Integration`.
+- Canonical local worktree: `The Great Spiffo's Rat Race`.
 - Live challenge branch: `master`.
 - Website and Project Zomboid mod contracts evolve together on the unified
   development branch. The separate historical development worktrees are no
@@ -56,6 +56,8 @@ the export contract; their policy and test surfaces are documented in
   starting-character metadata, versioned `run.meta.txt`, and timestamped
   session/mod-list history. The `.txt` suffix is required by Build 42.20's
   Lua file-writer extension allowlist.
+- Immutable starting-location evidence captured with XYZ, optional BuildingDef
+  ID, UTC, world age, and explicit partial status for existing saves.
 - Canonical schema-2 event codec, SHA-256 hash-chained ledger, append-safe
   segmented storage, and lifecycle verification. Unsupported development run
   schemas are rejected rather than migrated.
@@ -223,3 +225,4 @@ evidence for website-side eligibility review.
 - [MOD_DECISION_016_SKILL_TRACKING.md](MOD_DECISION_016_SKILL_TRACKING.md)
 - [MOD_DECISION_017_RUN_IDENTITY_AND_LIFECYCLE.md](MOD_DECISION_017_RUN_IDENTITY_AND_LIFECYCLE.md)
 - [MOD_DECISION_018_BUILDING_VISIT_HISTORY.md](MOD_DECISION_018_BUILDING_VISIT_HISTORY.md)
+- [MOD_DECISION_019_STARTING_LOCATION.md](MOD_DECISION_019_STARTING_LOCATION.md)

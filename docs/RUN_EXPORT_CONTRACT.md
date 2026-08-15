@@ -47,6 +47,43 @@ Current known IDs are:
   advance the canonical run even when no new semantic event occurred. Equal or
   older generation timestamps do not supersede the approved snapshot.
 
+## Starting-location evidence
+
+Current exports include immutable raw starting-location evidence under the
+character projection:
+
+```json
+{
+  "character": {
+    "startingLocation": {
+      "x": 10835,
+      "y": 10144,
+      "z": 0,
+      "buildingId": "10835,10144,0",
+      "registeredLocation": null,
+      "capturedUtc": 1784800000,
+      "worldAgeHours": 0,
+      "partial": false
+    }
+  }
+}
+```
+
+Coordinates are integer world tiles. `buildingId` is the precision-safe
+BuildingDef ID when the starting tile is inside a building, otherwise it is an
+empty string. The website preserves these raw values and owns any later mapping
+to a town, spawn region, map label, or other presentation geography.
+
+When the observed tile matches a registered TGSRR outpost or landmark,
+`registeredLocation` contains its stable `kind`, `id`, and `registryVersion`.
+The value is `null` for ordinary or unknown buildings. Build-specific raw
+BuildingDef IDs are deployment-installed mappings to the stable catalogue entry;
+they are not themselves treated as permanent identities.
+
+When tracking begins on an existing save, `partial` is true. In that case the
+coordinates prove where TGSRR tracking began, not where the character originally
+spawned.
+
 ## Separate states
 
 - **Challenge mode** identifies the selected Project Zomboid challenge variant.

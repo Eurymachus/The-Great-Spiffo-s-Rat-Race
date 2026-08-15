@@ -9,6 +9,7 @@ local checks = Outposts._checks or {}
 Outposts._definitions = definitions
 Outposts._ordered = ordered
 Outposts._checks = checks
+Outposts._version = tonumber(Outposts._version) or 0
 
 local function isNumber(value)
     return type(value) == "number"
@@ -107,6 +108,18 @@ function Outposts.getAll()
     local result = {}
     for index, definition in ipairs(ordered) do result[index] = definition end
     return result
+end
+
+function Outposts.setVersion(value)
+    value = math.max(0, math.floor(tonumber(value) or 0))
+    if value < Outposts._version then
+        error("TGSRR.Outposts.setVersion: version cannot decrease", 2)
+    end
+    Outposts._version = value
+end
+
+function Outposts.getVersion()
+    return Outposts._version
 end
 
 function Outposts.getAt(x, y, z)

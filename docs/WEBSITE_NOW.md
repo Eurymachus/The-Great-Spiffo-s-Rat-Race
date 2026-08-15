@@ -3,7 +3,7 @@
 ## Branch and worktree
 
 - Canonical development branch: `codex/rat-race-dev`
-- Canonical local worktree: `The Great Spiffo's Rat Race - Integration`
+- Canonical local worktree: `The Great Spiffo's Rat Race`
 - Website and Project Zomboid mod contracts evolve together on the unified
   development branch.
 

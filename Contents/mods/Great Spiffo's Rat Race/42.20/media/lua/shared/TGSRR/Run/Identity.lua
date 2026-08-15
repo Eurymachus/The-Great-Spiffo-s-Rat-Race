@@ -1,10 +1,11 @@
 local Identity = {}
 local CharacterSnapshot = require "TGSRR/Run/CharacterSnapshot"
+local StartingLocation = require "TGSRR/Run/StartingLocation"
 local SelectedChallenge = require "TGSRR/Run/SelectedChallenge"
 local ChallengeContext = require "TGSRR/Challenge/Context"
 
 local MOD_DATA_KEY = "TGSRR_Run"
-local SCHEMA_VERSION = 19
+local SCHEMA_VERSION = 20
 local CONTRACT_VERSION = 1
 local pendingDevelopmentReset = nil
 
@@ -131,6 +132,8 @@ function Identity.ensure(player, selectedTraitSnapshot)
         data.epoch = 1
         data.startingChallenge = challenge
         data.startingCharacter = character.identity
+        data.startingLocation = StartingLocation.observe(player,
+            data.createdUtc, data.createdWorldAgeHours, data.bootstrapped)
         data.selectedStartingTraits = selectedTraitSnapshot
             and selectedTraitSnapshot.traits or character.traits
         data.selectedStartingTraitsPartial = selectedTraitSnapshot == nil

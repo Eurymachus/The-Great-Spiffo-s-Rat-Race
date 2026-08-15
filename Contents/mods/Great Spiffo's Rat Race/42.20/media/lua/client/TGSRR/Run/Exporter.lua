@@ -43,6 +43,7 @@ end
 local function characterProjection(run, player)
     return {
         starting = run.startingCharacter or {},
+        startingLocation = run.startingLocation or {},
         current = Identity.observeCharacter(player),
         selectedStartingTraits = copyList(run.selectedStartingTraits),
         selectedStartingTraitsPartial = run.selectedStartingTraitsPartial == true,

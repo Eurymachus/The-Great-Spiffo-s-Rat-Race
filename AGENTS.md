@@ -28,7 +28,7 @@ memory document.
 ## Workspace
 
 - Canonical development branch: `codex/rat-race-dev`
-- Canonical local worktree: `E:\LocalProfiles\Eurymachus\GameData\Zomboid\Workshop\The Great Spiffo's Rat Race - Integration`
+- Canonical local worktree: `E:\LocalProfiles\Eurymachus\GameData\Zomboid\Workshop\The Great Spiffo's Rat Race`
 - Primary editable mod content lives under `Contents/`.
 - Mod versions currently live under `Contents/mods/Great Spiffo's Rat Race/`.
 - Website and mod changes are authored together in this worktree.

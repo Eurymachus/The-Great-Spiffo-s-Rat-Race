@@ -34,6 +34,9 @@ Persist stable identifiers, not localized display values:
 
 - Run identity: TGSRR-owned world/run ID; never derived solely from the character name.
 - Character identity: exported starting forename, surname, and display name as metadata associated with the TGSRR run ID.
+- Starting location: immutable integer XYZ and optional precision-safe
+  BuildingDef ID captured when the run identity is created, with UTC, world age,
+  and explicit partial-history status for an existing save.
 - Skills: internal perk ID.
 - Traits: namespaced character-trait ID where available.
 - Literature and weapons: full item type, including module.

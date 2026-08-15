@@ -8,6 +8,8 @@ from .models import (
     DeliverableDetails,
     ItemDisplayCategory,
     ItemDetails,
+    MapLocationBuilding,
+    MapLocationVersion,
     OccupationDetails,
     SkillDetails,
     TraitDetails,
@@ -35,6 +37,11 @@ class CatalogueAssetInline(admin.TabularInline):
         "sort_order",
     )
     readonly_fields = ("availability", "game_availability")
+
+
+class MapLocationBuildingInline(admin.TabularInline):
+    model = MapLocationBuilding
+    extra = 0
 
 
 @admin.register(CatalogueEntry)
@@ -154,6 +161,32 @@ class DeliverableDetailsAdmin(admin.ModelAdmin):
     list_filter = ("category",)
     search_fields = ("entry__display_name", "entry__stable_id", "category")
     autocomplete_fields = ("entry",)
+
+
+@admin.register(MapLocationVersion)
+class MapLocationVersionAdmin(admin.ModelAdmin):
+    list_display = (
+        "entry", "location_type", "game_version", "registry_version", "anchor"
+    )
+    list_filter = ("location_type", "game_version", "registry_version")
+    search_fields = ("entry__display_name", "entry__stable_id", "buildings__building_id")
+    autocomplete_fields = ("entry",)
+    inlines = (MapLocationBuildingInline,)
+
+    @admin.display(description="Anchor")
+    def anchor(self, obj):
+        return f"{obj.anchor_x}, {obj.anchor_y}, {obj.anchor_z}"
+
+
+@admin.register(MapLocationBuilding)
+class MapLocationBuildingAdmin(admin.ModelAdmin):
+    list_display = ("building_id", "location_version")
+    list_filter = ("location_version__location_type", "location_version__game_version")
+    search_fields = (
+        "building_id", "location_version__entry__stable_id",
+        "location_version__entry__display_name",
+    )
+    autocomplete_fields = ("location_version",)
 
 
 @admin.register(CatalogueAsset)
