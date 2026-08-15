@@ -1499,14 +1499,32 @@ body {
 .sign-in-menu-toggle { gap: .35rem !important; font-size: 1rem !important; font-weight: 800 !important; }
 .sign-in-menu-toggle strong { font: inherit; }
 .site-sign-in-dropdown { width: min(23rem, calc(100vw - 2rem)); padding: 1rem !important; }
-.sign-in-component h2 { margin: 0; }
+.sign-in-component h2 {
+    margin: 0;
+    font-family: var(--theme-heading-font);
+    font-size: 1.65rem;
+    font-weight: var(--theme-heading-weight);
+    letter-spacing: var(--theme-heading-spacing);
+}
 .sign-in-heading { margin-bottom: 1rem; }
 .sign-in-heading p { margin: .25rem 0 0; color: var(--theme-muted); }
 .sign-in-component .field { margin: 1rem 0; text-align: left; }
 .sign-in-component .card-link { margin-top: .85rem; }
-.sign-in-component.is-compact h2 { font-size: 1.35rem; }
 .sign-in-component.is-compact .sign-in-heading { text-align: left; }
 .sign-in-component.is-compact .field > label { font-size: .85rem; }
+.site-nav .sign-in-component .sign-in-heading a {
+    display: inline;
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    color: var(--theme-accent-hover);
+    font-weight: inherit;
+    text-decoration: underline;
+}
+.site-nav .sign-in-component .sign-in-heading a:hover {
+    background: transparent;
+    color: var(--theme-text);
+}
 .site-nav .sign-in-component button[type="submit"] { width: 100%; padding: .85rem 1rem; border-radius: var(--theme-radius); background: var(--theme-accent); color: var(--theme-accent-text); text-align: center; }
 .site-nav .sign-in-component button[type="submit"]:hover { background: var(--theme-accent-hover); color: var(--theme-accent-text); }
 .sign-in-error[hidden] { display: none; }
