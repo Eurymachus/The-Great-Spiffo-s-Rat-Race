@@ -13,7 +13,9 @@ local ExportMenu = {}
 local ExportOverlay = ISPanel:derive("TGSRRExportOverlay")
 local activeExport = nil
 local updateExport
-local CLIPBOARD_SAFE_CHARACTERS = 60000
+-- Project Zomboid's clipboard can silently truncate exports before 60,000
+-- characters. Keep enough margin that clipboard delivery remains reliable.
+local CLIPBOARD_SAFE_CHARACTERS = 48000
 
 local function elapsedText(startedAt)
     local elapsedSeconds = math.max(0,
