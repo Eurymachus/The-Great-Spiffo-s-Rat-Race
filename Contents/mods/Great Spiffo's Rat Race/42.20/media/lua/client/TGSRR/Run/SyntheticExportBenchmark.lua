@@ -1,10 +1,10 @@
 local Identity = require "TGSRR/Run/Identity"
-local Ledger = require "TGSRR/Run/Ledger"
 local EventCodec = require "TGSRR/Run/EventCodec"
 local Exporter = require "TGSRR/Run/Exporter"
 
 local Benchmark = {}
 local historyCaches = {}
+local BENCHMARK_BASE_UTC = 1700000000
 
 local function milliseconds()
     if getTimestampMs then return getTimestampMs() end
@@ -15,29 +15,6 @@ local function copyRun(run)
     local result = {}
     for key, value in pairs(run or {}) do result[key] = value end
     return result
-end
-
-local function lastEventMetadata(ledger)
-    local utc = 0
-    local worldAgeHours = 0
-    local dayIndex = 0
-    for _, record in ipairs(ledger.records or {}) do
-        local inspected = EventCodec.inspectBody(record.body)
-        if inspected then
-            utc = math.max(utc, inspected.utc)
-            worldAgeHours = math.max(worldAgeHours, inspected.worldAgeHours)
-            if inspected.eventType == "day.started" then
-                local payload = EventCodec.decodePayload(
-                    inspected.canonicalPayload)
-                if payload then
-                    dayIndex = math.max(dayIndex,
-                        math.floor(tonumber(payload.dayIndex) or 0))
-                end
-            end
-        end
-    end
-    if utc == 0 then utc = Identity.utcSeconds() end
-    return utc, worldAgeHours, dayIndex
 end
 
 local function completedDay(dayIndex, startedUtc, startedWorldAgeHours)
@@ -72,47 +49,33 @@ function Benchmark.begin(days)
     days = math.max(1, math.floor(tonumber(days) or 3650))
     local run, runError = Identity.get()
     if not run then return nil, runError or "missing_active_run" end
-    local ledger, ledgerError = Ledger.readAll(run)
-    if not ledger then return nil, ledgerError end
 
     local started = milliseconds()
     local cache = historyCaches[run.runId]
-    if not cache or cache.baseSequence ~= ledger.eventSequence
-            or cache.baseHash ~= ledger.eventHash then
-        local baseUtc, baseWorldAgeHours, baseDayIndex =
-            lastEventMetadata(ledger)
+    if not cache then
         cache = {
-            baseSequence = ledger.eventSequence,
-            baseHash = ledger.eventHash,
-            baseUtc = baseUtc,
-            baseWorldAgeHours = baseWorldAgeHours,
-            baseDayIndex = baseDayIndex,
             records = {},
             builtDays = 0,
         }
-        for index, record in ipairs(ledger.records or {}) do
-            cache.records[index] = record
-        end
         historyCaches[run.runId] = cache
     end
     local syntheticRun = copyRun(run)
 
     local function build(work)
         local previousHash = cache.builtDays > 0
-            and cache.records[cache.baseSequence + cache.builtDays].hash
-            or cache.baseHash
+            and cache.records[cache.builtDays].hash
+            or EventCodec.GENESIS_HASH
         for offset = cache.builtDays + 1, days do
-            local dayIndex = cache.baseDayIndex + offset
-            local startedUtc = cache.baseUtc + (offset - 1) * 86400
-            local startedWorldAgeHours =
-                cache.baseWorldAgeHours + (offset - 1) * 24
-            local sequence = cache.baseSequence + offset
+            local dayIndex = offset
+            local startedUtc = BENCHMARK_BASE_UTC + (offset - 1) * 86400
+            local startedWorldAgeHours = (offset - 1) * 24
+            local sequence = offset
             local record, recordError = EventCodec.encode({
                 runId = run.runId,
-                epoch = math.max(1, math.floor(tonumber(run.epoch) or 1)),
+                epoch = 1,
                 sequence = sequence,
-                utc = cache.baseUtc + offset * 86400,
-                worldAgeHours = cache.baseWorldAgeHours + offset * 24,
+                utc = BENCHMARK_BASE_UTC + offset * 86400,
+                worldAgeHours = offset * 24,
                 eventType = "day.started",
                 payload = {
                     dayIndex = dayIndex + 1,
@@ -123,14 +86,14 @@ function Benchmark.begin(days)
                 work("synthetic_history", offset, days)
             end)
             if not record then return false, recordError end
-            cache.records[sequence] = record
+            cache.records[offset] = record
             previousHash = record.hash
         end
         cache.builtDays = math.max(cache.builtDays, days)
 
-        local sequence = cache.baseSequence + days
+        local sequence = days
         local eventHash = days > 0 and cache.records[sequence].hash
-            or cache.baseHash
+            or EventCodec.GENESIS_HASH
         local records = {}
         for index = 1, sequence do records[index] = cache.records[index] end
         syntheticRun.eventSequence = sequence
@@ -138,12 +101,12 @@ function Benchmark.begin(days)
         local buildMilliseconds = milliseconds() - started
         return Exporter.generate(syntheticRun, work, {
             ledger = {
-                runId = ledger.runId,
+                runId = run.runId,
                 eventSequence = sequence,
                 eventHash = eventHash,
                 records = records,
             },
-            filename = "TGSRR/Runs/" .. ledger.runId
+            filename = "TGSRR/Runs/" .. run.runId
                 .. "/synthetic-" .. tostring(days) .. "-day.export.txt",
             syntheticDays = days,
             syntheticBuildMilliseconds = buildMilliseconds,

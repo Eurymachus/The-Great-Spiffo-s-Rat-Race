@@ -132,7 +132,9 @@ the export contract; their policy and test surfaces are documented in
 - Debug-only synthetic export window offering one, two, five, and ten-year
   benchmarks. Each builds the corresponding deterministic daily records in
   memory, sends them through the real event codec and exporter, and writes a
-  separately named export without changing the saved run ledger.
+  separately named export without changing the saved run ledger. Benchmark
+  history is isolated from mutable live-session events, so its block identities
+  remain stable across game restarts and repeated tests measure cache reuse.
 - Export progress overlays show a live hours, minutes, and seconds elapsed
   timer for ordinary and synthetic exports.
 - Clipboard copies are capped below Project Zomboid's fixed native clipboard

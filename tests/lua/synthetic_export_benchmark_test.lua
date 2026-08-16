@@ -4,21 +4,16 @@ package.loaded["TGSRR/Run/Identity"] = {
     get = function()
         return {
             runId = "rr-benchmark-test",
-            epoch = 1,
-            eventSequence = 0,
-            eventHash = string.rep("0", 64),
+            epoch = 4,
+            eventSequence = 77,
+            eventHash = string.rep("a", 64),
         }
     end,
     utcSeconds = function() return 1000 end,
 }
 package.loaded["TGSRR/Run/Ledger"] = {
     readAll = function()
-        return {
-            runId = "rr-benchmark-test",
-            eventSequence = 0,
-            eventHash = string.rep("0", 64),
-            records = {},
-        }
+        error("synthetic benchmark must not depend on the live ledger")
     end,
 }
 package.loaded["TGSRR/Run/Exporter"] = {
