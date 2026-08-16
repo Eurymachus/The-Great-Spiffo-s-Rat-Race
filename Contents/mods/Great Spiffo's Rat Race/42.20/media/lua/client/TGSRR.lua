@@ -14,6 +14,7 @@ if isDebugEnabled and isDebugEnabled() then
     require("TGSRR/Debug/AlarmWindow")
     require("TGSRR/Debug/SoundWindow")
     require("TGSRR/Debug/RSLBuildingIdWindow")
+    require("TGSRR/Debug/ExportBenchmark")
     require("TGSRR/Outposts/Debug/SurveyWindow")
 end
 

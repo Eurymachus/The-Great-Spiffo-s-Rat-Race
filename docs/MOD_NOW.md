@@ -126,6 +126,21 @@ the export contract; their policy and test surfaces are documented in
 - Cooperative pause-menu export flow with progress presentation, read-back
   verification, and explicit clipboard copy. Only the current development
   export format is accepted.
+- Debug-only synthetic export window offering one, two, five, and ten-year
+  benchmarks. Each builds the corresponding deterministic daily records in
+  memory, sends them through the real event codec and exporter, and writes a
+  separately named export without changing the saved run ledger.
+- Export progress overlays show a live hours, minutes, and seconds elapsed
+  timer for ordinary and synthetic exports.
+- Clipboard copies are capped below Project Zomboid's fixed native clipboard
+  stack limit. Larger exports remain saved under `Zomboid/Lua/TGSRR/Runs` and
+  the result window offers a safe file-path copy instead of risking a game
+  process crash.
+- Export benchmarks report encode, decode, and ledger stage timings. Export
+  readback verifies the checksum and compares every decoded event body with the
+  already verified source ledger instead of redundantly hashing the complete
+  chain a second time. SHA-256 uses cached byte-operation tables while retaining
+  the existing standard test vectors and hash format.
 - Generic `skill.level.reached` events contain the skill, parent category, and
   reached level. The first level-10 event per skill is exported as its milestone
   with completion order and elapsed days; levels 1-9 remain ordinary history.

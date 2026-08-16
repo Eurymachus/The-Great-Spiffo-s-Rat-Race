@@ -29,6 +29,7 @@ local Exporter = {}
 
 local ROOT = "TGSRR/Runs"
 local SLICE_MILLISECONDS = 8
+local codecSelfTestPassed = false
 
 local function milliseconds()
     if getTimestampMs then return getTimestampMs() end
@@ -108,6 +109,15 @@ local function verifyReadback(decoded, ledger, projection)
     end
     if type(actual.activeDay) ~= "table" then
         return false, "export_readback_mismatch:activeDay:missing"
+    end
+    if #decoded.bodies ~= #ledger.records then
+        return false, "export_readback_mismatch:eventBodies:count"
+    end
+    for index, record in ipairs(ledger.records) do
+        if decoded.bodies[index] ~= record.body then
+            return false, "export_readback_mismatch:eventBodies:"
+                .. tostring(index)
+        end
     end
 
     local function count(values)
@@ -313,7 +323,15 @@ local function verifyReadback(decoded, ledger, projection)
     return true
 end
 
-function Exporter.generate(run, work)
+function Exporter.generate(run, work, options)
+    options = options or {}
+    local timings = {}
+    local stageStarted = milliseconds()
+    local function finishStage(name)
+        local now = milliseconds()
+        timings[name] = now - stageStarted
+        stageStarted = now
+    end
     if not run then
         local identityError
         run, identityError = Identity.get()
@@ -322,12 +340,26 @@ function Exporter.generate(run, work)
         end
     end
     if not run.runId then return false, "missing_active_run" end
-    local codecOk, codecError = ExportCodec.selfTest(work)
-    if not codecOk then return false, codecError end
+    if work then work("prepare", 0, 1) end
+    if not codecSelfTestPassed then
+        local codecOk, codecError = ExportCodec.selfTest(function(_, current, total)
+            if work then work("prepare", current, total) end
+        end)
+        if not codecOk then return false, codecError end
+        codecSelfTestPassed = true
+    end
+    finishStage("selfTest")
 
-    local ledger, ledgerError = Ledger.readAll(run, work)
+    local ledger, ledgerError = options.ledger, nil
+    if not ledger then
+        ledger, ledgerError = Ledger.readAll(run, function(_, current, total)
+            if work then work("verify_ledger", current, total) end
+        end)
+    end
     if not ledger then return false, ledgerError end
+    finishStage("ledger")
     local player = getSpecificPlayer and getSpecificPlayer(0) or nil
+    if work then work("build_projection", 0, 1) end
     local recovery, recoveryError =
         Ledger.recoveryEvidence(run, work, ledger.records)
     if not recovery then return false, recoveryError end
@@ -337,6 +369,7 @@ function Exporter.generate(run, work)
     local outpostLifecycles, lifecycleError =
         OutpostLifecycleSnapshot.observe(run, ledger.records)
     if not outpostLifecycles then return false, lifecycleError end
+    finishStage("evidence")
     local projection = {
         schema = 2,
         lifecycle = tostring(run.lifecycle or "active"),
@@ -496,6 +529,7 @@ function Exporter.generate(run, work)
     if not projection.activeDay then return false, "missing_active_day" end
     omitFalsePartialFlags(projection)
     omitEmptyKillEvidence(projection)
+    finishStage("projection")
     local encoded, stats = ExportCodec.encode(
         ledger.runId,
         Identity.utcSeconds(),
@@ -504,27 +538,41 @@ function Exporter.generate(run, work)
         projection,
         work
     )
-    local decoded, decodeError = ExportCodec.decode(encoded, work)
+    finishStage("encode")
+    local decoded, decodeError = ExportCodec.decode(encoded, work, {
+        verifyLedger = false,
+    })
     if not decoded then return false, decodeError end
+    finishStage("decode")
+    if work then work("compare_readback", 0, 1) end
     local verified, verifyError =
         verifyReadback(decoded, ledger, projection)
     if not verified then return false, verifyError end
+    finishStage("readback")
 
-    local filename = ROOT .. "/" .. ledger.runId .. "/run.export.txt"
+    local filename = options.filename
+        or ROOT .. "/" .. ledger.runId .. "/run.export.txt"
+    if work then work("write", 0, 1) end
     local writer = getFileWriter(filename, true, false)
     if not writer then return false, "unable_to_write_export" end
     writer:write(encoded)
     writer:close()
+    finishStage("write")
     stats.eventSequence = ledger.eventSequence
     stats.eventHash = ledger.eventHash
     stats.currentKills = projection.currentKills
     stats.projection = projection
     stats.filename = filename
     stats.value = encoded
+    stats.syntheticDays = options.syntheticDays
+    stats.syntheticBuildMilliseconds = options.syntheticBuildMilliseconds
+    stats.exportMilliseconds = options.exportStartedMilliseconds
+        and milliseconds() - options.exportStartedMilliseconds or nil
+    stats.profileMilliseconds = timings
     return true, stats
 end
 
-function Exporter.begin(run)
+function Exporter.begin(run, options)
     local job = {
         done = false,
         phase = "prepare",
@@ -536,7 +584,7 @@ function Exporter.begin(run)
         if milliseconds() - job.sliceStarted >= SLICE_MILLISECONDS then coroutine.yield() end
     end
     job.thread = coroutine.create(function()
-        local ok, result = Exporter.generate(run, work)
+        local ok, result = Exporter.generate(run, work, options)
         job.ok, job.result, job.done = ok, result, true
     end)
     return job

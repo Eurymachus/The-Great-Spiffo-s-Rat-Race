@@ -1,0 +1,148 @@
+local Identity = require "TGSRR/Run/Identity"
+local Ledger = require "TGSRR/Run/Ledger"
+local EventCodec = require "TGSRR/Run/EventCodec"
+local Exporter = require "TGSRR/Run/Exporter"
+
+local Benchmark = {}
+
+local function milliseconds()
+    if getTimestampMs then return getTimestampMs() end
+    return os.clock() * 1000
+end
+
+local function copyRun(run)
+    local result = {}
+    for key, value in pairs(run or {}) do result[key] = value end
+    return result
+end
+
+local function lastEventMetadata(ledger)
+    local utc = Identity.utcSeconds()
+    local worldAgeHours = 0
+    local dayIndex = 0
+    for _, record in ipairs(ledger.records or {}) do
+        local inspected = EventCodec.inspectBody(record.body)
+        if inspected then
+            utc = math.max(utc, inspected.utc)
+            worldAgeHours = math.max(worldAgeHours, inspected.worldAgeHours)
+            if inspected.eventType == "day.started" then
+                local payload = EventCodec.decodePayload(
+                    inspected.canonicalPayload)
+                if payload then
+                    dayIndex = math.max(dayIndex,
+                        math.floor(tonumber(payload.dayIndex) or 0))
+                end
+            end
+        end
+    end
+    return utc, worldAgeHours, dayIndex
+end
+
+local function completedDay(dayIndex, startedUtc, startedWorldAgeHours)
+    local result = {
+        dayIndex = dayIndex,
+        startedUtc = startedUtc,
+        startedWorldAgeHours = startedWorldAgeHours,
+        killDelta = 35 + dayIndex % 31,
+        weightDeltaKilograms = ((dayIndex % 9) - 4) / 100,
+        xpDeltas = {
+            Fitness = 8 + dayIndex % 7,
+            Sprinting = 12 + dayIndex % 13,
+            Maintenance = 5 + dayIndex % 11,
+        },
+        weaponKillDeltas = {
+            ["Base.Axe"] = 12 + dayIndex % 9,
+            ["Base.KitchenKnife"] = 3 + dayIndex % 5,
+        },
+        distanceDeltaMeters = 1800 + dayIndex % 1200,
+    }
+    if dayIndex % 5 == 0 then
+        result.brokenWeaponDeltas = { ["Base.KitchenKnife"] = 1 }
+    end
+    if dayIndex % 3 == 0 then
+        result.fishCaughtDeltas = { ["Base.Pike"] = 1 }
+    end
+    if dayIndex % 7 == 0 then result.butterProducedDelta = 1 end
+    return result
+end
+
+function Benchmark.begin(days)
+    days = math.max(1, math.floor(tonumber(days) or 3650))
+    local run, runError = Identity.get()
+    if not run then return nil, runError or "missing_active_run" end
+    local ledger, ledgerError = Ledger.readAll(run)
+    if not ledger then return nil, ledgerError end
+
+    local started = milliseconds()
+    local records = {}
+    for index, record in ipairs(ledger.records or {}) do records[index] = record end
+    local previousHash = ledger.eventHash
+    local sequence = ledger.eventSequence
+    local baseUtc, baseWorldAgeHours, baseDayIndex =
+        lastEventMetadata(ledger)
+    local syntheticRun = copyRun(run)
+
+    local function build(work)
+        for offset = 1, days do
+            local dayIndex = baseDayIndex + offset
+            local startedUtc = baseUtc + (offset - 1) * 86400
+            local startedWorldAgeHours =
+                baseWorldAgeHours + (offset - 1) * 24
+            sequence = sequence + 1
+            local record, recordError = EventCodec.encode({
+                runId = run.runId,
+                epoch = math.max(1, math.floor(tonumber(run.epoch) or 1)),
+                sequence = sequence,
+                utc = baseUtc + offset * 86400,
+                worldAgeHours = baseWorldAgeHours + offset * 24,
+                eventType = "day.started",
+                payload = {
+                    dayIndex = dayIndex + 1,
+                    completedDay = completedDay(
+                        dayIndex, startedUtc, startedWorldAgeHours),
+                },
+            }, previousHash, function()
+                work("synthetic_history", offset, days)
+            end)
+            if not record then return false, recordError end
+            records[#records + 1] = record
+            previousHash = record.hash
+        end
+
+        syntheticRun.eventSequence = sequence
+        syntheticRun.eventHash = previousHash
+        local buildMilliseconds = milliseconds() - started
+        return Exporter.generate(syntheticRun, work, {
+            ledger = {
+                runId = ledger.runId,
+                eventSequence = sequence,
+                eventHash = previousHash,
+                records = records,
+            },
+            filename = "TGSRR/Runs/" .. ledger.runId
+                .. "/synthetic-" .. tostring(days) .. "-day.export.txt",
+            syntheticDays = days,
+            syntheticBuildMilliseconds = buildMilliseconds,
+            exportStartedMilliseconds = milliseconds(),
+        })
+    end
+
+    local job = {
+        done = false,
+        phase = "synthetic_days",
+        progress = 0,
+    }
+    local function work(phase, current, total)
+        job.phase = phase or job.phase
+        job.progress = total and total > 0
+            and math.min(1, current / total) or 0
+        if milliseconds() - job.sliceStarted >= 8 then coroutine.yield() end
+    end
+    job.thread = coroutine.create(function()
+        local ok, result = build(work)
+        job.ok, job.result, job.done = ok, result, true
+    end)
+    return job
+end
+
+return Benchmark

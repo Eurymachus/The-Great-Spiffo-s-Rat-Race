@@ -2,6 +2,29 @@ local Hash = {}
 
 local MOD = 4294967296
 local MAX = 4294967295
+local BYTE_XOR = {}
+local BYTE_AND = {}
+
+for left = 0, 255 do
+    local xorValues = {}
+    local andValues = {}
+    BYTE_XOR[left] = xorValues
+    BYTE_AND[left] = andValues
+    for right = 0, 255 do
+        local a, b = left, right
+        local xorValue, andValue, place = 0, 0, 1
+        for _ = 1, 8 do
+            local aa, bb = a % 2, b % 2
+            if aa ~= bb then xorValue = xorValue + place end
+            if aa == 1 and bb == 1 then andValue = andValue + place end
+            a = math.floor(a / 2)
+            b = math.floor(b / 2)
+            place = place * 2
+        end
+        xorValues[right] = xorValue
+        andValues[right] = andValue
+    end
+end
 
 local CONSTANTS = {
     1116352408, 1899447441, 3049323471, 3921009573, 961987163, 1508970993, 2453635748, 2870763221,
@@ -21,10 +44,12 @@ end
 local function bxor(a, b)
     a, b = normalize(a), normalize(b)
     local result, place = 0, 1
-    for _ = 1, 32 do
-        local aa, bb = a % 2, b % 2
-        if aa ~= bb then result = result + place end
-        a, b, place = math.floor(a / 2), math.floor(b / 2), place * 2
+    for _ = 1, 4 do
+        local aa, bb = a % 256, b % 256
+        result = result + BYTE_XOR[aa][bb] * place
+        a = math.floor(a / 256)
+        b = math.floor(b / 256)
+        place = place * 256
     end
     return result
 end
@@ -32,10 +57,12 @@ end
 local function band(a, b)
     a, b = normalize(a), normalize(b)
     local result, place = 0, 1
-    for _ = 1, 32 do
-        local aa, bb = a % 2, b % 2
-        if aa == 1 and bb == 1 then result = result + place end
-        a, b, place = math.floor(a / 2), math.floor(b / 2), place * 2
+    for _ = 1, 4 do
+        local aa, bb = a % 256, b % 256
+        result = result + BYTE_AND[aa][bb] * place
+        a = math.floor(a / 256)
+        b = math.floor(b / 256)
+        place = place * 256
     end
     return result
 end

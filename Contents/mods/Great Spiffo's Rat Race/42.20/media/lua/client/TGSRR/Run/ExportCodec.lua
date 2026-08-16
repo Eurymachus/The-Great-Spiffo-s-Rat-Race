@@ -12,6 +12,13 @@ local MAX_CANDIDATES = 64
 local MAX_DECOMPRESSED_BYTES = 16 * 1024 * 1024
 local BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
+local function phaseWork(work, phase)
+    if not work then return nil end
+    return function(_, current, total)
+        work(phase, current, total)
+    end
+end
+
 local function frame(value)
     value = tostring(value or "")
     return tostring(#value) .. ":" .. value
@@ -234,7 +241,7 @@ end
 
 function ExportCodec.encode(runId, generatedUtc, records, eventHash, projection, work)
     local canonical = canonicalEnvelope(runId, generatedUtc, records, eventHash, projection)
-    local checksum = Hash.sha256(canonical, work)
+    local checksum = Hash.sha256(canonical, phaseWork(work, "create_checksum"))
     local encoded = PREFIX .. base64Encode(compress(canonical, work), work) .. "." .. checksum
     return encoded, {
         canonicalBytes = #canonical,
@@ -243,32 +250,41 @@ function ExportCodec.encode(runId, generatedUtc, records, eventHash, projection,
     }
 end
 
-function ExportCodec.decode(value, work)
+function ExportCodec.decode(value, work, options)
+    options = options or {}
     value = tostring(value or "")
     local payload, checksum = value:match("^TGSRR1%.LZ1%.([A-Za-z0-9_-]+)%.([0-9a-f]+)$")
     if not payload or #checksum ~= 64 then return nil, "invalid_export_envelope" end
-    local compressed, base64Error = base64Decode(payload, work)
+    local compressed, base64Error = base64Decode(
+        payload, phaseWork(work, "decode"))
     if not compressed then return nil, base64Error end
-    local canonical, compressionError = decompress(compressed, work)
+    local canonical, compressionError = decompress(
+        compressed, phaseWork(work, "decompress"))
     if not canonical then return nil, compressionError end
-    if Hash.sha256(canonical, work) ~= checksum then return nil, "export_checksum_mismatch" end
+    if Hash.sha256(canonical, phaseWork(work, "verify_checksum"))
+            ~= checksum then
+        return nil, "export_checksum_mismatch"
+    end
     local decoded, parseError = parseEnvelope(canonical)
     if not decoded then return nil, parseError end
 
-    local previousHash = EventCodec.GENESIS_HASH
-    for sequence, body in ipairs(decoded.bodies) do
-        local event, inspectError = EventCodec.inspectBody(body)
-        if not event then return nil, inspectError end
-        if event.runId ~= decoded.runId then return nil, "export_run_id_mismatch" end
-        if event.sequence ~= sequence then return nil, "export_event_sequence_mismatch" end
-        local hash = Hash.sha256(previousHash .. body, work)
-        previousHash = hash
-        if sequence == decoded.eventSequence and hash ~= decoded.eventHash then
+    if options.verifyLedger ~= false then
+        local previousHash = EventCodec.GENESIS_HASH
+        for sequence, body in ipairs(decoded.bodies) do
+            local event, inspectError = EventCodec.inspectBody(body)
+            if not event then return nil, inspectError end
+            if event.runId ~= decoded.runId then return nil, "export_run_id_mismatch" end
+            if event.sequence ~= sequence then return nil, "export_event_sequence_mismatch" end
+            local hash = Hash.sha256(previousHash .. body,
+                phaseWork(work, "verify_history"))
+            previousHash = hash
+            if sequence == decoded.eventSequence and hash ~= decoded.eventHash then
+                return nil, "export_ledger_head_mismatch"
+            end
+        end
+        if decoded.eventSequence == 0 and decoded.eventHash ~= EventCodec.GENESIS_HASH then
             return nil, "export_ledger_head_mismatch"
         end
-    end
-    if decoded.eventSequence == 0 and decoded.eventHash ~= EventCodec.GENESIS_HASH then
-        return nil, "export_ledger_head_mismatch"
     end
     decoded.checksum = checksum
     return decoded
