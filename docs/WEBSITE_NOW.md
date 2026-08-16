@@ -424,6 +424,11 @@ records, while aliases and assets remain shared catalogue relationships.
 Uploaded brand images live in deployment media storage rather than Git. A live
 deployment must persist and back up that media directory alongside the database.
 
+Approval now rebuilds sealed and active daily authority into run-owned
+`RunDailyRecord` rows. Fixed scalar deltas live on the daily record, while
+non-zero keyed deltas use sparse `RunDailyMetric` rows. Missing deltas are
+interpreted as zero, and active-day partial provenance is retained.
+
 ## Not Now
 
 - Expanded analytical charts and detailed statistics beyond the launch views

@@ -137,11 +137,11 @@ player-facing panel.
 | `milestones.killMilestones[]` | `RunKillMilestone` | None | Permanent first kill-threshold facts | Rebuild fixed set and cross-check ledger. |
 | `activeDay.dayIndex`, start and observation UTC/world age, `elapsedWorldHours`, `baselinePartial` | `RunActiveDay` | None | Current unsealed day | Replace one row. |
 | `activeDay.killDelta`, `xpDeltas{skillId: value}` | `RunActiveDay.kill_delta`; `RunActiveDaySkillXp` | Skill | Current unsealed day | Replace scalar and non-zero skill rows. |
-| `day.started` day metadata and `completedDay` | `RunDay`, plus typed daily child tables | Conditional | Complete sealed daily history | Rebuild all days from ledger; missing compact delta means zero. |
+| `day.started` day metadata and `completedDay` | `RunDailyRecord` state `sealed`, plus sparse `RunDailyMetric` rows | Conditional | Complete sealed daily history | Rebuild all days from ledger; missing compact delta means zero. |
 | `weight.currentKilograms`, `weight.unit` | `RunWeightState.current_kilograms`, `unit` | None | Current state | Replace. |
-| daily and active `weightDeltaKilograms` | `RunDay.weight_delta_kilograms`, `RunActiveDay.weight_delta_kilograms` | None | Complete sealed history and current day | Rebuild/replace. |
+| daily and active `weightDeltaKilograms` | `RunDailyRecord.weight_delta_kilograms` | None | Complete sealed history and current day | Rebuild/replace by record state. |
 | `distance.travelledMeters`, `rejectedSamples`, `partial`, `unit` | `RunDistanceSummary.*` | None | Current cumulative state | Replace. |
-| daily and active `distanceDeltaMeters`, partial flag | `RunDay.distance_delta_meters`, `RunActiveDay.distance_delta_meters` | None | Complete sealed history and current day | Rebuild/replace. |
+| daily and active `distanceDeltaMeters`, partial flag | `RunDailyRecord.distance_delta_meters`, `partial_metrics` | None | Complete sealed history and current day | Rebuild/replace by record state. |
 | `nimbleStance.movementMilliseconds`, `partial`, `unit` | `RunActivitySummary.nimble_movement_milliseconds`, `nimble_partial` | None | Current cumulative state | Replace. |
 | `activeGameplay.milliseconds`, `partial`, `unit` | `RunActivitySummary.active_gameplay_milliseconds`, `active_gameplay_partial` | None | Current cumulative state | Replace. |
 
@@ -277,10 +277,18 @@ zero-level, zero-XP skills and empty complete kill-attribution sections. Approva
 rebuilds `RunSkill`, `RunKillSummary`, and `RunWeaponKill` rows, retaining partial
 baselines and raw identifiers.
 
+The daily authority framework is implemented. Sealed `completedDay` snapshots
+are rebuilt from the immutable `day.started` ledger, and the projection's
+`activeDay` becomes one replaceable active record. Scalar deltas use fixed
+columns. Keyed non-zero deltas use sparse `RunDailyMetric` rows with raw IDs and
+catalogue links where a suitable catalogue exists. Missing values mean zero,
+and partial provenance remains explicit. Poll decisions can therefore enable
+or disable individual emitted metric kinds without another table redesign.
+
 The remaining sequence is:
 
-1. Add normalized run header extensions, landmarks, daily history, and their
-   remaining catalogue links.
+1. Add normalized run header extensions, landmarks, and their remaining
+   catalogue links.
 2. Add the remaining typed aggregate and history tables in the sections above.
 3. Expand the approval service until it locks, validates, refreshes, and
    approves every authoritative section atomically.

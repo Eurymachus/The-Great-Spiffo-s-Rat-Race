@@ -838,6 +838,100 @@ class RunWeaponKill(models.Model):
         ]
 
 
+class RunDailyRecord(models.Model):
+    class State(models.TextChoices):
+        SEALED = "sealed", "Sealed"
+        ACTIVE = "active", "Active"
+
+    run = models.ForeignKey(
+        ChallengeRun, on_delete=models.CASCADE, related_name="daily_records"
+    )
+    state = models.CharField(max_length=12, choices=State.choices)
+    day_index = models.PositiveIntegerField()
+    calendar_year = models.PositiveIntegerField(null=True, blank=True)
+    calendar_month = models.PositiveSmallIntegerField(null=True, blank=True)
+    calendar_day = models.PositiveSmallIntegerField(null=True, blank=True)
+    started_utc = models.PositiveBigIntegerField(null=True, blank=True)
+    started_world_age_hours = models.FloatField(null=True, blank=True)
+    observed_utc = models.PositiveBigIntegerField(null=True, blank=True)
+    observed_world_age_hours = models.FloatField(null=True, blank=True)
+    elapsed_world_hours = models.FloatField(null=True, blank=True)
+    partial = models.BooleanField(default=False)
+    partial_metrics = models.JSONField(default=list, blank=True)
+    kill_delta = models.BigIntegerField(default=0)
+    weight_delta_kilograms = models.FloatField(default=0)
+    fire_death_delta = models.BigIntegerField(default=0)
+    distance_delta_meters = models.FloatField(default=0)
+    butter_produced_delta = models.BigIntegerField(default=0)
+
+    class Meta:
+        ordering = ("day_index", "state")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("run", "state", "day_index"),
+                name="unique_run_daily_record_state",
+            ),
+            models.UniqueConstraint(
+                fields=("run",),
+                condition=models.Q(state="active"),
+                name="unique_active_daily_record_per_run",
+            ),
+        ]
+
+
+class RunDailyMetric(models.Model):
+    class Kind(models.TextChoices):
+        SKILL_XP = "skill_xp", "Skill XP"
+        WEAPON_KILL = "weapon_kill", "Weapon kill"
+        BROKEN_WEAPON = "broken_weapon", "Broken weapon"
+        ANIMAL_SLAUGHTER = "animal_slaughter", "Animal slaughter"
+        ANIMAL_TRAP = "animal_trap", "Animal trap"
+        ANIMAL_BIRTH = "animal_birth", "Animal birth"
+        MILK_COLLECTED = "milk_collected", "Milk collected"
+        FISH_CAUGHT = "fish_caught", "Fish caught"
+        INJURY = "injury", "Injury"
+        ZOMBIE_ASSOCIATED_INJURY = (
+            "zombie_associated_injury",
+            "Zombie-associated injury",
+        )
+
+    daily_record = models.ForeignKey(
+        RunDailyRecord, on_delete=models.CASCADE, related_name="metrics"
+    )
+    kind = models.CharField(max_length=32, choices=Kind.choices)
+    raw_primary_id = models.CharField(max_length=255)
+    raw_secondary_id = models.CharField(max_length=255, blank=True)
+    primary_catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="primary_run_daily_metrics",
+    )
+    secondary_catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="secondary_run_daily_metrics",
+    )
+    value = models.FloatField()
+
+    class Meta:
+        ordering = ("kind", "raw_primary_id", "raw_secondary_id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    "daily_record",
+                    "kind",
+                    "raw_primary_id",
+                    "raw_secondary_id",
+                ),
+                name="unique_run_daily_metric_dimension",
+            )
+        ]
+
+
 class LegacyRun(models.Model):
     class Lifecycle(models.TextChoices):
         ACTIVE = "active", "Active"

@@ -13,6 +13,8 @@ from .models import (
     Notification,
     Participant,
     RunCharacterTrait,
+    RunDailyMetric,
+    RunDailyRecord,
     RunKillSummary,
     RunOutpost,
     RunOutpostDeliverable,
@@ -23,6 +25,7 @@ from .models import (
     StreamingAccount,
     StreamingMedia,
 )
+from .run_authority import refresh_initial_run_authority
 from .run_exports import InvalidRunExport, decode_run_export
 from .run_review import build_run_review
 
@@ -1261,6 +1264,93 @@ class RunSubmissionTests(TestCase):
         weapon = RunWeaponKill.objects.get()
         self.assertEqual(weapon.raw_source_id, "Base.Axe")
         self.assertEqual(weapon.kills, 11)
+
+    def test_authority_rebuilds_sealed_and_active_daily_records(self):
+        run = ChallengeRun.objects.create(
+            run_id="rr-daily-authority-test",
+            export_format=3,
+            generated_at=datetime.now(timezone.utc),
+            event_hash="0" * 64,
+        )
+        events = [
+            {
+                "event_type": "day.started",
+                "utc": 100,
+                "world_age_hours": 0,
+                "payload": {
+                    "dayIndex": 1,
+                    "calendar": {"year": 1993, "month": 7, "day": 9},
+                },
+            },
+            {
+                "event_type": "day.started",
+                "utc": 200,
+                "world_age_hours": 24,
+                "payload": {
+                    "dayIndex": 2,
+                    "calendar": {"year": 1993, "month": 7, "day": 10},
+                    "completedDay": {
+                        "dayIndex": 1,
+                        "startedUtc": 100,
+                        "startedWorldAgeHours": 0,
+                        "killDelta": 4,
+                        "weightDeltaKilograms": -0.25,
+                        "xpDeltas": {"Aiming": 12.5},
+                        "animalTrapDeltas": [
+                            {
+                                "animalType": "rabbit",
+                                "trapId": "Base.TrapBox",
+                                "trapped": 1,
+                            }
+                        ],
+                    },
+                },
+            },
+        ]
+        projection = {
+            "schema": 2,
+            "character": {},
+            "outposts": [],
+            "skills": [],
+            "activeDay": {
+                "dayIndex": 2,
+                "startedUtc": 200,
+                "startedWorldAgeHours": 24,
+                "observedUtc": 220,
+                "observedWorldAgeHours": 26,
+                "elapsedWorldHours": 2,
+                "distanceDeltaMeters": 125.5,
+                "brokenWeaponDeltas": {"Base.Axe": 1},
+                "distancePartial": True,
+            },
+        }
+
+        refresh_initial_run_authority(run, projection, events)
+
+        sealed = RunDailyRecord.objects.get(state=RunDailyRecord.State.SEALED)
+        self.assertEqual(sealed.day_index, 1)
+        self.assertEqual(sealed.calendar_day, 9)
+        self.assertEqual(sealed.observed_utc, 200)
+        self.assertEqual(sealed.kill_delta, 4)
+        self.assertEqual(sealed.weight_delta_kilograms, -0.25)
+        self.assertEqual(sealed.metrics.count(), 2)
+        self.assertTrue(
+            sealed.metrics.filter(
+                kind=RunDailyMetric.Kind.SKILL_XP,
+                raw_primary_id="Aiming",
+                value=12.5,
+            ).exists()
+        )
+
+        active = RunDailyRecord.objects.get(state=RunDailyRecord.State.ACTIVE)
+        self.assertEqual(active.day_index, 2)
+        self.assertEqual(active.calendar_day, 10)
+        self.assertEqual(active.distance_delta_meters, 125.5)
+        self.assertTrue(active.partial)
+        self.assertEqual(active.partial_metrics, ["distance"])
+        broken = active.metrics.get(kind=RunDailyMetric.Kind.BROKEN_WEAPON)
+        self.assertEqual(broken.raw_primary_id, "Base.Axe")
+        self.assertEqual(broken.value, 1)
 
     def test_approval_marks_a_terminal_death_export_as_deceased(self):
         projection = {

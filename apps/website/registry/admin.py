@@ -1314,7 +1314,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         if decoded.lifecycle == ChallengeRun.Lifecycle.DECEASED:
             run.lifecycle_status = ChallengeRun.Lifecycle.DECEASED
         run.save()
-        refresh_initial_run_authority(run, decoded.projection)
+        refresh_initial_run_authority(run, decoded.projection, decoded.events)
         if run.participant:
             notify(
                 run.participant,

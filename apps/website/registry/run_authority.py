@@ -5,6 +5,8 @@ from .models import (
     RunCharacter,
     RunCharacterTrait,
     RunContractState,
+    RunDailyMetric,
+    RunDailyRecord,
     RunKillSummary,
     RunOutpost,
     RunOutpostDeliverable,
@@ -12,6 +14,35 @@ from .models import (
     RunStartingLocation,
     RunWeaponKill,
 )
+
+
+DAILY_MAP_METRICS = (
+    ("xpDeltas", RunDailyMetric.Kind.SKILL_XP, CatalogueEntry.Kind.SKILL),
+    ("weaponKillDeltas", RunDailyMetric.Kind.WEAPON_KILL, CatalogueEntry.Kind.ITEM),
+    ("brokenWeaponDeltas", RunDailyMetric.Kind.BROKEN_WEAPON, CatalogueEntry.Kind.ITEM),
+    (
+        "animalSlaughterDeltas",
+        RunDailyMetric.Kind.ANIMAL_SLAUGHTER,
+        CatalogueEntry.Kind.ANIMAL,
+    ),
+    ("animalBirthDeltas", RunDailyMetric.Kind.ANIMAL_BIRTH, CatalogueEntry.Kind.ANIMAL),
+    ("milkCollectedDeltas", RunDailyMetric.Kind.MILK_COLLECTED, None),
+    ("fishCaughtDeltas", RunDailyMetric.Kind.FISH_CAUGHT, CatalogueEntry.Kind.ITEM),
+)
+
+ACTIVE_PARTIAL_FLAGS = {
+    "weaponKillsPartial": "weapon_kills",
+    "fireDeathsPartial": "fire_deaths",
+    "distancePartial": "distance",
+    "brokenWeaponsPartial": "broken_weapons",
+    "animalsSlaughteredPartial": "animals_slaughtered",
+    "animalsTrappedPartial": "animals_trapped",
+    "animalBirthsPartial": "animal_births",
+    "milkCollectedPartial": "milk_collected",
+    "butterProducedPartial": "butter_produced",
+    "fishCaughtPartial": "fish_caught",
+    "injuriesPartial": "injuries",
+}
 
 
 def _resolve(kind, raw_id):
@@ -48,7 +79,160 @@ def _lifecycle_fields(value):
     return fields
 
 
-def refresh_initial_run_authority(run, projection):
+def _daily_metric_rows(record, snapshot):
+    rows = []
+    for source_key, metric_kind, catalogue_kind in DAILY_MAP_METRICS:
+        values = snapshot.get(source_key)
+        if not isinstance(values, dict):
+            continue
+        for raw_id, value in values.items():
+            value = float(value or 0)
+            if not raw_id or value == 0:
+                continue
+            rows.append(
+                RunDailyMetric(
+                    daily_record=record,
+                    kind=metric_kind,
+                    raw_primary_id=str(raw_id),
+                    primary_catalogue_entry=(
+                        _resolve(catalogue_kind, raw_id) if catalogue_kind else None
+                    ),
+                    value=value,
+                )
+            )
+
+    for pair in snapshot.get("animalTrapDeltas", []):
+        if not isinstance(pair, dict):
+            continue
+        animal_id = str(pair.get("animalType") or "")
+        trap_id = str(pair.get("trapId") or "")
+        value = float(pair.get("trapped") or 0)
+        if animal_id and trap_id and value != 0:
+            rows.append(
+                RunDailyMetric(
+                    daily_record=record,
+                    kind=RunDailyMetric.Kind.ANIMAL_TRAP,
+                    raw_primary_id=animal_id,
+                    raw_secondary_id=trap_id,
+                    primary_catalogue_entry=_resolve(
+                        CatalogueEntry.Kind.ANIMAL, animal_id
+                    ),
+                    secondary_catalogue_entry=_resolve(
+                        CatalogueEntry.Kind.ITEM, trap_id
+                    ),
+                    value=value,
+                )
+            )
+
+    for source_key, metric_kind in (
+        ("injuryDeltas", RunDailyMetric.Kind.INJURY),
+        (
+            "zombieAssociatedInjuryDeltas",
+            RunDailyMetric.Kind.ZOMBIE_ASSOCIATED_INJURY,
+        ),
+    ):
+        for pair in snapshot.get(source_key, []):
+            if not isinstance(pair, dict):
+                continue
+            injury_type = str(pair.get("injuryType") or "")
+            body_part = str(pair.get("bodyPart") or "")
+            value = float(pair.get("count") or 0)
+            if injury_type and value != 0:
+                rows.append(
+                    RunDailyMetric(
+                        daily_record=record,
+                        kind=metric_kind,
+                        raw_primary_id=injury_type,
+                        raw_secondary_id=body_part,
+                        value=value,
+                    )
+                )
+    return rows
+
+
+def _daily_record_defaults(snapshot, *, calendar=None, observed=None, active=False):
+    calendar = _snapshot(calendar)
+    observed = _snapshot(observed)
+    partial_metrics = snapshot.get("partialMetrics", [])
+    if not isinstance(partial_metrics, list):
+        partial_metrics = []
+    if active:
+        partial_metrics = [
+            metric
+            for flag, metric in ACTIVE_PARTIAL_FLAGS.items()
+            if bool(snapshot.get(flag, False))
+        ]
+    return {
+        "calendar_year": calendar.get("year"),
+        "calendar_month": calendar.get("month"),
+        "calendar_day": calendar.get("day"),
+        "started_utc": snapshot.get("startedUtc"),
+        "started_world_age_hours": snapshot.get("startedWorldAgeHours"),
+        "observed_utc": observed.get("utc") or snapshot.get("observedUtc"),
+        "observed_world_age_hours": observed.get("world_age_hours")
+        or snapshot.get("observedWorldAgeHours"),
+        "elapsed_world_hours": snapshot.get("elapsedWorldHours"),
+        "partial": bool(
+            snapshot.get("partial", False)
+            or snapshot.get("baselinePartial", False)
+            or partial_metrics
+        ),
+        "partial_metrics": partial_metrics,
+        "kill_delta": int(snapshot.get("killDelta") or 0),
+        "weight_delta_kilograms": float(
+            snapshot.get("weightDeltaKilograms") or 0
+        ),
+        "fire_death_delta": int(snapshot.get("fireDeathDelta") or 0),
+        "distance_delta_meters": float(snapshot.get("distanceDeltaMeters") or 0),
+        "butter_produced_delta": int(snapshot.get("butterProducedDelta") or 0),
+    }
+
+
+def _refresh_daily_authority(run, projection, events):
+    RunDailyRecord.objects.filter(run=run).delete()
+    calendars = {}
+    sealed = []
+    for event in events or []:
+        if not isinstance(event, dict) or event.get("event_type") != "day.started":
+            continue
+        payload = _snapshot(event.get("payload"))
+        day_index = payload.get("dayIndex")
+        if day_index is not None:
+            calendars[int(day_index)] = _snapshot(payload.get("calendar"))
+        completed = _snapshot(payload.get("completedDay"))
+        completed_index = completed.get("dayIndex")
+        if completed_index is not None:
+            sealed.append((int(completed_index), completed, event))
+
+    metric_rows = []
+    for day_index, snapshot, observed in sealed:
+        record = RunDailyRecord.objects.create(
+            run=run,
+            state=RunDailyRecord.State.SEALED,
+            day_index=day_index,
+            **_daily_record_defaults(
+                snapshot, calendar=calendars.get(day_index), observed=observed
+            ),
+        )
+        metric_rows.extend(_daily_metric_rows(record, snapshot))
+
+    active = _snapshot(projection.get("activeDay"))
+    active_index = active.get("dayIndex")
+    if active_index is not None:
+        active_index = int(active_index)
+        record = RunDailyRecord.objects.create(
+            run=run,
+            state=RunDailyRecord.State.ACTIVE,
+            day_index=active_index,
+            **_daily_record_defaults(
+                active, calendar=calendars.get(active_index), active=True
+            ),
+        )
+        metric_rows.extend(_daily_metric_rows(record, active))
+    RunDailyMetric.objects.bulk_create(metric_rows)
+
+
+def refresh_initial_run_authority(run, projection, events=None):
     character_projection = _snapshot(projection.get("character"))
     starting = _snapshot(character_projection.get("starting"))
     current = _snapshot(character_projection.get("current"))
@@ -265,3 +449,4 @@ def refresh_initial_run_authority(run, projection):
             )
         )
     RunWeaponKill.objects.bulk_create(weapon_rows)
+    _refresh_daily_authority(run, projection, events)
