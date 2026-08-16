@@ -208,7 +208,6 @@ local function finishExport(ok, result)
             (result.syntheticDays and 390 or 348),
         true
     )
-    modal.exportCopied = false
     modal.prerender = function(self)
         self:drawRect(0, 0, self.width, self.height,
             self.backgroundColor.a, self.backgroundColor.r,
@@ -284,20 +283,6 @@ local function finishExport(ok, result)
                 )
             end
         end
-        if self.exportCopied then
-            self:drawTextCentre(
-                clipboardSafe and
-                    L.text("UI_TGSRR_Tracker_CopiedToClipboard",
-                        "Copied to Clipboard") or
-                    L.text("UI_TGSRR_Tracker_FilePathCopied",
-                        "File Path Copied"),
-                self:getWidth() / 2,
-                clipboardSafe and (result.syntheticDays and 126 or 108) or
-                    (result.syntheticDays and 326 or 284),
-                1, 1, 1, 1,
-                UIFont.Small
-            )
-        end
     end
     local closeText = L.text("UI_TGSRR_Tracker_Close", "Close")
     local closeWidth = math.max(
@@ -324,7 +309,19 @@ local function finishExport(ok, result)
     modal:addChild(closeButton)
     modal.ok.onclick = function()
         Clipboard.setClipboard(clipboardSafe and result.value or savedPath)
-        modal.exportCopied = true
+        showMessage(
+            clipboardSafe and
+                L.text("UI_TGSRR_Tracker_CopiedToClipboard",
+                    "Copied to clipboard") or
+                L.text("UI_TGSRR_Tracker_FilePathCopied",
+                    "File path copied"),
+            L.text("UI_TGSRR_Tracker_OK", "OK"),
+            nil,
+            nil,
+            300,
+            130,
+            true
+        )
     end
 end
 
