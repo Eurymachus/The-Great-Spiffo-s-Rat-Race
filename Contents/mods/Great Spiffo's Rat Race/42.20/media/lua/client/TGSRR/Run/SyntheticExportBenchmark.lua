@@ -55,6 +55,7 @@ function Benchmark.begin(days)
     if not cache then
         cache = {
             records = {},
+            cumulativeKills = {},
             builtDays = 0,
         }
         historyCaches[run.runId] = cache
@@ -70,6 +71,8 @@ function Benchmark.begin(days)
             local startedUtc = BENCHMARK_BASE_UTC + (offset - 1) * 86400
             local startedWorldAgeHours = (offset - 1) * 24
             local sequence = offset
+            local completed = completedDay(
+                dayIndex, startedUtc, startedWorldAgeHours)
             local record, recordError = EventCodec.encode({
                 runId = run.runId,
                 epoch = 1,
@@ -79,14 +82,16 @@ function Benchmark.begin(days)
                 eventType = "day.started",
                 payload = {
                     dayIndex = dayIndex + 1,
-                    completedDay = completedDay(
-                        dayIndex, startedUtc, startedWorldAgeHours),
+                    completedDay = completed,
                 },
             }, previousHash, function()
                 work("synthetic_history", offset, days)
             end)
             if not record then return false, recordError end
             cache.records[offset] = record
+            cache.cumulativeKills[offset] =
+                (cache.cumulativeKills[offset - 1] or 0)
+                + completed.killDelta
             previousHash = record.hash
         end
         cache.builtDays = math.max(cache.builtDays, days)
@@ -109,6 +114,7 @@ function Benchmark.begin(days)
             filename = "TGSRR/Runs/" .. run.runId
                 .. "/synthetic-" .. tostring(days) .. "-day.export.txt",
             syntheticDays = days,
+            syntheticCurrentKills = cache.cumulativeKills[days] or 0,
             syntheticBuildMilliseconds = buildMilliseconds,
             exportStartedMilliseconds = milliseconds(),
         })

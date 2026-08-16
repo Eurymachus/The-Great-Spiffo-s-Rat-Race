@@ -48,6 +48,7 @@ assert(job.result.syntheticDays == 3)
 assert(job.result.eventSequence == 3)
 assert(capturedOptions.filename:match("synthetic%-3%-day%.export%.txt$"))
 assert(#capturedOptions.ledger.records == 3)
+assert(capturedOptions.syntheticCurrentKills == 111)
 assert(encodeCalls == 3)
 
 local previousHash = EventCodec.GENESIS_HASH
@@ -83,5 +84,6 @@ end
 assert(extendedJob.ok == true)
 assert(encodeCalls == 5)
 assert(#capturedOptions.ledger.records == 5)
+assert(capturedOptions.syntheticCurrentKills == 190)
 
 print("synthetic export benchmark test passed")

@@ -380,6 +380,12 @@ function Exporter.generate(run, work, options)
     if not ledger then return false, ledgerError end
     finishStage("ledger")
     local player = getSpecificPlayer and getSpecificPlayer(0) or nil
+    local currentKills = math.max(0,
+        tonumber(player and player:getZombieKills()) or 0)
+    if options.syntheticDays then
+        currentKills = math.max(0,
+            math.floor(tonumber(options.syntheticCurrentKills) or 0))
+    end
     if work then work("build_projection", 0, 1) end
     local recovery, recoveryError =
         Ledger.recoveryEvidence(run, work, ledger.records)
@@ -400,7 +406,7 @@ function Exporter.generate(run, work, options)
         endedEventSequence = run.endedEventSequence,
         recovery = recovery,
         challenge = Identity.exportChallenge(run),
-        currentKills = math.max(0, tonumber(player and player:getZombieKills()) or 0),
+        currentKills = currentKills,
         character = characterProjection(run, player),
         skills = SkillSnapshot.observe(player),
         outposts = OutpostSnapshot.observe(outpostLifecycles),
