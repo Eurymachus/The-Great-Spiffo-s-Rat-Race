@@ -4,7 +4,7 @@ local Hash = require "TGSRR/Run/Hash"
 local Cache = {}
 
 local ROOT = "TGSRR/Runs"
-local CACHE_VERSION = 2
+local CACHE_VERSION = 3
 
 local function cachePath(runId, firstSequence, count, lastHash)
     return ROOT .. "/" .. tostring(runId) .. "/export-cache-v"

@@ -920,7 +920,7 @@ a normal run-moderation bulk action.
 # 2026-08-16 - Cache immutable export event blocks locally
 
 - Format 4 exports use a compressed manifest and independently compressed
-  blocks of at most 256 ordered ledger events.
+  blocks of at most 64 ordered ledger events.
 - The local block cache is disposable derived data. The append-only ledger
   remains authoritative.
 - An exact repeat export reuses all unchanged blocks. A later export reuses

@@ -3,7 +3,7 @@
 ## Incremental export envelope
 
 Format 4 uses the `TGSRR1.BLK1.` prefix. It contains one compressed manifest
-followed by independently compressed blocks of at most 256 ledger events.
+followed by independently compressed blocks of at most 64 ledger events.
 Each block descriptor preserves its sequence range, terminal ledger hash and
 content checksum.
 

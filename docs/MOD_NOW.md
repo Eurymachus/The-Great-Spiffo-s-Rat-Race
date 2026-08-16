@@ -115,7 +115,7 @@ the export contract; their policy and test surfaces are documented in
   partial, and is intentionally excluded from ledger and export.
 - Compact loaded-mod history: a complete initial Mod ID/Workshop ID baseline followed by timestamped added, removed, and changed-association session deltas.
 - Versioned, deterministic LZSS/Base64URL run exports containing the complete verified event history, integrity metadata, and a live current-kills projection.
-- Format-4 exports split history into independently compressed 256-event
+- Format-4 exports split history into independently compressed 64-event
   blocks. A disposable local cache reuses exact unchanged blocks while the
   website still verifies every submitted block and the complete hash chain.
 - Pre-spawn capture of the raw namespaced trait IDs selected on the character-creation screen, persisted across the loading transition and consumed only by the matching new character.
