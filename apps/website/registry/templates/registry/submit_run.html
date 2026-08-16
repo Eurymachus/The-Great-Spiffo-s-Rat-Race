@@ -1,7 +1,7 @@
 {% extends "registry/base.html" %}
 {% load static %}
 {% block title_suffix %} | Submit a run{% endblock %}
-{% block extra_head %}<script src="{% static 'registry/run_details.js' %}?v=20260816-1" defer></script><script src="{% static 'registry/submit_run.js' %}?v=20260816-1" defer></script>{% endblock %}
+{% block extra_head %}<script src="{% static 'registry/run_details.js' %}?v=20260816-1" defer></script><script src="{% static 'registry/submit_run.js' %}?v=20260816-2" defer></script>{% endblock %}
 {% block content %}
 <section class="card account-form-card run-submission-card">
   <header class="run-submission-header">
@@ -20,14 +20,28 @@
         <span class="submission-step-number" aria-hidden="true">1</span>
         <div>
           <h3>Tracker export</h3>
-          <p>Paste the complete export from the Challenge Tracker. We will verify its checksum and event ledger.</p>
+          <p>Upload the export from the Challenge Tracker. We will verify its checksum and event ledger.</p>
         </div>
       </header>
       <div class="submission-step-body">
-        <div class="field">
-          {{ form.run_export.label_tag }}
-          {{ form.run_export }}
-          {% if form.run_export.help_text %}<small>{{ form.run_export.help_text }}</small>{% endif %}
+        <div class="submission-export-input" data-export-input>
+          <div class="submission-export-dropzone" data-export-dropzone>
+            <span class="submission-export-file-icon" aria-hidden="true">&#128196;</span>
+            <strong>Drop your export file here</strong>
+            <span>or</span>
+            <label class="submission-export-choose" for="run-export-file">Choose export file</label>
+            <small>Accepted format: .txt, up to 24 MB</small>
+            <input id="run-export-file" type="file" accept=".txt,text/plain" data-export-file-input>
+          </div>
+          <div class="submission-export-status" data-export-file-status role="status" hidden></div>
+          <details class="submission-export-paste" data-export-paste{% if form.run_export.errors or form.run_export.value %} open{% endif %}>
+            <summary>Paste export text instead</summary>
+            <div class="field">
+              {{ form.run_export.label_tag }}
+              {{ form.run_export }}
+              {% if form.run_export.help_text %}<small>{{ form.run_export.help_text }}</small>{% endif %}
+            </div>
+          </details>
           {{ form.run_export.errors }}
         </div>
       </div>

@@ -761,6 +761,16 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "Test Survivor")
         self.assertContains(dashboard, "42 kills")
 
+    def test_submission_offers_file_upload_and_text_fallback(self):
+        response = self.client.get(reverse("registry:submit_run"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Choose export file")
+        self.assertContains(response, 'data-export-dropzone')
+        self.assertContains(response, 'accept=".txt,text/plain"')
+        self.assertContains(response, "Paste export text instead")
+        self.assertContains(response, 'id="id_run_export"')
+
     def test_submission_presents_visual_video_and_clip_pickers(self):
         account = StreamingAccount.objects.create(
             participant=self.participant,

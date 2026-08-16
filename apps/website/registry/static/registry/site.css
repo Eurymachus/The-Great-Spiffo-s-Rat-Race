@@ -1158,6 +1158,65 @@
     border-radius: var(--theme-radius-small);
     background: var(--theme-surface-alt);
 }
+.submission-export-input { margin-top: 1rem; }
+.submission-export-dropzone {
+    display: grid;
+    justify-items: center;
+    gap: .45rem;
+    padding: 1.5rem 1rem;
+    border: 1px dashed var(--theme-border);
+    background: color-mix(in srgb, var(--theme-surface) 82%, transparent);
+    text-align: center;
+    transition: border-color .15s ease, background-color .15s ease;
+}
+.submission-export-dropzone.is-dragging {
+    border-color: var(--theme-accent);
+    background: color-mix(in srgb, var(--theme-accent) 10%, var(--theme-surface));
+}
+.submission-export-file-icon { font-size: 1.65rem; line-height: 1; }
+.submission-export-dropzone > span:not(.submission-export-file-icon),
+.submission-export-dropzone small { color: var(--theme-muted); }
+.submission-export-choose {
+    display: inline-block;
+    padding: .65rem 1rem;
+    border: 1px solid var(--theme-accent);
+    color: var(--theme-accent);
+    font-family: var(--theme-heading-font);
+    font-weight: 700;
+    cursor: pointer;
+}
+.submission-export-choose:hover,
+.submission-export-choose:focus-visible,
+.submission-export-dropzone:has(input[type="file"]:focus-visible) .submission-export-choose {
+    background: var(--theme-accent);
+    color: var(--theme-accent-text);
+}
+.submission-export-dropzone input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+.submission-export-status {
+    margin-top: .75rem;
+    padding: .7rem .85rem;
+    border: 1px solid var(--theme-success);
+    color: var(--theme-text);
+}
+.submission-export-status::before { content: "\2713"; margin-right: .55rem; color: var(--theme-success); }
+.submission-export-status.is-error { border-color: var(--theme-error); }
+.submission-export-status.is-error::before { content: "!"; color: var(--theme-error); }
+.submission-export-paste { margin-top: .8rem; }
+.submission-export-paste > summary {
+    width: fit-content;
+    color: var(--theme-accent-hover);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: .15em;
+}
 .build-trait-tabs > button {
     width: auto;
     padding: .65rem .8rem;

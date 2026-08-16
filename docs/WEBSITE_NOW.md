@@ -237,6 +237,10 @@ records, while aliases and assets remain shared catalogue relationships.
   alone advances the run's canonical snapshot. A later generated snapshot may
   advance with an unchanged verified ledger so current-state changes are not
   discarded merely because no new semantic event occurred.
+- The participant submission form accepts the tracker-generated `.txt` file by
+  file picker or drag and drop, with direct export-text paste retained as a
+  secondary fallback. All three paths use the same authoritative validation and
+  immutable submission workflow.
 - Current format-3 mod-export ingestion, including the signed ledger and complete
   character/trait projection, preserved on both the run and immutable submission.
   Current event-schema 2 ledgers are accepted; legacy and unknown event schemas

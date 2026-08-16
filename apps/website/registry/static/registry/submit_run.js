@@ -1,6 +1,66 @@
 (() => {
     "use strict";
 
+    const exportTextarea = document.querySelector("#id_run_export");
+    const exportFileInput = document.querySelector("[data-export-file-input]");
+    const exportDropzone = document.querySelector("[data-export-dropzone]");
+    const exportStatus = document.querySelector("[data-export-file-status]");
+    const exportPaste = document.querySelector("[data-export-paste]");
+    const maximumExportBytes = 24 * 1024 * 1024;
+
+    const showExportStatus = (message, failed = false) => {
+        if (!exportStatus) return;
+        exportStatus.textContent = message;
+        exportStatus.hidden = false;
+        exportStatus.classList.toggle("is-error", failed);
+    };
+
+    const loadExportFile = async (file) => {
+        if (!file || !exportTextarea) return;
+        if (!file.name.toLowerCase().endsWith(".txt")) {
+            showExportStatus("Choose the .txt file created by the Rat Race tracker.", true);
+            return;
+        }
+        if (file.size > maximumExportBytes) {
+            showExportStatus("The export file must be no larger than 24 MB.", true);
+            return;
+        }
+        try {
+            const value = await file.text();
+            if (!value.trim()) throw new Error("The selected export file is empty.");
+            exportTextarea.value = value;
+            exportTextarea.dispatchEvent(new Event("input", {bubbles: true}));
+            showExportStatus(
+                `${file.name} loaded, ${value.length.toLocaleString()} characters. Ready for verification.`
+            );
+            if (exportPaste) exportPaste.open = false;
+        } catch (error) {
+            showExportStatus(error.message || "The export file could not be read.", true);
+        }
+    };
+
+    exportFileInput?.addEventListener("change", () => {
+        loadExportFile(exportFileInput.files?.[0]);
+    });
+    ["dragenter", "dragover"].forEach((eventName) => {
+        exportDropzone?.addEventListener(eventName, (event) => {
+            event.preventDefault();
+            exportDropzone.classList.add("is-dragging");
+        });
+    });
+    ["dragleave", "drop"].forEach((eventName) => {
+        exportDropzone?.addEventListener(eventName, (event) => {
+            event.preventDefault();
+            exportDropzone.classList.remove("is-dragging");
+        });
+    });
+    exportDropzone?.addEventListener("drop", (event) => {
+        loadExportFile(event.dataTransfer?.files?.[0]);
+    });
+    exportTextarea?.form?.addEventListener("submit", () => {
+        if (!exportTextarea.value.trim() && exportPaste) exportPaste.open = true;
+    });
+
     const formatDuration = (seconds) => {
         const value = Number(seconds);
         if (!Number.isFinite(value) || value <= 0) return "";
