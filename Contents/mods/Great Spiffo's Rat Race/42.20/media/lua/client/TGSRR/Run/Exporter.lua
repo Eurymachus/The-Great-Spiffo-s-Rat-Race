@@ -3,6 +3,7 @@ local Ledger = require "TGSRR/Run/Ledger"
 local ExportCodec = require "TGSRR/Run/ExportCodec"
 local SkillSnapshot = require "TGSRR/Run/SkillSnapshot"
 local OutpostSnapshot = require "TGSRR/Run/OutpostSnapshot"
+local OutpostLifecycleSnapshot = require "TGSRR/Run/OutpostLifecycleSnapshot"
 local ChallengeProgressSnapshot = require "TGSRR/Run/ChallengeProgressSnapshot"
 local ModSnapshot = require "TGSRR/Run/ModSnapshot"
 local DailySnapshot = require "TGSRR/Run/DailySnapshot"
@@ -40,9 +41,46 @@ local function copyList(values)
     return result
 end
 
+local function omitFalsePartialFlags(value)
+    if type(value) ~= "table" then return end
+    for key, child in pairs(value) do
+        local name = tostring(key)
+        if child == false and (name == "partial"
+                or string.sub(name, -7) == "Partial") then
+            value[key] = nil
+        elseif type(child) == "table" then
+            omitFalsePartialFlags(child)
+        end
+    end
+end
+
+local function omitEmptyKillEvidence(projection)
+    local weaponKills = projection.weaponKills or {}
+    if weaponKills.partial ~= true
+            and (tonumber(weaponKills.baselineTotal) or 0) == 0
+            and #(weaponKills.sources or {}) == 0 then
+        projection.weaponKills = nil
+    end
+    local fireDeaths = projection.fireDeaths or {}
+    if fireDeaths.partial ~= true
+            and (tonumber(fireDeaths.count) or 0) == 0 then
+        projection.fireDeaths = nil
+    end
+    local killTypes = projection.zombieKillTypes or {}
+    if killTypes.partial ~= true
+            and (tonumber(killTypes.standing) or 0) == 0
+            and (tonumber(killTypes.onfront) or 0) == 0
+            and (tonumber(killTypes.onback) or 0) == 0
+            and (tonumber(killTypes.fenceAssist) or 0) == 0
+            and (tonumber(killTypes.windowAssist) or 0) == 0 then
+        projection.zombieKillTypes = nil
+    end
+end
+
 local function characterProjection(run, player)
     return {
         starting = run.startingCharacter or {},
+        chosenStartingRegion = run.chosenStartingRegion,
         startingLocation = run.startingLocation or {},
         current = Identity.observeCharacter(player),
         selectedStartingTraits = copyList(run.selectedStartingTraits),
@@ -59,6 +97,12 @@ local function verifyReadback(decoded, ledger, projection)
         return false, "export_readback_mismatch:projection:missing"
     end
     local actual = decoded.projection
+    local actualWeaponKills = actual.weaponKills or {}
+    local projectedWeaponKills = projection.weaponKills or {}
+    local actualFireDeaths = actual.fireDeaths or {}
+    local projectedFireDeaths = projection.fireDeaths or {}
+    local actualKillTypes = actual.zombieKillTypes or {}
+    local projectedKillTypes = projection.zombieKillTypes or {}
     if type(actual.challenge) ~= "table" then
         return false, "export_readback_mismatch:challenge:missing"
     end
@@ -125,22 +169,22 @@ local function verifyReadback(decoded, ledger, projection)
         { "activeDay.weightDeltaKilograms",
             actual.activeDay.weightDeltaKilograms,
             projection.activeDay.weightDeltaKilograms },
-        { "weaponKills.sources.count", count(actual.weaponKills.sources),
-            count(projection.weaponKills.sources) },
-        { "fireDeaths.count", actual.fireDeaths.count,
-            projection.fireDeaths.count },
-        { "zombieKillTypes.standing", actual.zombieKillTypes.standing,
-            projection.zombieKillTypes.standing },
-        { "zombieKillTypes.onfront", actual.zombieKillTypes.onfront,
-            projection.zombieKillTypes.onfront },
-        { "zombieKillTypes.onback", actual.zombieKillTypes.onback,
-            projection.zombieKillTypes.onback },
+        { "weaponKills.sources.count", count(actualWeaponKills.sources),
+            count(projectedWeaponKills.sources) },
+        { "fireDeaths.count", actualFireDeaths.count,
+            projectedFireDeaths.count },
+        { "zombieKillTypes.standing", actualKillTypes.standing,
+            projectedKillTypes.standing },
+        { "zombieKillTypes.onfront", actualKillTypes.onfront,
+            projectedKillTypes.onfront },
+        { "zombieKillTypes.onback", actualKillTypes.onback,
+            projectedKillTypes.onback },
         { "zombieKillTypes.fenceAssist",
-            actual.zombieKillTypes.fenceAssist,
-            projection.zombieKillTypes.fenceAssist },
+            actualKillTypes.fenceAssist,
+            projectedKillTypes.fenceAssist },
         { "zombieKillTypes.windowAssist",
-            actual.zombieKillTypes.windowAssist,
-            projection.zombieKillTypes.windowAssist },
+            actualKillTypes.windowAssist,
+            projectedKillTypes.windowAssist },
         { "townVisits.towns.count", count(actual.townVisits.towns),
             count(projection.townVisits.towns) },
         { "literature.currentItemIds.count",
@@ -290,8 +334,11 @@ function Exporter.generate(run, work)
     local milestones, milestoneError =
         MilestoneSnapshot.observe(run, ledger.records)
     if not milestones then return false, milestoneError end
+    local outpostLifecycles, lifecycleError =
+        OutpostLifecycleSnapshot.observe(run, ledger.records)
+    if not outpostLifecycles then return false, lifecycleError end
     local projection = {
-        schema = 1,
+        schema = 2,
         lifecycle = tostring(run.lifecycle or "active"),
         endedReason = run.endedReason,
         endedUtc = run.endedUtc,
@@ -302,7 +349,7 @@ function Exporter.generate(run, work)
         currentKills = math.max(0, tonumber(player and player:getZombieKills()) or 0),
         character = characterProjection(run, player),
         skills = SkillSnapshot.observe(player),
-        outposts = OutpostSnapshot.observe(),
+        outposts = OutpostSnapshot.observe(outpostLifecycles),
         challengeProgress = ChallengeProgressSnapshot.observe(player),
         activeMods = ModSnapshot.observe(),
         activeDay = DailySnapshot.active(run, player),
@@ -447,6 +494,8 @@ function Exporter.generate(run, work)
         },
     }
     if not projection.activeDay then return false, "missing_active_day" end
+    omitFalsePartialFlags(projection)
+    omitEmptyKillEvidence(projection)
     local encoded, stats = ExportCodec.encode(
         ledger.runId,
         Identity.utcSeconds(),

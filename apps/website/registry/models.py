@@ -211,7 +211,7 @@ class StreamingAccount(models.Model):
         )
 
     def __str__(self):
-        return f"{self.participant} — {self.get_provider_display()}"
+        return f"{self.participant}: {self.get_provider_display()}"
 
 
 class StreamingMedia(models.Model):
@@ -573,6 +573,271 @@ class ChallengeRun(models.Model):
         return "Legacy / Unspecified"
 
 
+class RunContractState(models.Model):
+    run = models.OneToOneField(
+        ChallengeRun, on_delete=models.CASCADE, related_name="contract_state"
+    )
+    projection_schema = models.PositiveSmallIntegerField()
+
+
+class RunCharacter(models.Model):
+    run = models.OneToOneField(
+        ChallengeRun, on_delete=models.CASCADE, related_name="character_record"
+    )
+    starting_forename = models.CharField(max_length=160, blank=True)
+    starting_surname = models.CharField(max_length=160, blank=True)
+    starting_display_name = models.CharField(max_length=160, blank=True)
+    starting_occupation_raw_id = models.CharField(max_length=255, blank=True)
+    starting_occupation = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="starting_run_characters",
+    )
+    current_forename = models.CharField(max_length=160, blank=True)
+    current_surname = models.CharField(max_length=160, blank=True)
+    current_display_name = models.CharField(max_length=160, blank=True)
+    current_occupation_raw_id = models.CharField(max_length=255, blank=True)
+    current_occupation = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="current_run_characters",
+    )
+    selected_traits_partial = models.BooleanField(default=False)
+    selected_traits_captured_utc = models.PositiveBigIntegerField(null=True, blank=True)
+
+
+class RunCharacterTrait(models.Model):
+    class Phase(models.TextChoices):
+        SELECTED_STARTING = "selected_starting", "Selected starting"
+        SPAWNED_STARTING = "spawned_starting", "Spawned starting"
+        CURRENT = "current", "Current"
+
+    character = models.ForeignKey(
+        RunCharacter, on_delete=models.CASCADE, related_name="traits"
+    )
+    raw_trait_id = models.CharField(max_length=255)
+    catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="run_character_traits",
+    )
+    phase = models.CharField(max_length=24, choices=Phase.choices)
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ("phase", "position", "raw_trait_id")
+        constraints = (
+            models.UniqueConstraint(
+                fields=("character", "phase", "raw_trait_id"),
+                name="unique_run_character_trait_phase",
+            ),
+        )
+
+
+class RunStartingLocation(models.Model):
+    class SelectionMode(models.TextChoices):
+        EXPLICIT = "explicit", "Explicit"
+        RANDOM = "random", "Random"
+
+    run = models.OneToOneField(
+        ChallengeRun, on_delete=models.CASCADE, related_name="starting_location"
+    )
+    chosen_region_schema = models.PositiveSmallIntegerField(null=True, blank=True)
+    selection_mode = models.CharField(
+        max_length=16, choices=SelectionMode.choices, blank=True
+    )
+    resolved_region_raw_id = models.CharField(max_length=255, blank=True)
+    resolved_region_catalogue = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resolved_starting_regions",
+    )
+    chosen_region_captured_utc = models.PositiveBigIntegerField(null=True, blank=True)
+    x = models.IntegerField(null=True, blank=True)
+    y = models.IntegerField(null=True, blank=True)
+    z = models.IntegerField(null=True, blank=True)
+    building_def_id = models.CharField(max_length=160, blank=True)
+    captured_utc = models.PositiveBigIntegerField(null=True, blank=True)
+    world_age_hours = models.FloatField(null=True, blank=True)
+    partial = models.BooleanField(default=False)
+    registered_kind = models.CharField(max_length=24, blank=True)
+    registered_raw_id = models.CharField(max_length=255, blank=True)
+    registry_version = models.PositiveIntegerField(null=True, blank=True)
+    catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="observed_run_starting_locations",
+    )
+    map_location_version = models.ForeignKey(
+        "zomboid_catalogue.MapLocationVersion",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="run_starting_locations",
+    )
+
+
+class RunLifecycleSummaryFields(models.Model):
+    class CurrentState(models.TextChoices):
+        COMPLETE = "complete", "Complete"
+        INCOMPLETE = "incomplete", "Incomplete"
+
+    first_completed_sequence = models.PositiveBigIntegerField(null=True, blank=True)
+    first_completed_utc = models.PositiveBigIntegerField(null=True, blank=True)
+    first_completed_world_age_hours = models.FloatField(null=True, blank=True)
+    first_completed_elapsed_days = models.FloatField(null=True, blank=True)
+    latest_completed_sequence = models.PositiveBigIntegerField(null=True, blank=True)
+    latest_completed_utc = models.PositiveBigIntegerField(null=True, blank=True)
+    latest_completed_world_age_hours = models.FloatField(null=True, blank=True)
+    latest_completed_elapsed_days = models.FloatField(null=True, blank=True)
+    latest_regressed_sequence = models.PositiveBigIntegerField(null=True, blank=True)
+    latest_regressed_utc = models.PositiveBigIntegerField(null=True, blank=True)
+    latest_regressed_world_age_hours = models.FloatField(null=True, blank=True)
+    latest_regressed_elapsed_days = models.FloatField(null=True, blank=True)
+    completion_count = models.PositiveIntegerField(default=0)
+    regression_count = models.PositiveIntegerField(default=0)
+    current_state = models.CharField(max_length=16, choices=CurrentState.choices)
+
+    class Meta:
+        abstract = True
+
+
+class RunOutpost(RunLifecycleSummaryFields):
+    run = models.ForeignKey(
+        ChallengeRun, on_delete=models.CASCADE, related_name="authoritative_outposts"
+    )
+    raw_outpost_id = models.CharField(max_length=255)
+    catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="run_outpost_records",
+    )
+    discovered = models.BooleanField(default=False)
+    discovered_world_age_hours = models.FloatField(default=0)
+    stage = models.CharField(max_length=32)
+    complete = models.BooleanField(default=False)
+    progress = models.FloatField(default=0)
+    passed_requirements = models.PositiveSmallIntegerField(default=0)
+    total_requirements = models.PositiveSmallIntegerField(default=0)
+    work_started_world_age_hours = models.FloatField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("run", "raw_outpost_id"),
+                name="unique_run_authoritative_outpost",
+            )
+        ]
+
+
+class RunOutpostDeliverable(RunLifecycleSummaryFields):
+    outpost = models.ForeignKey(
+        RunOutpost, on_delete=models.CASCADE, related_name="deliverables"
+    )
+    raw_deliverable_id = models.CharField(max_length=255)
+    catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="run_outpost_deliverable_records",
+    )
+    available = models.BooleanField(default=False)
+    passed = models.BooleanField(default=False)
+    current_value = models.FloatField(default=0)
+    required_value = models.FloatField(default=0)
+    observed_state = models.CharField(max_length=255, blank=True)
+    progress = models.FloatField(default=0)
+    observed_world_age_hours = models.FloatField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("outpost", "raw_deliverable_id"),
+                name="unique_run_outpost_deliverable",
+            )
+        ]
+
+
+class RunSkill(models.Model):
+    run = models.ForeignKey(
+        ChallengeRun, on_delete=models.CASCADE, related_name="authoritative_skills"
+    )
+    raw_skill_id = models.CharField(max_length=255)
+    raw_category_id = models.CharField(max_length=255, blank=True)
+    catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="run_skill_records",
+    )
+    level = models.PositiveSmallIntegerField(default=0)
+    xp = models.FloatField(default=0)
+
+    class Meta:
+        ordering = ("raw_category_id", "raw_skill_id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("run", "raw_skill_id"),
+                name="unique_run_authoritative_skill",
+            )
+        ]
+
+
+class RunKillSummary(models.Model):
+    run = models.OneToOneField(
+        ChallengeRun, on_delete=models.CASCADE, related_name="kill_summary"
+    )
+    current_kills = models.PositiveBigIntegerField(default=0)
+    weapon_partial = models.BooleanField(default=False)
+    weapon_baseline_total = models.PositiveBigIntegerField(default=0)
+    fire_deaths = models.PositiveBigIntegerField(default=0)
+    fire_deaths_partial = models.BooleanField(default=False)
+    zombie_kill_types_partial = models.BooleanField(default=False)
+    standing = models.PositiveBigIntegerField(default=0)
+    on_front = models.PositiveBigIntegerField(default=0)
+    on_back = models.PositiveBigIntegerField(default=0)
+    fence_assist = models.PositiveBigIntegerField(default=0)
+    window_assist = models.PositiveBigIntegerField(default=0)
+
+
+class RunWeaponKill(models.Model):
+    run = models.ForeignKey(
+        ChallengeRun, on_delete=models.CASCADE, related_name="weapon_kills"
+    )
+    raw_source_id = models.CharField(max_length=255)
+    catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="run_weapon_kill_records",
+    )
+    kills = models.PositiveBigIntegerField(default=0)
+
+    class Meta:
+        ordering = ("-kills", "raw_source_id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("run", "raw_source_id"),
+                name="unique_run_weapon_kill_source",
+            )
+        ]
+
+
 class LegacyRun(models.Model):
     class Lifecycle(models.TextChoices):
         ACTIVE = "active", "Active"
@@ -795,7 +1060,7 @@ class RunSubmission(models.Model):
         ordering = ("-submitted_at",)
 
     def __str__(self):
-        return f"{self.run} — {self.get_status_display()}"
+        return f"{self.run}: {self.get_status_display()}"
 
     @property
     def challenge_mode_display(self):

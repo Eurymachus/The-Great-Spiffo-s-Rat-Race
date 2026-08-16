@@ -11,7 +11,7 @@
         <p>The following {{ eligible_count }} eligible account{{ eligible_count|pluralize }} will be processed:</p>
         <ul>
             {% for participant in queryset %}
-                <li>{{ participant.nickname }} — closure requested {{ participant.deletion_requested_at }}</li>
+                <li>{{ participant.nickname }}, closure requested {{ participant.deletion_requested_at }}</li>
             {% endfor %}
         </ul>
     {% else %}

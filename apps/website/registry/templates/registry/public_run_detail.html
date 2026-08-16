@@ -2,69 +2,61 @@
 {% load static %}
 {% block title_suffix %} | {{ run.character_name|default:"Rat Race run" }}{% endblock %}
 {% block extra_head %}
-<script src="{% static 'registry/run_details.js' %}?v=20260728-1" defer></script>
+<script src="{% static 'registry/run_details.js' %}?v=20260816-4" defer></script>
 {% endblock %}
 {% block content %}
 <article class="run-public-page">
   {% include "registry/includes/journey_navigation.html" %}
   <header class="run-public-hero">
-    <div>
+    <div class="run-public-identity">
       <p class="dashboard-panel-kicker">Verified Rat Race run</p>
-      <h2>{{ run.character_name|default:"Rat Race survivor" }}</h2>
-      <p>Run by <strong>{{ rat_racer }}</strong> in {{ run.challenge_mode_display }}.</p>
+      <div class="run-public-hero-meta">
+        {% if run.in_game_day %}<span class="run-public-day">Day {{ run.in_game_day }}</span>{% endif %}
+        <span class="run-public-status">{{ run.get_lifecycle_status_display }}</span>
+      </div>
+      <div class="run-public-name-row">
+        <h2>{{ run.character_name|default:"Rat Race survivor" }}</h2>
+      </div>
+      <div class="run-character-snapshot" aria-label="Current character state">
+        <button type="button" class="run-build-action" data-run-build-open="run-build-dialog" aria-haspopup="dialog" aria-label="View starting build: {{ profession }}" title="Starting build: {{ profession }}">{% if profession_icon_url %}<img src="{{ profession_icon_url }}" alt="">{% else %}<span class="run-snapshot-symbol run-build-symbol" aria-hidden="true">B</span>{% endif %}</button>
+        <button type="button" class="run-character-snapshot-action" title="Current weight: {{ weight }}" aria-label="Current weight: {{ weight }}">
+          <span class="run-snapshot-symbol run-weight-symbol" aria-hidden="true">kg</span>
+        </button>
+        <button type="button" class="run-character-snapshot-action" title="Favourite weapon: {{ favourite_weapon.name }}{% if favourite_weapon.kills is not None %}, {{ favourite_weapon.kills }} kills{% endif %}" aria-label="Favourite weapon: {{ favourite_weapon.name }}{% if favourite_weapon.kills is not None %}, {{ favourite_weapon.kills }} kills{% endif %}">
+          {% if favourite_weapon.icon_url %}<img src="{{ favourite_weapon.icon_url }}" alt="">{% else %}<span class="run-snapshot-symbol run-weapon-symbol" aria-hidden="true">W</span>{% endif %}
+        </button>
+      </div>
+      <dl class="run-starting-evidence">
+        <div><dt>Spawn choice:</dt><dd>{{ spawn_choice }}</dd></div>
+        <div><dt>Starting location:</dt><dd>{% if starting_map_url %}<a class="run-starting-map-link" href="{{ starting_map_url }}" target="_blank" rel="noopener" title="View map">{% if starting_map_icon_url %}<img src="{{ starting_map_icon_url }}" alt="View map">{% else %}<span class="run-snapshot-symbol run-map-symbol" aria-hidden="true">M</span><span class="visually-hidden">View map</span>{% endif %}</a>{% else %}Not recorded{% endif %}</dd></div>
+      </dl>
     </div>
     <div class="run-public-hero-actions">
-      <span class="run-public-status">{{ run.get_lifecycle_status_display }}</span>
       <a class="dashboard-header-action journey-back-link" href="{{ participant_profile_url }}">&lsaquo; Back to {{ rat_racer }}</a>
+      <p class="run-public-challenge">{{ run.challenge_mode_display }}.</p>
     </div>
   </header>
 
-  <section class="run-public-summary" aria-label="Run summary">
-    <div><small>Zombie kills</small><strong>{{ current_kills_display }}</strong></div>
-    <div><small>In-game day</small><strong>{{ run.in_game_day|default:"Not recorded" }}</strong></div>
-    <div><small>Challenge mode</small><strong>{{ run.challenge_mode_display }}</strong></div>
-    <div>
-      <small>Profession</small>
-      <strong class="run-catalogue-label">
-        {% if profession_icon_url %}<img src="{{ profession_icon_url }}" alt="" width="32" height="32">{% endif %}
-        {{ profession }}
-      </strong>
-    </div>
-    <div><small>Current weight</small><strong>{{ weight }}</strong></div>
-    <div><small>Approved updates</small><strong>{{ run.approved_submission_count }}</strong></div>
-  </section>
+  {% include "registry/includes/character_build_dialog.html" with dialog_id="run-build-dialog" survivor=run.character_name profession=profession profession_icon_url=profession_icon_url profession_point_value=profession_point_value profession_point_is_negative=profession_point_is_negative negative_traits=selected_negative_traits positive_traits=selected_positive_traits current_negative_traits=current_negative_traits current_positive_traits=current_positive_traits removed_negative_traits=removed_negative_traits removed_positive_traits=removed_positive_traits show_current_traits=True %}
 
   {% if progress %}
   <section class="run-public-section">
     <header><p class="dashboard-panel-kicker">Challenge progress</p><h3>The long road</h3></header>
     <div class="run-progress-grid">
       {% for item in progress %}
-      <article class="run-progress-card">
+      {% if item.id == "outposts" and outposts %}<button type="button" class="run-progress-card run-progress-card-action" data-outpost-dialog-open="run-outpost-dialog" aria-haspopup="dialog">{% elif item.id == "skills" and skills %}<button type="button" class="run-progress-card run-progress-card-action" data-skills-dialog-open="run-skills-dialog" aria-haspopup="dialog">{% else %}<article class="run-progress-card">{% endif %}
         <div><strong>{{ item.name }}</strong><span>{{ item.current_display }} / {{ item.target_display }}</span></div>
-        <progress value="{{ item.percent }}" max="100">{{ item.percent }}%</progress>
-        <small>{{ item.percent }}% · {{ item.status }}</small>
-      </article>
+        <div class="run-labelled-progress" role="img" aria-label="{{ item.name }} progress: {{ item.percent }}%"><span style="width: {{ item.percent }}%"></span><strong>{{ item.percent }}%</strong></div>
+      {% if item.id == "outposts" and outposts or item.id == "skills" and skills %}</button>{% else %}</article>{% endif %}
       {% endfor %}
     </div>
   </section>
   {% endif %}
 
-  <section class="run-public-section run-public-traits-section">
-    <header><p class="dashboard-panel-kicker">Character</p><h3>Traits</h3></header>
-    <div class="run-trait-columns">
-      <div>
-        <h4>Selected at the start</h4>
-        <ul class="run-trait-icon-list">{% for trait in selected_traits %}<li class="run-trait-icon" tabindex="0" aria-label="{{ trait.name }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="" width="40" height="40">{% else %}<span class="run-trait-icon-fallback" aria-hidden="true">{{ trait.name|first }}</span>{% endif %}<span class="run-trait-tooltip" role="tooltip">{{ trait.name }}</span></li>{% empty %}<li class="run-traits-empty">Not recorded</li>{% endfor %}</ul>
-      </div>
-      <div>
-        <h4>Currently effective</h4>
-        <ul class="run-trait-icon-list">{% for trait in current_traits %}<li class="run-trait-icon" tabindex="0" aria-label="{{ trait.name }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="" width="40" height="40">{% else %}<span class="run-trait-icon-fallback" aria-hidden="true">{{ trait.name|first }}</span>{% endif %}<span class="run-trait-tooltip" role="tooltip">{{ trait.name }}</span></li>{% empty %}<li class="run-traits-empty">Not recorded</li>{% endfor %}</ul>
-      </div>
-    </div>
-  </section>
-
-  <section class="run-public-section run-public-skills-section">
-    <header><p class="dashboard-panel-kicker">Skills</p><h3>Current levels</h3></header>
+  {% if skills %}
+  <dialog class="run-outpost-dialog run-skills-dialog" id="run-skills-dialog" aria-labelledby="run-skills-dialog-title">
+    <header><div><p class="dashboard-panel-kicker">Challenge progress</p><h2 id="run-skills-dialog-title">Skill details</h2><p>Current levels from the latest approved export.</p></div><button type="button" class="run-outpost-dialog-close" data-skills-dialog-close aria-label="Close skill details">Close</button></header>
+    <div class="run-outpost-dialog-content">
     <div class="pz-skills-panel">
       <div class="pz-skill-columns" aria-hidden="true">
         <strong>Skill</strong><strong>Level</strong><strong>Progress</strong>
@@ -80,7 +72,7 @@
           </div>
         </header>
         {% for skill in group.skills %}
-        <div class="pz-skill-row{% if skill.mastered %} is-mastered{% endif %}" tabindex="0" title="{{ skill.name }} — Level {{ skill.level }} / 10 — Recorded XP: {{ skill.xp|default:'Not recorded' }}">
+        <div class="pz-skill-row{% if skill.mastered %} is-mastered{% endif %}" tabindex="0" title="{{ skill.name }}, Level {{ skill.level }} / 10, Recorded XP: {{ skill.xp|default:'Not recorded' }}">
           <strong>
             {% if skill.icon_url %}<img class="pz-skill-icon" src="{{ skill.icon_url }}" alt="" width="24" height="24">{% endif %}
             {{ skill.name }}
@@ -102,32 +94,37 @@
       {% empty %}
       <p class="pz-skills-empty">No skill data recorded.</p>
       {% endfor %}
-      {% if skills %}
-      <footer class="pz-skills-total">
-        <span style="width: {{ overall_skill_percent }}%"></span>
-        <strong>{{ mastered_skills }} of {{ overall_skill_count }} skills mastered ({{ overall_skill_percent }}%)</strong>
-      </footer>
-      {% endif %}
     </div>
-  </section>
+    </div>
+  </dialog>
+  {% endif %}
 
-  <section class="run-public-section">
-    <header><p class="dashboard-panel-kicker">World progress</p><h3>Outposts</h3></header>
-    <div class="run-outpost-grid">
+  {% if outposts %}
+  <dialog class="run-outpost-dialog" id="run-outpost-dialog" aria-labelledby="run-outpost-dialog-title">
+    <header><div><p class="dashboard-panel-kicker">Challenge progress</p><h2 id="run-outpost-dialog-title">Outpost details</h2><p>All outposts are shown. Undiscovered outposts have no recorded evidence.</p></div><button type="button" class="run-outpost-dialog-close" data-outpost-dialog-close aria-label="Close outpost details">Close</button></header>
+    <div class="run-outpost-dialog-content">
       {% for outpost in outposts %}
-      <article class="run-outpost-card{% if outpost.complete %} is-complete{% endif %}">
-        <div><strong>{{ outpost.name }}</strong><span>{{ outpost.stage }}</span></div>
-        <progress value="{{ outpost.percent }}" max="100">{{ outpost.percent }}%</progress>
-        <small>{{ outpost.passed }} of {{ outpost.total }} requirements · {{ outpost.percent }}%</small>
-      </article>
-      {% empty %}<p>No outpost data recorded.</p>{% endfor %}
+      {% if outpost.discovered %}
+      <details class="run-outpost-detail">
+        <summary><strong>{{ outpost.name }}</strong><span class="run-outpost-stage{% if outpost.complete %} is-complete{% endif %}">{% if outpost.complete %}Completed{% else %}In Progress{% endif %}</span><span class="run-outpost-disclosure" aria-hidden="true"></span>{% if not outpost.complete %}<div class="run-labelled-progress" role="img" aria-label="{{ outpost.name }} progress: {{ outpost.passed }} of {{ outpost.total }}, {{ outpost.percent }}%"><span style="width: {{ outpost.percent }}%"></span><strong>{{ outpost.passed }} / {{ outpost.total }} ({{ outpost.percent }}%)</strong></div>{% endif %}</summary>
+        <div class="run-outpost-detail-body">
+          <ul class="run-outpost-deliverables">
+            {% for deliverable in outpost.deliverables %}<li><strong>{{ deliverable.name }}</strong><span>{{ deliverable.value }}</span><strong class="run-outpost-status is-{{ deliverable.status_class }}">{{ deliverable.status }}</strong></li>{% empty %}<li>No deliverable details recorded.</li>{% endfor %}
+          </ul>
+        </div>
+      </details>
+      {% else %}
+      <article class="run-outpost-detail run-outpost-undiscovered"><strong>{{ outpost.name }}</strong><span class="run-outpost-stage">Undiscovered</span></article>
+      {% endif %}
+      {% endfor %}
     </div>
-  </section>
+  </dialog>
+  {% endif %}
 
   <section class="run-public-section">
-    <header><p class="dashboard-panel-kicker">Exploration</p><h3>Town visits</h3><p>{{ visited_town_count }} of {{ towns|length }} tracked towns visited.</p></header>
+    <header><p class="dashboard-panel-kicker">Exploration</p><h3>Town visits</h3><p>{{ visited_town_count }} / {{ towns|length }} towns visited.</p></header>
     <ul class="run-town-grid">
-      {% for town in towns %}<li class="{% if town.visited %}is-visited{% endif %}"><span aria-hidden="true">{% if town.visited %}✓{% else %}–{% endif %}</span>{{ town.name }}</li>{% empty %}
+      {% for town in towns %}<li class="{% if town.visited %}is-visited{% endif %}"><span aria-hidden="true">{% if town.visited %}✓{% else %}○{% endif %}</span>{{ town.name }}</li>{% empty %}
       <li>No town data recorded.</li>{% endfor %}
     </ul>
   </section>

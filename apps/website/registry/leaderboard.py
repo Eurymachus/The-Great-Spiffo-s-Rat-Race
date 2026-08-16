@@ -136,13 +136,13 @@ def build_ranking_table(raw_config=None):
             "stream_provider": stream_provider,
             "profession": presented["profession"],
             "profession_icon_url": presented["profession_icon_url"],
+            "profession_point_value": presented["profession_point_value"],
+            "profession_point_is_negative": presented[
+                "profession_point_is_negative"
+            ],
             "selected_traits": selected_traits,
-            "negative_traits": [
-                trait for trait in selected_traits if trait["is_negative"]
-            ],
-            "positive_traits": [
-                trait for trait in selected_traits if not trait["is_negative"]
-            ],
+            "negative_traits": presented["selected_negative_traits"],
+            "positive_traits": presented["selected_positive_traits"],
         }
         entry["sort_key"] = _entry_order_key(entry, config["ordering"])
         candidates.append(entry)

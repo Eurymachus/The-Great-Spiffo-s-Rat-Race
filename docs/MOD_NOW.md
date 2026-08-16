@@ -58,9 +58,14 @@ the export contract; their policy and test surfaces are documented in
   Lua file-writer extension allowlist.
 - Immutable starting-location evidence captured with XYZ, optional BuildingDef
   ID, UTC, world age, and explicit partial status for existing saves.
+- Pre-world spawn-region evidence captures explicit or blind-random selection,
+  the resolved raw Project Zomboid region ID, and UTC. The Random option remains
+  unresolved and hidden until the final Start action.
 - Canonical schema-2 event codec, SHA-256 hash-chained ledger, append-safe
   segmented storage, and lifecycle verification. Unsupported development run
   schemas are rejected rather than migrated.
+- Development run-state schema 22 establishes bounded outpost lifecycle state
+  and first-completion-only outpost ledger evidence.
 - Interrupted session commits are recovered automatically when the external
   ledger and session log are ahead of the save by session-boundary records
   only. The full tail is hash-verified, adopted without rewriting it, and a
@@ -89,6 +94,9 @@ the export contract; their policy and test surfaces are documented in
 - TGSRR-owned weapon-kill attribution keyed by full item type or explicit
   non-item pseudo ID, with cumulative totals, completed-day deltas, active-day
   deltas, and partial-baseline disclosure for existing runs.
+- Projection schema 2 now emits only non-zero skill rows and omits empty,
+  complete weapon-kill, fire-death, and zombie-kill-type sections. True partial
+  flags and attribution baselines remain explicit evidence.
 - Separate cumulative, completed-day, and active-day zombie fire-death counts
   that never contribute to vanilla or weapon-kill totals.
 - Permanent first-visit tracking for 12 canonical towns using stable TGSRR IDs,
@@ -109,7 +117,7 @@ the export contract; their policy and test surfaces are documented in
 - Versioned, deterministic LZSS/Base64URL run exports containing the complete verified event history, integrity metadata, and a live current-kills projection.
 - Pre-spawn capture of the raw namespaced trait IDs selected on the character-creation screen, persisted across the loading transition and consumed only by the matching new character.
 - Format-3 current-state projection containing challenge evidence; character and
-  trait state; current skills; all 13 current outposts; ordered first outpost
+  trait state; current skills; sparse non-default outpost state; ordered first outpost
   completions; kill and outpost-deliverable milestones with elapsed days; all 12
   town-visit states; versioned non-town location state; filtered skill-book and
   recipe-magazine baseline/current/completion state; rules-versioned Tracker summaries; current
@@ -202,8 +210,9 @@ the export contract; their policy and test surfaces are documented in
 
 ## Recommended next action
 
-Continue release review of tracker presentation and neutral rule-relevant
-evidence for website-side eligibility review.
+Run a fresh in-game schema-2 export smoke test, including repeated engine-start
+completion and range regression, then approve it locally and inspect the
+expanded 13-outpost and 169-deliverable authority.
 
 ## Related decisions
 

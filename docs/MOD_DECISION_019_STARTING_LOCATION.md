@@ -1,4 +1,4 @@
-# Decision 019: Capture the Immutable Starting Location
+# Decision 019: Capture Immutable Starting-Location Evidence
 
 - Status: Accepted
 - Date: 2026-08-15
@@ -15,8 +15,19 @@ When the captured building or tile matches a registered TGSRR outpost or
 landmark, the evidence also includes its stable TGSRR ID, kind, and registry
 version. Unknown or ordinary spawn buildings retain no invented stable ID.
 
-The mod does not infer a town, spawn-region name, or other presentation label.
-Those interpretations belong to the website and its versioned catalogue.
+Before vanilla initializes the world, TGSRR also captures the spawn-region choice
+as `character.chosenStartingRegion`. It preserves whether the player explicitly
+selected a region or requested a random region, the resolved raw Project Zomboid
+region ID, and capture UTC. This is distinct from the observed spawn tile.
+
+TGSRR supplies a blind Random row above the available spawn regions. Selecting it
+does not resolve or reveal a region on the spawn screen. TGSRR resolves it once,
+immediately before the final Start action, then supplies that region to vanilla's
+normal spawn-point selection. Returning to the spawn screen before Start does not
+reveal or reroll it because it has not yet been resolved.
+
+The mod does not infer a town or other presentation label from either evidence
+record. Those interpretations belong to the website and its versioned catalogue.
 
 ## Existing saves
 
@@ -30,6 +41,8 @@ spawned.
 - A new development run-state schema is required because the value is immutable
   and cannot be reconstructed for an existing tracked run.
 - The website validates and preserves the raw evidence.
+- Chosen region and observed spawn position remain separate evidence because one
+  region contains many possible spawn buildings and tiles.
 - Future authoritative run-data tables can index the coordinates and resolve
   them against versioned website geography without rewriting the submission.
 - Deployment installs stable outpost and landmark catalogue records plus their

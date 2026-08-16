@@ -2,6 +2,7 @@ import base64
 import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.urls import reverse
@@ -11,7 +12,14 @@ from .models import (
     ChallengeRun,
     Notification,
     Participant,
+    RunCharacterTrait,
+    RunKillSummary,
+    RunOutpost,
+    RunOutpostDeliverable,
+    RunSkill,
+    RunStartingLocation,
     RunSubmission,
+    RunWeaponKill,
     StreamingAccount,
     StreamingMedia,
 )
@@ -138,6 +146,12 @@ def make_export(
         "currentKills": kills,
         "character": {
             "starting": {"displayName": "Starting Survivor"},
+            "chosenStartingRegion": {
+                "schema": 1,
+                "selectionMode": "explicit",
+                "resolvedRegionId": "Muldraugh, KY",
+                "capturedUtc": 1784800000,
+            },
             "startingLocation": {
                 "x": 10835,
                 "y": 10144,
@@ -166,7 +180,160 @@ def make_export(
     )
 
 
+def lifecycle_summary(*, complete=False, sequence=None, regression_sequence=None):
+    def point(value):
+        return {
+            "sequence": value,
+            "utc": 1784800000 + value,
+            "worldAgeHours": value,
+            "elapsedDays": value / 24,
+        }
+
+    completion = point(sequence) if sequence is not None else None
+    regression = point(regression_sequence) if regression_sequence is not None else None
+    return {
+        "firstCompletion": completion,
+        "latestCompletion": completion,
+        "latestRegression": regression,
+        "completionCount": 1 if completion else 0,
+        "regressionCount": 1 if regression else 0,
+        "currentState": "complete" if complete else "incomplete",
+    }
+
+
+def outpost_lifecycle_projection():
+    outpost_ids = sorted(
+        {
+            "brandenburg", "echo_creek", "ekron", "fallas_lake",
+            "hog_wallow_military_base", "irvington", "louisville",
+            "march_ridge", "muldraugh", "riverside", "rosewood",
+            "valley_station", "west_point",
+        }
+    )
+    deliverable_ids = sorted(
+        {
+            "room_activation", "floor_activation", "zombie_clearance",
+            "window_barricades", "enclosed", "doors_fitted", "doors_closed",
+            "good_bed", "generator", "food", "plumbed_sink", "spare_car",
+            "engine_start",
+        }
+    )
+    return [
+        {
+            "id": outpost_id,
+            "complete": False,
+            "lifecycle": lifecycle_summary(),
+            "deliverables": [
+                {
+                    "id": deliverable_id,
+                    "passed": False,
+                    "lifecycle": lifecycle_summary(),
+                }
+                for deliverable_id in deliverable_ids
+            ],
+        }
+        for outpost_id in outpost_ids
+    ]
+
+
 class RunExportCodecTests(TestCase):
+    def test_accepts_and_preserves_sparse_schema_two_outpost_lifecycle_contract(self):
+        projection = {
+            "schema": 2,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Test Survivor"}},
+            "outposts": [],
+        }
+
+        decoded = decode_run_export(make_export(projection=projection))
+
+        self.assertEqual(decoded.projection["schema"], 2)
+        self.assertEqual(decoded.projection["outposts"], [])
+
+    def test_rejects_schema_two_outpost_lifecycle_state_mismatch(self):
+        outposts = outpost_lifecycle_projection()
+        outposts[0]["deliverables"][0]["lifecycle"]["currentState"] = "complete"
+        projection = {
+            "schema": 2,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Test Survivor"}},
+            "outposts": outposts,
+        }
+
+        with self.assertRaisesMessage(
+            InvalidRunExport, "invalid outpost lifecycle summaries"
+        ):
+            decode_run_export(make_export(projection=projection))
+
+    def test_rejects_started_spare_car_when_no_spare_car_is_present(self):
+        outposts = outpost_lifecycle_projection()
+        deliverables = {
+            item["id"]: item for item in outposts[0]["deliverables"]
+        }
+        deliverables["engine_start"]["passed"] = True
+        deliverables["engine_start"]["lifecycle"] = lifecycle_summary(
+            complete=True, sequence=1
+        )
+        projection = {
+            "schema": 2,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Test Survivor"}},
+            "outposts": outposts,
+        }
+
+        with self.assertRaisesMessage(
+            InvalidRunExport, "invalid outpost lifecycle summaries"
+        ):
+            decode_run_export(
+                make_export(
+                    projection=projection,
+                    event_specs=[{
+                        "type": "outpost.deliverable.completed",
+                        "payload": {
+                            "outpostId": outposts[0]["id"],
+                            "deliverableId": "engine_start",
+                        },
+                    }],
+                )
+            )
+
+    def test_rejects_schema_two_first_completion_missing_from_ledger(self):
+        projection = {
+            "schema": 2,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Test Survivor"}},
+            "outposts": outpost_lifecycle_projection(),
+        }
+        projection["outposts"][0]["deliverables"][0]["passed"] = True
+        projection["outposts"][0]["deliverables"][0]["lifecycle"] = (
+            lifecycle_summary(complete=True, sequence=1)
+        )
+
+        with self.assertRaisesMessage(
+            InvalidRunExport, "do not match the verified ledger"
+        ):
+            decode_run_export(
+                make_export(
+                    projection=projection,
+                    event_specs=[],
+                )
+            )
+
+    def test_rejects_regression_events_in_bounded_lifecycle_contract(self):
+        projection = {
+            "schema": 2,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Test Survivor"}},
+            "outposts": [],
+        }
+        with self.assertRaisesMessage(
+            InvalidRunExport, "do not match the verified ledger"
+        ):
+            decode_run_export(make_export(
+                projection=projection,
+                event_specs=[("outpost.regressed", {"outpostId": "echo_creek"})],
+            ))
+
     def test_decodes_matching_deceased_terminal_state(self):
         projection = {
             "schema": 1,
@@ -294,6 +461,15 @@ class RunExportCodecTests(TestCase):
             10835,
         )
         self.assertEqual(
+            decoded.projection["character"]["chosenStartingRegion"],
+            {
+                "schema": 1,
+                "selectionMode": "explicit",
+                "resolvedRegionId": "Muldraugh, KY",
+                "capturedUtc": 1784800000,
+            },
+        )
+        self.assertEqual(
             decoded.generated_at,
             datetime.fromtimestamp(1784800100, tz=timezone.utc),
         )
@@ -334,6 +510,50 @@ class RunExportCodecTests(TestCase):
             ]["id"],
             "star_eplex_cinema",
         )
+
+    def test_accepts_omitted_false_partial_flags(self):
+        decoded = decode_run_export(make_export())
+        character = decoded.projection["character"]
+        character["startingLocation"].pop("partial")
+        character.pop("selectedStartingTraitsPartial")
+
+        decoded = decode_run_export(make_export(projection=decoded.projection))
+
+        self.assertFalse(
+            decoded.projection["character"]["startingLocation"].get(
+                "partial", False
+            )
+        )
+
+    def test_accepts_random_chosen_starting_region(self):
+        decoded = decode_run_export(make_export())
+        decoded.projection["character"]["chosenStartingRegion"] = {
+            "schema": 1,
+            "selectionMode": "random",
+            "resolvedRegionId": "Rosewood, KY",
+            "capturedUtc": 1784800000,
+        }
+
+        decoded = decode_run_export(make_export(projection=decoded.projection))
+
+        self.assertEqual(
+            decoded.projection["character"]["chosenStartingRegion"][
+                "selectionMode"
+            ],
+            "random",
+        )
+
+    def test_rejects_malformed_chosen_starting_region(self):
+        decoded = decode_run_export(make_export())
+        decoded.projection["character"]["chosenStartingRegion"] = {
+            "schema": 1,
+            "selectionMode": "random",
+            "resolvedRegionId": "",
+            "capturedUtc": 1784800000,
+        }
+
+        with self.assertRaisesRegex(InvalidRunExport, "chosen-region"):
+            decode_run_export(make_export(projection=decoded.projection))
 
     def test_accepts_current_event_schema_two(self):
         decoded = decode_run_export(make_export(event_schema=2))
@@ -427,7 +647,7 @@ class RunExportCodecTests(TestCase):
             decode_run_export(
                 make_export(
                     projection={
-                        "schema": 2,
+                        "schema": 3,
                         "currentKills": 42,
                         "character": {},
                     }
@@ -689,6 +909,14 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "maximum of 1 active run")
         self.assertContains(response, "data-submission-blocked-dialog")
+        active_run = ChallengeRun.objects.get(run_id="first-active-run")
+        self.assertContains(response, "View active run")
+        self.assertContains(
+            response,
+            f'data-run-detail-open="run-detail-{active_run.pk}"',
+        )
+        self.assertContains(response, f'id="run-detail-{active_run.pk}"')
+        self.assertContains(response, 'name="return_to_submission" value="1"')
         self.assertFalse(ChallengeRun.objects.filter(run_id="second-active-run").exists())
 
     def test_configured_mode_limit_allows_more_than_one_active_run(self):
@@ -733,6 +961,52 @@ class RunSubmissionTests(TestCase):
         dashboard = self.client.get(reverse("registry:account"))
         self.assertContains(dashboard, "Abandoned")
         self.assertNotContains(dashboard, "Deactivate permanently")
+
+    def test_deactivation_from_submission_block_returns_to_submission_form(self):
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(run_id="blocked-active-run")},
+        )
+        run = ChallengeRun.objects.get(run_id="blocked-active-run")
+
+        response = self.client.post(
+            reverse("registry:deactivate_run", args=(run.pk,)),
+            {
+                "confirm_deactivation": "deactivate",
+                "return_to_submission": "1",
+            },
+        )
+
+        self.assertRedirects(response, reverse("registry:submit_run"))
+        run.refresh_from_db()
+        self.assertEqual(run.lifecycle_status, ChallengeRun.Lifecycle.ABANDONED)
+
+    def test_deactivation_from_submission_block_supports_in_page_response(self):
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(run_id="ajax-active-run")},
+        )
+        run = ChallengeRun.objects.get(run_id="ajax-active-run")
+
+        response = self.client.post(
+            reverse("registry:deactivate_run", args=(run.pk,)),
+            {
+                "confirm_deactivation": "deactivate",
+                "return_to_submission": "1",
+            },
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "ok": True,
+                "message": "The active run was deactivated. You can now submit this character.",
+            },
+        )
+        run.refresh_from_db()
+        self.assertEqual(run.lifecycle_status, ChallengeRun.Lifecycle.ABANDONED)
 
     def test_deactivated_run_rejects_later_updates_and_frees_mode_slot(self):
         self.client.post(
@@ -820,6 +1094,31 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(run.approved_submission, submission)
         self.assertEqual(submission.status, RunSubmission.Status.APPROVED)
         self.assertIsNotNone(submission.reviewed_at)
+        self.assertEqual(run.contract_state.projection_schema, 1)
+        self.assertEqual(
+            run.character_record.starting_display_name, "Starting Survivor"
+        )
+        self.assertEqual(run.character_record.current_display_name, "Test Survivor")
+        self.assertEqual(run.character_record.traits.count(), 3)
+        self.assertEqual(
+            set(run.character_record.traits.values_list("phase", flat=True)),
+            {
+                RunCharacterTrait.Phase.SELECTED_STARTING,
+                RunCharacterTrait.Phase.SPAWNED_STARTING,
+                RunCharacterTrait.Phase.CURRENT,
+            },
+        )
+        self.assertEqual(
+            run.starting_location.selection_mode,
+            RunStartingLocation.SelectionMode.EXPLICIT,
+        )
+        self.assertEqual(
+            run.starting_location.resolved_region_raw_id, "Muldraugh, KY"
+        )
+        self.assertEqual(
+            (run.starting_location.x, run.starting_location.y, run.starting_location.z),
+            (10835, 10144, 0),
+        )
         self.assertTrue(
             Notification.objects.filter(
                 recipient=self.participant, title="Submission approved"
@@ -832,6 +1131,136 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "In-game Day")
         self.assertNotContains(dashboard, "Day 1")
         self.assertNotContains(dashboard, "Events verified")
+
+    def test_admin_approval_rolls_back_if_authority_refresh_fails(self):
+        self.client.post(
+            reverse("registry:submit_run"), {"run_export": make_export()}
+        )
+        run = ChallengeRun.objects.get()
+        submission = RunSubmission.objects.get()
+        administrator = Participant.objects.create_superuser(
+            email="rollback-reviewer@example.com",
+            nickname="Rollback Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+
+        with patch(
+            "registry.admin.refresh_initial_run_authority",
+            side_effect=RuntimeError("authority refresh failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "authority refresh failed"):
+                self.client.post(
+                    reverse(
+                        "admin:registry_runsubmission_approve",
+                        args=(submission.pk,),
+                    )
+                )
+
+        run.refresh_from_db()
+        submission.refresh_from_db()
+        self.assertEqual(run.status, ChallengeRun.Status.PENDING)
+        self.assertIsNone(run.approved_submission)
+        self.assertEqual(submission.status, RunSubmission.Status.RECEIVED)
+        self.assertIsNone(submission.reviewed_at)
+        self.assertFalse(hasattr(run, "contract_state"))
+        self.assertFalse(hasattr(run, "character_record"))
+        self.assertFalse(hasattr(run, "starting_location"))
+        self.assertFalse(
+            Notification.objects.filter(
+                recipient=self.participant,
+                title="Submission approved",
+            ).exists()
+        )
+
+    def test_schema_two_approval_rebuilds_authoritative_outpost_records(self):
+        observed_outpost = next(
+            outpost
+            for outpost in outpost_lifecycle_projection()
+            if outpost["id"] == "rosewood"
+        )
+        projection = {
+            "schema": 2,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Test Survivor"}},
+            "outposts": [observed_outpost],
+        }
+        response = self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(projection=projection)},
+        )
+        self.assertEqual(response.status_code, 302, response.content.decode())
+        submission = RunSubmission.objects.get()
+        administrator = Participant.objects.create_superuser(
+            email="outpost-reviewer@example.com",
+            nickname="Outpost Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+
+        self.client.post(
+            reverse("admin:registry_runsubmission_approve", args=(submission.pk,))
+        )
+
+        self.assertEqual(RunOutpost.objects.count(), 1)
+        self.assertEqual(RunOutpostDeliverable.objects.count(), 13)
+        rosewood = RunOutpost.objects.get(raw_outpost_id="rosewood")
+        self.assertIsNotNone(rosewood.catalogue_entry)
+        self.assertEqual(rosewood.current_state, "incomplete")
+        self.assertEqual(rosewood.deliverables.count(), 13)
+
+    def test_approval_rebuilds_sparse_skill_and_kill_authority(self):
+        projection = {
+            "schema": 2,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Test Survivor"}},
+            "outposts": [],
+            "skills": [
+                {"id": "Aiming", "categoryId": "Firearm", "level": 2, "xp": 88.5},
+                {"id": "Cooking", "categoryId": "Crafting", "level": 0, "xp": 0},
+            ],
+            "weaponKills": {
+                "partial": True,
+                "baselineTotal": 4,
+                "sources": [
+                    {"id": "Base.Axe", "kills": 11},
+                    {"id": "Base.BareHands", "kills": 0},
+                ],
+            },
+            "fireDeaths": {"count": 3},
+            "zombieKillTypes": {"standing": 9, "onfront": 2},
+        }
+        response = self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(projection=projection)},
+        )
+        self.assertEqual(response.status_code, 302, response.content.decode())
+        submission = RunSubmission.objects.get()
+        administrator = Participant.objects.create_superuser(
+            email="advanced-authority-reviewer@example.com",
+            nickname="Advanced Authority Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+
+        self.client.post(
+            reverse("admin:registry_runsubmission_approve", args=(submission.pk,))
+        )
+
+        skill = RunSkill.objects.get()
+        self.assertEqual(skill.raw_skill_id, "Aiming")
+        self.assertEqual(skill.level, 2)
+        self.assertEqual(skill.xp, 88.5)
+        summary = RunKillSummary.objects.get()
+        self.assertEqual(summary.current_kills, 42)
+        self.assertTrue(summary.weapon_partial)
+        self.assertEqual(summary.weapon_baseline_total, 4)
+        self.assertEqual(summary.fire_deaths, 3)
+        self.assertEqual(summary.standing, 9)
+        self.assertEqual(summary.on_front, 2)
+        weapon = RunWeaponKill.objects.get()
+        self.assertEqual(weapon.raw_source_id, "Base.Axe")
+        self.assertEqual(weapon.kills, 11)
 
     def test_approval_marks_a_terminal_death_export_as_deceased(self):
         projection = {
@@ -945,7 +1374,13 @@ class RunSubmissionTests(TestCase):
         response = self.client.post(decline_url, {"reason": "  "})
         self.assertRedirects(
             response,
-            reverse("admin:registry_runsubmission_change", args=(submission.pk,)),
+            reverse("admin:registry_runsubmission_change", args=(submission.pk,))
+            + "?decline_error=reason_required",
+        )
+        response = self.client.get(response.url)
+        self.assertContains(response, "data-run-decline-error")
+        self.assertContains(
+            response, "A reason is required when declining a submission."
         )
         run.refresh_from_db()
         submission.refresh_from_db()

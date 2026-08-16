@@ -1,0 +1,14 @@
+<div class="leaderboard-trait-columns">
+  <div class="leaderboard-trait-column leaderboard-trait-column-negative">
+    <h4>Negative traits</h4>
+    <ul>
+      {% for trait in negative_traits %}<li class="{% if trait.is_passive %}is-passive {% endif %}{% if trait.change == 'gained' %}is-gained{% elif trait.change == 'lost' %}is-lost{% endif %}" tabindex="0" aria-describedby="{{ trait_id_prefix }}-negative-{{ forloop.counter }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="">{% endif %}<span>{{ trait.name }}</span>{% if trait.change == 'gained' %}<strong class="trait-change">Gained</strong>{% elif trait.change == 'lost' %}<strong class="trait-change">Lost</strong>{% elif not hide_points %}<strong>{% if trait.is_passive %}Passive{% else %}{{ trait.point_value }}{% endif %}</strong>{% endif %}<span class="leaderboard-trait-tooltip" id="{{ trait_id_prefix }}-negative-{{ forloop.counter }}" role="tooltip">{{ trait.description|linebreaksbr }}</span></li>{% empty %}<li class="leaderboard-trait-empty">None</li>{% endfor %}
+    </ul>
+  </div>
+  <div class="leaderboard-trait-column leaderboard-trait-column-positive">
+    <h4>Positive traits</h4>
+    <ul>
+      {% for trait in positive_traits %}<li class="{% if trait.is_passive %}is-passive {% endif %}{% if trait.change == 'gained' %}is-gained{% elif trait.change == 'lost' %}is-lost{% endif %}" tabindex="0" aria-describedby="{{ trait_id_prefix }}-positive-{{ forloop.counter }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="">{% endif %}<span>{{ trait.name }}</span>{% if trait.change == 'gained' %}<strong class="trait-change">Gained</strong>{% elif trait.change == 'lost' %}<strong class="trait-change">Lost</strong>{% elif not hide_points %}<strong>{% if trait.is_passive %}Passive{% else %}{{ trait.point_value }}{% endif %}</strong>{% endif %}<span class="leaderboard-trait-tooltip" id="{{ trait_id_prefix }}-positive-{{ forloop.counter }}" role="tooltip">{{ trait.description|linebreaksbr }}</span></li>{% empty %}<li class="leaderboard-trait-empty">None</li>{% endfor %}
+    </ul>
+  </div>
+</div>

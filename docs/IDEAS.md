@@ -39,5 +39,10 @@ it part of the active deliverable.
 - Per-day aggregate deltas
 - Public presentation of lifetime kills by weapon, literature, and collectible
   evidence already present in approved exports.
+- Revisit the fixed-size outpost lifecycle envelopes. Consider reducing
+  `firstCompletion`, `latestCompletion`, and `latestRegression` to only
+  `gameDay` and `utc` when the omitted state, sequence, requirement, and world
+  age values are already authoritative elsewhere or can be derived without
+  weakening validation or immutable evidence.
 - Additional versioned report-schema and synthetic long-run size tests when the
   export contract changes.

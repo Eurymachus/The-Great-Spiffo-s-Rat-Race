@@ -21,6 +21,9 @@
         blockedDialog.querySelectorAll("[data-submission-blocked-close]").forEach((button) => {
             button.addEventListener("click", () => blockedDialog.close());
         });
+        blockedDialog.querySelectorAll("[data-submission-blocked-run]").forEach((button) => {
+            button.addEventListener("click", () => blockedDialog.close());
+        });
         blockedDialog.addEventListener("click", (event) => {
             if (event.target === blockedDialog) blockedDialog.close();
         });

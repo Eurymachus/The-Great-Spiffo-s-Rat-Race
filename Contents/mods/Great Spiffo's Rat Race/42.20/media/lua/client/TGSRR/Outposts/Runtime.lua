@@ -95,6 +95,19 @@ function Runtime.evaluate(outpost, player)
                 and VehicleCheck.supportAreaFullyLoaded(outpost)) then
             started = false
             previousStart = nil
+        else
+            -- World streaming has not yet proved that the latched car has left.
+            -- Preserve the dependent spare-car result during that grace period so
+            -- an export can never claim that the car was started but is absent.
+            spareCar = {
+                available = true,
+                passed = true,
+                current = 0,
+                required = 0,
+                state = "latched",
+                fingerprint = "latched:" .. tostring(latchedVehicleId),
+                details = previousStart.details,
+            }
         end
     end
     local zombies = countZombies(outpost)
@@ -165,8 +178,12 @@ function Runtime.evaluate(outpost, player)
     }, true)
     local record = Store.get(outpost.id)
     local completion = Completion.calculate(record)
-    if Store.observeCompletion(outpost.id, completion.complete) then
+    local completionTransition = Store.observeCompletion(
+        outpost.id, completion.complete)
+    if completionTransition == "completed" then
         ChallengeEvents.emit("outpost.completed", { outpostId = outpost.id, record = record })
+    elseif completionTransition == "regressed" then
+        ChallengeEvents.emit("outpost.regressed", { outpostId = outpost.id, record = record })
     end
     local progressAvailability = {
         room_activation = activationAvailable,
@@ -218,6 +235,12 @@ updateDeliverable = function(outpost, deliverableId, result, allowUnavailable)
     })
     if previous and previous.passed ~= true and current and current.passed == true then
         ChallengeEvents.emit("outpost.deliverable.completed", {
+            outpostId = outpost.id, deliverableId = deliverableId,
+            previous = previous, current = current,
+        })
+    elseif previous and previous.passed == true
+            and current and current.passed ~= true then
+        ChallengeEvents.emit("outpost.deliverable.regressed", {
             outpostId = outpost.id, deliverableId = deliverableId,
             previous = previous, current = current,
         })

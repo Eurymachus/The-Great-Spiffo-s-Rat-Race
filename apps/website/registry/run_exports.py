@@ -13,6 +13,18 @@ MAX_DECOMPRESSED_BYTES = 16 * 1024 * 1024
 MAX_ENCODED_CHARACTERS = 24 * 1024 * 1024 + len(PREFIX) + 65
 MAX_RUN_ID_CHARACTERS = 160
 MAX_DATABASE_INTEGER = 2**63 - 1
+SUPPORTED_PROJECTION_SCHEMAS = {1, 2}
+OUTPOST_IDS = {
+    "brandenburg", "echo_creek", "ekron", "fallas_lake",
+    "hog_wallow_military_base", "irvington", "louisville", "march_ridge",
+    "muldraugh", "riverside", "rosewood", "valley_station", "west_point",
+}
+OUTPOST_DELIVERABLE_IDS = {
+    "room_activation", "floor_activation", "zombie_clearance",
+    "window_barricades", "enclosed", "doors_fitted", "doors_closed",
+    "good_bed", "generator", "food", "plumbed_sink", "spare_car",
+    "engine_start",
+}
 ENVELOPE_RE = re.compile(r"^TGSRR1\.LZ1\.([A-Za-z0-9_-]+)\.([0-9a-f]{64})$")
 CANONICAL_NUMBER_RE = re.compile(
     rb"^(?:0|-?(?:[1-9]\d*(?:\.\d+)?(?:e[+-]?\d+)?|0\.\d+))$"
@@ -21,6 +33,166 @@ CANONICAL_NUMBER_RE = re.compile(
 
 class InvalidRunExport(ValueError):
     pass
+
+
+def _valid_lifecycle_point(point, *, require_sequence=False):
+    if not isinstance(point, dict):
+        return False
+    integer_fields = ("utc",)
+    number_fields = ("worldAgeHours", "elapsedDays")
+    return (
+        (not require_sequence or (
+            not isinstance(point.get("sequence"), bool)
+            and isinstance(point.get("sequence"), int)
+            and point["sequence"] >= 1
+        ))
+        and ("sequence" not in point or (
+            not isinstance(point["sequence"], bool)
+            and isinstance(point["sequence"], int)
+            and point["sequence"] >= 1
+        ))
+        and all(
+            not isinstance(point.get(field), bool)
+            and isinstance(point.get(field), int)
+            and point[field] >= 0
+            for field in integer_fields
+        )
+        and all(
+            not isinstance(point.get(field), bool)
+            and isinstance(point.get(field), (int, float))
+            and math.isfinite(point[field])
+            and point[field] >= 0
+            for field in number_fields
+        )
+    )
+
+
+def _validate_lifecycle_summary(summary, current_complete):
+    if not isinstance(summary, dict):
+        return False
+    completion_count = summary.get("completionCount")
+    regression_count = summary.get("regressionCount")
+    if any(
+        isinstance(value, bool) or not isinstance(value, int) or value < 0
+        for value in (completion_count, regression_count)
+    ):
+        return False
+    if summary.get("currentState") != (
+        "complete" if current_complete else "incomplete"
+    ):
+        return False
+    first = summary.get("firstCompletion")
+    latest = summary.get("latestCompletion")
+    regression = summary.get("latestRegression")
+    if completion_count == 0:
+        if first is not None or latest is not None:
+            return False
+    elif not _valid_lifecycle_point(first, require_sequence=True) or not _valid_lifecycle_point(latest):
+        return False
+    if regression_count == 0:
+        if regression is not None:
+            return False
+    elif not _valid_lifecycle_point(regression):
+        return False
+    return True
+
+
+def _validate_outpost_lifecycles(projection):
+    outposts = projection.get("outposts")
+    if not isinstance(outposts, list) or len(outposts) > len(OUTPOST_IDS):
+        return False
+    observed_outposts = set()
+    for outpost in outposts:
+        if not isinstance(outpost, dict) or outpost.get("id") not in OUTPOST_IDS:
+            return False
+        outpost_id = outpost["id"]
+        if outpost_id in observed_outposts:
+            return False
+        observed_outposts.add(outpost_id)
+        if not isinstance(outpost.get("complete"), bool) or not _validate_lifecycle_summary(
+            outpost.get("lifecycle"), outpost["complete"]
+        ):
+            return False
+        deliverables = outpost.get("deliverables")
+        if not isinstance(deliverables, list) or len(deliverables) > len(OUTPOST_DELIVERABLE_IDS):
+            return False
+        observed_deliverables = set()
+        deliverables_by_id = {}
+        for deliverable in deliverables:
+            if (
+                not isinstance(deliverable, dict)
+                or deliverable.get("id") not in OUTPOST_DELIVERABLE_IDS
+                or deliverable["id"] in observed_deliverables
+                or not isinstance(deliverable.get("passed"), bool)
+                or not _validate_lifecycle_summary(
+                    deliverable.get("lifecycle"), deliverable["passed"]
+                )
+            ):
+                return False
+            observed_deliverables.add(deliverable["id"])
+            deliverables_by_id[deliverable["id"]] = deliverable
+        engine_start = deliverables_by_id.get("engine_start")
+        spare_car = deliverables_by_id.get("spare_car")
+        if (
+            engine_start
+            and engine_start["passed"]
+            and (not spare_car or not spare_car["passed"])
+        ):
+            return False
+    return True
+
+
+def _validate_outpost_lifecycle_history(projection, events):
+    outposts = {outpost["id"]: outpost for outpost in projection["outposts"]}
+    grouped = {}
+    relevant_types = {"outpost.completed", "outpost.deliverable.completed"}
+    forbidden_types = {"outpost.regressed", "outpost.deliverable.regressed"}
+    for event in events:
+        if event["event_type"] in forbidden_types:
+            return False
+        if event["event_type"] not in relevant_types:
+            continue
+        payload = event["payload"]
+        outpost_id = payload.get("outpostId")
+        deliverable_id = payload.get("deliverableId")
+        if outpost_id not in outposts:
+            return False
+        if deliverable_id is not None and deliverable_id not in OUTPOST_DELIVERABLE_IDS:
+            return False
+        if deliverable_id is not None and deliverable_id not in {
+            deliverable["id"] for deliverable in outposts[outpost_id]["deliverables"]
+        }:
+            return False
+        grouped.setdefault((outpost_id, deliverable_id), []).append(event)
+
+    for outpost_id, outpost in outposts.items():
+        subjects = [(None, outpost)] + [
+            (deliverable["id"], deliverable)
+            for deliverable in outpost["deliverables"]
+        ]
+        for deliverable_id, subject in subjects:
+            summary = subject["lifecycle"]
+            subject_events = grouped.get((outpost_id, deliverable_id), [])
+            completions = [
+                event for event in subject_events
+                if event["event_type"].endswith("completed")
+            ]
+            if len(completions) != (1 if summary["completionCount"] > 0 else 0):
+                return False
+            point = summary.get("firstCompletion")
+            event = completions[0] if completions else None
+            if not (point is None and event is None) and (
+                point is None or event is None or any(
+                    point[key] != event[event_key]
+                    for key, event_key in (
+                        ("sequence", "sequence"),
+                        ("utc", "utc"),
+                        ("worldAgeHours", "world_age_hours"),
+                    )
+                )
+            ):
+                return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -296,7 +468,7 @@ def decode_run_export(value):
         raise InvalidRunExport("The export contains an invalid run projection.")
     current_kills = projection.get("currentKills")
     if (
-        projection.get("schema") != 1
+        projection.get("schema") not in SUPPORTED_PROJECTION_SCHEMAS
         or isinstance(current_kills, bool)
         or not isinstance(current_kills, int)
         or current_kills < 0
@@ -334,7 +506,8 @@ def decode_run_export(value):
         or starting_location["worldAgeHours"] < 0
         or not isinstance(starting_location.get("buildingId"), str)
         or len(starting_location["buildingId"]) > 160
-        or not isinstance(starting_location.get("partial"), bool)
+        or ("partial" in starting_location
+            and not isinstance(starting_location.get("partial"), bool))
         or (
             registered_location is not None
             and (
@@ -350,6 +523,21 @@ def decode_run_export(value):
         )
     ):
         raise InvalidRunExport("The export contains invalid starting-location evidence.")
+    chosen_starting_region = projection["character"].get("chosenStartingRegion")
+    if chosen_starting_region is not None and (
+        not isinstance(chosen_starting_region, dict)
+        or chosen_starting_region.get("schema") != 1
+        or chosen_starting_region.get("selectionMode") not in {"explicit", "random"}
+        or not isinstance(chosen_starting_region.get("resolvedRegionId"), str)
+        or not chosen_starting_region["resolvedRegionId"]
+        or len(chosen_starting_region["resolvedRegionId"]) > 255
+        or isinstance(chosen_starting_region.get("capturedUtc"), bool)
+        or not isinstance(chosen_starting_region.get("capturedUtc"), int)
+        or chosen_starting_region["capturedUtc"] < 0
+    ):
+        raise InvalidRunExport("The export contains invalid chosen-region evidence.")
+    if projection["schema"] >= 2 and not _validate_outpost_lifecycles(projection):
+        raise InvalidRunExport("The export contains invalid outpost lifecycle summaries.")
 
     bodies = []
     body_cursor = 0
@@ -369,6 +557,12 @@ def decode_run_export(value):
         events.append(event)
     if previous_hash != event_hash:
         raise InvalidRunExport("The export ledger hash does not match its events.")
+    if projection["schema"] >= 2 and not _validate_outpost_lifecycle_history(
+        projection, events
+    ):
+        raise InvalidRunExport(
+            "The outpost lifecycle summaries do not match the verified ledger."
+        )
 
     lifecycle = projection.get("lifecycle")
     terminal_events = [event for event in events if event["event_type"] == "run.ended"]

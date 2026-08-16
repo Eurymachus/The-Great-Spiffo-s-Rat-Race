@@ -58,42 +58,10 @@
 
   {% for entry in leaderboard %}
     {% if request.user.is_authenticated %}
-    <dialog class="leaderboard-build-modal" id="leaderboard-build-{{ entry.run.pk }}" aria-labelledby="leaderboard-build-title-{{ entry.run.pk }}">
-      <header>
-        <div><p class="account-dashboard-kicker">Starting build</p><strong id="leaderboard-build-title-{{ entry.run.pk }}">{{ entry.survivor }}</strong></div>
-        <div class="leaderboard-modal-actions">
-          <a class="dashboard-header-action" href="{% url 'registry:public_run_detail' entry.run.pk %}">View survivor record</a>
-          <button type="button" data-build-close>Close</button>
-        </div>
-      </header>
-      <div class="leaderboard-build-content">
-        <section class="leaderboard-profession">
-          {% if entry.profession_icon_url %}<img src="{{ entry.profession_icon_url }}" alt="">{% endif %}
-          <div><small>Profession</small><strong>{{ entry.profession }}</strong></div>
-        </section>
-        <section>
-          <h3>Selected starting traits</h3>
-          <div class="leaderboard-trait-columns">
-            <div class="leaderboard-trait-column leaderboard-trait-column-negative">
-              <h4>Negative traits</h4>
-              <ul>
-                {% for trait in entry.negative_traits %}
-                <li tabindex="0" aria-describedby="negative-trait-{{ entry.run.pk }}-{{ forloop.counter }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="">{% endif %}<span>{{ trait.name }}</span><strong>{{ trait.point_value }}</strong><span class="leaderboard-trait-tooltip" id="negative-trait-{{ entry.run.pk }}-{{ forloop.counter }}" role="tooltip">{{ trait.description|linebreaksbr }}</span></li>
-                {% empty %}<li class="leaderboard-trait-empty">None selected</li>{% endfor %}
-              </ul>
-            </div>
-            <div class="leaderboard-trait-column leaderboard-trait-column-positive">
-              <h4>Positive traits</h4>
-              <ul>
-                {% for trait in entry.positive_traits %}
-                <li tabindex="0" aria-describedby="positive-trait-{{ entry.run.pk }}-{{ forloop.counter }}">{% if trait.icon_url %}<img src="{{ trait.icon_url }}" alt="">{% endif %}<span>{{ trait.name }}</span><strong>{{ trait.point_value }}</strong><span class="leaderboard-trait-tooltip" id="positive-trait-{{ entry.run.pk }}-{{ forloop.counter }}" role="tooltip">{{ trait.description|linebreaksbr }}</span></li>
-                {% empty %}<li class="leaderboard-trait-empty">None selected</li>{% endfor %}
-              </ul>
-            </div>
-          </div>
-        </section>
-      </div>
-    </dialog>
+    {% url 'registry:public_run_detail' entry.run.pk as record_url %}
+    {% with run_id=entry.run.pk|stringformat:"s" %}{% with dialog_id="leaderboard-build-"|add:run_id %}
+    {% include "registry/includes/character_build_dialog.html" with dialog_id=dialog_id survivor=entry.survivor profession=entry.profession profession_icon_url=entry.profession_icon_url profession_point_value=entry.profession_point_value profession_point_is_negative=entry.profession_point_is_negative negative_traits=entry.negative_traits positive_traits=entry.positive_traits record_url=record_url %}
+    {% endwith %}{% endwith %}
     {% endif %}
   {% endfor %}
 

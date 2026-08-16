@@ -126,11 +126,12 @@ function Store.observeCompletion(id, complete)
     local state = record.completionState
     if type(state) ~= "table" or state.observed ~= true then
         record.completionState = { observed = true, complete = complete == true }
-        return false
+        return nil
     end
-    local rising = state.complete ~= true and complete == true
+    local previous = state.complete == true
     state.complete = complete == true
-    return rising
+    if previous == state.complete then return nil end
+    return state.complete and "completed" or "regressed"
 end
 
 function Store.updateProgressStage(id, fractions, available, sealBaseline)

@@ -106,7 +106,7 @@ end
 
 function LocationTracker.getSnapshot()
     local Snapshot = require "TGSRR/Run/LocationSnapshot"
-    return Snapshot.observe(activeRun)
+    return Snapshot.observeForTracker(activeRun)
 end
 
 function LocationTracker.getBuildingVisit(buildingId)

@@ -865,3 +865,54 @@ a normal run-moderation bulk action.
   operations and immutable releases. They do not author or merge changes.
 - The old `codex/website-dev` and `codex/outpost-tracker-dev` worktrees are
   temporarily retained, but they are no longer authoring workspaces.
+
+# 2026-08-15 - Make approved runs the normalized data authority
+
+- Every submission retains its raw export as immutable evidence.
+- Searchable authoritative records belong to `ChallengeRun`, not to a pending
+  or declined submission.
+- Only approval refreshes run-owned authoritative records. Approval, the
+  authoritative refresh, and the approved-submission pointer update are one
+  atomic database transaction.
+- The latest approved export represents accepted current state and complete
+  verified history. Import rebuilds authority from that complete export rather
+  than trusting only its new tail.
+- Pending and declined submissions never affect graphs, rankings, filters,
+  public records, or community statistics.
+- Website catalogue records provide stable resolution and presentation. Raw
+  Project Zomboid identifiers, BuildingDef IDs, registry versions, and
+  coordinates remain preserved evidence.
+- Outpost deliverables and whole outposts retain first completion as the sole
+  permanent milestone. Each also exports a bounded lifecycle summary with
+  first completion, latest completion, latest regression, completion count,
+  regression count, and current state.
+- Later outpost and deliverable completions and regressions update bounded run
+  state only. They do not append ledger events. Projection schema 2 exports
+  sparse non-default outpost, deliverable, town, and landmark evidence; the
+  website expands omissions from its versioned catalogues. Partial-history
+  flags are presence-only and default to false when omitted.
+- The complete field map and implementation order are maintained in
+  [RUN_EXPORT_AUTHORITY_CONTRACT.md](RUN_EXPORT_AUTHORITY_CONTRACT.md).
+
+# 2026-08-15 - Use canonical Project Zomboid map coordinate links
+
+- A Project Zomboid map link for an observed tile uses exactly
+  `https://map.projectzomboid.com?{x}x{y}x{z}`.
+- `{x}`, `{y}`, and `{z}` are the preserved integer coordinates from the
+  evidence record, in that order. Example:
+  `https://map.projectzomboid.com?1912x14381x0`.
+- Do not add `version`, `layer`, or alternative coordinate query parameters to
+  the canonical link.
+- Links to starting locations use the observed `character.startingLocation`
+  coordinates, not a town, outpost, landmark, or catalogue anchor.
+- The signed-in player-facing run page shows only `Spawn choice` and
+  `Starting location`. Random selection is labelled `Random Spawn, KY`;
+  explicit selection uses the resolved region display name. The resolved
+  region selected by Random remains retained evidence but is not revealed in
+  the ordinary player-facing summary.
+- Starting location shows plain `x, y` coordinates followed by a separate
+  `View map` external link. The canonical URL retains `z`, opens in a new tab,
+  displays an external-link indicator, and has the accessible label
+  `View starting location on the Project Zomboid Map`.
+- BuildingDef ID, capture timestamps, schema and registry provenance remain
+  stored evidence and are not part of the ordinary player-facing panel.

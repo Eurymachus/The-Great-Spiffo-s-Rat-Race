@@ -311,7 +311,7 @@ class RunSubmissionForm(forms.Form):
         )
         self.media_by_id = {str(item.id): item for item in media}
         self.fields["evidence_video"].choices = [("", "Choose a broadcast")] + [
-            (str(item.id), f"{item.published_at:%d %b %Y} — {item.title}")
+            (str(item.id), f"{item.published_at:%d %b %Y}: {item.title}")
             for item in media
             if item.kind == StreamingMedia.Kind.VIDEO and item.published_at
         ]

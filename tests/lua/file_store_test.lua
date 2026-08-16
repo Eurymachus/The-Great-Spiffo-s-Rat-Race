@@ -35,6 +35,12 @@ local ok, status = FileStore.initialize({
         gameMode = "The Great Spiffo's Rat Race",
     },
     startingChallengePartial = false,
+    chosenStartingRegion = {
+        schema = 1,
+        selectionMode = "random",
+        resolvedRegionId = "Rosewood, KY",
+        capturedUtc = 1786819000,
+    },
     startingCharacter = {
         forename = "Test",
         surname = "Rat",
@@ -47,5 +53,9 @@ assert(ok == true)
 assert(status == "created")
 assert(openedPath == "TGSRR/Runs/rr-test/run.meta.txt")
 assert(#written > 0)
+local output = table.concat(written)
+assert(output:find("chosenStartingRegionMode=random", 1, true))
+assert(output:find("chosenStartingRegionId=Rosewood%2C KY", 1, true))
+assert(output:find("chosenStartingRegionCapturedUtc=1786819000", 1, true))
 
 print("file_store_test: ok")

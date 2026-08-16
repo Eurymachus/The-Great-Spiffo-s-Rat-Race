@@ -6,6 +6,10 @@
 - Canonical local worktree: `The Great Spiffo's Rat Race`
 - Website and Project Zomboid mod contracts evolve together on the unified
   development branch.
+- The canonical local development runtime now lives here too. Its ignored
+  `.env`, SQLite database, and media library were migrated from the obsolete
+  `The Great Spiffo's Rat Race - Website` worktree on 2026-08-15. Do not start
+  or update the obsolete worktree as the local website deployment.
 
 ## Goal
 
@@ -30,6 +34,32 @@ records, while aliases and assets remain shared catalogue relationships.
 
 ## Implemented
 
+- The first normalized run-authority slice now stores the approved export
+  contract version, one character, selected starting traits, spawned starting
+  traits, mutable current traits, and starting-location evidence on the run.
+  Trait and occupation rows retain raw Project Zomboid IDs and link directly to
+  catalogue entries when resolved. Starting-location rows can also link to the
+  versioned geography catalogue.
+- Run-submission approval now locks the submission and run, refreshes the first
+  authority slice, updates the approved snapshot, and sends its notification in
+  one database transaction. A forced importer failure is covered by a rollback
+  test and leaves the submission received and the run pending.
+- The signed-in player run page presents `Spawn choice` and `Starting location`
+  from run-owned authority. Starting location is an icon-only link using the
+  newest active `Base.Map` catalogue artwork, with `View map` alternative text;
+  coordinates remain hidden in the presentation but preserved in the canonical
+  `https://map.projectzomboid.com?{x}x{y}x{z}` destination. A random choice remains
+  labelled `Random Spawn, KY` without revealing its resolved region.
+- Projection schema 2 outpost imports preserve sparse current-state evidence and
+  validate first completions against their sole permanent ledger events. Approval
+  rebuilds only observed `RunOutpost` and `RunOutpostDeliverable` records with
+  bounded lifecycle summaries, raw IDs, and nullable catalogue links. Missing
+  catalogue-backed records mean unexplored or incomplete. Public run cards,
+  rankings, and community outpost counts now prefer run-owned authority.
+- Approved sparse skill and kill evidence now rebuilds normalized `RunSkill`,
+  `RunKillSummary`, and `RunWeaponKill` authority. Missing catalogue skills and
+  kill-source rows resolve to zero for presentation, while partial baselines and
+  raw Project Zomboid source IDs remain stored evidence.
 - A persistent production-shaped staging environment is live at
   `https://dev.tgsrr.com` from the isolated `G:\RatRace_Staging` root. It uses
   its own PostgreSQL cluster, protected configuration, filesystem state, empty
@@ -257,13 +287,41 @@ records, while aliases and assets remain shared catalogue relationships.
   approved participant-facing records: Personal Best, Active Runs, Past Runs
   and the claimed Legacy Rat Race result when available. It does not expose
   submission history, pending or declined submissions, or moderation details.
-- Signed-in verified-run page presentation at UUID-based addresses. The initial view
-  presents challenge progress, character traits, current skills in a grouped
+- Signed-in verified-run page presentation at UUID-based addresses. Challenge
+  progress is the first section and uses four short, responsive cards for
+  kills, skills, outposts and landmarks. The Outposts card opens a dialog with
+  all 13 catalogue-backed outposts, expanding the sparse authoritative run data
+  for presentation only. Missing run records appear as collapsed Undiscovered
+  entries without invented deliverable evidence. Discovered entries provide
+  compact deliverable status details. Public rows
+  mirror the mod's requirement, current-value and Passed/Pending columns and
+  omit backend lifecycle counts. Each outpost is a bordered disclosure card
+  with visible hover and focus feedback linking its rows to their owning outpost.
+  The former summary grid and standalone World Progress section are removed.
+  The character header has a compact build control that opens the starting
+  occupation, selected starting traits and currently effective traits. The run
+  page and leaderboard use one shared build-dialog template; the run page adds
+  accessible Starting Traits and Current Traits tabs when both sets exist.
+  Starting traits are ordered by catalogue point cost, zero-cost traits are
+  presented as Passive, and the occupation shows its catalogue point value.
+  When Project Zomboid omits a trait description, the tooltip derives a factual
+  fallback from the trait's structured starting skill boosts.
+  Current traits omit build costs and distinguish gained traits from traits that
+  are no longer effective. A small
+  state row exposes current weight and the favourite weapon from approved
+  cumulative weapon-kill evidence through accessible hover text; their future
+  history graphs remain pending authoritative history tables. Spawn choice and
+  map-linked starting coordinates remain concise evidence in the header. Broken
+  Weapons remains in Recorded Totals and can become interactive when its
+  authoritative breakdown exists. Current skills follow in a grouped
   Project Zomboid-style panel using the complete version-controlled 35-icon
   in-game artwork pack from `deployment/assets/skill-icons`, installed into the
   catalogue as the preferred manual presentation with PZwiki artwork retained
-  as a fallback,
-  outposts, town visits, activity totals and clearly distinguished in-game
+  as a fallback. The Skills progress card opens that panel in a dedicated
+  details dialog, matching the Outposts interaction and keeping the main run
+  page concise. Town visits expand the sparse export against the 12 canonical
+  town definitions, presenting omitted towns as unvisited. Activity totals and
+  clearly distinguished in-game
   export and website receipt timestamps without exposing raw run IDs, checksums
   or ledger hashes. Charts remain a later signed-in presentation layer.
 - Participant notifications for submission receipt and moderation decisions,

@@ -1,7 +1,7 @@
 {% extends "registry/base.html" %}
 {% load static %}
 {% block title_suffix %} | Submit a run{% endblock %}
-{% block extra_head %}<script src="{% static 'registry/submit_run.js' %}?v=20260807-2" defer></script>{% endblock %}
+{% block extra_head %}<script src="{% static 'registry/run_details.js' %}?v=20260816-1" defer></script><script src="{% static 'registry/submit_run.js' %}?v=20260816-1" defer></script>{% endblock %}
 {% block content %}
 <section class="card account-form-card run-submission-card">
   <header class="run-submission-header">
@@ -157,11 +157,21 @@
     <div class="submission-blocked-content">
       <p>{{ submission_blocked_message }}</p>
       <div class="submission-blocked-actions">
-        <a class="button-secondary" href="{% url 'registry:account' %}">Manage active runs</a>
+        {% if submission_blocked_run %}<button
+          type="button"
+          class="submission-blocked-view-run"
+          data-submission-blocked-run
+          data-run-detail-open="run-detail-{{ submission_blocked_run.pk }}"
+          aria-haspopup="dialog"
+        >View active run</button>{% endif %}
         <button type="button" data-submission-blocked-close>Return to form</button>
       </div>
     </div>
   </dialog>
+  {% if submission_blocked_run %}
+    {% include "registry/_run_detail_dialog.html" with run=submission_blocked_run %}
+    {% include "registry/_run_deactivate_dialog.html" with run=submission_blocked_run return_to_submission=True %}
+  {% endif %}
   {% endif %}
 </section>
 {% endblock %}

@@ -875,6 +875,7 @@ def submit_run(request):
         str(value) for value in (form["evidence_clips"].value() or [])
     }
     submission_blocked_message = ""
+    submission_blocked_run = None
     if request.method == "POST" and form.is_valid():
         try:
             decoded = decode_run_export(form.cleaned_data["run_export"])
@@ -927,13 +928,20 @@ def submit_run(request):
                                 "Start a new character to submit another run."
                             )
                         if not locked_existing and challenge_mode:
-                            active_count = ChallengeRun.objects.filter(
+                            active_runs = ChallengeRun.objects.select_for_update().filter(
                                 participant=request.user,
                                 challenge_mode=challenge_mode,
                                 lifecycle_status=ChallengeRun.Lifecycle.ACTIVE,
-                            ).count()
+                            )
+                            active_count = active_runs.count()
                             limit = challenge_mode.max_active_runs_per_participant
                             if active_count >= limit:
+                                submission_blocked_run = (
+                                    active_runs.select_related("challenge_mode")
+                                    .prefetch_related("submissions__challenge_mode")
+                                    .order_by("first_submitted_at", "pk")
+                                    .first()
+                                )
                                 noun = "run" if limit == 1 else "runs"
                                 raise SubmissionBlocked(
                                     f"You already have the maximum of {limit} active {noun} "
@@ -1054,6 +1062,7 @@ def submit_run(request):
                 )
             ),
             "submission_blocked_message": submission_blocked_message,
+            "submission_blocked_run": submission_blocked_run,
             "submission_videos": submission_videos,
             "submission_clips": submission_clips,
             "selected_video_id": selected_video_id,
@@ -1166,7 +1175,14 @@ def submit_legacy_run(request):
 @login_required
 @require_http_methods(["POST"])
 def deactivate_run(request, run_id):
+    return_to_submission = request.POST.get("return_to_submission") == "1"
+    wants_json = "application/json" in request.headers.get("Accept", "")
     if request.POST.get("confirm_deactivation") != "deactivate":
+        if wants_json:
+            return JsonResponse(
+                {"ok": False, "message": "Run deactivation was not confirmed."},
+                status=400,
+            )
         messages.error(request, "Run deactivation was not confirmed.")
         return redirect("registry:account")
 
@@ -1177,9 +1193,19 @@ def deactivate_run(request, run_id):
             participant=request.user,
         )
         if run.participant_deactivated_at:
+            if wants_json:
+                return JsonResponse(
+                    {"ok": False, "message": "This run has already been deactivated."},
+                    status=409,
+                )
             messages.info(request, "This run has already been deactivated.")
             return redirect("registry:account")
         if run.lifecycle_status != ChallengeRun.Lifecycle.ACTIVE:
+            if wants_json:
+                return JsonResponse(
+                    {"ok": False, "message": "Only an active run can be deactivated."},
+                    status=409,
+                )
             messages.error(request, "Only an active run can be deactivated.")
             return redirect("registry:account")
 
@@ -1195,7 +1221,16 @@ def deactivate_run(request, run_id):
             review_note="Run deactivated by participant.",
         )
 
+    if wants_json:
+        return JsonResponse(
+            {
+                "ok": True,
+                "message": "The active run was deactivated. You can now submit this character.",
+            }
+        )
     messages.success(request, "The run has been permanently deactivated.")
+    if return_to_submission:
+        return redirect("registry:submit_run")
     return redirect("registry:account")
 
 

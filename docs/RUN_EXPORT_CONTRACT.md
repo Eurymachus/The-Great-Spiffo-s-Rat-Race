@@ -62,8 +62,7 @@ character projection:
       "buildingId": "10835,10144,0",
       "registeredLocation": null,
       "capturedUtc": 1784800000,
-      "worldAgeHours": 0,
-      "partial": false
+      "worldAgeHours": 0
     }
   }
 }
@@ -80,9 +79,16 @@ The value is `null` for ordinary or unknown buildings. Build-specific raw
 BuildingDef IDs are deployment-installed mappings to the stable catalogue entry;
 they are not themselves treated as permanent identities.
 
-When tracking begins on an existing save, `partial` is true. In that case the
+An omitted `partial` field means false. When tracking begins on an existing
+save, `partial` is present and true. In that case the
 coordinates prove where TGSRR tracking began, not where the character originally
 spawned.
+
+Across projection schema 2, all partial-history flags are presence-only:
+omission means false, and the mod emits the field only when true. Sparse
+outpost, deliverable, town, and landmark lists work the same way against their
+declared versioned registries. Omission means the catalogue-defined default,
+not unknown evidence.
 
 ## Separate states
 

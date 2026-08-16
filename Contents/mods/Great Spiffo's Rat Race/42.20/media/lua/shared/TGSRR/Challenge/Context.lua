@@ -15,7 +15,6 @@ function Context.current()
 
     local definition = SelectedChallenge.observe(core:getGameMode())
     if not definition then return nil end
-    if core.isChallenge and not core:isChallenge() then return nil end
 
     local challengeId = core.getChallengeID
         and nonEmpty(core:getChallengeID()) or nil

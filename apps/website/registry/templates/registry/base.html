@@ -73,8 +73,9 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260815-12">
+    <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260816-19">
     <script src="{% static 'registry/leaderboard.js' %}?v=20260803-3" defer></script>
+    <script src="{% static 'registry/build_dialog.js' %}?v=20260816-1" defer></script>
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
     <script src="{% static 'registry/site_menu.js' %}?v=20260815-12" defer></script>
     <script src="{% static 'registry/account_menu.js' %}?v=20260722-1" defer></script>
@@ -135,7 +136,7 @@
     <a class="skip-link" href="#main-content">Skip to main content</a>
     {% if staging_environment %}
     <div class="staging-banner" role="status">
-        <strong>DEVELOPMENT / TEST SITE</strong> — Data may be reset at any time. Use test submissions only.
+        <strong>DEVELOPMENT / TEST SITE</strong>: Data may be reset at any time. Use test submissions only.
     </div>
     {% endif %}
     <div class="page-shell">

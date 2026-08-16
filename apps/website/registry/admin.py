@@ -41,6 +41,7 @@ from .models import (
 )
 from .legacy_imports import apply_legacy_import, create_legacy_import_review
 from .legacy_submissions import legacy_submission_strength
+from .run_authority import refresh_initial_run_authority
 
 
 class ExploitRulingImageInline(admin.TabularInline):
@@ -1214,6 +1215,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         context = dict(extra_context or {})
         if submission:
             context["run_review"] = build_run_review(submission)
+        context["decline_error"] = request.GET.get("decline_error", "")
         return super().change_view(request, object_id, form_url, context)
 
     def get_urls(self):
@@ -1236,10 +1238,15 @@ class RunSubmissionAdmin(admin.ModelAdmin):
             raise Http404
         return submission
 
+    @transaction.atomic
     def approve_submission_view(self, request, object_id):
         if request.method != "POST":
             return HttpResponseNotAllowed(("POST",))
         submission = self.review_submission(request, object_id)
+        submission = RunSubmission.objects.select_for_update().select_related(
+            "run", "run__approved_submission"
+        ).get(pk=submission.pk)
+        run = ChallengeRun.objects.select_for_update().get(pk=submission.run_id)
         if submission.status != RunSubmission.Status.RECEIVED:
             self.message_user(request, "This submission has already been reviewed.", level=messages.WARNING)
             return redirect("admin:registry_runsubmission_change", submission.pk)
@@ -1288,7 +1295,6 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         submission.reviewed_at = reviewed_at
         submission.review_note = ""
         submission.save(update_fields=("status", "reviewed_at", "review_note"))
-        run = submission.run
         run.status = ChallengeRun.Status.OFFICIAL
         run.approved_submission = submission
         run.challenge_mode = resolve_challenge_mode(
@@ -1308,6 +1314,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         if decoded.lifecycle == ChallengeRun.Lifecycle.DECEASED:
             run.lifecycle_status = ChallengeRun.Lifecycle.DECEASED
         run.save()
+        refresh_initial_run_authority(run, decoded.projection)
         if run.participant:
             notify(
                 run.participant,
@@ -1328,10 +1335,10 @@ class RunSubmissionAdmin(admin.ModelAdmin):
             return redirect("admin:registry_runsubmission_change", submission.pk)
         reason = request.POST.get("reason", "").strip()
         if not reason:
-            self.message_user(
-                request, "A reason is required when declining a submission.", level=messages.ERROR
+            change_url = reverse(
+                "admin:registry_runsubmission_change", args=(submission.pk,)
             )
-            return redirect("admin:registry_runsubmission_change", submission.pk)
+            return redirect(f"{change_url}?decline_error=reason_required")
         submission.status = RunSubmission.Status.DECLINED
         submission.reviewed_at = timezone.now()
         submission.review_note = reason

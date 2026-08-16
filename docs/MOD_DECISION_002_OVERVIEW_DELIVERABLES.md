@@ -22,9 +22,11 @@ Individual outposts and diagnostic values belong on the Outposts tab.
 Inspector-level checks belong in the outpost detail view. Individual outpost
 percentages use the accepted weighted formula in Decision 013.
 
-The Overview footer reports the arithmetic mean of available required category
-percentages. Optional categories remain visible but do not affect that figure.
-Landmarks are currently optional; Kills, Skills, and Outposts are required.
+The Overview footer uses the public challenge weighting: Kills provide 50%,
+Outposts provide 25%, and Skills provide 25%. Optional categories remain
+visible but do not affect that figure. Landmarks are currently optional. If a
+required category is unavailable, the available weights are normalized in the
+same way as the website leaderboard calculation.
 
 ## Consequences
 
@@ -32,6 +34,8 @@ Landmarks are currently optional; Kills, Skills, and Outposts are required.
 - The tracker can remain substantially smaller than the earlier `1120x1000` prototype; the current implementation is `800x650`.
 - Detailed tabs become the authoritative comparison views.
 - Each system must expose a stable aggregate deliverable record.
+- The in-game headline percentage matches the website's public leaderboard
+  weighting without making the mod's combined value authoritative.
 - The aggregate outpost formula is settled. Individual outpost percentages use
   the accepted weighted formula in Decision 013.
 

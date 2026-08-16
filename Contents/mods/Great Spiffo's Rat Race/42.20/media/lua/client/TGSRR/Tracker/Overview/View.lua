@@ -4,6 +4,7 @@ require "ISUI/ISScrollingListBox"
 local Deliverables = require "TGSRR/Challenge/Deliverables"
 local L = require "TGSRR/Core/Localization"
 local Notifications = require "TGSRR/Challenge/Notifications"
+local ProgressWeights = require "TGSRR/Challenge/ProgressWeights"
 local Layout = require "TGSRR/Tracker/Layout"
 
 local View = ISPanel:derive("TGSRROverviewTrackerView")
@@ -132,16 +133,7 @@ end
 function View:refresh(player)
     if not self.list then return end
     local records = Deliverables.getAll({ player = player })
-    local requiredTotal = 0
-    local requiredCount = 0
-    for _, record in ipairs(records) do
-        if not record.optional and record.available ~= false then
-            requiredTotal = requiredTotal + record.percent
-            requiredCount = requiredCount + 1
-        end
-    end
-    self.overallPercent = requiredCount > 0
-        and requiredTotal / requiredCount or 0
+    self.overallPercent = ProgressWeights.calculate(records)
     local rebuild = #self.list.items ~= #records
     if not rebuild then
         for index, record in ipairs(records) do

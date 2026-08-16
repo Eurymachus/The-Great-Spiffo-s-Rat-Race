@@ -21,23 +21,24 @@ if (Test-Path -LiteralPath $resolvedOutput) {
 
 New-Item -ItemType Directory -Path $resolvedOutput | Out-Null
 $modOutput = Join-Path $resolvedOutput "Contents/mods/Great Spiffo's Rat Race"
-New-Item -ItemType Directory -Path $modOutput -Force | Out-Null
-Copy-Item -LiteralPath (Join-Path $modSource "common") -Destination $modOutput -Recurse
-Copy-Item -LiteralPath (Join-Path $modSource "42.20") -Destination $modOutput -Recurse
+New-Item -ItemType Directory -Path (Split-Path -Parent $modOutput) -Force | Out-Null
+Copy-Item -LiteralPath $modSource -Destination $modOutput -Recurse
 Copy-Item -LiteralPath $previewSource -Destination $resolvedOutput
 
-$testModInfoPath = Join-Path $modOutput "42.20/mod.info"
-$testModInfo = Get-Content -LiteralPath $testModInfoPath
-$testModInfo = $testModInfo | ForEach-Object {
-    if ($_ -match '^id=') {
-        "id=TGSRR-test"
-    } elseif ($_ -match '^name=') {
-        "name=The Great Spiffo's Rat Race - Team Test"
-    } else {
-        $_
+$testModInfoPaths = Get-ChildItem -LiteralPath $modOutput -Recurse -File -Filter "mod.info"
+foreach ($testModInfoPath in $testModInfoPaths) {
+    $testModInfo = Get-Content -LiteralPath $testModInfoPath.FullName
+    $testModInfo = $testModInfo | ForEach-Object {
+        if ($_ -match '^id=') {
+            "id=TGSRR-test"
+        } elseif ($_ -match '^name=') {
+            "name=The Great Spiffo's Rat Race - Team Test"
+        } else {
+            $_
+        }
     }
+    Set-Content -LiteralPath $testModInfoPath.FullName -Value $testModInfo -Encoding UTF8
 }
-Set-Content -LiteralPath $testModInfoPath -Value $testModInfo -Encoding UTF8
 
 $metadata = Get-Content -LiteralPath $metadataTemplate
 $metadata = $metadata | ForEach-Object {

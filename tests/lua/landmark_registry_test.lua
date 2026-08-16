@@ -41,10 +41,24 @@ local snapshot = Snapshot.observe({
 })
 assert(snapshot.schema == 2)
 assert(snapshot.registryVersion == 1)
-assert(#snapshot.entries == 21)
+assert(#snapshot.entries == 1)
 assert(snapshot.entries[1].id == "star_eplex_cinema")
 assert(snapshot.entries[1].visited == true)
 assert(snapshot.entries[1].firstVisit.buildingId == "6192677120901126")
 assert(snapshot.entries[1].optional == true)
+
+local trackerSnapshot = Snapshot.observeForTracker({
+    locations = {
+        registryVersion = 1,
+        visits = {
+            star_eplex_cinema = snapshot.entries[1].firstVisit,
+        },
+    },
+})
+assert(#trackerSnapshot.entries == 21)
+assert(trackerSnapshot.entries[1].visited == true)
+assert(trackerSnapshot.entries[2].visited == false)
+assert(trackerSnapshot.entries[2].name ~= nil)
+assert(trackerSnapshot.entries[2].anchor ~= nil)
 
 print("landmark registry test passed")

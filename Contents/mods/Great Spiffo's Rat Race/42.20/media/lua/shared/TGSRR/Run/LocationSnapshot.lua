@@ -15,23 +15,25 @@ local function visitSnapshot(visit)
     }
 end
 
-function LocationSnapshot.observe(run)
+local function observe(run, includeUnvisited)
     local state = type(run) == "table" and run.locations or nil
     local visits = state and state.visits or {}
     local entries = {}
     for _, location in ipairs(Locations.getAll()) do
         local visit = visitSnapshot(visits[location.id])
-        entries[#entries + 1] = {
-            id = location.id,
-            name = tostring(location.name or location.id),
-            area = tostring(location.area or ""),
-            category = tostring(location.category or ""),
-            optional = location.optional == true,
-            buildingIds = location.buildingIds,
-            anchor = location.anchor,
-            visited = visit ~= nil,
-            firstVisit = visit,
-        }
+        if visit or includeUnvisited == true then
+            entries[#entries + 1] = {
+                id = location.id,
+                name = tostring(location.name or location.id),
+                area = tostring(location.area or ""),
+                category = tostring(location.category or ""),
+                optional = location.optional == true,
+                buildingIds = location.buildingIds,
+                anchor = location.anchor,
+                visited = visit ~= nil,
+                firstVisit = visit,
+            }
+        end
     end
     return {
         schema = 2,
@@ -39,6 +41,14 @@ function LocationSnapshot.observe(run)
         partial = not state or state.partial == true,
         entries = entries,
     }
+end
+
+function LocationSnapshot.observe(run)
+    return observe(run, false)
+end
+
+function LocationSnapshot.observeForTracker(run)
+    return observe(run, true)
 end
 
 return LocationSnapshot

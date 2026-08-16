@@ -69,6 +69,93 @@ def _total(projection, key):
     return value.get("total") if isinstance(value, dict) else None
 
 
+def _outpost_number(value):
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return "0"
+    return f"{value:,.0f}" if float(value).is_integer() else f"{value:,.1f}"
+
+
+def _outpost_deliverable_status(deliverable):
+    state = str(deliverable.observed_state or "").strip()
+    if state:
+        return _name(state)
+    if not deliverable.available:
+        return "Unavailable"
+    return (
+        f"{_outpost_number(deliverable.current_value)} / "
+        f"{_outpost_number(deliverable.required_value)}"
+    )
+
+
+OUTPOST_DELIVERABLE_PRESENTATION = {
+    "room_activation": (1, "Room activation"),
+    "floor_activation": (2, "Floor activation"),
+    "zombie_clearance": (3, "Area Cleared"),
+    "window_barricades": (4, "Window barricades"),
+    "enclosed": (5, "Enclosed"),
+    "doors_fitted": (6, "Doors fitted"),
+    "doors_closed": (7, "Doors closed"),
+    "good_bed": (8, "Good bed"),
+    "generator": (9, "Generator"),
+    "food": (10, "Food"),
+    "plumbed_sink": (11, "Sink"),
+    "spare_car": (12, "Spare car"),
+    "engine_start": (13, "Spare car started"),
+}
+OUTPOST_REQUIREMENT_TOTAL = 14
+TOWN_PRESENTATION_CATALOGUE = (
+    ("brandenburg", "Brandenburg"),
+    ("echo_creek", "Echo Creek"),
+    ("ekron", "Ekron"),
+    ("fallas_lake", "Fallas Lake"),
+    ("irvington", "Irvington"),
+    ("louisville", "Louisville"),
+    ("march_ridge", "March Ridge"),
+    ("muldraugh", "Muldraugh"),
+    ("riverside", "Riverside"),
+    ("rosewood", "Rosewood"),
+    ("valley_station", "Valley Station"),
+    ("west_point", "West Point"),
+)
+
+
+def _presented_outpost_deliverables(outpost):
+    rows = [
+        {
+            "name": "Discovery",
+            "value": "-",
+            "passed": True,
+            "status": "Passed",
+            "status_class": "passed",
+            "order": 0,
+        }
+    ]
+    for deliverable in outpost.deliverables.all():
+        order, fallback_name = OUTPOST_DELIVERABLE_PRESENTATION.get(
+            deliverable.raw_deliverable_id,
+            (99, _name(deliverable.raw_deliverable_id)),
+        )
+        rows.append(
+            {
+                "name": fallback_name,
+                "value": _outpost_deliverable_status(deliverable),
+                "passed": deliverable.passed,
+                "status": (
+                    "Passed"
+                    if deliverable.passed
+                    else "Pending" if deliverable.available else "Unavailable"
+                ),
+                "status_class": (
+                    "passed"
+                    if deliverable.passed
+                    else "pending" if deliverable.available else "unavailable"
+                ),
+                "order": order,
+            }
+        )
+    return sorted(rows, key=lambda row: (row["order"], row["name"]))
+
+
 def _catalogue_map(kind, identifiers):
     identifiers = {str(value or "") for value in identifiers if value}
     candidates = identifiers | {
@@ -78,7 +165,7 @@ def _catalogue_map(kind, identifiers):
         kind=kind,
         stable_id__in=candidates,
         is_active=True,
-    ).select_related("trait_details")
+    ).select_related("trait_details", "occupation_details")
     resolved = {}
     for entry in sorted(entries, key=lambda item: version_key(item.introduced_in)):
         resolved[entry.stable_id] = entry
@@ -140,6 +227,38 @@ def build_public_run_context(run):
     all_injuries = injuries.get("all", {}) if isinstance(injuries, dict) else {}
     gameplay = projection.get("activeGameplay", {})
     nimble = projection.get("nimbleStance", {})
+    starting_location = getattr(run, "starting_location", None)
+    spawn_choice = "Not recorded"
+    starting_coordinates = "Not recorded"
+    starting_map_url = ""
+    starting_map_icon_url = ""
+    if starting_location:
+        if starting_location.selection_mode == "random":
+            spawn_choice = "Random Spawn, KY"
+        elif starting_location.resolved_region_catalogue_id:
+            spawn_choice = starting_location.resolved_region_catalogue.display_name
+        elif starting_location.resolved_region_raw_id:
+            spawn_choice = starting_location.resolved_region_raw_id
+        if starting_location.x is not None and starting_location.y is not None:
+            starting_coordinates = f"{starting_location.x}, {starting_location.y}"
+            if starting_location.z is not None:
+                starting_map_url = (
+                    "https://map.projectzomboid.com?"
+                    f"{starting_location.x}x{starting_location.y}x{starting_location.z}"
+                )
+
+    map_entries = list(
+        CatalogueEntry.objects.filter(
+            kind=CatalogueEntry.Kind.ITEM,
+            stable_id="Base.Map",
+            is_active=True,
+        )
+    )
+    if map_entries:
+        map_entry = max(map_entries, key=lambda item: version_key(item.introduced_in))
+        starting_map_icon_url = _catalogue_icon_map((map_entry,)).get(
+            map_entry.pk, ""
+        )
 
     raw_skills = [
         skill for skill in projection.get("skills", []) if isinstance(skill, dict)
@@ -226,6 +345,7 @@ def build_public_run_context(run):
     overall_skill_target = len(skills) * 10
 
     progress = []
+    progress_order = {"kills": 0, "skills": 1, "outposts": 2, "landmarks": 3}
     categories = projection.get("challengeProgress", {}).get("categories", {})
     if isinstance(categories, dict):
         for key, value in categories.items():
@@ -235,6 +355,7 @@ def build_public_run_context(run):
             ratio = ratio if isinstance(ratio, (int, float)) else 0
             progress.append(
                 {
+                    "id": key,
                     "name": _name(key),
                     "current": value.get("current", 0),
                     "target": value.get("target", 0),
@@ -246,29 +367,129 @@ def build_public_run_context(run):
             )
 
     outposts = []
-    for outpost in projection.get("outposts", []):
-        if not isinstance(outpost, dict):
+    authoritative_outposts = list(
+        run.authoritative_outposts.filter(discovered=True)
+        .select_related("catalogue_entry")
+        .prefetch_related("deliverables__catalogue_entry")
+        .order_by("raw_outpost_id")
+    )
+    if authoritative_outposts:
+        outposts = [
+            {
+                "id": (
+                    outpost.catalogue_entry.stable_id
+                    if outpost.catalogue_entry_id
+                    else outpost.raw_outpost_id
+                ),
+                "name": (
+                    outpost.catalogue_entry.display_name
+                    if outpost.catalogue_entry_id
+                    else _name(outpost.raw_outpost_id)
+                ),
+                "stage": _name(outpost.stage),
+                "percent": round(max(0, min(1, outpost.progress)) * 100, 1),
+                "complete": outpost.complete,
+                "passed": outpost.passed_requirements,
+                "total": outpost.total_requirements,
+                "completion_count": outpost.completion_count,
+                "regression_count": outpost.regression_count,
+                "deliverables": _presented_outpost_deliverables(outpost),
+                "discovered": True,
+            }
+            for outpost in authoritative_outposts
+        ]
+    else:
+        for outpost in projection.get("outposts", []):
+            if not isinstance(outpost, dict):
+                continue
+            ratio = outpost.get("progress", 0)
+            ratio = ratio if isinstance(ratio, (int, float)) else 0
+            stage = str(outpost.get("stage") or "").casefold()
+            if outpost.get("discovered") is False or (
+                "discovered" not in outpost
+                and ratio <= 0
+                and stage in {"", "unexplored", "undiscovered"}
+            ):
+                continue
+            outposts.append(
+                {
+                    "id": str(outpost.get("id") or ""),
+                    "name": _name(outpost.get("id")),
+                    "stage": _name(outpost.get("stage")),
+                    "percent": round(max(0, min(1, ratio)) * 100, 1),
+                    "complete": bool(outpost.get("complete")),
+                    "passed": outpost.get("passedRequirements", 0),
+                    "total": outpost.get("totalRequirements", 0),
+                    "completion_count": 0,
+                    "regression_count": 0,
+                    "deliverables": [],
+                    "discovered": True,
+                }
+            )
+
+    latest_outpost_entries = {}
+    for entry in CatalogueEntry.objects.filter(
+        kind=CatalogueEntry.Kind.OUTPOST,
+        is_active=True,
+    ):
+        current = latest_outpost_entries.get(entry.stable_id.casefold())
+        if current is None or version_key(entry.introduced_in) > version_key(
+            current.introduced_in
+        ):
+            latest_outpost_entries[entry.stable_id.casefold()] = entry
+
+    presented_outpost_ids = {
+        str(outpost.get("id") or "").casefold() for outpost in outposts
+    }
+    for stable_id, entry in latest_outpost_entries.items():
+        if stable_id in presented_outpost_ids:
             continue
-        ratio = outpost.get("progress", 0)
-        ratio = ratio if isinstance(ratio, (int, float)) else 0
         outposts.append(
             {
-                "name": _name(outpost.get("id")),
-                "stage": _name(outpost.get("stage")),
-                "percent": round(max(0, min(1, ratio)) * 100, 1),
-                "complete": bool(outpost.get("complete")),
-                "passed": outpost.get("passedRequirements", 0),
-                "total": outpost.get("totalRequirements", 0),
+                "id": entry.stable_id,
+                "name": entry.display_name,
+                "stage": "Undiscovered",
+                "percent": 0,
+                "complete": False,
+                "passed": 0,
+                "total": OUTPOST_REQUIREMENT_TOTAL,
+                "completion_count": 0,
+                "regression_count": 0,
+                "deliverables": [],
+                "discovered": False,
             }
         )
+    def outpost_status_order(outpost):
+        if outpost["complete"]:
+            return 0
+        if outpost["discovered"]:
+            return 1
+        return 2
+
+    outposts.sort(
+        key=lambda outpost: (
+            outpost_status_order(outpost),
+            outpost["name"].casefold(),
+            outpost["id"],
+        )
+    )
+    progress.sort(key=lambda item: (progress_order.get(item["id"], 99), item["name"]))
 
     towns = []
     town_visits = projection.get("townVisits", {})
     if isinstance(town_visits, dict):
-        towns = [
-            {"name": _name(town.get("id")), "visited": bool(town.get("visited"))}
+        observed_towns = {
+            str(town.get("id") or "").casefold(): town
             for town in town_visits.get("towns", [])
             if isinstance(town, dict)
+        }
+        towns = [
+            {
+                "id": stable_id,
+                "name": display_name,
+                "visited": bool(observed_towns.get(stable_id, {}).get("visited")),
+            }
+            for stable_id, display_name in TOWN_PRESENTATION_CATALOGUE
         ]
 
     distance_metres = distance.get("travelledMeters") if isinstance(distance, dict) else None
@@ -328,7 +549,24 @@ def build_public_run_context(run):
         CatalogueEntry.Kind.TRAIT,
         (*selected_traits, *current_traits),
     )
-    profession_id = current_character.get("professionId")
+    trait_effect_skill_ids = {
+        skill_id
+        for entry in trait_catalogue.values()
+        for skill_id in (
+            getattr(getattr(entry, "trait_details", None), "xp_boosts", {}) or {}
+        )
+    }
+    trait_effect_skill_catalogue = _catalogue_map(
+        CatalogueEntry.Kind.SKILL,
+        trait_effect_skill_ids,
+    )
+    starting_character = character.get("starting", {}) if isinstance(character, dict) else {}
+    character_record = getattr(run, "character_record", None)
+    profession_id = (
+        character_record.starting_occupation_raw_id
+        if character_record and character_record.starting_occupation_raw_id
+        else starting_character.get("professionId") or current_character.get("professionId")
+    )
     profession_catalogue = _catalogue_map(
         CatalogueEntry.Kind.OCCUPATION,
         (profession_id,),
@@ -336,10 +574,61 @@ def build_public_run_context(run):
     catalogue_icons = _catalogue_icon_map(
         (*trait_catalogue.values(), *profession_catalogue.values())
     )
-    profession_entry = profession_catalogue.get(str(profession_id))
+    profession_entry = (
+        character_record.starting_occupation
+        if character_record and character_record.starting_occupation_id
+        else profession_catalogue.get(str(profession_id))
+    )
     profession_icon_url = (
         catalogue_icons.get(profession_entry.pk, "") if profession_entry else ""
     )
+    profession_details = (
+        getattr(profession_entry, "occupation_details", None)
+        if profession_entry
+        else None
+    )
+    profession_point_cost = (
+        profession_details.point_cost if profession_details else None
+    )
+    weapon_sources = projection.get("weaponKills", {}).get("sources", [])
+    weapon_sources = [
+        source
+        for source in weapon_sources
+        if isinstance(source, dict)
+        and source.get("id")
+        and isinstance(source.get("kills"), (int, float))
+    ]
+    favourite_weapon_source = max(
+        weapon_sources,
+        key=lambda source: (source.get("kills", 0), str(source.get("id"))),
+        default=None,
+    )
+    favourite_weapon_id = (
+        favourite_weapon_source.get("id") if favourite_weapon_source else None
+    )
+    weapon_catalogue = _catalogue_map(
+        CatalogueEntry.Kind.ITEM,
+        (favourite_weapon_id,),
+    )
+    favourite_weapon_entry = weapon_catalogue.get(str(favourite_weapon_id))
+    weapon_icons = _catalogue_icon_map(weapon_catalogue.values())
+    favourite_weapon = {
+        "name": (
+            favourite_weapon_entry.display_name
+            if favourite_weapon_entry
+            else _name(favourite_weapon_id) if favourite_weapon_id else "Not recorded"
+        ),
+        "kills": (
+            int(favourite_weapon_source.get("kills", 0))
+            if favourite_weapon_source
+            else None
+        ),
+        "icon_url": (
+            weapon_icons.get(favourite_weapon_entry.pk, "")
+            if favourite_weapon_entry
+            else ""
+        ),
+    }
     if not profession_icon_url and str(profession_id).casefold() in (
         "unemployed",
         "base:unemployed",
@@ -355,16 +644,74 @@ def build_public_run_context(run):
             description = strip_tags(
                 re.sub(r"<br\s*/?>", "\n", details.description, flags=re.IGNORECASE)
             ).strip()
+        if not description and details and details.xp_boosts:
+            effects = []
+            for skill_id, amount in details.xp_boosts.items():
+                skill_entry = trait_effect_skill_catalogue.get(str(skill_id))
+                skill_name = (
+                    skill_entry.display_name if skill_entry else _name(skill_id)
+                )
+                effects.append(f"{amount:+g} {skill_name}")
+            if len(effects) == 1:
+                description = f"Starts with {effects[0]}."
+            else:
+                description = (
+                    f"Starts with {', '.join(effects[:-1])} and {effects[-1]}."
+                )
         return {
+            "stable_id": str(value),
             "name": entry.display_name if entry else _name(value),
             "icon_url": catalogue_icons.get(entry.pk, "") if entry else "",
             "point_cost": point_cost,
             "is_negative": point_cost is not None and point_cost < 0,
+            "is_passive": point_cost == 0,
             "point_value": (
-                f"{(-point_cost):+d}" if point_cost is not None else "?"
+                f"{point_cost:+d}" if point_cost is not None else "?"
             ),
             "description": description or "No game description is available for this trait.",
         }
+
+    presented_selected_traits = [presented_trait(value) for value in selected_traits]
+    presented_current_traits = [presented_trait(value) for value in current_traits]
+    selected_trait_ids = {trait["stable_id"] for trait in presented_selected_traits}
+    current_trait_ids = {trait["stable_id"] for trait in presented_current_traits}
+    for trait in presented_current_traits:
+        trait["change"] = (
+            "retained" if trait["stable_id"] in selected_trait_ids else "gained"
+        )
+    removed_traits = [
+        {**trait, "change": "lost"}
+        for trait in presented_selected_traits
+        if trait["stable_id"] not in current_trait_ids
+    ]
+
+    def trait_sort_key(trait):
+        point_cost = trait["point_cost"]
+        return (
+            point_cost is None,
+            point_cost if point_cost is not None else 0,
+            trait["name"].casefold(),
+        )
+
+    def grouped_traits(traits):
+        return (
+            sorted(
+                (trait for trait in traits if trait["is_negative"]),
+                key=trait_sort_key,
+            ),
+            sorted(
+                (trait for trait in traits if not trait["is_negative"]),
+                key=trait_sort_key,
+            ),
+        )
+
+    selected_negative_traits, selected_positive_traits = grouped_traits(
+        presented_selected_traits
+    )
+    current_negative_traits, current_positive_traits = grouped_traits(
+        presented_current_traits
+    )
+    removed_negative_traits, removed_positive_traits = grouped_traits(removed_traits)
 
     return {
         "run": run,
@@ -376,14 +723,33 @@ def build_public_run_context(run):
             else _name(profession_id)
         ),
         "profession_icon_url": profession_icon_url,
+        "profession_point_value": (
+            f"{profession_point_cost:+d}"
+            if profession_point_cost is not None
+            else None
+        ),
+        "profession_point_is_negative": (
+            profession_point_cost is not None and profession_point_cost < 0
+        ),
+        "favourite_weapon": favourite_weapon,
         "weight": (
             f"{weight.get('currentKilograms'):,.1f} kg"
             if isinstance(weight, dict)
             and isinstance(weight.get("currentKilograms"), (int, float))
             else "Not recorded"
         ),
-        "selected_traits": [presented_trait(value) for value in selected_traits],
-        "current_traits": [presented_trait(value) for value in current_traits],
+        "spawn_choice": spawn_choice,
+        "starting_coordinates": starting_coordinates,
+        "starting_map_url": starting_map_url,
+        "starting_map_icon_url": starting_map_icon_url,
+        "selected_traits": presented_selected_traits,
+        "selected_negative_traits": selected_negative_traits,
+        "selected_positive_traits": selected_positive_traits,
+        "current_traits": presented_current_traits,
+        "current_negative_traits": current_negative_traits,
+        "current_positive_traits": current_positive_traits,
+        "removed_negative_traits": removed_negative_traits,
+        "removed_positive_traits": removed_positive_traits,
         "progress": progress,
         "skills": skills,
         "skill_groups": skill_groups,

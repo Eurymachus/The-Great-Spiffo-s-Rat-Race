@@ -39,6 +39,12 @@
     box-sizing: border-box;
 }
 
+.run-decline-error {
+    margin: .75rem 0 0;
+    color: #e58b91;
+    font-weight: 700;
+}
+
 .run-decline-actions {
     display: flex;
     justify-content: flex-end;
@@ -110,6 +116,11 @@
 }
 
 .run-review-summary > div + div { border-left: 1px solid var(--hairline-color); }
+.run-review-summary > div:nth-child(5) {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--hairline-color);
+    border-left: 0;
+}
 .run-review-summary small,
 .run-event-table small { display: block; color: var(--body-quiet-color); }
 .run-review-summary strong { font-size: 1.15rem; }

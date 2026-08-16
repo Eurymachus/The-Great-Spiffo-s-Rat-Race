@@ -12,6 +12,7 @@
     <form method="post" action="{% url 'registry:deactivate_run' run.pk %}">
       {% csrf_token %}
       <input type="hidden" name="confirm_deactivation" value="deactivate">
+      {% if return_to_submission %}<input type="hidden" name="return_to_submission" value="1">{% endif %}
       <button type="button" class="button-secondary" data-run-deactivate-close>Keep run active</button>
       <button type="submit" class="run-deactivate-confirm">Deactivate permanently</button>
     </form>

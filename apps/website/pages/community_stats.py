@@ -54,13 +54,13 @@ def _survival_days(run):
     return max(world_ages, default=0) / 24
 
 
-def _completed_outposts(projection):
+def _completed_outposts(run):
+    authoritative = list(run.authoritative_outposts.all())
+    if authoritative:
+        return sum(outpost.complete for outpost in authoritative)
+    projection = run.approved_submission.projection or {}
     outposts = projection.get("outposts", []) if isinstance(projection, dict) else []
-    return sum(
-        bool(item.get("complete"))
-        for item in outposts
-        if isinstance(item, dict)
-    )
+    return sum(bool(item.get("complete")) for item in outposts if isinstance(item, dict))
 
 
 def _real_hours_raced(projection):
@@ -86,7 +86,9 @@ def build_community_stats(raw_config=None):
             status=ChallengeRun.Status.OFFICIAL,
             participant__isnull=False,
             approved_submission__isnull=False,
-        ).select_related("approved_submission")
+        ).select_related("approved_submission").prefetch_related(
+            "authoritative_outposts"
+        )
     )
     total_kills = sum(run.approved_submission.current_kills for run in runs)
     total_days = sum(_survival_days(run) for run in runs)
@@ -97,8 +99,7 @@ def build_community_stats(raw_config=None):
         "total_kills": total_kills,
         "total_days": round(total_days),
         "outposts_claimed": sum(
-            _completed_outposts(run.approved_submission.projection or {})
-            for run in runs
+            _completed_outposts(run) for run in runs
         ),
         "fallen_survivors": sum(
             run.lifecycle_status == ChallengeRun.Lifecycle.DECEASED for run in runs

@@ -18,11 +18,13 @@ function TownSnapshot.observe(run)
     local result = {}
     for _, town in ipairs(Towns.getAll()) do
         local visit = visitSnapshot(visits and visits[town.id])
-        result[#result + 1] = {
-            id = town.id,
-            visited = visit ~= nil,
-            firstVisit = visit,
-        }
+        if visit then
+            result[#result + 1] = {
+                id = town.id,
+                visited = true,
+                firstVisit = visit,
+            }
+        end
     end
     return {
         partial = type(run) == "table" and run.townVisitsPartial == true,

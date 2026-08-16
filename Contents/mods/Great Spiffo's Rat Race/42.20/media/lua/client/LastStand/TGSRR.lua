@@ -90,15 +90,18 @@ function MapSpawnSelect:fillList()
         end
     end
 
-    if #self.listbox.items > 1 then
+    if #self.sortedList + #self.notSortedList > 1 then
         local item = {}
-        item.name = getText("UI_mapspawn_random")
+        item.name = getText("UI_TGSRR_RandomSpawn")
         item.region = nil
         item.dir = ""
         item.desc = ""
         item.worldimage = nil
-
-        table.insert(self.notSortedList, item)
+        item.zoomX = 0
+        item.zoomY = 0
+        item.zoomS = 0
+        item._tgsrrRandom = true
+        self.listbox:addItem(item.name, item)
     end
 
     if spawnSelectImagePyramid then

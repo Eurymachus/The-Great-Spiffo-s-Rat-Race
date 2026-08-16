@@ -655,7 +655,7 @@ class CatalogueImportReviewAdmin(admin.ModelAdmin):
             items = "".join(
                 f"<li><strong>{row['display_name']}</strong> "
                 f"({row['kind']}: {row['stable_id']})"
-                f"{' — ' + ', '.join(row.get('fields', [])) if row.get('fields') else ''}</li>"
+                f"{': ' + ', '.join(row.get('fields', [])) if row.get('fields') else ''}</li>"
                 for row in rows
             ) or "<li>None</li>"
             sections.append(f"<h3>{label} ({len(rows)})</h3><ul>{items}</ul>")
@@ -723,14 +723,14 @@ class CatalogueImportReviewAdmin(admin.ModelAdmin):
                 (
                     "Item display categories",
                     len(item_categories),
-                    "—",
+                    "Not available",
                     ItemDisplayCategory._meta.db_table,
                 )
             )
         asset_count = sum(1 for row in obj.snapshot if row.get("asset"))
         if asset_count:
             tables.append(
-                ("Catalogue assets", asset_count, "—", CatalogueAsset._meta.db_table)
+                ("Catalogue assets", asset_count, "Not available", CatalogueAsset._meta.db_table)
             )
 
         table_rows = format_html_join(

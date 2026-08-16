@@ -37,6 +37,12 @@ Persist stable identifiers, not localized display values:
 - Starting location: immutable integer XYZ and optional precision-safe
   BuildingDef ID captured when the run identity is created, with UTC, world age,
   and explicit partial-history status for an existing save.
+  Website links to an observed tile use the canonical format
+  `https://map.projectzomboid.com?{x}x{y}x{z}` without version or layer query
+  parameters.
+- Chosen starting region: immutable explicit or blind-random selection mode,
+  resolved raw Project Zomboid region ID, and UTC captured immediately before
+  the final Start action. It remains distinct from the observed spawn tile.
 - Skills: internal perk ID.
 - Traits: namespaced character-trait ID where available.
 - Literature and weapons: full item type, including module.
@@ -217,7 +223,7 @@ Suggested streams:
 Keep only compact recovery state and gameplay aggregates needed by TGSRR in ModData.
 
 During development, run-state schemas are hard boundaries. TGSRR requires both
-the current `TGSRR_Run.schemaVersion` (currently 19) and an explicit current
+the current `TGSRR_Run.schemaVersion` (currently 22) and an explicit current
 `contractVersion`; this prevents schema numbers previously rewritten by
 development builds from masquerading as a compatible run. It does not migrate
 an existing run with either marker missing or mismatched, nor does it decode

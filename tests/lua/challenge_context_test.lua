@@ -23,7 +23,9 @@ local Context = require "TGSRR/Challenge/Context"
 assert(Context.isActive() == false)
 
 gameMode = "The Great Spiffo's Rat Race"
-assert(Context.isActive() == false)
+-- Project Zomboid clears isChallenge and challengeId when loading an existing
+-- challenge save, but preserves the registered game-mode identity.
+assert(Context.isActive() == true)
 
 challenge = true
 challengeId = "TGSRR"

@@ -115,7 +115,7 @@ class ReferenceUpdateJob(models.Model):
 
     def __str__(self):
         return (
-            f"{self.source} — {self.get_operation_display()}: "
+            f"{self.source}: {self.get_operation_display()}: "
             f"{self.get_status_display()}"
         )
 

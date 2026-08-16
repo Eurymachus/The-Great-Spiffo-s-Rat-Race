@@ -51,6 +51,12 @@ local function writeMeta(run)
         { "surname", run.startingCharacter and run.startingCharacter.surname },
         { "displayName", run.startingCharacter and run.startingCharacter.displayName },
         { "professionId", run.startingCharacter and run.startingCharacter.professionId },
+        { "chosenStartingRegionMode", run.chosenStartingRegion
+            and run.chosenStartingRegion.selectionMode },
+        { "chosenStartingRegionId", run.chosenStartingRegion
+            and run.chosenStartingRegion.resolvedRegionId },
+        { "chosenStartingRegionCapturedUtc", run.chosenStartingRegion
+            and run.chosenStartingRegion.capturedUtc },
         { "startingX", run.startingLocation and run.startingLocation.x },
         { "startingY", run.startingLocation and run.startingLocation.y },
         { "startingZ", run.startingLocation and run.startingLocation.z },

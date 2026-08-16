@@ -1,3 +1,8 @@
+local sourceRoot = "Contents/mods/Great Spiffo's Rat Race/42.20/media/lua/"
+package.path = sourceRoot .. "client/?.lua;"
+    .. sourceRoot .. "shared/?.lua;"
+    .. package.path
+
 local values = {
     TGSRR_Run = {
         runId = "rr-old-development-run",
@@ -25,7 +30,7 @@ package.loaded["TGSRR/Run/CharacterSnapshot"] = {
 local Identity = require "TGSRR/Run/Identity"
 local run, reason = Identity.get()
 assert(run == nil and reason == nil)
-assert(values.TGSRR_Run.schemaVersion == 20)
+assert(values.TGSRR_Run.schemaVersion == 22)
 assert(values.TGSRR_Run.contractVersion == 1)
 assert(values.TGSRR_Run.runId == nil)
 

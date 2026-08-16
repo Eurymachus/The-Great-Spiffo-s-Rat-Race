@@ -46,10 +46,12 @@ The schema supports counts, percentages, availability, status, explanatory detai
 
 For the outposts record, `current` is the number of currently Completed outposts, `target` is 13, and `percent` is the arithmetic mean of the 13 individual outpost percentages. The percentage therefore includes partial outpost progress even when `current` remains zero.
 
-Overview also displays an overall progress footer calculated as the arithmetic
-mean of available required category percentages. Kills, Skills, and Outposts
-currently participate. Optional providers are presented as cards but are
-excluded from this overall figure. Landmarks are the first optional provider.
+Overview also displays an overall progress footer using the public challenge
+weighting: Kills provide 50%, Outposts provide 25%, and Skills provide 25%.
+Unavailable required categories are omitted and the available weights are
+normalized, matching the website leaderboard calculation. Optional providers
+are presented as cards but are excluded from this overall figure. Landmarks are
+the first optional provider.
 
 ## Current UI behavior
 

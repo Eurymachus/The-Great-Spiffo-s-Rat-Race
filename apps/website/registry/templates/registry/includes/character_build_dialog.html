@@ -1,0 +1,37 @@
+<dialog class="leaderboard-build-modal" id="{{ dialog_id }}" aria-labelledby="{{ dialog_id }}-title">
+  <header>
+    <div><p class="account-dashboard-kicker">Starting build</p><strong id="{{ dialog_id }}-title">{{ survivor }}</strong></div>
+    <div class="leaderboard-modal-actions">
+      {% if record_url %}<a class="dashboard-header-action" href="{{ record_url }}">View survivor record</a>{% endif %}
+      <button type="button" data-build-close>Close</button>
+    </div>
+  </header>
+  <div class="leaderboard-build-content"{% if show_current_traits %} data-build-tabs{% endif %}>
+    <section class="leaderboard-profession">
+      {% if profession_icon_url %}<img src="{{ profession_icon_url }}" alt="">{% endif %}
+      <div><small>Profession</small><strong>{{ profession }}{% if profession_point_value %} <span class="profession-point-cost {% if profession_point_is_negative %}is-negative{% else %}is-positive{% endif %}">{{ profession_point_value }}</span>{% endif %}</strong></div>
+    </section>
+    {% if show_current_traits %}
+    <div class="build-trait-tabs" role="tablist" aria-label="Trait set">
+      <button type="button" role="tab" id="{{ dialog_id }}-selected-tab" aria-selected="true" aria-controls="{{ dialog_id }}-selected-panel" data-build-tab="selected">Starting traits</button>
+      <button type="button" role="tab" id="{{ dialog_id }}-current-tab" aria-selected="false" aria-controls="{{ dialog_id }}-current-panel" data-build-tab="current" tabindex="-1">Current traits</button>
+    </div>
+    {% endif %}
+    <section{% if show_current_traits %} id="{{ dialog_id }}-selected-panel" role="tabpanel" aria-labelledby="{{ dialog_id }}-selected-tab" data-build-tab-panel="selected"{% endif %}>
+      <h3>Selected starting traits</h3>
+      {% include "registry/includes/trait_columns.html" with negative_traits=negative_traits positive_traits=positive_traits trait_id_prefix=dialog_id %}
+    </section>
+    {% if show_current_traits %}
+    <section id="{{ dialog_id }}-current-panel" role="tabpanel" aria-labelledby="{{ dialog_id }}-current-tab" data-build-tab-panel="current" hidden>
+      <h3>Currently effective traits</h3>
+      {% include "registry/includes/trait_columns.html" with negative_traits=current_negative_traits positive_traits=current_positive_traits trait_id_prefix=dialog_id|add:"-current" hide_points=True %}
+      {% if removed_negative_traits or removed_positive_traits %}
+      <div class="build-traits-removed">
+        <h3>No longer effective</h3>
+        {% include "registry/includes/trait_columns.html" with negative_traits=removed_negative_traits positive_traits=removed_positive_traits trait_id_prefix=dialog_id|add:"-removed" hide_points=True %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+  </div>
+</dialog>

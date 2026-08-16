@@ -26,12 +26,15 @@ function SkillSnapshot.observe(player)
     if not player or not xp then return result end
     eachSkill(function(perk)
         local perkType = perk:getType()
+        local level = math.max(0, math.min(10,
+            math.floor(tonumber(player:getPerkLevel(perkType)) or 0)))
+        local currentXp = math.max(0, tonumber(xp:getXP(perkType)) or 0)
+        if level == 0 and currentXp == 0 then return end
         result[#result + 1] = {
             id = tostring(perkType),
             categoryId = tostring(perk:getParent()),
-            level = math.max(0, math.min(10,
-                math.floor(tonumber(player:getPerkLevel(perkType)) or 0))),
-            xp = math.max(0, tonumber(xp:getXP(perkType)) or 0),
+            level = level,
+            xp = currentXp,
         }
     end)
     table.sort(result, function(a, b) return a.id < b.id end)

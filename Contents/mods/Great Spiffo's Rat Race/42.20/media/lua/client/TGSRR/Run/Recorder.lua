@@ -36,6 +36,10 @@ function Recorder.isActive()
     return activeRun ~= nil and haltedReason == nil
 end
 
+function Recorder.getActiveRun()
+    return activeRun
+end
+
 function Recorder.record(eventType, payload, context)
     if not activeRun then return false, "recorder_inactive" end
     if haltedReason then return false, haltedReason end

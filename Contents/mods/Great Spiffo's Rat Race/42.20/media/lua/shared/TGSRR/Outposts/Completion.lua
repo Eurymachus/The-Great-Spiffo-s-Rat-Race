@@ -51,6 +51,12 @@ function Completion.getWeights()
     return WEIGHTS
 end
 
+function Completion.getDeliverableIds()
+    local result = {}
+    for index, id in ipairs(REQUIRED) do result[index] = id end
+    return result
+end
+
 function Completion.calculate(record)
     record = record or {}
     local deliverables = record.deliverables or {}
