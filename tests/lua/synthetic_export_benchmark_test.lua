@@ -33,8 +33,14 @@ package.loaded["TGSRR/Run/Exporter"] = {
 
 getTimestampMs = function() return 1000 end
 
-local Benchmark = require "TGSRR/Run/SyntheticExportBenchmark"
 local EventCodec = require "TGSRR/Run/EventCodec"
+local originalEncode = EventCodec.encode
+local encodeCalls = 0
+EventCodec.encode = function(...)
+    encodeCalls = encodeCalls + 1
+    return originalEncode(...)
+end
+local Benchmark = require "TGSRR/Run/SyntheticExportBenchmark"
 local job = assert(Benchmark.begin(3))
 job.sliceStarted = 1000
 while not job.done do
@@ -47,6 +53,7 @@ assert(job.result.syntheticDays == 3)
 assert(job.result.eventSequence == 3)
 assert(capturedOptions.filename:match("synthetic%-3%-day%.export%.txt$"))
 assert(#capturedOptions.ledger.records == 3)
+assert(encodeCalls == 3)
 
 local previousHash = EventCodec.GENESIS_HASH
 for index, record in ipairs(capturedOptions.ledger.records) do
@@ -62,5 +69,24 @@ for index, record in ipairs(capturedOptions.ledger.records) do
     assert(payload.completedDay.xpDeltas.Fitness > 0)
     previousHash = record.hash
 end
+
+local repeatedJob = assert(Benchmark.begin(3))
+repeatedJob.sliceStarted = 1000
+while not repeatedJob.done do
+    local ok, errorMessage = coroutine.resume(repeatedJob.thread)
+    assert(ok, errorMessage)
+end
+assert(repeatedJob.ok == true)
+assert(encodeCalls == 3)
+
+local extendedJob = assert(Benchmark.begin(5))
+extendedJob.sliceStarted = 1000
+while not extendedJob.done do
+    local ok, errorMessage = coroutine.resume(extendedJob.thread)
+    assert(ok, errorMessage)
+end
+assert(extendedJob.ok == true)
+assert(encodeCalls == 5)
+assert(#capturedOptions.ledger.records == 5)
 
 print("synthetic export benchmark test passed")

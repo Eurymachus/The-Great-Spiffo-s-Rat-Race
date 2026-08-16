@@ -3,8 +3,11 @@ local Hash = require "TGSRR/Run/Hash"
 
 local ExportCodec = {}
 
-local FORMAT = 3
-local PREFIX = "TGSRR1.LZ1."
+local FORMAT = 4
+local LEGACY_FORMAT = 3
+local PREFIX = "TGSRR1.BLK1."
+local LEGACY_PREFIX = "TGSRR1.LZ1."
+local EVENTS_PER_BLOCK = 256
 local WINDOW = 4095
 local MIN_MATCH = 3
 local MAX_MATCH = 18
@@ -171,6 +174,75 @@ local function decompress(value, work)
     return table.concat(output)
 end
 
+local function encodeCompressedCanonical(canonical, work)
+    local checksum = Hash.sha256(canonical,
+        phaseWork(work, "create_checksum"))
+    return base64Encode(compress(canonical, work), work), checksum
+end
+
+local function decodeCompressedCanonical(payload, checksum, work)
+    local compressed, base64Error = base64Decode(
+        payload, phaseWork(work, "decode"))
+    if not compressed then return nil, base64Error end
+    local canonical, compressionError = decompress(
+        compressed, phaseWork(work, "decompress"))
+    if not canonical then return nil, compressionError end
+    if Hash.sha256(canonical, phaseWork(work, "verify_checksum"))
+            ~= checksum then
+        return nil, "export_checksum_mismatch"
+    end
+    return canonical
+end
+
+local function canonicalBodies(records)
+    local bodies = {}
+    for _, record in ipairs(records or {}) do
+        bodies[#bodies + 1] = frame(record.body)
+    end
+    return table.concat(bodies)
+end
+
+local function parseBodies(canonical, count)
+    local bodies = {}
+    local cursor = 1
+    for _ = 1, count do
+        local body, nextCursor, readError = readFrame(canonical, cursor)
+        if not body then return nil, readError end
+        bodies[#bodies + 1], cursor = body, nextCursor
+    end
+    if cursor ~= #canonical + 1 then return nil, "export_event_count_mismatch" end
+    return bodies
+end
+
+function ExportCodec.encodeEventBlock(records, work)
+    local canonical = canonicalBodies(records)
+    local payload, checksum = encodeCompressedCanonical(canonical, work)
+    return payload .. "." .. checksum, {
+        count = #(records or {}),
+        checksum = checksum,
+        canonicalBytes = #canonical,
+        encodedCharacters = #payload + #checksum + 1,
+    }
+end
+
+function ExportCodec.decodeEventBlock(value, count, work)
+    local payload, checksum = tostring(value or ""):match(
+        "^([A-Za-z0-9_-]+)%.([0-9a-f]+)$")
+    if not payload or #checksum ~= 64 then
+        return nil, "invalid_export_event_block"
+    end
+    local canonical, decodeError = decodeCompressedCanonical(
+        payload, checksum, work)
+    if not canonical then return nil, decodeError end
+    local bodies, bodiesError = parseBodies(canonical, count)
+    if not bodies then return nil, bodiesError end
+    return {
+        checksum = checksum,
+        bodies = bodies,
+        canonicalBytes = #canonical,
+    }
+end
+
 local function canonicalEnvelope(runId, generatedUtc, records, eventHash, projection)
     local bodies = {}
     for _, record in ipairs(records) do bodies[#bodies + 1] = frame(record.body) end
@@ -192,7 +264,7 @@ local function parseEnvelope(value)
     local formatText, nextCursor, formatError = readFrame(value, cursor)
     if not formatText then return nil, formatError end
     local format = tonumber(formatText)
-    if format ~= FORMAT then return nil, "unsupported_export_format" end
+    if format ~= LEGACY_FORMAT then return nil, "unsupported_export_format" end
     fields[1], cursor = formatText, nextCursor
     local fieldCount = 7
     for index = 2, fieldCount do
@@ -239,34 +311,148 @@ local function parseEnvelope(value)
     }
 end
 
-function ExportCodec.encode(runId, generatedUtc, records, eventHash, projection, work)
-    local canonical = canonicalEnvelope(runId, generatedUtc, records, eventHash, projection)
-    local checksum = Hash.sha256(canonical, phaseWork(work, "create_checksum"))
-    local encoded = PREFIX .. base64Encode(compress(canonical, work), work) .. "." .. checksum
-    return encoded, {
-        canonicalBytes = #canonical,
-        encodedCharacters = #encoded,
-        checksum = checksum,
+function ExportCodec.encode(runId, generatedUtc, records, eventHash,
+        projection, work, options)
+    options = options or {}
+    local blocks = options.blocks or {}
+    local descriptors = {}
+    local encodedBlocks = {}
+    local canonicalBytes = 0
+    for index, block in ipairs(blocks) do
+        descriptors[index] = {
+            count = block.count,
+            firstSequence = block.firstSequence,
+            lastSequence = block.lastSequence,
+            lastHash = block.lastHash,
+            checksum = block.checksum,
+        }
+        encodedBlocks[index] = block.value
+        canonicalBytes = canonicalBytes + (tonumber(block.canonicalBytes) or 0)
+    end
+    if #blocks == 0 and #(records or {}) > 0 then
+        for first = 1, #records, EVENTS_PER_BLOCK do
+            local blockRecords = {}
+            local last = math.min(#records, first + EVENTS_PER_BLOCK - 1)
+            for sequence = first, last do
+                blockRecords[#blockRecords + 1] = records[sequence]
+            end
+            local value, stats = ExportCodec.encodeEventBlock(blockRecords, work)
+            local descriptor = {
+                count = #blockRecords,
+                firstSequence = first,
+                lastSequence = last,
+                lastHash = records[last].hash,
+                checksum = stats.checksum,
+            }
+            descriptors[#descriptors + 1] = descriptor
+            encodedBlocks[#encodedBlocks + 1] = value
+            canonicalBytes = canonicalBytes + stats.canonicalBytes
+        end
+    end
+    local manifest = {
+        format = FORMAT,
+        runId = runId,
+        generatedUtc = generatedUtc,
+        eventSequence = #(records or {}),
+        eventHash = eventHash,
+        projection = projection or {},
+        eventBlocks = descriptors,
     }
+    local manifestCanonical = EventCodec.canonicalPayload(manifest)
+    local manifestPayload, manifestChecksum =
+        encodeCompressedCanonical(manifestCanonical, work)
+    local parts = { PREFIX .. manifestPayload, manifestChecksum }
+    for _, block in ipairs(encodedBlocks) do parts[#parts + 1] = block end
+    local encoded = table.concat(parts, ".")
+    return encoded, {
+        canonicalBytes = canonicalBytes + #manifestCanonical,
+        encodedCharacters = #encoded,
+        checksum = manifestChecksum,
+        blockCount = #descriptors,
+        reusedBlockCount = tonumber(options.reusedBlockCount) or 0,
+        builtBlockCount = #descriptors - (tonumber(options.reusedBlockCount) or 0),
+    }
+end
+
+function ExportCodec.decodeManifest(value, work)
+    value = tostring(value or "")
+    if value:sub(1, #LEGACY_PREFIX) == LEGACY_PREFIX then
+        local payload, checksum = value:match(
+            "^TGSRR1%.LZ1%.([A-Za-z0-9_-]+)%.([0-9a-f]+)$")
+        if not payload or #checksum ~= 64 then return nil, "invalid_export_envelope" end
+        local canonical, decodeError = decodeCompressedCanonical(
+            payload, checksum, work)
+        if not canonical then return nil, decodeError end
+        local decoded, parseError = parseEnvelope(canonical)
+        if not decoded then return nil, parseError end
+        decoded.checksum = checksum
+        decoded.legacy = true
+        return decoded
+    end
+    local parts = {}
+    for part in value:gmatch("[^.]+") do parts[#parts + 1] = part end
+    if #parts < 4 or parts[1] ~= "TGSRR1" or parts[2] ~= "BLK1"
+            or #parts % 2 ~= 0 then
+        return nil, "invalid_export_envelope"
+    end
+    local manifestCanonical, manifestError = decodeCompressedCanonical(
+        parts[3], parts[4], work)
+    if not manifestCanonical then return nil, manifestError end
+    local manifest, payloadError = EventCodec.decodePayload(manifestCanonical)
+    if not manifest then return nil, payloadError end
+    if manifest.format ~= FORMAT or type(manifest.eventBlocks) ~= "table" then
+        return nil, "unsupported_export_format"
+    end
+    if #parts ~= 4 + #manifest.eventBlocks * 2 then
+        return nil, "export_block_count_mismatch"
+    end
+    local decoded = {
+        format = FORMAT,
+        runId = manifest.runId,
+        generatedUtc = manifest.generatedUtc,
+        eventSequence = manifest.eventSequence,
+        eventHash = manifest.eventHash,
+        projection = manifest.projection,
+        currentKills = manifest.projection and manifest.projection.currentKills,
+        bodies = {},
+        checksum = parts[4],
+        eventBlocks = manifest.eventBlocks,
+        eventBlockValues = {},
+    }
+    local expectedFirst = 1
+    for index, descriptor in ipairs(manifest.eventBlocks) do
+        if descriptor.firstSequence ~= expectedFirst
+                or descriptor.lastSequence ~= expectedFirst + descriptor.count - 1
+                or descriptor.checksum ~= parts[4 + index * 2] then
+            return nil, "invalid_export_event_block_descriptor"
+        end
+        decoded.eventBlockValues[index] = parts[3 + index * 2] .. "."
+            .. parts[4 + index * 2]
+        expectedFirst = descriptor.lastSequence + 1
+    end
+    if expectedFirst - 1 ~= decoded.eventSequence then
+        return nil, "export_event_count_mismatch"
+    end
+    return decoded
 end
 
 function ExportCodec.decode(value, work, options)
     options = options or {}
-    value = tostring(value or "")
-    local payload, checksum = value:match("^TGSRR1%.LZ1%.([A-Za-z0-9_-]+)%.([0-9a-f]+)$")
-    if not payload or #checksum ~= 64 then return nil, "invalid_export_envelope" end
-    local compressed, base64Error = base64Decode(
-        payload, phaseWork(work, "decode"))
-    if not compressed then return nil, base64Error end
-    local canonical, compressionError = decompress(
-        compressed, phaseWork(work, "decompress"))
-    if not canonical then return nil, compressionError end
-    if Hash.sha256(canonical, phaseWork(work, "verify_checksum"))
-            ~= checksum then
-        return nil, "export_checksum_mismatch"
+    local decoded, manifestError = ExportCodec.decodeManifest(value, work)
+    if not decoded then return nil, manifestError end
+    if decoded.legacy then return decoded end
+    for index, descriptor in ipairs(decoded.eventBlocks) do
+        local blockValue = decoded.eventBlockValues[index]
+        local block, blockError = ExportCodec.decodeEventBlock(
+            blockValue, descriptor.count, work)
+        if not block then return nil, blockError end
+        for _, body in ipairs(block.bodies) do
+            decoded.bodies[#decoded.bodies + 1] = body
+        end
     end
-    local decoded, parseError = parseEnvelope(canonical)
-    if not decoded then return nil, parseError end
+    if #decoded.bodies ~= decoded.eventSequence then
+        return nil, "export_event_count_mismatch"
+    end
 
     if options.verifyLedger ~= false then
         local previousHash = EventCodec.GENESIS_HASH
@@ -286,7 +472,6 @@ function ExportCodec.decode(value, work, options)
             return nil, "export_ledger_head_mismatch"
         end
     end
-    decoded.checksum = checksum
     return decoded
 end
 
@@ -542,5 +727,6 @@ function ExportCodec.selfTest(work)
 end
 
 ExportCodec.format = FORMAT
+ExportCodec.eventsPerBlock = EVENTS_PER_BLOCK
 
 return ExportCodec

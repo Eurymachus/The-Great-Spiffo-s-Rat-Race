@@ -4,6 +4,7 @@ local EventCodec = require "TGSRR/Run/EventCodec"
 local Exporter = require "TGSRR/Run/Exporter"
 
 local Benchmark = {}
+local historyCaches = {}
 
 local function milliseconds()
     if getTimestampMs then return getTimestampMs() end
@@ -17,7 +18,7 @@ local function copyRun(run)
 end
 
 local function lastEventMetadata(ledger)
-    local utc = Identity.utcSeconds()
+    local utc = 0
     local worldAgeHours = 0
     local dayIndex = 0
     for _, record in ipairs(ledger.records or {}) do
@@ -35,6 +36,7 @@ local function lastEventMetadata(ledger)
             end
         end
     end
+    if utc == 0 then utc = Identity.utcSeconds() end
     return utc, worldAgeHours, dayIndex
 end
 
@@ -74,27 +76,43 @@ function Benchmark.begin(days)
     if not ledger then return nil, ledgerError end
 
     local started = milliseconds()
-    local records = {}
-    for index, record in ipairs(ledger.records or {}) do records[index] = record end
-    local previousHash = ledger.eventHash
-    local sequence = ledger.eventSequence
-    local baseUtc, baseWorldAgeHours, baseDayIndex =
-        lastEventMetadata(ledger)
+    local cache = historyCaches[run.runId]
+    if not cache or cache.baseSequence ~= ledger.eventSequence
+            or cache.baseHash ~= ledger.eventHash then
+        local baseUtc, baseWorldAgeHours, baseDayIndex =
+            lastEventMetadata(ledger)
+        cache = {
+            baseSequence = ledger.eventSequence,
+            baseHash = ledger.eventHash,
+            baseUtc = baseUtc,
+            baseWorldAgeHours = baseWorldAgeHours,
+            baseDayIndex = baseDayIndex,
+            records = {},
+            builtDays = 0,
+        }
+        for index, record in ipairs(ledger.records or {}) do
+            cache.records[index] = record
+        end
+        historyCaches[run.runId] = cache
+    end
     local syntheticRun = copyRun(run)
 
     local function build(work)
-        for offset = 1, days do
-            local dayIndex = baseDayIndex + offset
-            local startedUtc = baseUtc + (offset - 1) * 86400
+        local previousHash = cache.builtDays > 0
+            and cache.records[cache.baseSequence + cache.builtDays].hash
+            or cache.baseHash
+        for offset = cache.builtDays + 1, days do
+            local dayIndex = cache.baseDayIndex + offset
+            local startedUtc = cache.baseUtc + (offset - 1) * 86400
             local startedWorldAgeHours =
-                baseWorldAgeHours + (offset - 1) * 24
-            sequence = sequence + 1
+                cache.baseWorldAgeHours + (offset - 1) * 24
+            local sequence = cache.baseSequence + offset
             local record, recordError = EventCodec.encode({
                 runId = run.runId,
                 epoch = math.max(1, math.floor(tonumber(run.epoch) or 1)),
                 sequence = sequence,
-                utc = baseUtc + offset * 86400,
-                worldAgeHours = baseWorldAgeHours + offset * 24,
+                utc = cache.baseUtc + offset * 86400,
+                worldAgeHours = cache.baseWorldAgeHours + offset * 24,
                 eventType = "day.started",
                 payload = {
                     dayIndex = dayIndex + 1,
@@ -105,18 +123,24 @@ function Benchmark.begin(days)
                 work("synthetic_history", offset, days)
             end)
             if not record then return false, recordError end
-            records[#records + 1] = record
+            cache.records[sequence] = record
             previousHash = record.hash
         end
+        cache.builtDays = math.max(cache.builtDays, days)
 
+        local sequence = cache.baseSequence + days
+        local eventHash = days > 0 and cache.records[sequence].hash
+            or cache.baseHash
+        local records = {}
+        for index = 1, sequence do records[index] = cache.records[index] end
         syntheticRun.eventSequence = sequence
-        syntheticRun.eventHash = previousHash
+        syntheticRun.eventHash = eventHash
         local buildMilliseconds = milliseconds() - started
         return Exporter.generate(syntheticRun, work, {
             ledger = {
                 runId = ledger.runId,
                 eventSequence = sequence,
-                eventHash = previousHash,
+                eventHash = eventHash,
                 records = records,
             },
             filename = "TGSRR/Runs/" .. ledger.runId

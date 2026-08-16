@@ -1,9 +1,26 @@
 # Rat Race Run Export Contract
 
+## Incremental export envelope
+
+Format 4 uses the `TGSRR1.BLK1.` prefix. It contains one compressed manifest
+followed by independently compressed blocks of at most 256 ledger events.
+Each block descriptor preserves its sequence range, terminal ledger hash and
+content checksum.
+
+The mod keeps a disposable local cache of encoded blocks. A block is reused
+only when its run ID, sequence range, event count and terminal ledger hash are
+unchanged. A changed ledger tail creates a new block. Cache loss or a cache
+version change rebuilds the affected blocks from the authoritative ledger.
+
+The website does not trust the cache. It decompresses every submitted block,
+checks every block checksum and boundary, reconstructs the complete ordered
+event history, and verifies the ledger hash chain before accepting the raw
+export. Format-3 `TGSRR1.LZ1.` submissions remain readable for compatibility.
+
 ## Challenge evidence
 
-Format-3 exports may add the following object to the existing schema-1 run
-projection without changing the export format or projection schema:
+The current format-4 export may add the following object to the existing
+schema-1 run projection without changing the projection schema:
 
 ```json
 {

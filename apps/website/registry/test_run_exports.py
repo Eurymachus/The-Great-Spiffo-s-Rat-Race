@@ -118,6 +118,53 @@ def make_export_from_bodies(
     return f"TGSRR1.LZ1.{payload}.{checksum}"
 
 
+def make_block_export_from_bodies(
+    bodies,
+    *,
+    run_id="rr-web-test",
+    generated_at=1784800100,
+    projection=None,
+    block_size=2,
+):
+    previous_hash = "0" * 64
+    hashes = []
+    for body in bodies:
+        previous_hash = hashlib.sha256(previous_hash.encode() + body).hexdigest()
+        hashes.append(previous_hash)
+    descriptors = []
+    encoded_blocks = []
+    for first in range(0, len(bodies), block_size):
+        block_bodies = bodies[first:first + block_size]
+        canonical = b"".join(frame(body) for body in block_bodies)
+        checksum = hashlib.sha256(canonical).hexdigest()
+        payload = base64.urlsafe_b64encode(literal_lzss(canonical)).decode().rstrip("=")
+        encoded_blocks.extend((payload, checksum))
+        descriptors.append({
+            "count": len(block_bodies),
+            "firstSequence": first + 1,
+            "lastSequence": first + len(block_bodies),
+            "lastHash": hashes[first + len(block_bodies) - 1],
+            "checksum": checksum,
+        })
+    manifest = canonical_value({
+        "format": 4,
+        "runId": run_id,
+        "generatedUtc": generated_at,
+        "eventSequence": len(bodies),
+        "eventHash": previous_hash,
+        "projection": projection,
+        "eventBlocks": descriptors,
+    })
+    manifest_checksum = hashlib.sha256(manifest).hexdigest()
+    manifest_payload = base64.urlsafe_b64encode(
+        literal_lzss(manifest)
+    ).decode().rstrip("=")
+    return ".".join((
+        "TGSRR1", "BLK1", manifest_payload, manifest_checksum,
+        *encoded_blocks,
+    ))
+
+
 def make_export(
     run_id="rr-web-test",
     kills=42,
@@ -240,6 +287,29 @@ def outpost_lifecycle_projection():
 
 
 class RunExportCodecTests(TestCase):
+    def test_accepts_format_four_independent_event_blocks(self):
+        run_id = "rr-block-test"
+        bodies = [
+            event_body(run_id, 1, "session.started", {
+                "character": {"displayName": "Block Survivor"},
+            }),
+            event_body(run_id, 2, "day.started", {"partial": False}),
+            event_body(run_id, 3, "day.started", {"partial": False}),
+        ]
+        projection = {
+            "schema": 1,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Block Survivor"}},
+        }
+
+        decoded = decode_run_export(make_block_export_from_bodies(
+            bodies, run_id=run_id, projection=projection,
+        ))
+
+        self.assertEqual(decoded.format, 4)
+        self.assertEqual(decoded.event_sequence, 3)
+        self.assertEqual(decoded.character_name, "Block Survivor")
+
     def test_accepts_and_preserves_sparse_schema_two_outpost_lifecycle_contract(self):
         projection = {
             "schema": 2,

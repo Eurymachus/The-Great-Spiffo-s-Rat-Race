@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 
 PREFIX = "TGSRR1.LZ1."
+BLOCK_PREFIX = "TGSRR1.BLK1."
 GENESIS_HASH = "0" * 64
 SUPPORTED_EVENT_SCHEMAS = {2}
 MAX_DECOMPRESSED_BYTES = 16 * 1024 * 1024
@@ -418,9 +419,23 @@ def decode_run_export(value):
     if not value or len(value) > MAX_ENCODED_CHARACTERS:
         raise InvalidRunExport("Choose a valid Rat Race run export.")
     match = ENVELOPE_RE.fullmatch(value)
-    if not match:
+    event_blocks = None
+    bodies = []
+    if match:
+        payload_text, checksum = match.groups()
+    elif value.startswith(BLOCK_PREFIX):
+        parts = value.split(".")
+        if (
+            len(parts) < 4
+            or len(parts) % 2
+            or parts[:2] != ["TGSRR1", "BLK1"]
+            or any(not re.fullmatch(r"[A-Za-z0-9_-]+", part) for part in parts[2::2])
+            or any(not re.fullmatch(r"[0-9a-f]{64}", part) for part in parts[3::2])
+        ):
+            raise InvalidRunExport("This is not a recognised Rat Race run export.")
+        payload_text, checksum = parts[2:4]
+    else:
         raise InvalidRunExport("This is not a recognised Rat Race run export.")
-    payload_text, checksum = match.groups()
     try:
         padding = "=" * ((4 - len(payload_text) % 4) % 4)
         compressed = base64.urlsafe_b64decode(payload_text + padding)
@@ -430,28 +445,92 @@ def decode_run_export(value):
     if hashlib.sha256(canonical).hexdigest() != checksum:
         raise InvalidRunExport("The export checksum does not match its contents.")
 
-    fields = []
-    cursor = 0
-    _, format_field, cursor = _read_frame(canonical, cursor)
-    try:
-        export_format = int(format_field)
-    except ValueError as exc:
-        raise InvalidRunExport("The export format is invalid.") from exc
-    if export_format != 3:
-        raise InvalidRunExport("Please create a current format-3 Rat Race export.")
-    fields.append(format_field)
-    for _ in range(6):
-        _, field, cursor = _read_frame(canonical, cursor)
-        fields.append(field)
-    if cursor != len(canonical):
-        raise InvalidRunExport("The export contains unexpected trailing data.")
-    try:
-        run_id = fields[1].decode("utf-8")
-        generated_utc = int(fields[2])
-        event_count = int(fields[3])
-        event_hash = fields[4].decode("ascii")
-    except (UnicodeDecodeError, ValueError) as exc:
-        raise InvalidRunExport("The export header is invalid.") from exc
+    if match:
+        fields = []
+        cursor = 0
+        _, format_field, cursor = _read_frame(canonical, cursor)
+        try:
+            export_format = int(format_field)
+        except ValueError as exc:
+            raise InvalidRunExport("The export format is invalid.") from exc
+        if export_format != 3:
+            raise InvalidRunExport("Please create a current Rat Race export.")
+        fields.append(format_field)
+        for _ in range(6):
+            _, field, cursor = _read_frame(canonical, cursor)
+            fields.append(field)
+        if cursor != len(canonical):
+            raise InvalidRunExport("The export contains unexpected trailing data.")
+        try:
+            run_id = fields[1].decode("utf-8")
+            generated_utc = int(fields[2])
+            event_count = int(fields[3])
+            event_hash = fields[4].decode("ascii")
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise InvalidRunExport("The export header is invalid.") from exc
+        projection, projection_cursor = _decode_value(fields[5])
+        if projection_cursor != len(fields[5]):
+            raise InvalidRunExport("The export projection contains trailing data.")
+        body_cursor = 0
+        for _ in range(event_count):
+            _, body, body_cursor = _read_frame(fields[6], body_cursor)
+            bodies.append(body)
+        if body_cursor != len(fields[6]):
+            raise InvalidRunExport("The export event count does not match its contents.")
+    else:
+        manifest, manifest_cursor = _decode_value(canonical)
+        if manifest_cursor != len(canonical) or not isinstance(manifest, dict):
+            raise InvalidRunExport("The export contains an invalid block manifest.")
+        try:
+            export_format = manifest["format"]
+            run_id = manifest["runId"]
+            generated_utc = manifest["generatedUtc"]
+            event_count = manifest["eventSequence"]
+            event_hash = manifest["eventHash"]
+            projection = manifest["projection"]
+            event_blocks = manifest["eventBlocks"]
+        except KeyError as exc:
+            raise InvalidRunExport("The export block manifest is incomplete.") from exc
+        if export_format != 4 or not isinstance(event_blocks, list):
+            raise InvalidRunExport("Please create a current Rat Race export.")
+        if len(parts) != 4 + len(event_blocks) * 2:
+            raise InvalidRunExport("The export block count does not match its manifest.")
+        expected_first = 1
+        for index, descriptor in enumerate(event_blocks):
+            if not isinstance(descriptor, dict):
+                raise InvalidRunExport("The export contains an invalid event block.")
+            count = descriptor.get("count")
+            first = descriptor.get("firstSequence")
+            last = descriptor.get("lastSequence")
+            block_checksum = parts[5 + index * 2]
+            if (
+                isinstance(count, bool)
+                or not isinstance(count, int)
+                or count < 1
+                or first != expected_first
+                or last != first + count - 1
+                or descriptor.get("checksum") != block_checksum
+                or not re.fullmatch(r"[0-9a-f]{64}", str(descriptor.get("lastHash", "")))
+            ):
+                raise InvalidRunExport("The export contains an invalid event block descriptor.")
+            block_payload = parts[4 + index * 2]
+            padding = "=" * ((4 - len(block_payload) % 4) % 4)
+            try:
+                compressed_block = base64.urlsafe_b64decode(block_payload + padding)
+            except (ValueError, base64.binascii.Error) as exc:
+                raise InvalidRunExport("An export block uses invalid Base64URL data.") from exc
+            block_canonical = _decompress(compressed_block)
+            if hashlib.sha256(block_canonical).hexdigest() != block_checksum:
+                raise InvalidRunExport("An export block checksum does not match its contents.")
+            block_cursor = 0
+            for _ in range(count):
+                _, body, block_cursor = _read_frame(block_canonical, block_cursor)
+                bodies.append(body)
+            if block_cursor != len(block_canonical):
+                raise InvalidRunExport("An export block contains unexpected trailing data.")
+            expected_first = last + 1
+        if expected_first - 1 != event_count:
+            raise InvalidRunExport("The export event count does not match its blocks.")
     if (
         not run_id
         or len(run_id) > MAX_RUN_ID_CHARACTERS
@@ -463,8 +542,7 @@ def decode_run_export(value):
     if not re.fullmatch(r"[0-9a-f]{64}", event_hash):
         raise InvalidRunExport("The export ledger head is invalid.")
 
-    projection, projection_cursor = _decode_value(fields[5])
-    if projection_cursor != len(fields[5]) or not isinstance(projection, dict):
+    if not isinstance(projection, dict):
         raise InvalidRunExport("The export contains an invalid run projection.")
     current_kills = projection.get("currentKills")
     if (
@@ -539,14 +617,6 @@ def decode_run_export(value):
     if projection["schema"] >= 2 and not _validate_outpost_lifecycles(projection):
         raise InvalidRunExport("The export contains invalid outpost lifecycle summaries.")
 
-    bodies = []
-    body_cursor = 0
-    for _ in range(event_count):
-        _, body, body_cursor = _read_frame(fields[6], body_cursor)
-        bodies.append(body)
-    if body_cursor != len(fields[6]):
-        raise InvalidRunExport("The export event count does not match its contents.")
-
     events = []
     previous_hash = GENESIS_HASH
     for sequence, body in enumerate(bodies, start=1):
@@ -554,6 +624,13 @@ def decode_run_export(value):
         if event["run_id"] != run_id or event["sequence"] != sequence:
             raise InvalidRunExport("The export event sequence is invalid.")
         previous_hash = hashlib.sha256(previous_hash.encode("ascii") + body).hexdigest()
+        if event_blocks:
+            descriptor = next(
+                (item for item in event_blocks if item["lastSequence"] == sequence),
+                None,
+            )
+            if descriptor and descriptor["lastHash"] != previous_hash:
+                raise InvalidRunExport("An export block ledger head is invalid.")
         events.append(event)
     if previous_hash != event_hash:
         raise InvalidRunExport("The export ledger hash does not match its events.")

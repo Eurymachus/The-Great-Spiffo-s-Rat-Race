@@ -1,6 +1,7 @@
 local Identity = require "TGSRR/Run/Identity"
 local Ledger = require "TGSRR/Run/Ledger"
 local ExportCodec = require "TGSRR/Run/ExportCodec"
+local IncrementalExportCache = require "TGSRR/Run/IncrementalExportCache"
 local SkillSnapshot = require "TGSRR/Run/SkillSnapshot"
 local OutpostSnapshot = require "TGSRR/Run/OutpostSnapshot"
 local OutpostLifecycleSnapshot = require "TGSRR/Run/OutpostLifecycleSnapshot"
@@ -93,7 +94,7 @@ local function characterProjection(run, player)
     }
 end
 
-local function verifyReadback(decoded, ledger, projection)
+local function verifyReadback(decoded, ledger, projection, verifyBodies)
     if type(decoded.projection) ~= "table" then
         return false, "export_readback_mismatch:projection:missing"
     end
@@ -110,13 +111,15 @@ local function verifyReadback(decoded, ledger, projection)
     if type(actual.activeDay) ~= "table" then
         return false, "export_readback_mismatch:activeDay:missing"
     end
-    if #decoded.bodies ~= #ledger.records then
-        return false, "export_readback_mismatch:eventBodies:count"
-    end
-    for index, record in ipairs(ledger.records) do
-        if decoded.bodies[index] ~= record.body then
-            return false, "export_readback_mismatch:eventBodies:"
-                .. tostring(index)
+    if verifyBodies then
+        if #decoded.bodies ~= #ledger.records then
+            return false, "export_readback_mismatch:eventBodies:count"
+        end
+        for index, record in ipairs(ledger.records) do
+            if decoded.bodies[index] ~= record.body then
+                return false, "export_readback_mismatch:eventBodies:"
+                    .. tostring(index)
+            end
         end
     end
 
@@ -319,6 +322,24 @@ local function verifyReadback(decoded, ledger, projection)
         local reason = check(
             comparison[1], comparison[2], comparison[3])
         if reason then return false, reason end
+    end
+    return true
+end
+
+local function verifyBlockDescriptors(decoded, ledger)
+    local expectedFirst = 1
+    for _, descriptor in ipairs(decoded.eventBlocks or {}) do
+        local lastSequence = expectedFirst + descriptor.count - 1
+        local record = ledger.records[lastSequence]
+        if descriptor.firstSequence ~= expectedFirst
+                or descriptor.lastSequence ~= lastSequence
+                or not record or descriptor.lastHash ~= record.hash then
+            return false, "export_readback_mismatch:eventBlock"
+        end
+        expectedFirst = lastSequence + 1
+    end
+    if expectedFirst - 1 ~= #ledger.records then
+        return false, "export_readback_mismatch:eventBlocks:count"
     end
     return true
 end
@@ -530,23 +551,33 @@ function Exporter.generate(run, work, options)
     omitFalsePartialFlags(projection)
     omitEmptyKillEvidence(projection)
     finishStage("projection")
+    local blocks, blockError, cacheStats =
+        IncrementalExportCache.buildBlocks(
+            ledger.runId, ledger.records, work)
+    if not blocks then return false, blockError end
+    finishStage("export_blocks")
     local encoded, stats = ExportCodec.encode(
         ledger.runId,
         Identity.utcSeconds(),
         ledger.records,
         ledger.eventHash,
         projection,
-        work
+        work,
+        {
+            blocks = blocks,
+            reusedBlockCount = cacheStats.reusedBlockCount,
+        }
     )
     finishStage("encode")
-    local decoded, decodeError = ExportCodec.decode(encoded, work, {
-        verifyLedger = false,
-    })
+    local decoded, decodeError = ExportCodec.decodeManifest(encoded, work)
     if not decoded then return false, decodeError end
     finishStage("decode")
+    local descriptorsVerified, descriptorError =
+        verifyBlockDescriptors(decoded, ledger)
+    if not descriptorsVerified then return false, descriptorError end
     if work then work("compare_readback", 0, 1) end
     local verified, verifyError =
-        verifyReadback(decoded, ledger, projection)
+        verifyReadback(decoded, ledger, projection, false)
     if not verified then return false, verifyError end
     finishStage("readback")
 
@@ -566,6 +597,8 @@ function Exporter.generate(run, work, options)
     stats.value = encoded
     stats.syntheticDays = options.syntheticDays
     stats.syntheticBuildMilliseconds = options.syntheticBuildMilliseconds
+    stats.reusedBlockCount = cacheStats.reusedBlockCount
+    stats.builtBlockCount = cacheStats.builtBlockCount
     stats.exportMilliseconds = options.exportStartedMilliseconds
         and milliseconds() - options.exportStartedMilliseconds or nil
     stats.profileMilliseconds = timings

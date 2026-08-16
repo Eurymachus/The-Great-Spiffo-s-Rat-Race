@@ -193,6 +193,8 @@ local function finishExport(ok, result)
             .. " ms  |  Decode: " .. tostring(math.floor(profile.decode or 0))
             .. " ms  |  Ledger: " .. tostring(math.floor(profile.ledger or 0))
             .. " ms"
+            .. "\nBlocks reused: " .. tostring(result.reusedBlockCount or 0)
+            .. "  |  Blocks built: " .. tostring(result.builtBlockCount or 0)
     end
     local modal = showMessage(
         readyText .. "\n\n" .. summaryText,

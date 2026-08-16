@@ -916,3 +916,17 @@ a normal run-moderation bulk action.
   `View starting location on the Project Zomboid Map`.
 - BuildingDef ID, capture timestamps, schema and registry provenance remain
   stored evidence and are not part of the ordinary player-facing panel.
+
+# 2026-08-16 - Cache immutable export event blocks locally
+
+- Format 4 exports use a compressed manifest and independently compressed
+  blocks of at most 256 ordered ledger events.
+- The local block cache is disposable derived data. The append-only ledger
+  remains authoritative.
+- An exact repeat export reuses all unchanged blocks. A later export reuses
+  its unchanged prefix and rebuilds only its changed or appended tail.
+- Cache version changes, missing entries and invalid cache metadata cause a
+  rebuild from the ledger.
+- The website fully decompresses and verifies every submitted block, its
+  checksum, its sequence boundaries and the complete ledger hash chain.
+- Format-3 exports remain accepted as immutable legacy evidence.

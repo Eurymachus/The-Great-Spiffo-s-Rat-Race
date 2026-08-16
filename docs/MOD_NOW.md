@@ -76,7 +76,7 @@ the export contract; their policy and test surfaces are documented in
   verified ahead tail as immutable superseded evidence, advances to a new epoch,
   and resumes from the restored save checkpoint; declining leaves tracking
   stopped. Recovery-epoch creation is idempotent across another crash.
-- Format-3 projections expose neutral recovery status, the active epoch, all
+- Current projections expose neutral recovery status, the active epoch, all
   recovery decisions, immutable recovery metadata, and the complete superseded
   event bodies. Accepted totals follow only the active branch; the website owns
   moderator approval or denial.
@@ -115,8 +115,11 @@ the export contract; their policy and test surfaces are documented in
   partial, and is intentionally excluded from ledger and export.
 - Compact loaded-mod history: a complete initial Mod ID/Workshop ID baseline followed by timestamped added, removed, and changed-association session deltas.
 - Versioned, deterministic LZSS/Base64URL run exports containing the complete verified event history, integrity metadata, and a live current-kills projection.
+- Format-4 exports split history into independently compressed 256-event
+  blocks. A disposable local cache reuses exact unchanged blocks while the
+  website still verifies every submitted block and the complete hash chain.
 - Pre-spawn capture of the raw namespaced trait IDs selected on the character-creation screen, persisted across the loading transition and consumed only by the matching new character.
-- Format-3 current-state projection containing challenge evidence; character and
+- Format-4 current-state projection containing challenge evidence; character and
   trait state; current skills; sparse non-default outpost state; ordered first outpost
   completions; kill and outpost-deliverable milestones with elapsed days; all 12
   town-visit states; versioned non-town location state; filtered skill-book and
@@ -136,11 +139,12 @@ the export contract; their policy and test surfaces are documented in
   stack limit. Larger exports remain saved under `Zomboid/Lua/TGSRR/Runs` and
   the result window offers a safe file-path copy instead of risking a game
   process crash.
-- Export benchmarks report encode, decode, and ledger stage timings. Export
-  readback verifies the checksum and compares every decoded event body with the
-  already verified source ledger instead of redundantly hashing the complete
-  chain a second time. SHA-256 uses cached byte-operation tables while retaining
-  the existing standard test vectors and hash format.
+- Export benchmarks report encode, manifest-decode, ledger, reused-block and
+  rebuilt-block stage results. New blocks are decoded and compared with their
+  source records before caching. Repeat exports verify the manifest and exact
+  block boundaries without decompressing unchanged local cache blocks.
+  SHA-256 uses cached byte-operation tables while retaining the existing
+  standard test vectors and hash format.
 - Generic `skill.level.reached` events contain the skill, parent category, and
   reached level. The first level-10 event per skill is exported as its milestone
   with completion order and elapsed days; levels 1-9 remain ordinary history.
