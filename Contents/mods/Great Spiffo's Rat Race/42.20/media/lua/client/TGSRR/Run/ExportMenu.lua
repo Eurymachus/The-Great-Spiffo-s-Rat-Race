@@ -205,7 +205,7 @@ local function finishExport(ok, result)
         nil,
         result.syntheticDays and 600 or nil,
         clipboardSafe and (result.syntheticDays and 210 or nil) or
-            (result.syntheticDays and 390 or 348),
+            (result.syntheticDays and 430 or 348),
         true
     )
     modal.prerender = function(self)
@@ -222,11 +222,16 @@ local function finishExport(ok, result)
             result.syntheticDays and 54 or 68,
             1, 1, 1, 1, UIFont.Small)
         if not clipboardSafe then
+            local warningY = result.syntheticDays and 154 or 100
+            local savedLabelY = result.syntheticDays and 180 or 120
+            local firstPathY = result.syntheticDays and 204 or 140
+            local secondPathY = result.syntheticDays and 226 or 160
+            local instructionY = result.syntheticDays and 254 or 186
             self:drawTextCentre(
                 L.text("UI_TGSRR_Tracker_ExportClipboardTooLarge",
                     "Export is too large for Project Zomboid's clipboard."),
                 self:getWidth() / 2,
-                result.syntheticDays and 142 or 100,
+                warningY,
                 1, 0.75, 0.35, 1,
                 UIFont.Small
             )
@@ -235,14 +240,14 @@ local function finishExport(ok, result)
             self:drawTextCentre(
                 L.text("UI_TGSRR_Tracker_ExportSavedTo", "Saved to:"),
                 self:getWidth() / 2,
-                result.syntheticDays and 162 or 120,
+                savedLabelY,
                 0.85, 0.85, 0.85, 1,
                 UIFont.Small
             )
             self:drawTextCentre(
                 firstPathLine,
                 self:getWidth() / 2,
-                result.syntheticDays and 182 or 140,
+                firstPathY,
                 0.85, 0.85, 0.85, 1,
                 UIFont.Small
             )
@@ -250,12 +255,11 @@ local function finishExport(ok, result)
                 self:drawTextCentre(
                     secondPathLine,
                     self:getWidth() / 2,
-                    result.syntheticDays and 202 or 160,
+                    secondPathY,
                     0.85, 0.85, 0.85, 1,
                     UIFont.Small
                 )
             end
-            local instructionY = result.syntheticDays and 228 or 186
             self:drawTextCentre(
                 L.text("UI_TGSRR_Tracker_ExportInstructions", "INSTRUCTIONS:"),
                 self:getWidth() / 2,
