@@ -201,6 +201,17 @@ def _catalogue_icon_map(entries):
     return resolved
 
 
+def _latest_catalogue_entries(kind):
+    latest = {}
+    for entry in CatalogueEntry.objects.filter(kind=kind, is_active=True):
+        current = latest.get(entry.stable_id.casefold())
+        if current is None or version_key(entry.introduced_in) > version_key(
+            current.introduced_in
+        ):
+            latest[entry.stable_id.casefold()] = entry
+    return latest
+
+
 def _skill_level_progress(level, xp, thresholds):
     level = max(0, min(10, int(level or 0)))
     if level >= 10 or not isinstance(xp, (int, float)) or len(thresholds) < 10:
@@ -260,13 +271,7 @@ def build_public_run_context(run):
             map_entry.pk, ""
         )
 
-    raw_skills = [
-        skill for skill in projection.get("skills", []) if isinstance(skill, dict)
-    ]
-    skill_catalogue = _catalogue_map(
-        CatalogueEntry.Kind.SKILL,
-        (skill.get("id") for skill in raw_skills),
-    )
+    skill_catalogue = _latest_catalogue_entries(CatalogueEntry.Kind.SKILL)
     skill_details = {
         details.entry_id: details
         for details in SkillDetails.objects.filter(
@@ -274,15 +279,17 @@ def build_public_run_context(run):
         )
     }
     skill_icons = _catalogue_icon_map(skill_catalogue.values())
+    authoritative_skills = {
+        skill.raw_skill_id.casefold(): skill
+        for skill in run.authoritative_skills.select_related("catalogue_entry")
+    }
     skills = []
-    for skill in raw_skills:
-        if not isinstance(skill, dict):
-            continue
-        skill_id = str(skill.get("id") or "")
-        catalogue_entry = skill_catalogue.get(skill_id)
-        details = skill_details.get(catalogue_entry.pk) if catalogue_entry else None
-        level = skill.get("level", 0)
-        xp = skill.get("xp")
+    for stable_id, catalogue_entry in skill_catalogue.items():
+        skill = authoritative_skills.get(stable_id)
+        skill_id = catalogue_entry.stable_id
+        details = skill_details.get(catalogue_entry.pk)
+        level = skill.level if skill else 0
+        xp = skill.xp if skill else 0
         level_progress = _skill_level_progress(
             level,
             xp,
@@ -291,20 +298,16 @@ def build_public_run_context(run):
         category = (
             details.category
             if details and details.category
-            else _name(skill.get("categoryId"))
+            else _name(skill.raw_category_id if skill else "")
         )
         skills.append(
             {
                 "id": skill_id,
                 "name": (
                     catalogue_entry.display_name
-                    if catalogue_entry
-                    else _name(skill_id)
                 ),
                 "icon_url": (
                     skill_icons.get(catalogue_entry.pk, "")
-                    if catalogue_entry
-                    else ""
                 ),
                 "category": SKILL_CATEGORY_LABELS.get(category, category),
                 "level": level,
@@ -343,28 +346,6 @@ def build_public_run_context(run):
     mastered_skills = sum(skill["mastered"] for skill in skills)
     overall_skill_progress = sum(skill["level_progress"] for skill in skills)
     overall_skill_target = len(skills) * 10
-
-    progress = []
-    progress_order = {"kills": 0, "skills": 1, "outposts": 2, "landmarks": 3}
-    categories = projection.get("challengeProgress", {}).get("categories", {})
-    if isinstance(categories, dict):
-        for key, value in categories.items():
-            if not isinstance(value, dict) or not value.get("available"):
-                continue
-            ratio = value.get("progress", 0)
-            ratio = ratio if isinstance(ratio, (int, float)) else 0
-            progress.append(
-                {
-                    "id": key,
-                    "name": _name(key),
-                    "current": value.get("current", 0),
-                    "target": value.get("target", 0),
-                    "current_display": f"{value.get('current', 0):,}",
-                    "target_display": f"{value.get('target', 0):,}",
-                    "percent": round(max(0, min(1, ratio)) * 100, 1),
-                    "status": _name(value.get("status")),
-                }
-            )
 
     outposts = []
     authoritative_outposts = list(
@@ -427,16 +408,7 @@ def build_public_run_context(run):
                 }
             )
 
-    latest_outpost_entries = {}
-    for entry in CatalogueEntry.objects.filter(
-        kind=CatalogueEntry.Kind.OUTPOST,
-        is_active=True,
-    ):
-        current = latest_outpost_entries.get(entry.stable_id.casefold())
-        if current is None or version_key(entry.introduced_in) > version_key(
-            current.introduced_in
-        ):
-            latest_outpost_entries[entry.stable_id.casefold()] = entry
+    latest_outpost_entries = _latest_catalogue_entries(CatalogueEntry.Kind.OUTPOST)
 
     presented_outpost_ids = {
         str(outpost.get("id") or "").casefold() for outpost in outposts
@@ -473,7 +445,45 @@ def build_public_run_context(run):
             outpost["id"],
         )
     )
-    progress.sort(key=lambda item: (progress_order.get(item["id"], 99), item["name"]))
+    kill_summary = getattr(run, "kill_summary", None)
+    current_kills = kill_summary.current_kills if kill_summary else run.current_kills
+    completed_outposts = sum(outpost["complete"] for outpost in outposts)
+    landmark_catalogue = _latest_catalogue_entries(CatalogueEntry.Kind.LOCATION)
+    visited_landmarks = run.authoritative_landmarks.count()
+
+    progress_values = (
+        ("kills", current_kills, 1_000_000, None),
+        (
+            "skills",
+            mastered_skills,
+            len(skills),
+            overall_skill_progress / overall_skill_target
+            if overall_skill_target
+            else 0,
+        ),
+        ("outposts", completed_outposts, len(latest_outpost_entries), None),
+        ("landmarks", visited_landmarks, len(landmark_catalogue), None),
+    )
+    progress = []
+    for key, current, target, ratio_override in progress_values:
+        if target <= 0:
+            continue
+        ratio = max(
+            0,
+            min(1, ratio_override if ratio_override is not None else current / target),
+        )
+        progress.append(
+            {
+                "id": key,
+                "name": _name(key),
+                "current": current,
+                "target": target,
+                "current_display": f"{current:,}",
+                "target_display": f"{target:,}",
+                "percent": round(ratio * 100, 1),
+                "status": "Complete" if ratio >= 1 else "In Progress",
+            }
+        )
 
     towns = []
     town_visits = projection.get("townVisits", {})

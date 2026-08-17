@@ -17,6 +17,8 @@ from .models import (
     Participant,
     RunOutpost,
     RunOutpostDeliverable,
+    RunKillSummary,
+    RunSkill,
     RunStartingLocation,
     RunSubmission,
 )
@@ -32,6 +34,13 @@ class PublicRunDetailTests(TestCase):
             is_active=True,
         )
         self.mode = ChallengeMode.objects.get(key="TGSRR")
+        aiming = CatalogueEntry.objects.create(
+            kind=CatalogueEntry.Kind.SKILL,
+            stable_id="Aiming",
+            display_name="Aiming",
+            introduced_in="42.19",
+        )
+        SkillDetails.objects.create(entry=aiming, category="Firearm")
         skill = CatalogueEntry.objects.create(
             kind=CatalogueEntry.Kind.SKILL,
             stable_id="FlintKnapping",
@@ -245,6 +254,28 @@ class PublicRunDetailTests(TestCase):
             world_age_hours=2,
             partial=False,
         )
+        RunSkill.objects.create(
+            run=self.run,
+            raw_skill_id="Aiming",
+            raw_category_id="Firearm",
+            catalogue_entry=CatalogueEntry.objects.get(
+                kind=CatalogueEntry.Kind.SKILL,
+                stable_id="Aiming",
+            ),
+            level=2,
+            xp=150,
+        )
+        RunSkill.objects.create(
+            run=self.run,
+            raw_skill_id="FlintKnapping",
+            raw_category_id="Crafting",
+            catalogue_entry=CatalogueEntry.objects.get(
+                kind=CatalogueEntry.Kind.SKILL,
+                stable_id="FlintKnapping",
+            ),
+            level=5,
+            xp=3028.6,
+        )
         outpost = RunOutpost.objects.create(
             run=self.run,
             raw_outpost_id="echo_creek",
@@ -329,6 +360,15 @@ class PublicRunDetailTests(TestCase):
             "registry:participant_profile", args=(self.participant.pk,)
         )
         self.assertContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(
+            response,
+            'class="card card-wide account-dashboard run-public-page"',
+        )
+        content = response.content.decode()
+        self.assertLess(
+            content.index('aria-label="Breadcrumb"'),
+            content.index('class="account-dashboard-header run-public-hero"'),
+        )
         self.assertContains(response, profile_url, count=2)
         self.assertContains(response, "Back to RatRacer")
         self.assertContains(response, "Esteban Grossman")
@@ -379,7 +419,6 @@ class PublicRunDetailTests(TestCase):
         self.assertContains(response, "1 / 12 towns visited.")
         self.assertNotContains(response, "World progress")
         self.assertNotContains(response, 'class="run-public-summary"')
-        content = response.content.decode()
         self.assertLess(
             content.index("Day 225"),
             content.index('<div class="run-public-name-row">'),
@@ -425,6 +464,43 @@ class PublicRunDetailTests(TestCase):
         self.assertNotContains(response, self.run.run_id)
         self.assertNotContains(response, self.submission.checksum)
         self.assertNotContains(response, self.run.event_hash)
+
+    def test_long_road_uses_authoritative_kills_when_derived_progress_is_stale(self):
+        self.client.force_login(self.participant)
+        self.submission.projection["challengeProgress"]["categories"]["kills"].update(
+            current=0,
+            progress=0,
+        )
+        self.submission.save(update_fields=("projection",))
+        self.run.current_kills = 18_190
+        self.run.save(update_fields=("current_kills",))
+        RunKillSummary.objects.create(run=self.run, current_kills=18_190)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "18,190 / 1,000,000")
+
+    def test_long_road_accepts_missing_derived_progress(self):
+        self.client.force_login(self.participant)
+        self.submission.projection.pop("challengeProgress")
+        self.submission.save(update_fields=("projection",))
+        self.run.current_kills = 18_190
+        self.run.save(update_fields=("current_kills",))
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "18,190 / 1,000,000")
+
+    def test_skill_progress_percentage_includes_partial_skill_levels(self):
+        self.client.force_login(self.participant)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "0 / 2")
+        self.assertContains(response, "35.0%")
 
     def test_outposts_are_grouped_by_completion_and_discovery_state(self):
         RunOutpost.objects.filter(

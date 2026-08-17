@@ -127,7 +127,7 @@ the export contract; their policy and test surfaces are documented in
   active mods; cumulative filtered distance travelled; and a non-mutating
   active-day snapshot with live kill, per-skill XP, and distance deltas.
 - Cooperative pause-menu export flow with progress presentation, read-back
-  verification, and explicit clipboard copy. Only the current development
+  verification, and absolute file-path copy. Only the current development
   export format is accepted.
 - Debug-only synthetic export window offering one, two, five, and ten-year
   benchmarks. Each builds the corresponding deterministic daily records in
@@ -137,10 +137,9 @@ the export contract; their policy and test surfaces are documented in
   remain stable across game restarts and repeated tests measure cache reuse.
 - Export progress overlays show a live hours, minutes, and seconds elapsed
   timer for ordinary and synthetic exports.
-- Clipboard copies are capped below Project Zomboid's fixed native clipboard
-  stack limit. Larger exports remain saved under `Zomboid/Lua/TGSRR/Runs` and
-  the result window offers a safe file-path copy instead of risking a game
-  process crash.
+- Every export remains saved under `Zomboid/Lua/TGSRR/Runs`. The result window
+  copies the absolute file path for website upload and never sends the export
+  payload through Project Zomboid's fixed native clipboard stack.
 - Export benchmarks report encode, manifest-decode, ledger, reused-block and
   rebuilt-block stage results. New blocks are decoded and compared with their
   source records before caching. Repeat exports verify the manifest and exact

@@ -5,7 +5,6 @@ local IncrementalExportCache = require "TGSRR/Run/IncrementalExportCache"
 local SkillSnapshot = require "TGSRR/Run/SkillSnapshot"
 local OutpostSnapshot = require "TGSRR/Run/OutpostSnapshot"
 local OutpostLifecycleSnapshot = require "TGSRR/Run/OutpostLifecycleSnapshot"
-local ChallengeProgressSnapshot = require "TGSRR/Run/ChallengeProgressSnapshot"
 local ModSnapshot = require "TGSRR/Run/ModSnapshot"
 local DailySnapshot = require "TGSRR/Run/DailySnapshot"
 local WeaponKillSnapshot = require "TGSRR/Run/WeaponKillSnapshot"
@@ -314,9 +313,6 @@ local function verifyReadback(decoded, ledger, projection, verifyBodies)
         { "activeDay.zombieAssociatedInjuryDeltas.count",
             count(actual.activeDay.zombieAssociatedInjuryDeltas),
             count(projection.activeDay.zombieAssociatedInjuryDeltas) },
-        { "challengeProgress.rulesVersion",
-            actual.challengeProgress.rulesVersion,
-            projection.challengeProgress.rulesVersion },
     }
     for _, comparison in ipairs(comparisons) do
         local reason = check(
@@ -410,7 +406,6 @@ function Exporter.generate(run, work, options)
         character = characterProjection(run, player),
         skills = SkillSnapshot.observe(player),
         outposts = OutpostSnapshot.observe(outpostLifecycles),
-        challengeProgress = ChallengeProgressSnapshot.observe(player),
         activeMods = ModSnapshot.observe(),
         activeDay = DailySnapshot.active(run, player),
         weight = {

@@ -6,18 +6,13 @@
   <section class="dashboard-panel personal-best-panel">
     <div class="dashboard-panel-heading">
       <div>
-        <p class="dashboard-panel-kicker">Your record</p>
+        <p class="dashboard-panel-kicker">Strongest result</p>
         <h3>Personal Best</h3>
       </div>
       <span class="dashboard-coming-soon">{% if personal_best %}Verified{% else %}No result yet{% endif %}</span>
     </div>
     {% if personal_best %}
-    <div class="dashboard-run-summary">
-      <div><small>Survivor</small><strong>{{ personal_best.character_name|default:"Recorded run" }}</strong></div>
-      <div><small>Zombie kills</small><strong>{{ personal_best.current_kills }}</strong></div>
-      <div><small>In-game Day</small><strong>{% if personal_best.in_game_day %}{{ personal_best.in_game_day }}{% else %}Not recorded{% endif %}</strong></div>
-      <div><small>Challenge mode</small><strong>{{ personal_best.challenge_mode_display }}</strong></div>
-    </div>
+    {% include "registry/includes/profile_run_card.html" with run=personal_best show_progress=True %}
     {% else %}
     <div class="dashboard-empty-state dashboard-challenge-state">
       <span class="dashboard-state-icon" aria-hidden="true">-</span>
@@ -36,10 +31,7 @@
     {% if active_runs %}
     <div class="dashboard-run-list">
       {% for run in active_runs %}
-      <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ run.pk }}" aria-haspopup="dialog">
-        <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></div>
-        <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_status_display }}</small></div>
-      </button>
+      {% include "registry/includes/profile_run_card.html" with run=run private_view=True show_progress=True %}
       {% include "registry/_run_detail_dialog.html" with run=run %}
       {% include "registry/_run_deactivate_dialog.html" with run=run %}
       {% endfor %}
@@ -56,10 +48,7 @@
     {% if past_runs %}
     <div class="dashboard-run-list">
       {% for run in past_runs %}
-      <button type="button" class="dashboard-run-entry" data-run-detail-open="run-detail-{{ run.pk }}" aria-haspopup="dialog">
-        <div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></div>
-        <div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_lifecycle_status_display }}</small></div>
-      </button>
+      {% include "registry/includes/profile_run_card.html" with run=run private_view=True show_progress=False %}
       {% include "registry/_run_detail_dialog.html" with run=run %}
       {% endfor %}
     </div>

@@ -13,9 +13,6 @@ local ExportMenu = {}
 local ExportOverlay = ISPanel:derive("TGSRRExportOverlay")
 local activeExport = nil
 local updateExport
--- Project Zomboid's clipboard can silently truncate exports before 60,000
--- characters. Keep enough margin that clipboard delivery remains reliable.
-local CLIPBOARD_SAFE_CHARACTERS = 48000
 
 local function elapsedText(startedAt)
     local elapsedSeconds = math.max(0,
@@ -178,7 +175,6 @@ local function finishExport(ok, result)
     local readyText = result.syntheticDays and
         "Synthetic benchmark export ready. Do not submit this export."
         or L.text("UI_TGSRR_Tracker_ExportReady", "Run export ready.")
-    local clipboardSafe = #(result.value or "") <= CLIPBOARD_SAFE_CHARACTERS
     local savedPath = absoluteLuaPath(result.filename)
     local summaryText = tostring(result.eventSequence) .. " " ..
         L.text("UI_TGSRR_Tracker_ExportEvents", "events") .. "  |  " ..
@@ -200,14 +196,11 @@ local function finishExport(ok, result)
     end
     local modal = showMessage(
         readyText .. "\n\n" .. summaryText,
-        clipboardSafe and
-            L.text("UI_TGSRR_Tracker_CopyToClipboard", "Copy to Clipboard") or
-            L.text("UI_TGSRR_Tracker_CopyFilePath", "Copy File Path"),
+        L.text("UI_TGSRR_Tracker_CopyFilePath", "Copy File Path"),
         nil,
         nil,
         result.syntheticDays and 600 or nil,
-        clipboardSafe and (result.syntheticDays and 210 or nil) or
-            (result.syntheticDays and 430 or 348),
+        result.syntheticDays and 430 or 348,
         true
     )
     modal.prerender = function(self)
@@ -223,17 +216,16 @@ local function finishExport(ok, result)
         self:drawTextCentre(summaryText, self:getWidth() / 2,
             result.syntheticDays and 54 or 68,
             1, 1, 1, 1, UIFont.Small)
-        if not clipboardSafe then
-            local warningY = result.syntheticDays and 154 or 100
+            local noticeY = result.syntheticDays and 154 or 100
             local savedLabelY = result.syntheticDays and 180 or 120
             local firstPathY = result.syntheticDays and 204 or 140
             local secondPathY = result.syntheticDays and 226 or 160
             local instructionY = result.syntheticDays and 254 or 186
             self:drawTextCentre(
-                L.text("UI_TGSRR_Tracker_ExportClipboardTooLarge",
-                    "Export is too large for Project Zomboid's clipboard."),
+                L.text("UI_TGSRR_Tracker_ExportSavedForUpload",
+                    "Export saved for website upload."),
                 self:getWidth() / 2,
-                warningY,
+                noticeY,
                 1, 0.75, 0.35, 1,
                 UIFont.Small
             )
@@ -272,12 +264,12 @@ local function finishExport(ok, result)
             local instructionKeys = {
                 { "UI_TGSRR_Tracker_ExportInstructionCopyPath",
                     "Copy the file path" },
-                { "UI_TGSRR_Tracker_ExportInstructionOpenFile",
-                    "Open the file" },
-                { "UI_TGSRR_Tracker_ExportInstructionCopyContents",
-                    "Copy the contents" },
-                { "UI_TGSRR_Tracker_ExportInstructionPaste",
-                    "Paste into the submission form" },
+                { "UI_TGSRR_Tracker_ExportInstructionPastePath",
+                    "Paste it into the website upload area" },
+                { "UI_TGSRR_Tracker_ExportInstructionChooseFile",
+                    "Confirm the file in the file chooser" },
+                { "UI_TGSRR_Tracker_ExportInstructionSubmit",
+                    "Submit the form" },
             }
             for index, instruction in ipairs(instructionKeys) do
                 self:drawTextCentre(
@@ -288,7 +280,6 @@ local function finishExport(ok, result)
                     UIFont.Small
                 )
             end
-        end
     end
     local closeText = L.text("UI_TGSRR_Tracker_Close", "Close")
     local closeWidth = math.max(
@@ -314,13 +305,9 @@ local function finishExport(ok, result)
     closeButton:enableCancelColor()
     modal:addChild(closeButton)
     modal.ok.onclick = function()
-        Clipboard.setClipboard(clipboardSafe and result.value or savedPath)
+        Clipboard.setClipboard(savedPath)
         showMessage(
-            clipboardSafe and
-                L.text("UI_TGSRR_Tracker_CopiedToClipboard",
-                    "Copied to clipboard") or
-                L.text("UI_TGSRR_Tracker_FilePathCopied",
-                    "File path copied"),
+            L.text("UI_TGSRR_Tracker_FilePathCopied", "File path copied"),
             L.text("UI_TGSRR_Tracker_OK", "OK"),
             nil,
             nil,

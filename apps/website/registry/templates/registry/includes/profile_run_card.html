@@ -1,0 +1,11 @@
+{% if private_view %}
+<button type="button" class="profile-run-card" data-run-detail-open="run-detail-{{ run.pk }}" aria-haspopup="dialog">
+{% else %}
+<a class="profile-run-card" href="{% url 'registry:public_run_detail' run.pk %}">
+{% endif %}
+  <span class="profile-run-card-summary">
+    <span><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></span>
+    <span>{% if show_progress %}<span class="run-public-day">{% if run.in_game_day %}Day {{ run.in_game_day }}{% else %}Day not recorded{% endif %}</span>{% else %}<strong>{{ run.current_kills }} kills</strong>{% endif %}<small>{% if run.lifecycle_status == "active" %}{{ run.get_status_display }}{% else %}{{ run.get_lifecycle_status_display }}{% endif %}</small></span>
+  </span>
+  {% if show_progress %}{% include "registry/includes/run_progress_cells.html" with progress=run.profile_progress %}{% endif %}
+{% if private_view %}</button>{% else %}</a>{% endif %}

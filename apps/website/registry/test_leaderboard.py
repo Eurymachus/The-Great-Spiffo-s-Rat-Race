@@ -176,6 +176,8 @@ class LeaderboardTests(TestCase):
         self.assertContains(response, "Personal Best")
         self.assertContains(response, "Active Runs")
         self.assertContains(response, "Past Runs")
+        self.assertContains(response, 'class="profile-run-progress"', count=2)
+        self.assertContains(response, 'class="profile-run-card"', count=3)
         self.assertContains(response, active.character_name)
         self.assertContains(response, past.character_name)
         self.assertNotContains(response, hidden.character_name)

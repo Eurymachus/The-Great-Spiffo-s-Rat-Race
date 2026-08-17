@@ -797,6 +797,38 @@ class RunSkill(models.Model):
         ]
 
 
+class RunLandmark(models.Model):
+    run = models.ForeignKey(
+        ChallengeRun, on_delete=models.CASCADE, related_name="authoritative_landmarks"
+    )
+    raw_location_id = models.CharField(max_length=255)
+    catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="run_landmark_records",
+    )
+    registry_version = models.PositiveIntegerField(null=True, blank=True)
+    partial = models.BooleanField(default=False)
+    first_visit_utc = models.PositiveBigIntegerField(null=True, blank=True)
+    first_visit_world_age_hours = models.FloatField(null=True, blank=True)
+    building_id = models.CharField(max_length=160, blank=True)
+    point_id = models.CharField(max_length=160, blank=True)
+    discovery_method = models.CharField(max_length=160, blank=True)
+    x = models.IntegerField(null=True, blank=True)
+    y = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("raw_location_id",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("run", "raw_location_id"),
+                name="unique_run_authoritative_landmark",
+            )
+        ]
+
+
 class RunKillSummary(models.Model):
     run = models.OneToOneField(
         ChallengeRun, on_delete=models.CASCADE, related_name="kill_summary"

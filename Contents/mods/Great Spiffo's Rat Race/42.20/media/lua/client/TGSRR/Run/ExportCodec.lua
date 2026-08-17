@@ -538,32 +538,6 @@ function ExportCodec.selfTest(work)
                     },
                 },
             },
-            challengeProgress = {
-                rulesVersion = 1,
-                categories = {
-                    kills = {
-                        available = true,
-                        current = 42,
-                        target = 1000000,
-                        progress = 0.000042,
-                        status = "active",
-                    },
-                    skills = {
-                        available = true,
-                        current = 0,
-                        target = 2,
-                        progress = 0.55,
-                        status = "active",
-                    },
-                    outposts = {
-                        available = true,
-                        current = 0,
-                        target = 1,
-                        progress = 0.42,
-                        status = "active",
-                    },
-                },
-            },
             activeMods = {
                 { modId = "TGSRR", workshopId = "1234567890" },
                 { modId = "example.local", workshopId = "" },
@@ -687,8 +661,6 @@ function ExportCodec.selfTest(work)
             or decoded.projection.skills[2].xp ~= 678.25
             or decoded.projection.outposts[1].id ~= "echo_creek_church"
             or decoded.projection.outposts[1].deliverables[1].progress ~= 0.5
-            or decoded.projection.challengeProgress.rulesVersion ~= 1
-            or decoded.projection.challengeProgress.categories.skills.progress ~= 0.55
             or decoded.projection.activeMods[1].modId ~= "TGSRR"
             or decoded.projection.activeMods[2].workshopId ~= ""
             or decoded.projection.weight.unit ~= "kilogram"

@@ -512,8 +512,25 @@ def verify(request, token):
     )
 
 
+def _attach_profile_progress(runs, progress_cache=None):
+    progress_cache = progress_cache if progress_cache is not None else {}
+    prepared = list(runs)
+    for run in prepared:
+        if run.pk not in progress_cache:
+            progress_cache[run.pk] = (
+                build_public_run_context(run)["progress"]
+                if run.status == ChallengeRun.Status.OFFICIAL
+                and run.approved_submission_id
+                else []
+            )
+        run.profile_progress = progress_cache[run.pk]
+    return prepared
+
+
 def account_dashboard_context(user):
-    runs = user.challenge_runs.select_related("challenge_mode").prefetch_related(
+    runs = user.challenge_runs.select_related(
+        "challenge_mode", "approved_submission"
+    ).prefetch_related(
         "submissions__challenge_mode"
     )
     legacy_run = user.claimed_legacy_runs.select_related(
@@ -535,12 +552,22 @@ def account_dashboard_context(user):
             source=LegacyRunSubmission.Source.PARTICIPANT,
             status=LegacyRunSubmission.Status.RECEIVED,
         ).first()
+    personal_best = (
+        runs.filter(status=ChallengeRun.Status.OFFICIAL)
+        .order_by("-current_kills", "first_submitted_at")
+        .first()
+    )
+    progress_cache = {}
+    if personal_best:
+        _attach_profile_progress((personal_best,), progress_cache)
+    active_runs = _attach_profile_progress(
+        runs.filter(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE), progress_cache
+    )
+    past_runs = list(runs.exclude(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE))
     return {
-        "personal_best": runs.filter(status=ChallengeRun.Status.OFFICIAL)
-            .order_by("-current_kills", "first_submitted_at")
-            .first(),
-        "active_runs": runs.filter(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE),
-        "past_runs": runs.exclude(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE),
+        "personal_best": personal_best,
+        "active_runs": active_runs,
+        "past_runs": past_runs,
         "pending_submissions": user.run_submissions.filter(
             status=RunSubmission.Status.RECEIVED
         ).select_related("run", "challenge_mode"),
@@ -587,20 +614,22 @@ def participant_profile(request, participant_id):
             if legacy_run.lifecycle == LegacyRun.Lifecycle.ACTIVE
             else legacy_run.best_submission
         )
+    personal_best = runs.order_by("-current_kills", "first_submitted_at").first()
+    progress_cache = {}
+    if personal_best:
+        _attach_profile_progress((personal_best,), progress_cache)
+    active_runs = _attach_profile_progress(
+        runs.filter(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE), progress_cache
+    )
+    past_runs = list(runs.exclude(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE))
     return render(
         request,
         "registry/participant_profile.html",
         {
             "profile_participant": participant,
-            "personal_best": runs.order_by(
-                "-current_kills", "first_submitted_at"
-            ).first(),
-            "active_runs": runs.filter(
-                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE
-            ),
-            "past_runs": runs.exclude(
-                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE
-            ),
+            "personal_best": personal_best,
+            "active_runs": active_runs,
+            "past_runs": past_runs,
             "legacy_run": legacy_run,
             "legacy_submission": legacy_submission,
             "journey_items": (

@@ -5,9 +5,9 @@
 <script src="{% static 'registry/run_details.js' %}?v=20260816-4" defer></script>
 {% endblock %}
 {% block content %}
-<article class="run-public-page">
+<article class="card card-wide account-dashboard run-public-page">
   {% include "registry/includes/journey_navigation.html" %}
-  <header class="run-public-hero">
+  <header class="account-dashboard-header run-public-hero">
     <div class="run-public-identity">
       <p class="dashboard-panel-kicker">Verified Rat Race run</p>
       <div class="run-public-hero-meta">
@@ -36,6 +36,8 @@
       <p class="run-public-challenge">{{ run.challenge_mode_display }}.</p>
     </div>
   </header>
+
+  <div class="run-public-content">
 
   {% include "registry/includes/character_build_dialog.html" with dialog_id="run-build-dialog" survivor=run.character_name profession=profession profession_icon_url=profession_icon_url profession_point_value=profession_point_value profession_point_is_negative=profession_point_is_negative negative_traits=selected_negative_traits positive_traits=selected_positive_traits current_negative_traits=current_negative_traits current_positive_traits=current_positive_traits removed_negative_traits=removed_negative_traits removed_positive_traits=removed_positive_traits show_current_traits=True %}
 
@@ -143,5 +145,6 @@
       <div><dt>First received by website</dt><dd><time datetime="{{ run.first_submitted_at|date:'c' }}" data-local-datetime data-local-seconds>{{ run.first_submitted_at|date:"j M Y, H:i:s" }}</time></dd></div>
     </dl>
   </footer>
+  </div>
 </article>
 {% endblock %}

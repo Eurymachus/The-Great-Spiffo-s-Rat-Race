@@ -240,7 +240,17 @@ records, while aliases and assets remain shared catalogue relationships.
 - The participant submission form accepts the tracker-generated `.txt` file by
   file picker or drag and drop, with direct export-text paste retained as a
   secondary fallback. All three paths use the same authoritative validation and
-  immutable submission workflow.
+  immutable submission workflow. Pasting a Windows `.txt` path is detected and
+  presents a focused file-chooser action with instructions to paste that path
+  into the operating system's File name field.
+- The canonical local background launcher performs a controlled restart on
+  every invocation. It records both the Windows virtual-environment wrapper PID
+  and the actual Python socket-owner PID, stops both, and discovers listeners
+  with `netstat` because CIM process and TCP queries may be unavailable. It
+  refuses unrelated port owners, then requires exactly one listener before
+  reporting success. Route-specific changes must also be verified through the
+  running HTTP server, using an authenticated request when the route is gated.
+  In-process Django rendering is not proof of what port 8001 is serving.
 - Current format-3 mod-export ingestion, including the signed ledger and complete
   character/trait projection, preserved on both the run and immutable submission.
   Current event-schema 2 ledgers are accepted; legacy and unknown event schemas

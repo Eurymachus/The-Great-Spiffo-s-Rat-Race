@@ -25,7 +25,17 @@ python -m venv .venv
 
 Open `http://127.0.0.1:8001/`. Local development uses SQLite and an in-process
 cache. The canonical launcher loads `.env`, starts the ASGI application and the
-reference-update worker, and verifies both before reporting the site ready.
+reference-update worker, and verifies both before reporting the site ready. On
+Windows, the virtual-environment launcher and the Python process that owns the
+listening socket have different PIDs. The launcher records and stops both,
+discovers listeners with `netstat`, and requires exactly one port owner. A
+successful homepage request alone is not sufficient evidence of a clean
+restart.
+
+After a code or template change, verify the changed authenticated route through
+the running HTTP server. Do not substitute `manage.py shell`, Django's test
+client, or an in-process context-builder call for this check, because those load
+the current source independently of the process serving port 8001.
 
 The launcher binds to loopback by default. On the original development computer,
 explicitly opt into LAN access when it is required:

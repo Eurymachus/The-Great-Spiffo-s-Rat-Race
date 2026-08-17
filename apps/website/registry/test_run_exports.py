@@ -770,6 +770,8 @@ class RunSubmissionTests(TestCase):
         self.assertContains(response, 'accept=".txt,text/plain"')
         self.assertContains(response, "Paste export text instead")
         self.assertContains(response, 'id="id_run_export"')
+        self.assertContains(response, "Open file chooser")
+        self.assertContains(response, 'data-export-path-choose')
 
     def test_submission_presents_visual_video_and_clip_pickers(self):
         account = StreamingAccount.objects.create(
@@ -960,7 +962,8 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "Deceased")
         self.assertContains(dashboard, "Active Survivor")
         self.assertContains(dashboard, "Past Survivor")
-        self.assertContains(dashboard, 'class="dashboard-run-entry"', count=4)
+        self.assertContains(dashboard, 'class="profile-run-card"', count=2)
+        self.assertContains(dashboard, 'class="dashboard-run-entry"', count=2)
         self.assertContains(dashboard, "Run details", count=2)
         self.assertContains(dashboard, "Approved submissions", count=2)
         self.assertContains(dashboard, "Submission history", count=2)
@@ -1212,7 +1215,7 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "Verified")
         self.assertContains(dashboard, "Test Survivor")
         self.assertContains(dashboard, "In-game Day")
-        self.assertNotContains(dashboard, "Day 1")
+        self.assertContains(dashboard, "Day 1", count=2)
         self.assertNotContains(dashboard, "Events verified")
 
     def test_admin_approval_rolls_back_if_authority_refresh_fails(self):

@@ -5,14 +5,25 @@
     const exportFileInput = document.querySelector("[data-export-file-input]");
     const exportDropzone = document.querySelector("[data-export-dropzone]");
     const exportStatus = document.querySelector("[data-export-file-status]");
+    const exportStatusMessage = document.querySelector("[data-export-file-status-message]");
+    const exportPathChoose = document.querySelector("[data-export-path-choose]");
     const exportPaste = document.querySelector("[data-export-paste]");
     const maximumExportBytes = 24 * 1024 * 1024;
 
-    const showExportStatus = (message, failed = false) => {
+    const showExportStatus = (message, failed = false, showPathAction = false) => {
         if (!exportStatus) return;
-        exportStatus.textContent = message;
+        if (exportStatusMessage) exportStatusMessage.textContent = message;
         exportStatus.hidden = false;
         exportStatus.classList.toggle("is-error", failed);
+        exportStatus.classList.toggle("is-path-help", showPathAction);
+        if (exportPathChoose) exportPathChoose.hidden = !showPathAction;
+    };
+
+    const normalisePastedPath = (value) => {
+        const trimmed = value.trim().replace(/^(["'])(.*)\1$/, "$2");
+        const drivePath = /^[a-z]:[\\/].+\.txt$/i;
+        const networkPath = /^\\\\[^\\]+\\.+\.txt$/i;
+        return drivePath.test(trimmed) || networkPath.test(trimmed) ? trimmed : "";
     };
 
     const loadExportFile = async (file) => {
@@ -41,6 +52,22 @@
 
     exportFileInput?.addEventListener("change", () => {
         loadExportFile(exportFileInput.files?.[0]);
+    });
+    exportPathChoose?.addEventListener("click", () => exportFileInput?.click());
+    document.addEventListener("paste", (event) => {
+        const target = event.target;
+        const isUnrelatedField =
+            (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) &&
+            target !== exportTextarea;
+        if (isUnrelatedField) return;
+        const pastedPath = normalisePastedPath(event.clipboardData?.getData("text/plain") || "");
+        if (!pastedPath) return;
+        event.preventDefault();
+        showExportStatus(
+            "Windows export path detected. Open the file chooser, paste this path into the File name field, then press Enter.",
+            false,
+            true
+        );
     });
     ["dragenter", "dragover"].forEach((eventName) => {
         exportDropzone?.addEventListener(eventName, (event) => {

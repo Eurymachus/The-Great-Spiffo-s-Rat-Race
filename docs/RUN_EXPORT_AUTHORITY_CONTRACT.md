@@ -147,14 +147,15 @@ player-facing panel.
 
 ## Challenge progress, outposts, and deliverable lifecycle
 
-`challengeProgress` is a rules-versioned derived snapshot. Typed skill, kill,
-outpost, and landmark rows remain the factual authority. The snapshot is kept
-to reproduce what the shipped mod displayed under that rules version.
+`challengeProgress` is presentation-only derived state and is not part of the
+sparse export contract. The website calculates category values, targets,
+ratios, percentages, availability, and status from approved typed kill, skill,
+outpost, and landmark authority plus the applicable versioned catalogues.
+Legacy exports containing `challengeProgress` remain valid evidence, but the
+field is ignored during authority refresh and public presentation.
 
 | Export field | Authoritative table and column | Catalogue link | Meaning | Approval import rule |
 | --- | --- | --- | --- | --- |
-| `challengeProgress.rulesVersion` | `RunChallengeProgress.rules_version` | None | Derived rules version | Replace. |
-| each category `available`, `current`, `target`, `progress`, `status` | `RunChallengeProgressCategory.*` keyed by raw category ID | None | Current derived state | Replace all categories; do not use as a substitute for typed facts. |
 | `outposts[].id` | `RunOutpost.raw_outpost_id`, `catalogue_entry_id` | Outpost | Current state identity | Replace all registry members. |
 | `discovered`, `discoveredWorldAgeHours`, `workStartedWorldAgeHours` | `RunOutpost.*` | Outpost | Permanent first facts exposed in current snapshot | Replace from complete history, cross-check earliest events when available. |
 | `stage`, `complete`, `progress`, `passedRequirements`, `totalRequirements` | `RunOutpost.*` | Outpost | Current derived state | Replace. |

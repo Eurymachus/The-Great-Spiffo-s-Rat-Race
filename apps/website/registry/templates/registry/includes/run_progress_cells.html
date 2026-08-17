@@ -1,0 +1,10 @@
+{% if progress %}
+<div class="profile-run-progress" aria-label="Challenge progress">
+  {% for item in progress %}
+  <div class="profile-run-progress-cell">
+    <div><strong>{{ item.name }}</strong><span>{{ item.current_display }} / {{ item.target_display }}</span></div>
+    <div class="run-labelled-progress" role="img" aria-label="{{ item.name }} progress: {{ item.percent }}%"><span style="width: {{ item.percent }}%"></span><strong>{{ item.percent }}%</strong></div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

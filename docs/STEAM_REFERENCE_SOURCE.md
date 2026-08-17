@@ -93,8 +93,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\start_website
 ```
 
 The launcher loads `.env`, starts the web server and the independently running
-reference worker, reuses healthy existing processes, and refuses ambiguous
-duplicate listeners or workers.
+reference worker, records both the Windows launcher and socket-owner PIDs, and
+refuses ambiguous duplicate listeners or workers. It uses `netstat` for the
+listener check so a denied CIM query cannot silently turn process discovery into
+an empty result.
 
 An installed-build change creates a super-admin notification. Authentication
 failure or another update failure also creates a notification. A superuser can

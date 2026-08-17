@@ -30,12 +30,7 @@
           <span class="dashboard-coming-soon">{% if personal_best %}Verified{% else %}No result yet{% endif %}</span>
         </div>
         {% if personal_best %}
-        <div class="dashboard-run-summary">
-          <div><small>Survivor</small><strong>{{ personal_best.character_name|default:"Recorded run" }}</strong></div>
-          <div><small>Zombie kills</small><strong>{{ personal_best.current_kills }}</strong></div>
-          <div><small>In-game Day</small><strong>{{ personal_best.in_game_day|default:"Not recorded" }}</strong></div>
-          <div><small>Challenge mode</small><strong>{{ personal_best.challenge_mode_display }}</strong></div>
-        </div>
+        {% include "registry/includes/profile_run_card.html" with run=personal_best show_progress=True %}
         {% else %}
         <div class="dashboard-empty-state compact"><strong>No verified result yet</strong><p>This participant has no approved Stable runs.</p></div>
         {% endif %}
@@ -44,14 +39,14 @@
       <section class="dashboard-panel">
         <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">In progress</p><h3>Active Runs</h3></div></div>
         {% if active_runs %}<div class="dashboard-run-list">
-          {% for run in active_runs %}<a class="dashboard-run-entry participant-profile-run" href="{% url 'registry:public_run_detail' run.pk %}"><div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></div><div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_status_display }}</small></div></a>{% endfor %}
+          {% for run in active_runs %}{% include "registry/includes/profile_run_card.html" with run=run show_progress=True %}{% endfor %}
         </div>{% else %}<div class="dashboard-empty-state compact"><strong>No active runs</strong><p>This participant has no active approved runs.</p></div>{% endif %}
       </section>
 
       <section class="dashboard-panel">
         <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Previous attempts</p><h3>Past Runs</h3></div></div>
         {% if past_runs %}<div class="dashboard-run-list">
-          {% for run in past_runs %}<a class="dashboard-run-entry participant-profile-run" href="{% url 'registry:public_run_detail' run.pk %}"><div><strong>{{ run.character_name|default:"Rat Race run" }}</strong><small>{{ run.challenge_mode_display }}</small></div><div><strong>{{ run.current_kills }} kills</strong><small>{{ run.get_lifecycle_status_display }}</small></div></a>{% endfor %}
+          {% for run in past_runs %}{% include "registry/includes/profile_run_card.html" with run=run show_progress=False %}{% endfor %}
         </div>{% else %}<div class="dashboard-empty-state compact"><strong>No past runs</strong><p>This participant has no completed or inactive approved runs.</p></div>{% endif %}
       </section>
 

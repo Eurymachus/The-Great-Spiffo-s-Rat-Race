@@ -8,6 +8,7 @@ from .models import (
     RunDailyMetric,
     RunDailyRecord,
     RunKillSummary,
+    RunLandmark,
     RunOutpost,
     RunOutpostDeliverable,
     RunSkill,
@@ -409,6 +410,36 @@ def refresh_initial_run_authority(run, projection, events=None):
             )
         )
     RunSkill.objects.bulk_create(skill_rows)
+
+    RunLandmark.objects.filter(run=run).delete()
+    locations = _snapshot(projection.get("locations"))
+    registry_version = locations.get("registryVersion")
+    locations_partial = bool(locations.get("partial", False))
+    landmark_rows = []
+    for location in locations.get("entries", []):
+        if not isinstance(location, dict) or not location.get("visited"):
+            continue
+        raw_location_id = str(location.get("id") or "")
+        first_visit = _snapshot(location.get("firstVisit"))
+        if not raw_location_id:
+            continue
+        landmark_rows.append(
+            RunLandmark(
+                run=run,
+                raw_location_id=raw_location_id,
+                catalogue_entry=_resolve(CatalogueEntry.Kind.LOCATION, raw_location_id),
+                registry_version=registry_version,
+                partial=locations_partial,
+                first_visit_utc=first_visit.get("utc"),
+                first_visit_world_age_hours=first_visit.get("worldAgeHours"),
+                building_id=str(first_visit.get("buildingId") or ""),
+                point_id=str(first_visit.get("pointId") or ""),
+                discovery_method=str(first_visit.get("discoveryMethod") or ""),
+                x=first_visit.get("x"),
+                y=first_visit.get("y"),
+            )
+        )
+    RunLandmark.objects.bulk_create(landmark_rows)
 
     weapon_projection = _snapshot(projection.get("weaponKills"))
     fire_projection = _snapshot(projection.get("fireDeaths"))
