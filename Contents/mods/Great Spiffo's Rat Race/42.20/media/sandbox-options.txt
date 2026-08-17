@@ -1,5 +1,12 @@
 VERSION = 1,
 
+option TGSRRTracker.DangerAutoClose
+{
+    type = boolean, default = true,
+    page = TGSRRTracker,
+    translation = TGSRRTracker.DangerAutoClose,
+}
+
 option TGSRRHelicopter.Enabled
 {
     type = boolean, default = false,

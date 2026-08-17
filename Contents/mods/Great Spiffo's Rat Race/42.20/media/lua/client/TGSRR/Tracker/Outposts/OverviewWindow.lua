@@ -12,6 +12,7 @@ local Identity = require "TGSRR/Run/Identity"
 local LandmarkMap = require "TGSRR/Tracker/Landmarks/WorldMap"
 local Layout = require "TGSRR/Tracker/Layout"
 local VisualGuidance = require "TGSRR/Outposts/VisualGuidance"
+local DangerAutoClose = require "TGSRR/Tracker/DangerAutoClose"
 
 local Window = ISCollapsableWindow:derive("TGSRROutpostOverviewWindow")
 Window.instance = nil
@@ -19,8 +20,8 @@ Window.instance = nil
 local WIDTH = 640
 local HEIGHT = 650
 local MARGIN = 12
-local COLUMN_VALUE_X = 0.55
-local COLUMN_STATUS_X = 0.76
+local COLUMN_VALUE_X = 0.48
+local COLUMN_STATUS_X = 0.78
 local REFRESH_INTERVAL_MS = 1000
 local HELP_ICON = getTexture("media/ui/foraging/questionMark.png")
 local CHECK_ICON = getTexture("media/ui/inventoryPanes/Tickbox_Tick.png")
@@ -38,6 +39,7 @@ local TOGGLE_ON = getTexture("media/ui/Entity/widget_toggle_on.png")
 local TOGGLE_ON_OVER = getTexture("media/ui/Entity/widget_toggle_on_over.png")
 local TOGGLE_OFF = getTexture("media/ui/Entity/widget_toggle_off.png")
 local TOGGLE_OFF_OVER = getTexture("media/ui/Entity/widget_toggle_off_over.png")
+local SCROLLBAR_ALLOWANCE = 20
 
 local GuidanceToggle = ISButton:derive("TGSRRVisualGuidanceToggle")
 
@@ -62,7 +64,46 @@ function GuidanceToggle:new(x, y, width, height, title, target, onclick)
 end
 
 local function windowWidth()
-    local contentWidth = Layout.textWidth(UIFont.Small, string.rep("M", 48)) + 120
+    local labels = {
+        L.text("UI_TGSRR_Tracker_Discovery", "Discovery"),
+        L.text("UI_TGSRR_Tracker_RoomActivation", "Room activation"),
+        L.text("UI_TGSRR_Tracker_FloorActivation", "Floor activation"),
+        L.text("UI_TGSRR_Tracker_AreaCleared", "Area Cleared"),
+        L.text("UI_TGSRR_Tracker_WindowBarricades", "Window barricades"),
+        L.text("UI_TGSRR_Tracker_ExteriorWalls", "Enclosed"),
+        L.text("UI_TGSRR_Tracker_DoorsFitted", "Doors fitted"),
+        L.text("UI_TGSRR_Tracker_ExteriorDoors", "Doors closed"),
+        L.text("UI_TGSRR_Tracker_GoodBed", "Good bed"),
+        L.text("UI_TGSRR_Tracker_Generator", "Generator"),
+        L.text("UI_TGSRR_Tracker_Food", "Food"),
+        L.text("UI_TGSRR_Tracker_PlumbedSink", "Sink"),
+        L.text("UI_TGSRR_Tracker_SpareCar", "Spare car"),
+        L.text("UI_TGSRR_Tracker_EngineStart", "Spare car started"),
+    }
+    local values = {
+        "100 / 100",
+        L.text("UI_TGSRR_Vehicle_NotInstalled", "Not installed"),
+        L.text("UI_TGSRR_Tracker_NotConnected", "Not Connected"),
+        L.text("UI_TGSRR_Tracker_WaterSourceMissing", "Water Source Missing"),
+        L.text("UI_TGSRR_Tracker_NeedsBatteryCharge", "Needs battery charge"),
+    }
+    local statuses = {
+        L.text("UI_TGSRR_Tracker_Passed", "Passed"),
+        L.text("UI_TGSRR_Tracker_Pending", "Pending"),
+        L.text("UI_TGSRR_Tracker_Unavailable", "Unavailable"),
+    }
+    local labelWidth = Layout.maxTextWidth(UIFont.Small, labels) + HELP_ICON_SIZE + 22
+    local valueWidth = Layout.maxTextWidth(UIFont.Small, values) + 16
+    local statusWidth = Layout.maxTextWidth(UIFont.Small, statuses) + 16
+    local listWidth = labelWidth + valueWidth + statusWidth
+
+    local titleWidth = 0
+    for _, outpost in ipairs(Outposts.getAll()) do
+        titleWidth = math.max(titleWidth, Layout.textWidth(UIFont.Large, outpost.name))
+    end
+    local headerWidth = 78 + titleWidth + 20 + GUIDANCE_BUTTON_WIDTH + 8
+        + MAP_BUTTON_SIZE + MARGIN
+    local contentWidth = math.max(listWidth + MARGIN * 2 + SCROLLBAR_ALLOWANCE, headerWidth)
     return math.min(getCore():getScreenWidth(), math.max(WIDTH, contentWidth))
 end
 
@@ -432,6 +473,10 @@ end
 function Window:update()
     ISCollapsableWindow.update(self)
     if not self:getIsVisible() then return end
+    if DangerAutoClose.shouldClose(getSpecificPlayer(0) or getPlayer()) then
+        self:close()
+        return
+    end
     local now = getTimestampMs()
     if not self.lastRefreshMs or now - self.lastRefreshMs >= REFRESH_INTERVAL_MS then self:refresh() end
 end

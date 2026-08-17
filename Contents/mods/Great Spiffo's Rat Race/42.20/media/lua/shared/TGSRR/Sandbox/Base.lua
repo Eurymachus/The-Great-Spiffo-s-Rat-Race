@@ -1760,6 +1760,11 @@ TGSRR_SandboxBase.apply = function()
 	-- Adds Voronoi-noise variation to zombie distribution so density is less spatially uniform.
 	-- Vanilla default: true.
 	SandboxVars.ZombieVoronoiNoise = true;
+
+	-- Close the player-facing tracker windows when vanilla Search Mode detects zombie danger.
+	SandboxVars.TGSRRTracker = {
+		DangerAutoClose = true,
+	};
 end
 
 return TGSRR_SandboxBase

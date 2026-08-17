@@ -11,6 +11,7 @@ local REFRESH_INTERVAL_MS = 1000
 local HEADER_Y = 8
 local MARGIN = 8
 local LANDMARK_ICON_SIZE = 19
+local SCROLL_GUTTER = 18
 local LANDMARK_ICON = getTexture("media/ui/LootableMaps/map_asterisk.png")
 local function headerHeight() return Layout.boxHeight(UIFont.Small, 7, 28) end
 local function footerHeight() return Layout.boxHeight(UIFont.Small, 5, 22) end
@@ -44,6 +45,27 @@ local function snapshotRows(snapshot)
         return a.name < b.name
     end)
     return rows, visited
+end
+
+function View.minimumWidth()
+    local rows = snapshotRows(LocationTracker.getSnapshot())
+    local names = { L.text("UI_TGSRR_Tracker_Landmark", "Landmark") }
+    local areas = { L.text("UI_TGSRR_Tracker_Area", "Area") }
+    for _, row in ipairs(rows) do
+        names[#names + 1] = row.name
+        areas[#areas + 1] = row.area
+    end
+
+    local statuses = {
+        L.text("UI_TGSRR_Tracker_Status", "Status"),
+        L.text("UI_TGSRR_Tracker_Stage_Discovered", "Discovered"),
+        L.text("UI_TGSRR_Tracker_Stage_Undiscovered", "Undiscovered"),
+    }
+    local first = 30 + Layout.maxTextWidth(UIFont.Small, names) + 8
+    local second = Layout.maxTextWidth(UIFont.Small, areas) + 16
+    local third = Layout.maxTextWidth(UIFont.Small, statuses) + 16
+    return MARGIN * 2 + SCROLL_GUTTER
+        + Layout.threeColumnWidth(first, second, third)
 end
 
 function View:createChildren()

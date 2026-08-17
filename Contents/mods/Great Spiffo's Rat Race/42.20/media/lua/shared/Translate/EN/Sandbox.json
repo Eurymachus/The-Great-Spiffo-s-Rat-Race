@@ -1,4 +1,8 @@
 {
+    "Sandbox_TGSRRTracker": "TGSRR Challenge Tracker",
+    "Sandbox_TGSRRTracker.DangerAutoClose": "Close tracker windows when zombies threaten",
+    "Sandbox_TGSRRTracker.DangerAutoClose_tooltip": "Automatically closes the Challenge Tracker and Outpost Overview when vanilla Search Mode would detect immediate zombie danger. Enabled by default.",
+
     "Sandbox_TGSRRRanchMortality": "TGSRR Ranch Mortality",
     "Sandbox_TGSRRRanchMortality.Enabled": "Enable custom ranch mortality",
     "Sandbox_TGSRRRanchMortality.Enabled_tooltip": "When disabled, ranch spawning uses vanilla's day 60 mortality start, day 190 female deadline, and day 250 male deadline.",

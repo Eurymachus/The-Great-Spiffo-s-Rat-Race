@@ -6,6 +6,7 @@ local State = require "TGSRR/Tracker/State"
 local L = require "TGSRR/Core/Localization"
 local Identity = require "TGSRR/Run/Identity"
 local Layout = require "TGSRR/Tracker/Layout"
+local DangerAutoClose = require "TGSRR/Tracker/DangerAutoClose"
 require "TGSRR/Tracker/Overview/Module"
 require "TGSRR/Tracker/Kills/Module"
 require "TGSRR/Notifications/MilestonePresenter"
@@ -27,8 +28,19 @@ local LAUNCHER_TEXTURE_ON = "media/ui/TGSRR_TrackerLauncher48_on.png"
 local DRAG_THRESHOLD = 4
 
 local function windowWidth()
-    local contentWidth = Layout.textWidth(UIFont.Small, string.rep("M", 60)) + 180
-    return math.min(getCore():getScreenWidth(), math.max(WINDOW_WIDTH, contentWidth))
+    local modules = Tracker.getModules()
+    local widestTab = 0
+    local widestView = 0
+    for _, module in ipairs(modules) do
+        widestTab = math.max(widestTab, Layout.tabWidth(module.title))
+        if module.minimumWidth then
+            widestView = math.max(widestView, module.minimumWidth())
+        end
+    end
+    local tabContentWidth = widestTab * #modules
+    local viewContentWidth = widestView + CONTENT_MARGIN * 2
+    return math.min(getCore():getScreenWidth(),
+        math.max(WINDOW_WIDTH, tabContentWidth, viewContentWidth))
 end
 
 local function tabHeight()
@@ -192,6 +204,12 @@ function TGSRRChallengeTrackerWindow:onResize()
 end
 
 function TGSRRChallengeTrackerWindow:saveState() State.save(self, nil, self:getIsVisible()) end
+function TGSRRChallengeTrackerWindow:update()
+    ISCollapsableWindow.update(self)
+    if self:getIsVisible() and DangerAutoClose.shouldClose(getSpecificPlayer(0) or getPlayer()) then
+        self:close()
+    end
+end
 function TGSRRChallengeTrackerWindow:onMouseUp(x, y) ISCollapsableWindow.onMouseUp(self, x, y); self:saveState() end
 function TGSRRChallengeTrackerWindow:onMouseUpOutside(x, y) ISCollapsableWindow.onMouseUpOutside(self, x, y); self:saveState() end
 function TGSRRChallengeTrackerWindow:close()

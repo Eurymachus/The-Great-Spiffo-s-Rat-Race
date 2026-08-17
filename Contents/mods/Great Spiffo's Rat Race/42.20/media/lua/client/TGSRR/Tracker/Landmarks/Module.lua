@@ -35,6 +35,7 @@ Tracker.registerModule({
     id = "landmarks",
     title = L.text("UI_TGSRR_Tracker_Tab_Landmarks", "Landmarks"),
     order = 50,
+    minimumWidth = LandmarkView.minimumWidth,
     createView = function(parent, x, y, width, height)
         return LandmarkView:new(x, y, width, height)
     end,

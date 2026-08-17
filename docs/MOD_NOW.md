@@ -165,6 +165,9 @@ the export contract; their policy and test surfaces are documented in
   recounts; exports contain only cumulative and daily raw newborn-type totals,
   not animal identities or individual birth events.
 - Saved window position, selected tab, open state, and movable launcher position.
+- Default-enabled danger auto-close for the Challenge Tracker and Outpost
+  Overview. It uses vanilla Search Mode's zombie-danger thresholds: any very-close
+  zombie, or at least three visible zombies while at least three are chasing.
 - Incremental local-player milk collection captured at Build 42.20's
   authoritative `ISMilkAnimal:milk()` transfer edge, including partial fluid
   increments, with cumulative raw milk-type totals and daily deltas.
@@ -208,7 +211,9 @@ the export contract; their policy and test surfaces are documented in
 
 ## Provisional implementation
 
-- Tracker dimensions are `800x650`; final size remains open to in-game review.
+- Tracker dimensions have an `800x650` minimum. Tracker tabs and Outpost
+  Overview columns measure their actual localized text and grow only when that
+  content needs more width. Width and height are never restored from saved state.
 - Outposts columns are passed `Requirements`, strict `Stage`, and weighted `Progress`; room and floor detail remains available in the tooltip.
 - Tracker-owned player-facing strings and all 13 title-case outpost names use TGSRR `getTextOrNull` translation keys.
 - Outpost rows use vanilla's tintable `Cross` world-map symbol as a consistent church marker.
@@ -226,7 +231,6 @@ the export contract; their policy and test surfaces are documented in
 - Hunger fulfilled remains explicitly deferred because it overlaps calories
   consumed without a current scoring or presentation use.
 - Skill milestone award selection (individual skills, categories, or selected levels).
-- Default-enabled danger auto-close for the Challenge Tracker and Outpost Overview using vanilla Foraging/Search Mode zombie proximity.
 
 ## Recommended next action
 
