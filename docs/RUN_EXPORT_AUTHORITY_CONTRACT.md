@@ -53,8 +53,11 @@ Projection schema 2 follows an evidence-first sparse contract:
 6. Do not use omission for an observed negative fact when absence would mean
    unknown. For example, `known = false` after an explicit generator-knowledge
    observation is different from no generator-knowledge observation.
-7. Approval always rebuilds current authority from the latest approved complete
-   export. Pending and declined sparse exports never fill or clear authority.
+7. First approval and any changed historical prefix rebuild authority from the
+   complete export. An exact append-only successor preserves sealed daily
+   authority, imports only events beyond the approved cursor, and replaces the
+   mutable active-day record. Pending and declined sparse exports never fill or
+   clear authority.
 
 This makes absence a contract value, not missing data. Its meaning is defined
 per section below and must be tested by both the Lua exporter and Django

@@ -7,6 +7,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.urls import reverse
 
+from . import run_exports
 from .models import (
     ChallengeMode,
     ChallengeRun,
@@ -24,7 +25,9 @@ from .models import (
     RunWeaponKill,
     StreamingAccount,
     StreamingMedia,
+    VerifiedRunEventBlock,
 )
+from .run_block_cache import decode_run_export_cached
 from .run_authority import refresh_initial_run_authority
 from .run_exports import InvalidRunExport, decode_run_export
 from .run_review import build_run_review
@@ -287,6 +290,40 @@ def outpost_lifecycle_projection():
 
 
 class RunExportCodecTests(TestCase):
+    def test_reuses_verified_format_four_event_blocks(self):
+        run_id = "rr-block-cache-test"
+        bodies = [
+            event_body(run_id, 1, "session.started", {"character": {}}),
+            event_body(run_id, 2, "day.started", {"partial": False}),
+            event_body(run_id, 3, "day.started", {"partial": False}),
+        ]
+        value = make_block_export_from_bodies(
+            bodies,
+            run_id=run_id,
+            projection={"schema": 1, "currentKills": 0, "character": {}},
+        )
+        decoded = decode_run_export_cached(value)
+        for item in decoded.event_blocks:
+            descriptor = item["descriptor"]
+            VerifiedRunEventBlock.objects.create(
+                checksum=descriptor["checksum"],
+                first_sequence=descriptor["firstSequence"],
+                last_sequence=descriptor["lastSequence"],
+                event_count=descriptor["count"],
+                starting_hash=item["starting_hash"],
+                last_hash=descriptor["lastHash"],
+                canonical=item["canonical"],
+                events=item["events"],
+            )
+
+        with patch(
+            "registry.run_exports._decompress", wraps=run_exports._decompress
+        ) as decompress:
+            cached = decode_run_export_cached(value)
+
+        self.assertEqual(cached.events, decoded.events)
+        self.assertEqual(decompress.call_count, 1)
+
     def test_accepts_format_four_independent_event_blocks(self):
         run_id = "rr-block-test"
         bodies = [
@@ -761,6 +798,28 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "Test Survivor")
         self.assertContains(dashboard, "42 kills")
 
+    def test_format_four_submission_retains_verified_block_references(self):
+        run_id = "rr-submission-block-cache-test"
+        bodies = [
+            event_body(run_id, 1, "session.started", {"character": {}}),
+            event_body(run_id, 2, "day.started", {"partial": False}),
+            event_body(run_id, 3, "day.started", {"partial": False}),
+        ]
+        value = make_block_export_from_bodies(
+            bodies,
+            run_id=run_id,
+            projection={"schema": 1, "currentKills": 0, "character": {}},
+        )
+
+        response = self.client.post(
+            reverse("registry:submit_run"), {"run_export": value}
+        )
+
+        self.assertRedirects(response, reverse("registry:account"))
+        submission = RunSubmission.objects.get()
+        self.assertEqual(submission.event_blocks.count(), 2)
+        self.assertEqual(VerifiedRunEventBlock.objects.count(), 2)
+
     def test_submission_offers_file_upload_and_text_fallback(self):
         response = self.client.get(reverse("registry:submit_run"))
 
@@ -1218,6 +1277,57 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "Day 1", count=2)
         self.assertNotContains(dashboard, "Events verified")
 
+    def test_approval_uses_approved_cursor_for_exact_format_four_successor(self):
+        run_id = "rr-incremental-approval-test"
+        projection = {"schema": 1, "currentKills": 0, "character": {}}
+        first_bodies = [
+            event_body(run_id, 1, "session.started", {"character": {}}),
+            event_body(run_id, 2, "day.started", {"partial": False}),
+        ]
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_block_export_from_bodies(
+                first_bodies, run_id=run_id, projection=projection
+            )},
+        )
+        administrator = Participant.objects.create_superuser(
+            email="incremental-reviewer@example.com",
+            nickname="Incremental Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+        first = RunSubmission.objects.get()
+        self.client.post(
+            reverse("admin:registry_runsubmission_approve", args=(first.pk,))
+        )
+
+        self.client.force_login(self.participant)
+        extended_bodies = first_bodies + [
+            event_body(run_id, 3, "day.started", {"partial": False})
+        ]
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_block_export_from_bodies(
+                extended_bodies,
+                run_id=run_id,
+                generated_at=1784800200,
+                projection=projection,
+            )},
+        )
+        successor = RunSubmission.objects.get(status=RunSubmission.Status.RECEIVED)
+        self.client.force_login(administrator)
+        with patch(
+            "registry.admin.refresh_initial_run_authority",
+            wraps=refresh_initial_run_authority,
+        ) as refresh:
+            self.client.post(
+                reverse(
+                    "admin:registry_runsubmission_approve", args=(successor.pk,)
+                )
+            )
+
+        self.assertEqual(refresh.call_args.kwargs["previous_event_sequence"], 2)
+
     def test_admin_approval_rolls_back_if_authority_refresh_fails(self):
         self.client.post(
             reverse("registry:submit_run"), {"run_export": make_export()}
@@ -1434,6 +1544,79 @@ class RunSubmissionTests(TestCase):
         broken = active.metrics.get(kind=RunDailyMetric.Kind.BROKEN_WEAPON)
         self.assertEqual(broken.raw_primary_id, "Base.Axe")
         self.assertEqual(broken.value, 1)
+
+    def test_authority_appends_new_daily_records_without_rebuilding_sealed_history(self):
+        run = ChallengeRun.objects.create(
+            run_id="rr-incremental-daily-authority-test",
+            export_format=4,
+            generated_at=datetime.now(timezone.utc),
+            event_hash="0" * 64,
+        )
+        first_events = [
+            {
+                "event_type": "day.started",
+                "utc": 100,
+                "world_age_hours": 0,
+                "payload": {
+                    "dayIndex": 1,
+                    "calendar": {"year": 1993, "month": 7, "day": 9},
+                },
+            },
+            {
+                "event_type": "day.started",
+                "utc": 200,
+                "world_age_hours": 24,
+                "payload": {
+                    "dayIndex": 2,
+                    "calendar": {"year": 1993, "month": 7, "day": 10},
+                    "completedDay": {"dayIndex": 1, "killDelta": 4},
+                },
+            },
+        ]
+        projection = {
+            "schema": 2,
+            "character": {},
+            "outposts": [],
+            "skills": [],
+            "activeDay": {"dayIndex": 2, "killDelta": 1},
+        }
+        refresh_initial_run_authority(run, projection, first_events)
+        original = RunDailyRecord.objects.get(
+            run=run, state=RunDailyRecord.State.SEALED, day_index=1
+        )
+
+        extended_events = first_events + [{
+            "event_type": "day.started",
+            "utc": 300,
+            "world_age_hours": 48,
+            "payload": {
+                "dayIndex": 3,
+                "calendar": {"year": 1993, "month": 7, "day": 11},
+                "completedDay": {"dayIndex": 2, "killDelta": 7},
+            },
+        }]
+        projection["activeDay"] = {"dayIndex": 3, "killDelta": 2}
+        refresh_initial_run_authority(
+            run,
+            projection,
+            extended_events,
+            previous_event_sequence=len(first_events),
+        )
+
+        original.refresh_from_db()
+        self.assertEqual(original.kill_delta, 4)
+        self.assertEqual(
+            RunDailyRecord.objects.get(
+                run=run, state=RunDailyRecord.State.SEALED, day_index=2
+            ).kill_delta,
+            7,
+        )
+        self.assertEqual(
+            RunDailyRecord.objects.get(
+                run=run, state=RunDailyRecord.State.ACTIVE
+            ).day_index,
+            3,
+        )
 
     def test_approval_marks_a_terminal_death_export_as_deceased(self):
         projection = {

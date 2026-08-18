@@ -927,6 +927,24 @@ a normal run-moderation bulk action.
   its unchanged prefix and rebuilds only its changed or appended tail.
 - Cache version changes, missing entries and invalid cache metadata cause a
   rebuild from the ledger.
-- The website fully decompresses and verifies every submitted block, its
-  checksum, its sequence boundaries and the complete ledger hash chain.
+- The website stores successfully decoded blocks as content-addressed verified
+  data. Later submissions may reuse a block only when its checksum, sequence
+  range, starting ledger hash and terminal ledger hash all match.
+- Every submission still verifies the manifest, ordered sequence boundaries and
+  complete ledger hash chain. Missing or mismatched cached data is decompressed
+  and decoded from the submitted export.
 - Format-3 exports remain accepted as immutable legacy evidence.
+
+# 2026-08-17 - Incrementally materialize approved append-only run history
+
+- An approved submission may preserve existing sealed daily authority only when
+  every previously approved event is an exact prefix of the newly verified
+  ledger.
+- Approval processes only events beyond that approved cursor, replaces the
+  mutable active-day record from the current projection, and retains sealed
+  historical rows unchanged.
+- A missing baseline, changed prefix, incompatible legacy state or any failed
+  continuity check uses the complete authority rebuild path.
+- Verified-block reuse and incremental authority refresh remain inside the
+  existing immutable-submission and atomic-approval model. They change cost,
+  not evidence or moderation semantics.

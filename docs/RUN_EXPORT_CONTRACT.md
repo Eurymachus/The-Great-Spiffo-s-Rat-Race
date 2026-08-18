@@ -12,10 +12,12 @@ only when its run ID, sequence range, event count and terminal ledger hash are
 unchanged. A changed ledger tail creates a new block. Cache loss or a cache
 version change rebuilds the affected blocks from the authoritative ledger.
 
-The website does not trust the cache. It decompresses every submitted block,
-checks every block checksum and boundary, reconstructs the complete ordered
-event history, and verifies the ledger hash chain before accepting the raw
-export. Format-3 `TGSRR1.LZ1.` submissions remain readable for compatibility.
+The website does not trust the mod's cache. On first receipt it decompresses,
+decodes and verifies submitted blocks, then stores them by checksum, sequence
+range, starting ledger hash and terminal ledger hash. Later submissions may
+reuse an exact verified match. The website still checks manifest ordering,
+sequence boundaries and the complete terminal ledger hash independently.
+Format-3 `TGSRR1.LZ1.` submissions remain readable for compatibility.
 
 ## Challenge evidence
 

@@ -207,6 +207,7 @@ class DecodedRunExport:
     checksum: str
     events: list[dict]
     projection: dict
+    event_blocks: tuple[dict, ...] = ()
 
     @property
     def lifecycle(self):
@@ -414,13 +415,15 @@ def _decode_event(body):
     return event
 
 
-def decode_run_export(value):
+def decode_run_export(value, *, block_cache=None):
     value = "".join(str(value or "").split())
     if not value or len(value) > MAX_ENCODED_CHARACTERS:
         raise InvalidRunExport("Choose a valid Rat Race run export.")
     match = ENVELOPE_RE.fullmatch(value)
     event_blocks = None
     bodies = []
+    cached_events = []
+    decoded_blocks = []
     if match:
         payload_text, checksum = match.groups()
     elif value.startswith(BLOCK_PREFIX):
@@ -495,6 +498,8 @@ def decode_run_export(value):
             raise InvalidRunExport("Please create a current Rat Race export.")
         if len(parts) != 4 + len(event_blocks) * 2:
             raise InvalidRunExport("The export block count does not match its manifest.")
+        if block_cache:
+            block_cache.prepare(event_blocks)
         expected_first = 1
         for index, descriptor in enumerate(event_blocks):
             if not isinstance(descriptor, dict):
@@ -514,20 +519,38 @@ def decode_run_export(value):
             ):
                 raise InvalidRunExport("The export contains an invalid event block descriptor.")
             block_payload = parts[4 + index * 2]
-            padding = "=" * ((4 - len(block_payload) % 4) % 4)
-            try:
-                compressed_block = base64.urlsafe_b64decode(block_payload + padding)
-            except (ValueError, base64.binascii.Error) as exc:
-                raise InvalidRunExport("An export block uses invalid Base64URL data.") from exc
-            block_canonical = _decompress(compressed_block)
-            if hashlib.sha256(block_canonical).hexdigest() != block_checksum:
-                raise InvalidRunExport("An export block checksum does not match its contents.")
+            cached = block_cache.get(descriptor) if block_cache else None
+            if cached:
+                block_canonical = cached["canonical"]
+                block_events = cached["events"]
+                if not isinstance(block_canonical, bytes) or not isinstance(block_events, list):
+                    raise InvalidRunExport("A cached export block is invalid.")
+            else:
+                padding = "=" * ((4 - len(block_payload) % 4) % 4)
+                try:
+                    compressed_block = base64.urlsafe_b64decode(block_payload + padding)
+                except (ValueError, base64.binascii.Error) as exc:
+                    raise InvalidRunExport("An export block uses invalid Base64URL data.") from exc
+                block_canonical = _decompress(compressed_block)
+                if hashlib.sha256(block_canonical).hexdigest() != block_checksum:
+                    raise InvalidRunExport("An export block checksum does not match its contents.")
+                block_events = []
             block_cursor = 0
+            block_bodies = []
             for _ in range(count):
                 _, body, block_cursor = _read_frame(block_canonical, block_cursor)
-                bodies.append(body)
+                block_bodies.append(body)
             if block_cursor != len(block_canonical):
                 raise InvalidRunExport("An export block contains unexpected trailing data.")
+            if block_events and len(block_events) != count:
+                raise InvalidRunExport("A cached export block has an invalid event count.")
+            bodies.extend(block_bodies)
+            cached_events.extend(block_events or ([None] * count))
+            decoded_blocks.append({
+                "position": index,
+                "descriptor": descriptor,
+                "canonical": block_canonical,
+            })
             expected_first = last + 1
         if expected_first - 1 != event_count:
             raise InvalidRunExport("The export event count does not match its blocks.")
@@ -620,7 +643,9 @@ def decode_run_export(value):
     events = []
     previous_hash = GENESIS_HASH
     for sequence, body in enumerate(bodies, start=1):
-        event = _decode_event(body)
+        event = cached_events[sequence - 1] if cached_events else None
+        if event is None:
+            event = _decode_event(body)
         if event["run_id"] != run_id or event["sequence"] != sequence:
             raise InvalidRunExport("The export event sequence is invalid.")
         previous_hash = hashlib.sha256(previous_hash.encode("ascii") + body).hexdigest()
@@ -691,6 +716,18 @@ def decode_run_export(value):
         generated_at = datetime.fromtimestamp(generated_utc, tz=timezone.utc)
     except (OverflowError, OSError, ValueError) as exc:
         raise InvalidRunExport("The export timestamp is invalid.") from exc
+    for block in decoded_blocks:
+        descriptor = block["descriptor"]
+        first = descriptor["firstSequence"]
+        block["starting_hash"] = (
+            GENESIS_HASH if first == 1 else next(
+                item["lastHash"]
+                for item in event_blocks
+                if item["lastSequence"] == first - 1
+            )
+        )
+        block["events"] = events[first - 1:descriptor["lastSequence"]]
+
     return DecodedRunExport(
         format=export_format,
         run_id=run_id,
@@ -701,4 +738,5 @@ def decode_run_export(value):
         checksum=checksum,
         events=events,
         projection=projection,
+        event_blocks=tuple(decoded_blocks),
     )

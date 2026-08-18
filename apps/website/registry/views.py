@@ -59,7 +59,8 @@ from .models import (
     StreamingMedia,
     WorkshopMod,
 )
-from .run_exports import InvalidRunExport, decode_run_export
+from .run_exports import InvalidRunExport
+from .run_block_cache import attach_verified_blocks, decode_run_export_cached
 from .run_public import build_public_run_context
 from .steam_workshop import (
     SteamWorkshopError,
@@ -907,7 +908,7 @@ def submit_run(request):
     submission_blocked_run = None
     if request.method == "POST" and form.is_valid():
         try:
-            decoded = decode_run_export(form.cleaned_data["run_export"])
+            decoded = decode_run_export_cached(form.cleaned_data["run_export"])
         except InvalidRunExport as exc:
             form.add_error("run_export", str(exc))
         else:
@@ -1016,7 +1017,7 @@ def submit_run(request):
                             form.media_by_id[value]
                             for value in form.cleaned_data.get("evidence_clips", [])
                         ]
-                        RunSubmission.objects.create(
+                        submission = RunSubmission.objects.create(
                             run=run,
                             baseline_submission=run.approved_submission,
                             submitter=request.user,
@@ -1064,6 +1065,7 @@ def submit_run(request):
                                 for clip in selected_clips
                             ],
                         )
+                        attach_verified_blocks(submission, decoded)
                 except SubmissionBlocked as exc:
                     submission_blocked_message = str(exc)
                     form.add_error(None, submission_blocked_message)

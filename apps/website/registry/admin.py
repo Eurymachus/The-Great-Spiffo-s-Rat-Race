@@ -42,6 +42,7 @@ from .models import (
 from .legacy_imports import apply_legacy_import, create_legacy_import_review
 from .legacy_submissions import legacy_submission_strength
 from .run_authority import refresh_initial_run_authority
+from .run_block_cache import attach_verified_blocks, decode_run_export_cached
 
 
 class ExploitRulingImageInline(admin.TabularInline):
@@ -1289,7 +1290,10 @@ class RunSubmissionAdmin(admin.ModelAdmin):
                         level=messages.ERROR,
                     )
                     return redirect("admin:registry_runsubmission_change", submission.pk)
-        decoded = decode_run_export(submission.raw_export)
+        approved_events = list(run.latest_events or [])
+        decoded = decode_run_export_cached(submission.raw_export)
+        if decoded.event_blocks and not submission.event_blocks.exists():
+            attach_verified_blocks(submission, decoded)
         reviewed_at = timezone.now()
         submission.status = RunSubmission.Status.APPROVED
         submission.reviewed_at = reviewed_at
@@ -1314,7 +1318,17 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         if decoded.lifecycle == ChallengeRun.Lifecycle.DECEASED:
             run.lifecycle_status = ChallengeRun.Lifecycle.DECEASED
         run.save()
-        refresh_initial_run_authority(run, decoded.projection, decoded.events)
+        incremental = bool(
+            baseline
+            and baseline.event_sequence <= len(decoded.events)
+            and approved_events == decoded.events[:baseline.event_sequence]
+        )
+        refresh_initial_run_authority(
+            run,
+            decoded.projection,
+            decoded.events,
+            previous_event_sequence=(baseline.event_sequence if incremental else 0),
+        )
         if run.participant:
             notify(
                 run.participant,

@@ -14,6 +14,16 @@ local ExportOverlay = ISPanel:derive("TGSRRExportOverlay")
 local activeExport = nil
 local updateExport
 
+local function keepGamePaused()
+    local speedControls = UIManager.getSpeedControls()
+    if speedControls then
+        speedControls:SetCurrentGameSpeed(0)
+    else
+        setGameSpeed(0)
+    end
+    setShowPausedMessage(true)
+end
+
 local function elapsedText(startedAt)
     local elapsedSeconds = math.max(0,
         math.floor((getTimestampMs() - (startedAt or getTimestampMs())) / 1000))
@@ -145,6 +155,13 @@ local function showMessage(message, buttonText, onclick, param1,
         width, height, message, false, nil, onclick, nil, param1
     )
     modal:initialise()
+    local inheritedDestroy = modal.destroy
+    modal.destroy = function(self)
+        inheritedDestroy(self)
+        -- Vanilla ISModalDialog:destroy() resumes an in-game session. Export
+        -- dialogs must leave the game paused, regardless of how they close.
+        keepGamePaused()
+    end
     if buttonText and modal.ok then
         modal.ok:setTitle(buttonText)
         local buttonWidth = math.max(
@@ -332,13 +349,7 @@ function ExportMenu.exportRun()
     if MainScreen.instance and MainScreen.instance.inGame and MainScreen.instance:isVisible() then
         ToggleEscapeMenu(getCore():getKey("Main Menu"))
     end
-    local speedControls = UIManager.getSpeedControls()
-    if speedControls then
-        speedControls:SetCurrentGameSpeed(0)
-    else
-        setGameSpeed(0)
-    end
-    setShowPausedMessage(true)
+    keepGamePaused()
 
     local overlay = ExportOverlay:new()
     overlay:initialise()
@@ -353,13 +364,7 @@ end
 
 function ExportMenu.exportSyntheticDays(days)
     if activeExport then return false, "export_already_active" end
-    local speedControls = UIManager.getSpeedControls()
-    if speedControls then
-        speedControls:SetCurrentGameSpeed(0)
-    else
-        setGameSpeed(0)
-    end
-    setShowPausedMessage(true)
+    keepGamePaused()
     local Benchmark = require "TGSRR/Run/SyntheticExportBenchmark"
     local job, jobError = Benchmark.begin(days)
     if not job then

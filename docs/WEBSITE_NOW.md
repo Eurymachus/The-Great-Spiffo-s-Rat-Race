@@ -237,6 +237,13 @@ records, while aliases and assets remain shared catalogue relationships.
   alone advances the run's canonical snapshot. A later generated snapshot may
   advance with an unchanged verified ledger so current-state changes are not
   discarded merely because no new semantic event occurred.
+- Format-4 event blocks are retained as content-addressed verified records.
+  Matching checksum, sequence range, starting hash and terminal hash allow later
+  submissions and review pages to reuse decoded events while every manifest and
+  complete ledger chain is still verified. Approval detects an exact approved
+  event prefix, retains sealed daily authority, processes only appended events,
+  and replaces the current active-day record. Any discontinuity uses the full
+  rebuild path inside the same atomic approval transaction.
 - The participant submission form accepts the tracker-generated `.txt` file by
   file picker or drag and drop, with direct export-text paste retained as a
   secondary fallback. All three paths use the same authoritative validation and

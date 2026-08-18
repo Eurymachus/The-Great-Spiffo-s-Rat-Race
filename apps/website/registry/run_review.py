@@ -3,7 +3,8 @@ from collections import Counter
 from datetime import datetime, timezone
 
 from .models import RunSubmission
-from .run_exports import InvalidRunExport, decode_run_export
+from .run_exports import InvalidRunExport
+from .run_block_cache import decode_run_export_cached
 from zomboid_catalogue.models import CatalogueEntry
 from zomboid_catalogue.resolver import resolve_identifier
 
@@ -128,7 +129,7 @@ def _baseline_for(current_submission):
 
 def build_run_review(current_submission):
     run = current_submission.run
-    decoded = decode_run_export(current_submission.raw_export)
+    decoded = decode_run_export_cached(current_submission.raw_export)
     events = list(decoded.events)
     counts = Counter(str(event.get("event_type") or "unknown") for event in events)
     findings = [
@@ -233,7 +234,7 @@ def build_run_review(current_submission):
     baseline_events = []
     if baseline:
         try:
-            baseline_export = decode_run_export(baseline.raw_export)
+            baseline_export = decode_run_export_cached(baseline.raw_export)
             baseline_events = baseline_export.events
         except InvalidRunExport as exc:
             findings.append(

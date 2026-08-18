@@ -189,11 +189,28 @@ def _daily_record_defaults(snapshot, *, calendar=None, observed=None, active=Fal
     }
 
 
-def _refresh_daily_authority(run, projection, events):
-    RunDailyRecord.objects.filter(run=run).delete()
+def _refresh_daily_authority(run, projection, events, previous_event_sequence=0):
+    incremental = previous_event_sequence > 0
     calendars = {}
+    if incremental:
+        active_record = RunDailyRecord.objects.filter(
+            run=run, state=RunDailyRecord.State.ACTIVE
+        ).first()
+        if active_record:
+            calendars[active_record.day_index] = {
+                "year": active_record.calendar_year,
+                "month": active_record.calendar_month,
+                "day": active_record.calendar_day,
+            }
+        RunDailyRecord.objects.filter(
+            run=run, state=RunDailyRecord.State.ACTIVE
+        ).delete()
+        source_events = (events or [])[previous_event_sequence:]
+    else:
+        RunDailyRecord.objects.filter(run=run).delete()
+        source_events = events or []
     sealed = []
-    for event in events or []:
+    for event in source_events:
         if not isinstance(event, dict) or event.get("event_type") != "day.started":
             continue
         payload = _snapshot(event.get("payload"))
@@ -207,14 +224,15 @@ def _refresh_daily_authority(run, projection, events):
 
     metric_rows = []
     for day_index, snapshot, observed in sealed:
-        record = RunDailyRecord.objects.create(
+        record, _ = RunDailyRecord.objects.update_or_create(
             run=run,
             state=RunDailyRecord.State.SEALED,
             day_index=day_index,
-            **_daily_record_defaults(
+            defaults=_daily_record_defaults(
                 snapshot, calendar=calendars.get(day_index), observed=observed
             ),
         )
+        record.metrics.all().delete()
         metric_rows.extend(_daily_metric_rows(record, snapshot))
 
     active = _snapshot(projection.get("activeDay"))
@@ -233,7 +251,9 @@ def _refresh_daily_authority(run, projection, events):
     RunDailyMetric.objects.bulk_create(metric_rows)
 
 
-def refresh_initial_run_authority(run, projection, events=None):
+def refresh_initial_run_authority(
+    run, projection, events=None, *, previous_event_sequence=0
+):
     character_projection = _snapshot(projection.get("character"))
     starting = _snapshot(character_projection.get("starting"))
     current = _snapshot(character_projection.get("current"))
@@ -480,4 +500,6 @@ def refresh_initial_run_authority(run, projection, events=None):
             )
         )
     RunWeaponKill.objects.bulk_create(weapon_rows)
-    _refresh_daily_authority(run, projection, events)
+    _refresh_daily_authority(
+        run, projection, events, previous_event_sequence=previous_event_sequence
+    )

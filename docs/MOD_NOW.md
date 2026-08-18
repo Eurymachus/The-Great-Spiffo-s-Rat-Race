@@ -129,6 +129,9 @@ the export contract; their policy and test surfaces are documented in
 - Cooperative pause-menu export flow with progress presentation, read-back
   verification, and absolute file-path copy. Only the current development
   export format is accepted.
+- Export progress and result dialogs preserve the paused state when closed.
+  TGSRR overrides vanilla modal cleanup for these dialogs because vanilla
+  otherwise resumes gameplay after OK or Close.
 - Debug-only synthetic export window offering one, two, five, and ten-year
   benchmarks. Each builds the corresponding deterministic daily records in
   memory, sends them through the real event codec and exporter, and writes a

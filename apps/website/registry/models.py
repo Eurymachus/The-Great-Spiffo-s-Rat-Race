@@ -1195,3 +1195,45 @@ class RunSubmission(models.Model):
         if self.challenge_id:
             return f"{self.challenge_id} (Unmapped)"
         return "Legacy / Unspecified"
+
+
+class VerifiedRunEventBlock(models.Model):
+    checksum = models.CharField(max_length=64, db_index=True)
+    first_sequence = models.PositiveBigIntegerField()
+    last_sequence = models.PositiveBigIntegerField()
+    event_count = models.PositiveIntegerField()
+    starting_hash = models.CharField(max_length=64)
+    last_hash = models.CharField(max_length=64)
+    canonical = models.BinaryField()
+    events = models.JSONField(default=list)
+    verified_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("first_sequence",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("checksum", "first_sequence", "starting_hash", "last_hash"),
+                name="unique_verified_run_event_block",
+            )
+        ]
+
+
+class RunSubmissionEventBlock(models.Model):
+    submission = models.ForeignKey(
+        RunSubmission, on_delete=models.CASCADE, related_name="event_blocks"
+    )
+    block = models.ForeignKey(
+        VerifiedRunEventBlock,
+        on_delete=models.PROTECT,
+        related_name="submission_uses",
+    )
+    position = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ("position",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("submission", "position"),
+                name="unique_run_submission_event_block_position",
+            )
+        ]
