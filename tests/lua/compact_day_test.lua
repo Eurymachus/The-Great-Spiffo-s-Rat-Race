@@ -10,11 +10,18 @@ local current = {
     animalsSlaughtered = {},
     animalsTrapped = {},
     animalBirths = {},
+    animalsPetted = {},
     milkCollected = {},
     butterProduced = 0,
     fishCaught = {},
     injuries = {},
     zombieAssociatedInjuries = {},
+    fluidConsumed = {},
+    caloriesConsumed = 0,
+    generatorRepairs = 0,
+    generatorConditionRestored = 0,
+    nimbleMovementMilliseconds = 0,
+    activeGameplayMilliseconds = 0,
 }
 
 package.loaded["TGSRR/Run/Identity"] = {
@@ -88,6 +95,12 @@ local run = {
     butterProducedPartial = false,
     fishCaughtPartial = false,
     injuriesPartial = false,
+    animalsPettedPartial = false,
+    fluidConsumedPartial = false,
+    caloriesConsumedPartial = false,
+    generatorRepairsPartial = false,
+    nimbleStanceMovementPartial = false,
+    activeGameplayPartial = false,
 }
 
 local DayTracker = require "TGSRR/Run/DayTracker"
@@ -109,11 +122,18 @@ current = {
     animalsSlaughtered = {},
     animalsTrapped = {},
     animalBirths = {},
+    animalsPetted = { cow = 2 },
     milkCollected = {},
     butterProduced = 0,
     fishCaught = {},
     injuries = {},
     zombieAssociatedInjuries = {},
+    fluidConsumed = { Water = 1.25 },
+    caloriesConsumed = 450.5,
+    generatorRepairs = 2,
+    generatorConditionRestored = 9.5,
+    nimbleMovementMilliseconds = 12000,
+    activeGameplayMilliseconds = 60000,
 }
 next = nil -- Match PZ's restricted client Lua globals.
 assert(DayTracker.onNewDay())
@@ -130,6 +150,13 @@ assert(completed.weaponKillDeltas["Base.Axe"] == 5)
 assert(completed.distanceDeltaMeters == 50)
 assert(completed.fireDeathDelta == nil)
 assert(completed.brokenWeaponDeltas == nil)
+assert(completed.animalPetDeltas.cow == 2)
+assert(completed.fluidConsumedDeltas.Water == 1.25)
+assert(completed.caloriesConsumedDelta == 450.5)
+assert(completed.generatorRepairDelta == 2)
+assert(completed.generatorConditionRestoredDelta == 9.5)
+assert(completed.nimbleMovementMillisecondsDelta == 12000)
+assert(completed.activeGameplayMillisecondsDelta == 60000)
 assert(completed.partial == nil)
 assert(completed.partialMetrics == nil)
 

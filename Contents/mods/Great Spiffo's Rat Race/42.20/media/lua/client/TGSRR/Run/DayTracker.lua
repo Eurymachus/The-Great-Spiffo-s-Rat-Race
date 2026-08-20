@@ -76,6 +76,8 @@ local function completedDay(current, previousState, dayIndex)
             current.animalsTrapped, previousState.animalsTrapped))
     addDeltas(result, "animalBirthDeltas",
         deltas(current.animalBirths, previousState.animalBirths))
+    addDeltas(result, "animalPetDeltas",
+        deltas(current.animalsPetted, previousState.animalsPetted))
     addDeltas(result, "milkCollectedDeltas",
         deltas(current.milkCollected, previousState.milkCollected))
     addDelta(result, "butterProducedDelta",
@@ -90,6 +92,23 @@ local function completedDay(current, previousState, dayIndex)
         InjurySnapshot.deltaPairs(
             current.zombieAssociatedInjuries,
             previousState.zombieAssociatedInjuries))
+    addDeltas(result, "fluidConsumedDeltas",
+        deltas(current.fluidConsumed, previousState.fluidConsumed))
+    addDelta(result, "caloriesConsumedDelta",
+        current.caloriesConsumed
+            - (tonumber(previousState.caloriesConsumed) or 0))
+    addDelta(result, "generatorRepairDelta",
+        current.generatorRepairs - math.max(0,
+            math.floor(tonumber(previousState.generatorRepairs) or 0)))
+    addDelta(result, "generatorConditionRestoredDelta",
+        current.generatorConditionRestored
+            - (tonumber(previousState.generatorConditionRestored) or 0))
+    addDelta(result, "nimbleMovementMillisecondsDelta",
+        current.nimbleMovementMilliseconds
+            - (tonumber(previousState.nimbleMovementMilliseconds) or 0))
+    addDelta(result, "activeGameplayMillisecondsDelta",
+        current.activeGameplayMilliseconds
+            - (tonumber(previousState.activeGameplayMilliseconds) or 0))
 
     local partialMetrics = {}
     local partialFields = {
@@ -100,10 +119,16 @@ local function completedDay(current, previousState, dayIndex)
         { "animalsSlaughtered", "animalsSlaughteredPartial" },
         { "animalsTrapped", "animalsTrappedPartial" },
         { "animalBirths", "animalBirthsPartial" },
+        { "animalsPetted", "animalsPettedPartial" },
         { "milkCollected", "milkCollectedPartial" },
         { "butterProduced", "butterProducedPartial" },
         { "fishCaught", "fishCaughtPartial" },
         { "injuries", "injuriesPartial" },
+        { "fluidConsumed", "fluidConsumedPartial" },
+        { "caloriesConsumed", "caloriesConsumedPartial" },
+        { "generatorRepairs", "generatorRepairsPartial" },
+        { "nimbleStance", "nimbleStancePartial" },
+        { "activeGameplay", "activeGameplayPartial" },
     }
     for _, entry in ipairs(partialFields) do
         if previousState[entry[2]] == true then
@@ -170,6 +195,9 @@ local function beginDay(initial)
         animalBirths = current.animalBirths,
         animalBirthsPartial =
             initial == true and activeRun.animalBirthsPartial == true,
+        animalsPetted = current.animalsPetted,
+        animalsPettedPartial =
+            initial == true and activeRun.animalsPettedPartial == true,
         milkCollected = current.milkCollected,
         milkCollectedPartial =
             initial == true and activeRun.milkCollectedPartial == true,
@@ -184,6 +212,22 @@ local function beginDay(initial)
             current.zombieAssociatedInjuries,
         injuriesPartial =
             initial == true and activeRun.injuriesPartial == true,
+        fluidConsumed = current.fluidConsumed,
+        fluidConsumedPartial =
+            initial == true and activeRun.fluidConsumedPartial == true,
+        caloriesConsumed = current.caloriesConsumed,
+        caloriesConsumedPartial =
+            initial == true and activeRun.caloriesConsumedPartial == true,
+        generatorRepairs = current.generatorRepairs,
+        generatorConditionRestored = current.generatorConditionRestored,
+        generatorRepairsPartial =
+            initial == true and activeRun.generatorRepairsPartial == true,
+        nimbleMovementMilliseconds = current.nimbleMovementMilliseconds,
+        nimbleStancePartial =
+            initial == true and activeRun.nimbleStanceMovementPartial == true,
+        activeGameplayMilliseconds = current.activeGameplayMilliseconds,
+        activeGameplayPartial =
+            initial == true and activeRun.activeGameplayPartial == true,
     }
     return true
 end
@@ -195,7 +239,8 @@ function DayTracker.initialize(run, player)
     local requiredMaps = {
         "skills", "weaponKills", "brokenWeapons",
         "animalsSlaughtered", "animalsTrapped", "animalBirths",
-        "milkCollected", "fishCaught", "injuries",
+        "animalsPetted", "milkCollected", "fishCaught", "injuries",
+        "fluidConsumed",
         "zombieAssociatedInjuries",
     }
     for _, field in ipairs(requiredMaps) do
@@ -207,6 +252,9 @@ function DayTracker.initialize(run, player)
         "dayIndex", "startedUtc", "startedWorldAgeHours", "kills",
         "weightKilograms", "fireDeaths", "distanceTravelledMeters",
         "butterProduced",
+        "caloriesConsumed", "generatorRepairs",
+        "generatorConditionRestored", "nimbleMovementMilliseconds",
+        "activeGameplayMilliseconds",
     }) do
         if tonumber(run.dailyState[field]) == nil then
             return false, "invalid_daily_state:" .. field

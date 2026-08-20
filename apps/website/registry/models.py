@@ -895,6 +895,11 @@ class RunDailyRecord(models.Model):
     fire_death_delta = models.BigIntegerField(default=0)
     distance_delta_meters = models.FloatField(default=0)
     butter_produced_delta = models.BigIntegerField(default=0)
+    calories_consumed_delta = models.FloatField(default=0)
+    generator_repair_delta = models.BigIntegerField(default=0)
+    generator_condition_restored_delta = models.FloatField(default=0)
+    nimble_movement_milliseconds_delta = models.BigIntegerField(default=0)
+    active_gameplay_milliseconds_delta = models.BigIntegerField(default=0)
 
     class Meta:
         ordering = ("day_index", "state")
@@ -919,7 +924,9 @@ class RunDailyMetric(models.Model):
         ANIMAL_SLAUGHTER = "animal_slaughter", "Animal slaughter"
         ANIMAL_TRAP = "animal_trap", "Animal trap"
         ANIMAL_BIRTH = "animal_birth", "Animal birth"
+        ANIMAL_PET = "animal_pet", "Animal pet"
         MILK_COLLECTED = "milk_collected", "Milk collected"
+        FLUID_CONSUMED = "fluid_consumed", "Fluid consumed"
         FISH_CAUGHT = "fish_caught", "Fish caught"
         INJURY = "injury", "Injury"
         ZOMBIE_ASSOCIATED_INJURY = (
@@ -961,6 +968,105 @@ class RunDailyMetric(models.Model):
                 ),
                 name="unique_run_daily_metric_dimension",
             )
+        ]
+        indexes = [
+            models.Index(fields=("kind", "raw_primary_id")),
+            models.Index(fields=("kind", "raw_secondary_id")),
+        ]
+
+
+class RunStatisticSummary(models.Model):
+    class Kind(models.TextChoices):
+        WEIGHT = "weight", "Weight"
+        DISTANCE = "distance", "Distance travelled"
+        NIMBLE_STANCE = "nimble_stance", "Nimble stance movement"
+        ACTIVE_GAMEPLAY = "active_gameplay", "Active gameplay"
+        BROKEN_WEAPONS = "broken_weapons", "Broken weapons"
+        ANIMAL_SLAUGHTER = "animal_slaughter", "Animals slaughtered"
+        ANIMAL_TRAP = "animal_trap", "Animals trapped"
+        ANIMAL_BIRTH = "animal_birth", "Animal births"
+        ANIMAL_PET = "animal_pet", "Animals petted"
+        MILK_COLLECTED = "milk_collected", "Milk collected"
+        FLUID_CONSUMED = "fluid_consumed", "Fluid consumed"
+        CALORIES_CONSUMED = "calories_consumed", "Calories consumed"
+        BUTTER_PRODUCED = "butter_produced", "Butter produced"
+        FISH_CAUGHT = "fish_caught", "Fish caught"
+        INJURIES = "injuries", "Injuries"
+        ZOMBIE_ASSOCIATED_INJURIES = (
+            "zombie_associated_injuries",
+            "Zombie-associated injuries",
+        )
+        GENERATOR_REPAIRS = "generator_repairs", "Generator repairs"
+
+    run = models.ForeignKey(
+        ChallengeRun, on_delete=models.CASCADE, related_name="statistic_summaries"
+    )
+    kind = models.CharField(max_length=40, choices=Kind.choices)
+    value = models.FloatField(default=0)
+    secondary_value = models.FloatField(null=True, blank=True)
+    unit = models.CharField(max_length=32, blank=True)
+    partial = models.BooleanField(default=False)
+    raw_reference_id = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ("kind",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("run", "kind"), name="unique_run_statistic_summary"
+            )
+        ]
+        indexes = [models.Index(fields=("kind", "value"))]
+
+
+class RunStatisticMetric(models.Model):
+    class Dimension(models.TextChoices):
+        ITEM = "item", "Item"
+        ANIMAL = "animal", "Animal"
+        TRAP = "trap", "Trap"
+        ANIMAL_TRAP = "animal_trap", "Animal and trap"
+        FLUID = "fluid", "Fluid"
+        INJURY_TYPE = "injury_type", "Injury type"
+        BODY_PART = "body_part", "Body part"
+        INJURY_PAIR = "injury_pair", "Injury and body part"
+
+    summary = models.ForeignKey(
+        RunStatisticSummary, on_delete=models.CASCADE, related_name="metrics"
+    )
+    dimension = models.CharField(max_length=24, choices=Dimension.choices)
+    raw_primary_id = models.CharField(max_length=255)
+    raw_secondary_id = models.CharField(max_length=255, blank=True)
+    primary_catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="primary_run_statistic_metrics",
+    )
+    secondary_catalogue_entry = models.ForeignKey(
+        "zomboid_catalogue.CatalogueEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="secondary_run_statistic_metrics",
+    )
+    value = models.FloatField(default=0)
+
+    class Meta:
+        ordering = ("dimension", "raw_primary_id", "raw_secondary_id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    "summary",
+                    "dimension",
+                    "raw_primary_id",
+                    "raw_secondary_id",
+                ),
+                name="unique_run_statistic_metric_dimension",
+            )
+        ]
+        indexes = [
+            models.Index(fields=("dimension", "raw_primary_id")),
+            models.Index(fields=("dimension", "raw_secondary_id")),
         ]
 
 

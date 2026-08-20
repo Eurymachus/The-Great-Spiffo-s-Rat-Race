@@ -10,6 +10,7 @@ from .models import (
     LegacyRun,
     LegacyRunSubmission,
     Participant,
+    RunSkill,
     RunSubmission,
     StreamingAccount,
 )
@@ -40,6 +41,11 @@ class LeaderboardTests(TestCase):
             display_name="Unfit",
         )
         TraitDetails.objects.create(entry=negative_trait, point_cost=-6)
+        self.aiming_skill = CatalogueEntry.objects.create(
+            kind=CatalogueEntry.Kind.SKILL,
+            stable_id="Aiming",
+            display_name="Aiming",
+        )
 
     def create_run(self, suffix, completion, *, lifecycle="active", official=True):
         projection = {
@@ -91,6 +97,14 @@ class LeaderboardTests(TestCase):
         )
         run.approved_submission = submission
         run.save(update_fields=("approved_submission",))
+        RunSkill.objects.create(
+            run=run,
+            raw_skill_id="Aiming",
+            raw_category_id="Firearm",
+            catalogue_entry=self.aiming_skill,
+            level=10,
+            xp=0,
+        )
         return run
 
     def test_weighted_completion_gives_kills_half_of_the_score(self):

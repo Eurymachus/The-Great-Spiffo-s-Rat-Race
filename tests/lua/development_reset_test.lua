@@ -6,7 +6,7 @@ package.path = sourceRoot .. "client/?.lua;"
 local values = {
     TGSRR_Run = {
         runId = "rr-old-development-run",
-        schemaVersion = 15,
+        schemaVersion = 22,
         eventSequence = 57,
     },
 }
@@ -30,13 +30,13 @@ package.loaded["TGSRR/Run/CharacterSnapshot"] = {
 local Identity = require "TGSRR/Run/Identity"
 local run, reason = Identity.get()
 assert(run == nil and reason == nil)
-assert(values.TGSRR_Run.schemaVersion == 22)
+assert(values.TGSRR_Run.schemaVersion == 23)
 assert(values.TGSRR_Run.contractVersion == 1)
 assert(values.TGSRR_Run.runId == nil)
 
 local reset = assert(Identity.consumeDevelopmentReset())
 assert(reset.oldRunId == "rr-old-development-run")
-assert(reset.reason == "unsupported_run_schema:15")
+assert(reset.reason == "unsupported_run_schema:22")
 assert(Identity.consumeDevelopmentReset() == nil)
 
 print("development reset test passed")

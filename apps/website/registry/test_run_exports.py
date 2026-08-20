@@ -21,6 +21,8 @@ from .models import (
     RunOutpostDeliverable,
     RunSkill,
     RunStartingLocation,
+    RunStatisticMetric,
+    RunStatisticSummary,
     RunSubmission,
     RunWeaponKill,
     StreamingAccount,
@@ -1488,6 +1490,13 @@ class RunSubmissionTests(TestCase):
                         "startedWorldAgeHours": 0,
                         "killDelta": 4,
                         "weightDeltaKilograms": -0.25,
+                        "animalPetDeltas": {"cow": 2},
+                        "fluidConsumedDeltas": {"Water": 1.25},
+                        "caloriesConsumedDelta": 450.5,
+                        "generatorRepairDelta": 2,
+                        "generatorConditionRestoredDelta": 9.5,
+                        "nimbleMovementMillisecondsDelta": 12000,
+                        "activeGameplayMillisecondsDelta": 60000,
                         "xpDeltas": {"Aiming": 12.5},
                         "animalTrapDeltas": [
                             {
@@ -1513,7 +1522,14 @@ class RunSubmissionTests(TestCase):
                 "observedWorldAgeHours": 26,
                 "elapsedWorldHours": 2,
                 "distanceDeltaMeters": 125.5,
+                "caloriesConsumedDelta": 25.0,
+                "generatorRepairDelta": 1,
+                "generatorConditionRestoredDelta": 4.0,
+                "nimbleMovementMillisecondsDelta": 3000,
+                "activeGameplayMillisecondsDelta": 15000,
                 "brokenWeaponDeltas": {"Base.Axe": 1},
+                "animalPetDeltas": {"cow": 1},
+                "fluidConsumedDeltas": {"Water": 0.5},
                 "distancePartial": True,
             },
         }
@@ -1526,7 +1542,12 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(sealed.observed_utc, 200)
         self.assertEqual(sealed.kill_delta, 4)
         self.assertEqual(sealed.weight_delta_kilograms, -0.25)
-        self.assertEqual(sealed.metrics.count(), 2)
+        self.assertEqual(sealed.calories_consumed_delta, 450.5)
+        self.assertEqual(sealed.generator_repair_delta, 2)
+        self.assertEqual(sealed.generator_condition_restored_delta, 9.5)
+        self.assertEqual(sealed.nimble_movement_milliseconds_delta, 12000)
+        self.assertEqual(sealed.active_gameplay_milliseconds_delta, 60000)
+        self.assertEqual(sealed.metrics.count(), 4)
         self.assertTrue(
             sealed.metrics.filter(
                 kind=RunDailyMetric.Kind.SKILL_XP,
@@ -1539,11 +1560,98 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(active.day_index, 2)
         self.assertEqual(active.calendar_day, 10)
         self.assertEqual(active.distance_delta_meters, 125.5)
+        self.assertEqual(active.calories_consumed_delta, 25.0)
+        self.assertEqual(active.generator_repair_delta, 1)
+        self.assertEqual(active.generator_condition_restored_delta, 4.0)
+        self.assertEqual(active.nimble_movement_milliseconds_delta, 3000)
+        self.assertEqual(active.active_gameplay_milliseconds_delta, 15000)
         self.assertTrue(active.partial)
         self.assertEqual(active.partial_metrics, ["distance"])
         broken = active.metrics.get(kind=RunDailyMetric.Kind.BROKEN_WEAPON)
         self.assertEqual(broken.raw_primary_id, "Base.Axe")
         self.assertEqual(broken.value, 1)
+        self.assertTrue(
+            active.metrics.filter(
+                kind=RunDailyMetric.Kind.ANIMAL_PET,
+                raw_primary_id="cow",
+                value=1,
+            ).exists()
+        )
+        self.assertTrue(
+            active.metrics.filter(
+                kind=RunDailyMetric.Kind.FLUID_CONSUMED,
+                raw_primary_id="Water",
+                value=0.5,
+            ).exists()
+        )
+
+    def test_authority_normalizes_cumulative_statistics_for_queries(self):
+        run = ChallengeRun.objects.create(
+            run_id="rr-statistic-authority-test",
+            export_format=4,
+            generated_at=datetime.now(timezone.utc),
+            event_hash="0" * 64,
+        )
+        projection = {
+            "schema": 2,
+            "character": {},
+            "outposts": [],
+            "skills": [],
+            "weight": {"currentKilograms": 78.5},
+            "distance": {"travelledMeters": 1250.25, "rejectedSamples": 3},
+            "nimbleStance": {"movementMilliseconds": 12000},
+            "activeGameplay": {"milliseconds": 60000},
+            "animalsPetted": {
+                "total": 2,
+                "animalTypes": [{"animalType": "cow", "pets": 2}],
+            },
+            "fluidConsumed": {
+                "totalLiters": 1.25,
+                "fluidTypes": [{"fluidTypeId": "Water", "liters": 1.25}],
+            },
+            "caloriesConsumed": {"totalKilocalories": 450.5},
+            "generatorRepairs": {"count": 2, "conditionRestored": 9.5},
+        }
+
+        refresh_initial_run_authority(run, projection, [])
+
+        self.assertTrue(
+            RunStatisticSummary.objects.filter(
+                run=run,
+                kind=RunStatisticSummary.Kind.DISTANCE,
+                value__gte=1000,
+                secondary_value=3,
+                unit="meter",
+            ).exists()
+        )
+        pet_summary = RunStatisticSummary.objects.get(
+            run=run, kind=RunStatisticSummary.Kind.ANIMAL_PET
+        )
+        self.assertEqual(pet_summary.value, 2)
+        self.assertTrue(
+            RunStatisticMetric.objects.filter(
+                summary=pet_summary,
+                dimension=RunStatisticMetric.Dimension.ANIMAL,
+                raw_primary_id="cow",
+                value=2,
+            ).exists()
+        )
+        fluid_summary = RunStatisticSummary.objects.get(
+            run=run, kind=RunStatisticSummary.Kind.FLUID_CONSUMED
+        )
+        self.assertEqual(fluid_summary.value, 1.25)
+        self.assertTrue(
+            fluid_summary.metrics.filter(
+                dimension=RunStatisticMetric.Dimension.FLUID,
+                raw_primary_id="Water",
+                value=1.25,
+            ).exists()
+        )
+        repairs = RunStatisticSummary.objects.get(
+            run=run, kind=RunStatisticSummary.Kind.GENERATOR_REPAIRS
+        )
+        self.assertEqual(repairs.value, 2)
+        self.assertEqual(repairs.secondary_value, 9.5)
 
     def test_authority_appends_new_daily_records_without_rebuilding_sealed_history(self):
         run = ChallengeRun.objects.create(

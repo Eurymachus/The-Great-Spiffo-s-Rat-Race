@@ -360,7 +360,7 @@ contains signed `weightDeltaKilograms` from its saved day baseline, and each
 completed-day weight delta means zero. Weight is an instantaneous measurement,
 so it does not carry a partial-history flag.
 
-Format-3 exports four additional cumulative-only activity groups:
+The export contains four additional cumulative activity groups:
 
 - `animalsPetted.total` and ID-sorted `animalTypes` preserve completed petting
   actions by raw PZ animal type.
@@ -374,17 +374,20 @@ Format-3 exports four additional cumulative-only activity groups:
   scrap-consuming repairs and the actual generator-condition gain.
 
 Each group carries `partial` for a collector introduced after a run began.
-These activities do not append individual ledger events and do not add active
-or completed-day deltas, keeping export growth bounded by the number of
-observed animal and fluid types rather than survived days.
+The active-day projection and each sealed `completedDay` also carry sparse
+daily deltas. These activities do not append individual action events, so
+export growth remains bounded by survived days and observed IDs. Cumulative
+values remain independently authoritative and are never calculated by summing
+daily deltas.
 
-Nimble-stance evidence is a cumulative real-time measurement only. TGSRR adds
+Nimble-stance evidence is an independently authoritative cumulative real-time
+measurement. TGSRR adds
 short consecutive wall-clock sample intervals to
 `nimbleStance.movementMilliseconds` when the local player changes position on
 foot while `isAiming()` is true. Standing aim, vehicles, paused play, loading
 gaps, and `FishingState` are excluded; intervals over one second are discarded
 rather than guessed. Bootstrapped runs mark the cumulative value partial. The
-measurement has no active-day or completed-day delta.
+active-day and completed-day deltas use the same observed accumulator.
 
 Zombie kills credited to the local player are also classified in cumulative
 `zombieKillTypes` counters: `standing`, `onfront`, `onback`, `fenceAssist`, and
@@ -406,8 +409,9 @@ uses a wall-clock `OnTick` accumulator and treats the visible in-game pause
 menu, `isGamePaused()`, or either exposed game-speed control reporting zero as
 paused. Loading, suspension, and long hitches are rejected by discarding
 intervals over five seconds. Time acceleration does not multiply real time.
-Bootstrapped runs mark the value partial. The value has no daily delta and does
-not claim that external streaming software was broadcasting.
+Bootstrapped runs mark the value partial. Active-day and completed-day deltas
+use the same observed accumulator. The value does not claim that external
+streaming software was broadcasting.
 
 Completed segments are never rewritten. Periodic state snapshots contain the accepted ledger cursor/head hash and can be cross-anchored into compact global ModData. Export verifies framing, record checks, the complete hash chain, snapshot agreement, sequence continuity, and branch selection before producing a submission. Any failure is exported as an explicit integrity condition rather than silently repaired away.
 

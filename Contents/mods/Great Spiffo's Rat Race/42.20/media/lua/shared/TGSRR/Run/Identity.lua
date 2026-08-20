@@ -5,7 +5,7 @@ local SelectedChallenge = require "TGSRR/Run/SelectedChallenge"
 local ChallengeContext = require "TGSRR/Challenge/Context"
 
 local MOD_DATA_KEY = "TGSRR_Run"
-local SCHEMA_VERSION = 22
+local SCHEMA_VERSION = 23
 local CONTRACT_VERSION = 1
 local pendingDevelopmentReset = nil
 

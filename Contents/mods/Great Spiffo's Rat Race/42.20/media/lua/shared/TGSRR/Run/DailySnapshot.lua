@@ -5,8 +5,10 @@ local BrokenWeaponSnapshot = require "TGSRR/Run/BrokenWeaponSnapshot"
 local AnimalSlaughterSnapshot = require "TGSRR/Run/AnimalSlaughterSnapshot"
 local AnimalTrapSnapshot = require "TGSRR/Run/AnimalTrapSnapshot"
 local AnimalBirthSnapshot = require "TGSRR/Run/AnimalBirthSnapshot"
+local AnimalPetSnapshot = require "TGSRR/Run/AnimalPetSnapshot"
 local InjurySnapshot = require "TGSRR/Run/InjurySnapshot"
 local MilkSnapshot = require "TGSRR/Run/MilkSnapshot"
+local FluidConsumedSnapshot = require "TGSRR/Run/FluidConsumedSnapshot"
 local FishCaughtSnapshot = require "TGSRR/Run/FishCaughtSnapshot"
 
 local DailySnapshot = {}
@@ -35,6 +37,8 @@ function DailySnapshot.current(player, run)
             AnimalTrapSnapshot.copy(run and run.animalsTrapped),
         animalBirths =
             AnimalBirthSnapshot.copy(run and run.animalBirths),
+        animalsPetted =
+            AnimalPetSnapshot.copy(run and run.animalsPetted),
         milkCollected =
             MilkSnapshot.copy(run and run.milkCollected),
         butterProduced =
@@ -43,6 +47,17 @@ function DailySnapshot.current(player, run)
         injuries = InjurySnapshot.copy(run and run.injuries),
         zombieAssociatedInjuries =
             InjurySnapshot.copy(run and run.zombieAssociatedInjuries),
+        fluidConsumed = FluidConsumedSnapshot.copy(run and run.fluidConsumed),
+        caloriesConsumed = math.max(0,
+            tonumber(run and run.caloriesConsumed) or 0),
+        generatorRepairs = math.max(0,
+            math.floor(tonumber(run and run.generatorRepairs) or 0)),
+        generatorConditionRestored = math.max(0,
+            tonumber(run and run.generatorConditionRestored) or 0),
+        nimbleMovementMilliseconds = math.max(0,
+            tonumber(run and run.nimbleStanceMovementMilliseconds) or 0),
+        activeGameplayMilliseconds = math.max(0,
+            tonumber(run and run.activeGameplayMilliseconds) or 0),
     }
 end
 
@@ -101,6 +116,9 @@ function DailySnapshot.active(run, player)
         animalBirthDeltas =
             DailySnapshot.deltas(current.animalBirths, baseline.animalBirths),
         animalBirthsPartial = baseline.animalBirthsPartial == true,
+        animalPetDeltas =
+            DailySnapshot.deltas(current.animalsPetted, baseline.animalsPetted),
+        animalsPettedPartial = baseline.animalsPettedPartial == true,
         milkCollectedDeltas =
             DailySnapshot.deltas(current.milkCollected, baseline.milkCollected),
         milkCollectedPartial = baseline.milkCollectedPartial == true,
@@ -117,6 +135,24 @@ function DailySnapshot.active(run, player)
             current.zombieAssociatedInjuries,
             baseline.zombieAssociatedInjuries),
         injuriesPartial = baseline.injuriesPartial == true,
+        fluidConsumedDeltas =
+            DailySnapshot.deltas(current.fluidConsumed, baseline.fluidConsumed),
+        fluidConsumedPartial = baseline.fluidConsumedPartial == true,
+        caloriesConsumedDelta = current.caloriesConsumed
+            - (tonumber(baseline.caloriesConsumed) or 0),
+        caloriesConsumedPartial = baseline.caloriesConsumedPartial == true,
+        generatorRepairDelta = current.generatorRepairs
+            - math.max(0, math.floor(
+                tonumber(baseline.generatorRepairs) or 0)),
+        generatorConditionRestoredDelta = current.generatorConditionRestored
+            - (tonumber(baseline.generatorConditionRestored) or 0),
+        generatorRepairsPartial = baseline.generatorRepairsPartial == true,
+        nimbleMovementMillisecondsDelta = current.nimbleMovementMilliseconds
+            - (tonumber(baseline.nimbleMovementMilliseconds) or 0),
+        nimbleStancePartial = baseline.nimbleStancePartial == true,
+        activeGameplayMillisecondsDelta = current.activeGameplayMilliseconds
+            - (tonumber(baseline.activeGameplayMilliseconds) or 0),
+        activeGameplayPartial = baseline.activeGameplayPartial == true,
     }
 end
 

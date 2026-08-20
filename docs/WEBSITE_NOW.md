@@ -450,6 +450,14 @@ Approval now rebuilds sealed and active daily authority into run-owned
 non-zero keyed deltas use sparse `RunDailyMetric` rows. Missing deltas are
 interpreted as zero, and active-day partial provenance is retained.
 
+Current cumulative observed statistics are normalized independently into one
+typed `RunStatisticSummary` row per metric family and sparse
+`RunStatisticMetric` dimension rows. This supports indexed filtering and graph
+queries without reading projection JSON. Headline cumulative values come from
+these current-state rows or an existing dedicated authority table. Daily charts
+come from `RunDailyRecord` and `RunDailyMetric`; cumulative totals are never
+reconstructed by summing daily deltas.
+
 ## Not Now
 
 - Expanded analytical charts and detailed statistics beyond the launch views

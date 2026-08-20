@@ -948,3 +948,21 @@ a normal run-moderation bulk action.
 - Verified-block reuse and incremental authority refresh remain inside the
   existing immutable-submission and atomic-approval model. They change cost,
   not evidence or moderation semantics.
+
+# 2026-08-18 - Store cumulative statistics and daily deltas independently
+
+- The mod exports independently authoritative cumulative observations and
+  sparse daily deltas. A cumulative value is never reconstructed by summing
+  daily deltas.
+- Daily deltas support timelines, comparisons, filters, and graphs. Missing
+  sparse delta fields mean zero, while explicit partial provenance means the
+  interval began from an incomplete collector baseline.
+- Fixed daily scalar values belong on `RunDailyRecord`. Non-zero keyed or
+  paired dimensions belong in `RunDailyMetric`, retaining raw identifiers and
+  catalogue links where available.
+- Current cumulative statistic families use one typed
+  `RunStatisticSummary` row per run and kind. Their non-zero item, animal,
+  trap, fluid, injury, and paired dimensions use `RunStatisticMetric`.
+- Graphs, filters, search, rankings, and public statistics query normalized
+  authority only. Projection JSON remains immutable compatibility evidence,
+  not an analytical database.

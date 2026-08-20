@@ -13,6 +13,8 @@ from .models import (
     RunOutpostDeliverable,
     RunSkill,
     RunStartingLocation,
+    RunStatisticMetric,
+    RunStatisticSummary,
     RunWeaponKill,
 )
 
@@ -27,7 +29,9 @@ DAILY_MAP_METRICS = (
         CatalogueEntry.Kind.ANIMAL,
     ),
     ("animalBirthDeltas", RunDailyMetric.Kind.ANIMAL_BIRTH, CatalogueEntry.Kind.ANIMAL),
+    ("animalPetDeltas", RunDailyMetric.Kind.ANIMAL_PET, CatalogueEntry.Kind.ANIMAL),
     ("milkCollectedDeltas", RunDailyMetric.Kind.MILK_COLLECTED, None),
+    ("fluidConsumedDeltas", RunDailyMetric.Kind.FLUID_CONSUMED, None),
     ("fishCaughtDeltas", RunDailyMetric.Kind.FISH_CAUGHT, CatalogueEntry.Kind.ITEM),
 )
 
@@ -39,10 +43,16 @@ ACTIVE_PARTIAL_FLAGS = {
     "animalsSlaughteredPartial": "animals_slaughtered",
     "animalsTrappedPartial": "animals_trapped",
     "animalBirthsPartial": "animal_births",
+    "animalsPettedPartial": "animals_petted",
     "milkCollectedPartial": "milk_collected",
     "butterProducedPartial": "butter_produced",
     "fishCaughtPartial": "fish_caught",
     "injuriesPartial": "injuries",
+    "fluidConsumedPartial": "fluid_consumed",
+    "caloriesConsumedPartial": "calories_consumed",
+    "generatorRepairsPartial": "generator_repairs",
+    "nimbleStancePartial": "nimble_stance",
+    "activeGameplayPartial": "active_gameplay",
 }
 
 
@@ -186,6 +196,19 @@ def _daily_record_defaults(snapshot, *, calendar=None, observed=None, active=Fal
         "fire_death_delta": int(snapshot.get("fireDeathDelta") or 0),
         "distance_delta_meters": float(snapshot.get("distanceDeltaMeters") or 0),
         "butter_produced_delta": int(snapshot.get("butterProducedDelta") or 0),
+        "calories_consumed_delta": float(
+            snapshot.get("caloriesConsumedDelta") or 0
+        ),
+        "generator_repair_delta": int(snapshot.get("generatorRepairDelta") or 0),
+        "generator_condition_restored_delta": float(
+            snapshot.get("generatorConditionRestoredDelta") or 0
+        ),
+        "nimble_movement_milliseconds_delta": int(
+            snapshot.get("nimbleMovementMillisecondsDelta") or 0
+        ),
+        "active_gameplay_milliseconds_delta": int(
+            snapshot.get("activeGameplayMillisecondsDelta") or 0
+        ),
     }
 
 
@@ -249,6 +272,209 @@ def _refresh_daily_authority(run, projection, events, previous_event_sequence=0)
         )
         metric_rows.extend(_daily_metric_rows(record, active))
     RunDailyMetric.objects.bulk_create(metric_rows)
+
+
+def _refresh_statistic_authority(run, projection):
+    RunStatisticSummary.objects.filter(run=run).delete()
+
+    def summary(kind, source, value_key, *, unit="", secondary_key=None,
+                raw_reference_id=""):
+        source = _snapshot(source)
+        return RunStatisticSummary.objects.create(
+            run=run,
+            kind=kind,
+            value=float(source.get(value_key) or 0),
+            secondary_value=(
+                float(source.get(secondary_key) or 0) if secondary_key else None
+            ),
+            unit=str(source.get("unit") or unit),
+            partial=bool(source.get("partial", False)),
+            raw_reference_id=str(source.get("itemId") or raw_reference_id),
+        )
+
+    def metric(target, dimension, raw_primary_id, value, *, raw_secondary_id="",
+               primary_kind=None, secondary_kind=None):
+        raw_primary_id = str(raw_primary_id or "")
+        raw_secondary_id = str(raw_secondary_id or "")
+        value = float(value or 0)
+        if not raw_primary_id or value == 0:
+            return
+        RunStatisticMetric.objects.create(
+            summary=target,
+            dimension=dimension,
+            raw_primary_id=raw_primary_id,
+            raw_secondary_id=raw_secondary_id,
+            primary_catalogue_entry=(
+                _resolve(primary_kind, raw_primary_id) if primary_kind else None
+            ),
+            secondary_catalogue_entry=(
+                _resolve(secondary_kind, raw_secondary_id)
+                if secondary_kind and raw_secondary_id else None
+            ),
+            value=value,
+        )
+
+    summary(
+        RunStatisticSummary.Kind.WEIGHT,
+        projection.get("weight"),
+        "currentKilograms",
+        unit="kilogram",
+    )
+    summary(
+        RunStatisticSummary.Kind.DISTANCE,
+        projection.get("distance"),
+        "travelledMeters",
+        unit="meter",
+        secondary_key="rejectedSamples",
+    )
+    summary(
+        RunStatisticSummary.Kind.NIMBLE_STANCE,
+        projection.get("nimbleStance"),
+        "movementMilliseconds",
+        unit="millisecond",
+    )
+    summary(
+        RunStatisticSummary.Kind.ACTIVE_GAMEPLAY,
+        projection.get("activeGameplay"),
+        "milliseconds",
+        unit="millisecond",
+    )
+
+    broken = summary(
+        RunStatisticSummary.Kind.BROKEN_WEAPONS,
+        projection.get("brokenWeapons"),
+        "total",
+    )
+    for row in _snapshot(projection.get("brokenWeapons")).get("weapons", []):
+        if isinstance(row, dict):
+            metric(
+                broken, RunStatisticMetric.Dimension.ITEM, row.get("id"),
+                row.get("breaks"), primary_kind=CatalogueEntry.Kind.ITEM,
+            )
+
+    animal_specs = (
+        (RunStatisticSummary.Kind.ANIMAL_SLAUGHTER, "animalsSlaughtered", "slaughtered"),
+        (RunStatisticSummary.Kind.ANIMAL_BIRTH, "animalBirths", "births"),
+        (RunStatisticSummary.Kind.ANIMAL_PET, "animalsPetted", "pets"),
+    )
+    for kind, projection_key, value_key in animal_specs:
+        source = _snapshot(projection.get(projection_key))
+        target = summary(kind, source, "total")
+        for row in source.get("animalTypes", []):
+            if isinstance(row, dict):
+                metric(
+                    target, RunStatisticMetric.Dimension.ANIMAL,
+                    row.get("animalType"), row.get(value_key),
+                    primary_kind=CatalogueEntry.Kind.ANIMAL,
+                )
+
+    traps = _snapshot(projection.get("animalsTrapped"))
+    trapped = summary(RunStatisticSummary.Kind.ANIMAL_TRAP, traps, "total")
+    for row in traps.get("animalTypes", []):
+        if isinstance(row, dict):
+            metric(
+                trapped, RunStatisticMetric.Dimension.ANIMAL,
+                row.get("animalType"), row.get("trapped"),
+                primary_kind=CatalogueEntry.Kind.ANIMAL,
+            )
+    for row in traps.get("traps", []):
+        if isinstance(row, dict):
+            metric(
+                trapped, RunStatisticMetric.Dimension.TRAP,
+                row.get("trapId"), row.get("trapped"),
+                primary_kind=CatalogueEntry.Kind.ITEM,
+            )
+    for row in traps.get("pairs", []):
+        if isinstance(row, dict):
+            metric(
+                trapped, RunStatisticMetric.Dimension.ANIMAL_TRAP,
+                row.get("animalType"), row.get("trapped"),
+                raw_secondary_id=row.get("trapId"),
+                primary_kind=CatalogueEntry.Kind.ANIMAL,
+                secondary_kind=CatalogueEntry.Kind.ITEM,
+            )
+
+    milk_source = _snapshot(projection.get("milkCollected"))
+    milk = summary(
+        RunStatisticSummary.Kind.MILK_COLLECTED, milk_source, "total", unit="liter"
+    )
+    for row in milk_source.get("milkTypes", []):
+        if isinstance(row, dict):
+            metric(
+                milk, RunStatisticMetric.Dimension.FLUID, row.get("milkType"),
+                row.get("amount"),
+            )
+
+    fluid_source = _snapshot(projection.get("fluidConsumed"))
+    fluid = summary(
+        RunStatisticSummary.Kind.FLUID_CONSUMED,
+        fluid_source,
+        "totalLiters",
+        unit="liter",
+    )
+    for row in fluid_source.get("fluidTypes", []):
+        if isinstance(row, dict):
+            metric(
+                fluid, RunStatisticMetric.Dimension.FLUID,
+                row.get("fluidTypeId"), row.get("liters"),
+            )
+
+    summary(
+        RunStatisticSummary.Kind.CALORIES_CONSUMED,
+        projection.get("caloriesConsumed"),
+        "totalKilocalories",
+        unit="kilocalorie",
+    )
+    summary(
+        RunStatisticSummary.Kind.BUTTER_PRODUCED,
+        projection.get("butterProduced"),
+        "count",
+        raw_reference_id="Base.Butter",
+    )
+
+    fish_source = _snapshot(projection.get("fishCaught"))
+    fish = summary(RunStatisticSummary.Kind.FISH_CAUGHT, fish_source, "total")
+    for row in fish_source.get("fish", []):
+        if isinstance(row, dict):
+            metric(
+                fish, RunStatisticMetric.Dimension.ITEM, row.get("fishId"),
+                row.get("caught"), primary_kind=CatalogueEntry.Kind.ITEM,
+            )
+
+    injuries = _snapshot(projection.get("injuries"))
+    for kind, scope in (
+        (RunStatisticSummary.Kind.INJURIES, "all"),
+        (RunStatisticSummary.Kind.ZOMBIE_ASSOCIATED_INJURIES, "zombieAssociated"),
+    ):
+        source = _snapshot(injuries.get(scope))
+        target = RunStatisticSummary.objects.create(
+            run=run,
+            kind=kind,
+            value=float(source.get("total") or 0),
+            partial=bool(injuries.get("partial", False)),
+        )
+        for row in source.get("byType", []):
+            if isinstance(row, dict):
+                metric(target, RunStatisticMetric.Dimension.INJURY_TYPE,
+                       row.get("id"), row.get("count"))
+        for row in source.get("byBodyPart", []):
+            if isinstance(row, dict):
+                metric(target, RunStatisticMetric.Dimension.BODY_PART,
+                       row.get("id"), row.get("count"))
+        for row in source.get("pairs", []):
+            if isinstance(row, dict):
+                metric(
+                    target, RunStatisticMetric.Dimension.INJURY_PAIR,
+                    row.get("injuryType"), row.get("count"),
+                    raw_secondary_id=row.get("bodyPart"),
+                )
+
+    summary(
+        RunStatisticSummary.Kind.GENERATOR_REPAIRS,
+        projection.get("generatorRepairs"),
+        "count",
+        secondary_key="conditionRestored",
+    )
 
 
 def refresh_initial_run_authority(
@@ -500,6 +726,7 @@ def refresh_initial_run_authority(
             )
         )
     RunWeaponKill.objects.bulk_create(weapon_rows)
+    _refresh_statistic_authority(run, projection)
     _refresh_daily_authority(
         run, projection, events, previous_event_sequence=previous_event_sequence
     )

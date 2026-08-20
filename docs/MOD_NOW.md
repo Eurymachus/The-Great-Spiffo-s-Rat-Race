@@ -64,8 +64,10 @@ the export contract; their policy and test surfaces are documented in
 - Canonical schema-2 event codec, SHA-256 hash-chained ledger, append-safe
   segmented storage, and lifecycle verification. Unsupported development run
   schemas are rejected rather than migrated.
-- Development run-state schema 22 establishes bounded outpost lifecycle state
-  and first-completion-only outpost ledger evidence.
+- Development run-state schema 23 establishes the expanded authoritative daily
+  record state, bounded outpost lifecycle state, and first-completion-only
+  outpost ledger evidence. Earlier development runs are deliberately reset
+  rather than migrated.
 - Interrupted session commits are recovered automatically when the external
   ledger and session log are ahead of the save by session-boundary records
   only. The full tail is hash-verified, adopted without rewriting it, and a
@@ -181,15 +183,15 @@ the export contract; their policy and test surfaces are documented in
 - Local-player fishing catches captured from the landed-fish pickup action,
   excluding trash and fishing nets, with cumulative full-item-ID totals and
   daily deltas.
-- Completed local-player animal pets aggregated cumulatively by raw animal
-  type, separately from cooldown-limited petting benefits.
+- Completed local-player animal pets aggregated cumulatively and daily by raw
+  animal type, separately from cooldown-limited petting benefits.
 - Actual manually and automatically consumed fluid litres aggregated
-  cumulatively by raw fluid type, with mixtures explicitly classified and no
-  daily deltas.
+  cumulatively and daily by raw fluid type, with mixtures explicitly classified.
 - Applied food/fluid calories accumulated independently of the continuously
-  changing, clamped Nutrition balance, with no daily deltas.
+  changing, clamped Nutrition balance, with independently recorded daily deltas.
 - Successful generator repair actions and authoritative condition restored
-  accumulated without per-repair ledger events or daily deltas.
+  accumulated without per-repair ledger events, with daily deltas sealed at
+  day boundaries.
 - Movable `Item_DeadRat.png` launcher with runtime outline and no button chrome.
 - One-second refresh that updates stable list entries in place.
 - Weighted Outposts percentage derived from the arithmetic mean of the 14 weighted individual percentages.

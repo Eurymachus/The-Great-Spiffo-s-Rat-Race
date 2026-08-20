@@ -141,12 +141,14 @@ player-facing panel.
 | `activeDay.dayIndex`, start and observation UTC/world age, `elapsedWorldHours`, `baselinePartial` | `RunActiveDay` | None | Current unsealed day | Replace one row. |
 | `activeDay.killDelta`, `xpDeltas{skillId: value}` | `RunActiveDay.kill_delta`; `RunActiveDaySkillXp` | Skill | Current unsealed day | Replace scalar and non-zero skill rows. |
 | `day.started` day metadata and `completedDay` | `RunDailyRecord` state `sealed`, plus sparse `RunDailyMetric` rows | Conditional | Complete sealed daily history | Rebuild all days from ledger; missing compact delta means zero. |
-| `weight.currentKilograms`, `weight.unit` | `RunWeightState.current_kilograms`, `unit` | None | Current state | Replace. |
+| `weight.currentKilograms`, `weight.unit` | `RunStatisticSummary` kind `weight` | None | Current state | Replace. |
 | daily and active `weightDeltaKilograms` | `RunDailyRecord.weight_delta_kilograms` | None | Complete sealed history and current day | Rebuild/replace by record state. |
-| `distance.travelledMeters`, `rejectedSamples`, `partial`, `unit` | `RunDistanceSummary.*` | None | Current cumulative state | Replace. |
+| `distance.travelledMeters`, `rejectedSamples`, `partial`, `unit` | `RunStatisticSummary` kind `distance`; `value`, `secondary_value`, `partial`, `unit` | None | Current cumulative state | Replace. |
 | daily and active `distanceDeltaMeters`, partial flag | `RunDailyRecord.distance_delta_meters`, `partial_metrics` | None | Complete sealed history and current day | Rebuild/replace by record state. |
-| `nimbleStance.movementMilliseconds`, `partial`, `unit` | `RunActivitySummary.nimble_movement_milliseconds`, `nimble_partial` | None | Current cumulative state | Replace. |
-| `activeGameplay.milliseconds`, `partial`, `unit` | `RunActivitySummary.active_gameplay_milliseconds`, `active_gameplay_partial` | None | Current cumulative state | Replace. |
+| `nimbleStance.movementMilliseconds`, `partial`, `unit` | `RunStatisticSummary` kind `nimble_stance` | None | Current cumulative state | Replace. |
+| daily and active `nimbleMovementMillisecondsDelta` | `RunDailyRecord.nimble_movement_milliseconds_delta` | None | Complete sealed history and current day | Rebuild/replace. |
+| `activeGameplay.milliseconds`, `partial`, `unit` | `RunStatisticSummary` kind `active_gameplay` | None | Current cumulative state | Replace. |
+| daily and active `activeGameplayMillisecondsDelta` | `RunDailyRecord.active_gameplay_milliseconds_delta` | None | Complete sealed history and current day | Rebuild/replace. |
 
 ## Challenge progress, outposts, and deliverable lifecycle
 
@@ -216,10 +218,10 @@ default to `false` when omitted and are emitted only when true.
 
 | Export field | Authoritative table and column | Catalogue link | Meaning | Approval import rule |
 | --- | --- | --- | --- | --- |
-| `injuries.partial` | `RunInjurySummary.partial` | None | History quality | Replace. |
-| `injuries.all.total`, `byType[]`, `byBodyPart[]`, `pairs[]` | `RunInjurySummary.total`; `RunInjuryAggregate` with scope `all` | None | Current cumulative state | Replace all aggregates, preserving raw injury and body-part IDs. |
-| corresponding `zombieAssociated` fields | Same tables with scope `zombie_associated` | None | Current cumulative neutral evidence | Replace; do not present as guaranteed wound source. |
-| daily and active injury delta arrays | `RunDayInjury`, `RunActiveDayInjury` | None | Complete daily history and current day | Rebuild/replace by scope, raw type, and raw body part. |
+| `injuries.partial` | `RunStatisticSummary.partial` for both injury kinds | None | History quality | Replace. |
+| `injuries.all.total`, `byType[]`, `byBodyPart[]`, `pairs[]` | `RunStatisticSummary` kind `injuries`; sparse `RunStatisticMetric` rows | None | Current cumulative state | Replace all aggregates, preserving raw injury and body-part IDs. |
+| corresponding `zombieAssociated` fields | Same tables with kind `zombie_associated_injuries` | None | Current cumulative neutral evidence | Replace; do not present as guaranteed wound source. |
+| daily and active injury delta arrays | `RunDailyMetric` kinds `injury` and `zombie_associated_injury` | None | Complete daily history and current day | Rebuild/replace by scope, raw type, and raw body part. |
 
 ## Animals, fishing, milk, butter, consumption, and calories
 
@@ -228,16 +230,18 @@ default to `false` when omitted and are emitted only when true.
 | `animalsSlaughtered.total`, `partial`, `animalTypes[]` | `RunAnimalSummary` kind `slaughter`; `RunAnimalAggregate` | Animal | Current cumulative state | Replace, retaining raw animal type. |
 | `animalsTrapped.total`, `partial`, `animalTypes[]`, `traps[]`, `pairs[]` | Summary and `RunTrapAggregate` | Animal and trap Item | Current cumulative state | Replace all three views; paired rows are canonical for daily deltas. |
 | `animalBirths.total`, `partial`, `animalTypes[]` | Animal summary/aggregate kind `birth` | Animal | Current cumulative state | Replace. |
-| `animalsPetted.total`, `partial`, `animalTypes[]` | Animal summary/aggregate kind `pet` | Animal | Current cumulative state | Replace. |
-| daily and active slaughter, trap, and birth deltas | Typed `RunDayAnimal*` and `RunActiveDayAnimal*` rows | Animal and Item | Complete daily history and current day | Rebuild/replace. |
+| `animalsPetted.total`, `partial`, `animalTypes[]` | `RunStatisticSummary` kind `animal_pet`; sparse `RunStatisticMetric` rows | Animal | Current cumulative state | Replace. |
+| daily and active slaughter, trap, birth, and pet deltas | Sparse `RunDailyMetric` rows | Animal and Item | Complete daily history and current day | Rebuild/replace. |
 | `fishCaught.total`, `partial`, `fish[]` | `RunFishSummary`; `RunFishCatchAggregate` | Item | Current cumulative state | Replace. |
 | daily and active fish deltas | `RunDayFishCatch`, `RunActiveDayFishCatch` | Item | Complete daily history and current day | Rebuild/replace. |
 | `milkCollected.unit`, `total`, `partial`, `milkTypes[]` | `RunMilkSummary`; `RunMilkAggregate` | Item or raw fluid catalogue when added | Current cumulative state | Replace, preserving raw milk type. |
 | daily and active milk deltas | `RunDayMilk`, `RunActiveDayMilk` | Same | Complete daily history and current day | Rebuild/replace. |
 | `butterProduced.itemId`, `count`, `partial` | `RunProductionSummary` kind `butter` | Item | Current cumulative state | Replace and require the declared item ID for this schema. |
 | daily and active butter delta | `RunDay.butter_produced`, `RunActiveDay.butter_produced` | Item | Complete daily history and current day | Rebuild/replace. |
-| `fluidConsumed.unit`, `totalLiters`, `partial`, `fluidTypes[].fluidTypeId`, `liters` | `RunConsumptionSummary`; `RunFluidConsumption` | Raw fluid ID, future fluid catalogue | Current cumulative state | Replace. Mixtures remain explicit raw types. |
-| `caloriesConsumed.unit`, `totalKilocalories`, `partial` | `RunConsumptionSummary.calories_*` | None | Current cumulative state | Replace. Do not derive from current Nutrition balance. |
+| `fluidConsumed.unit`, `totalLiters`, `partial`, `fluidTypes[].fluidTypeId`, `liters` | `RunStatisticSummary` kind `fluid_consumed`; sparse `RunStatisticMetric` rows | Raw fluid ID, future fluid catalogue | Current cumulative state | Replace. Mixtures remain explicit raw types. |
+| daily and active fluid deltas | `RunDailyMetric` kind `fluid_consumed` | Raw fluid ID | Complete daily history and current day | Rebuild/replace. |
+| `caloriesConsumed.unit`, `totalKilocalories`, `partial` | `RunStatisticSummary` kind `calories_consumed` | None | Current cumulative state | Replace. Do not derive from current Nutrition balance. |
+| daily and active calorie deltas | `RunDailyRecord.calories_consumed_delta` | None | Complete daily history and current day | Rebuild/replace. |
 
 ## Broken weapons, generator knowledge, and repairs
 
@@ -248,7 +252,8 @@ default to `false` when omitted and are emitted only when true.
 | `generatorKnowledge.schema`, `recipeId`, `known`, first-observed UTC/world age, survived days, baseline/partial flags | `RunGeneratorKnowledge.*` | Recipe | Current state plus permanent first observation | Replace and cross-check ledger first-observed event. |
 | generator evidence profession, Electrical level, Inventive, magazine completed | `RunGeneratorKnowledge.*_evidence` | Occupation, Skill, Trait, Item | Neutral contemporaneous evidence | Replace raw values and resolved links; never infer the source. |
 | `knowledge.generator.first_observed` | `RunGeneratorKnowledgeEvent` | Recipe | Permanent first observation | Rebuild from ledger. |
-| `generatorRepairs.count`, `conditionRestored`, `partial` | `RunGeneratorRepairSummary.*` | None | Current cumulative state | Replace. |
+| `generatorRepairs.count`, `conditionRestored`, `partial` | `RunStatisticSummary` kind `generator_repairs`; `value`, `secondary_value`, `partial` | None | Current cumulative state | Replace. |
+| daily and active repair count and condition-restored deltas | `RunDailyRecord.generator_repair_delta`, `generator_condition_restored_delta` | None | Complete daily history and current day | Rebuild/replace. |
 
 ## Projection-only and ledger-only boundaries
 
@@ -288,6 +293,14 @@ columns. Keyed non-zero deltas use sparse `RunDailyMetric` rows with raw IDs and
 catalogue links where a suitable catalogue exists. Missing values mean zero,
 and partial provenance remains explicit. Poll decisions can therefore enable
 or disable individual emitted metric kinds without another table redesign.
+
+The current cumulative statistic slice is implemented. One typed
+`RunStatisticSummary` row stores each independently authoritative total, unit,
+partial flag, and optional secondary value. Sparse `RunStatisticMetric` rows
+store item, animal, trap, fluid, injury, and paired dimensions with raw IDs and
+catalogue links where available. Indexed ORM filters and graph queries use
+these tables directly. They must never calculate headline totals from daily
+deltas.
 
 The remaining sequence is:
 

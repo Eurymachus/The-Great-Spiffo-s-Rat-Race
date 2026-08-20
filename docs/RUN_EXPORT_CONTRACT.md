@@ -66,6 +66,38 @@ Current known IDs are:
   advance the canonical run even when no new semantic event occurred. Equal or
   older generation timestamps do not supersede the approved snapshot.
 
+## Cumulative and daily statistic evidence
+
+Observed cumulative statistics and daily deltas are separate evidence. The
+projection exports the current cumulative value directly. The website must not
+calculate that value by summing daily deltas. Daily rows exist for timelines,
+comparisons, filtering, and graphs, and a missing sparse delta means zero.
+
+`activeDay` contains the current unsealed interval. Each later `day.started`
+ledger event may contain a `completedDay` object sealing the preceding interval.
+In addition to kills, skill XP, weight, weapon kills, fire deaths, distance,
+broken weapons, animal slaughter/traps/births, milk, butter, fish, and injuries,
+both daily shapes support these optional fields:
+
+- `animalPetDeltas`, keyed by raw animal type
+- `fluidConsumedDeltas`, keyed by raw fluid type
+- `caloriesConsumedDelta`
+- `generatorRepairDelta`
+- `generatorConditionRestoredDelta`
+- `nimbleMovementMillisecondsDelta`
+- `activeGameplayMillisecondsDelta`
+
+The matching partial flags are `animalsPettedPartial`,
+`fluidConsumedPartial`, `caloriesConsumedPartial`,
+`generatorRepairsPartial`, `nimbleStancePartial`, and
+`activeGameplayPartial`. A sealed day lists affected metric families in
+`partialMetrics`; an active day carries the flags directly.
+
+Approval stores fixed scalar deltas on `RunDailyRecord` and non-zero keyed
+deltas in `RunDailyMetric`. Current cumulative observed statistics use typed
+`RunStatisticSummary` rows and sparse dimensional `RunStatisticMetric` rows.
+Raw IDs remain queryable even when no catalogue entry resolves them.
+
 ## Starting-location evidence
 
 Current exports include immutable raw starting-location evidence under the
