@@ -221,6 +221,7 @@ class ProductionSettingsImportTests(TestCase):
                 "import django; django.setup(); "
                 "from django.conf import settings; "
                 "print(settings.DEBUG, settings.RELEASE_ID, "
+                "settings.MEDIA_URL, "
                 "'whitenoise.middleware.WhiteNoiseMiddleware' in settings.MIDDLEWARE)",
             ],
             cwd=website_root,
@@ -232,7 +233,7 @@ class ProductionSettingsImportTests(TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), "False abcdef12 True")
+        self.assertEqual(result.stdout.strip(), "False abcdef12 /media/ True")
 
     def test_windows_production_settings_use_database_runtime_state(self):
         website_root = Path(__file__).resolve().parents[1]

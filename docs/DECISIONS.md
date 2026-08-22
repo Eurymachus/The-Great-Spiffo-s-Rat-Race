@@ -992,3 +992,15 @@ a normal run-moderation bulk action.
   precedence. Administration presents resolved values read-only.
 - Catalogue reviews snapshot the resolved installation and build/job paths;
   approval rejects a snapshot when those resolved values or build IDs changed.
+
+# 2026-08-22 - Serve persistent media explicitly in direct-ASGI deployments
+
+- `MEDIA_URL` is the root-relative `/media/` and is independent of `DEBUG`.
+- Direct Uvicorn deployments serve persistent uploaded and generated catalogue
+  media through an explicit asynchronous route before application catch-alls.
+- A requested file must resolve to an ordinary file beneath `MEDIA_ROOT` after
+  following filesystem links. Traversal and links escaping the media root are
+  rejected.
+- Media responses preserve detected content types and provide public browser
+  caching headers. WhiteNoise remains responsible only for collected static
+  assets.

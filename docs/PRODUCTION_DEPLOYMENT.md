@@ -21,7 +21,11 @@ continuously supervised worker.
 Redis topology decided for the Ubuntu production VM. It binds the web service to
 the VM loopback interface only. The selected host HTTPS or tunnel layer must
 forward to that listener. WhiteNoise serves versioned static assets from the web
-container, so the traffic layer does not need direct access to the static volume.
+container. Persistent uploaded and generated catalogue media is served by the
+application's explicit `/media/<path>` route from `MEDIA_ROOT`, including for
+the direct-Uvicorn/Cloudflare-Tunnel deployment. The route precedes application
+catch-alls, resolves real paths beneath `MEDIA_ROOT`, rejects traversal and
+symlink escapes, preserves MIME types, and sends ordinary public cache headers.
 
 ## Production settings
 
@@ -77,6 +81,10 @@ administration displays these resolved paths but cannot edit or override them.
 upgrading, move retained build/job directories beneath the derived directory or
 allow the worker to create a new validated output there. Existing database path
 values require no migration and are ignored operationally.
+
+`MEDIA_URL` is always the root-relative `/media/`. `MEDIA_ROOT` remains
+persistent deployment state and must not point into an immutable release or
+collected-static directory. WhiteNoise does not serve this media tree.
 
 ## Health contract
 

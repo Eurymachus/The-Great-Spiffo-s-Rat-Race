@@ -34,6 +34,12 @@ records, while aliases and assets remain shared catalogue relationships.
 
 ## Implemented
 
+- Production-shaped direct-Uvicorn deployments serve persistent branding,
+  uploaded, and generated catalogue media from the root-relative `/media/`
+  route independently of `DEBUG`. The asynchronous route precedes editorial
+  catch-alls, rejects path and symlink escapes, preserves content types, and
+  provides browser caching without treating media as collected static assets.
+
 - Project Zomboid reference administration accepts the Steam account identity
   and temporary authentication only. SteamCMD, installation, Java, and
   Vineflower paths resolve from protected deployment settings and appear
