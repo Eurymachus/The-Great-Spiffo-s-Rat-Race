@@ -11,6 +11,7 @@ from registry.models import StreamingAccount
 from registry.streaming import decrypt_token
 
 from .runtime_state import runtime_state_ready, uses_database_runtime_state
+from .reference_paths import resolved_reference_paths
 
 
 def executable_available(value):
@@ -80,7 +81,7 @@ def production_deployment_checks():
         ),
         "reference storage": lambda: directory_writable(settings.PZ_REFERENCE_ROOT),
         "decompiled storage": lambda: directory_writable(
-            settings.PZ_DECOMPILED_ROOT
+            resolved_reference_paths().decompiled_parent
         ),
         "SteamCMD": lambda: executable_available(settings.STEAMCMD_EXECUTABLE),
         "Java": lambda: executable_available(settings.JAVA_EXECUTABLE),

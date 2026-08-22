@@ -7,6 +7,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from .models import ReferenceSource, ReferenceUpdateJob
+from .reference_paths import resolved_reference_paths
 from .reference_update import installed_build_id, notify_superusers
 
 
@@ -33,18 +34,12 @@ def _finish(job, source, status, summary, build_id=""):
 
 def run_decompilation(job):
     source = job.source
-    install_root = Path(source.install_root or settings.PZ_REFERENCE_ROOT)
+    paths = resolved_reference_paths()
+    install_root = paths.install_root
     input_jar = install_root / "projectzomboid.jar"
-    output_parent = Path(
-        getattr(settings, "PZ_DECOMPILED_ROOT", "")
-        or install_root / "tgsrr_decompiled"
-    )
-    decompiler = Path(
-        source.decompiler_jar or getattr(settings, "VINEFLOWER_JAR", "")
-    )
-    java_value = source.java_executable or getattr(
-        settings, "JAVA_EXECUTABLE", "java"
-    )
+    output_parent = paths.decompiled_parent
+    decompiler = paths.vineflower_jar
+    java_value = paths.java_executable
     java = shutil.which(java_value) or (
         str(Path(java_value)) if Path(java_value).is_file() else ""
     )
@@ -62,7 +57,8 @@ def run_decompilation(job):
             job,
             source,
             ReferenceUpdateJob.Status.FAILED,
-            "Configure valid Java, Vineflower and Project Zomboid paths first.",
+            "Configure valid Java, Vineflower and Project Zomboid paths in the "
+            "protected deployment environment first.",
             build_id,
         )
 
@@ -121,7 +117,6 @@ def run_decompilation(job):
             shutil.rmtree(staging, ignore_errors=True)
 
     summary = f"Project Zomboid build {build_id} was decompiled and validated."
-    source.decompiled_root = str(output_root)
     notify_superusers("Project Zomboid reference decompiled", summary)
     return _finish(
         job, source, ReferenceUpdateJob.Status.UPDATED, summary, build_id

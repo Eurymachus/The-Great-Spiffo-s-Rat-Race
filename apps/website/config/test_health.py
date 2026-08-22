@@ -24,7 +24,6 @@ class HealthEndpointTests(TestCase):
                 MEDIA_ROOT=root / "media",
                 AVATAR_QUARANTINE_ROOT=root / "private",
                 PZ_REFERENCE_ROOT=root / "reference",
-                PZ_DECOMPILED_ROOT=root / "decompiled",
             ):
                 cache.set(
                     HEARTBEAT_CACHE_KEY,
@@ -45,7 +44,6 @@ class HealthEndpointTests(TestCase):
                 MEDIA_ROOT=root / "media",
                 AVATAR_QUARANTINE_ROOT=root / "private",
                 PZ_REFERENCE_ROOT=root / "reference",
-                PZ_DECOMPILED_ROOT=root / "decompiled",
             ):
                 cache.set(
                     HEARTBEAT_CACHE_KEY,

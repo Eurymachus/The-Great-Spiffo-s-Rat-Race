@@ -68,6 +68,16 @@ SteamCMD session material is sensitive host state. Preserve it securely when
 appropriate, but do not place it in ordinary application backups or the
 repository. Collected static files are release output and can be rebuilt.
 
+SteamCMD, Project Zomboid, Java, and Vineflower filesystem locations come only
+from the protected `STEAMCMD_EXECUTABLE`, `PZ_REFERENCE_ROOT`,
+`JAVA_EXECUTABLE`, and `VINEFLOWER_JAR` settings. Decompiled build/job outputs
+live beneath `PZ_REFERENCE_ROOT/tgsrr_decompiled`. The reference-source
+administration displays these resolved paths but cannot edit or override them.
+`PZ_DECOMPILED_ROOT` is no longer read. Before the first decompilation after
+upgrading, move retained build/job directories beneath the derived directory or
+allow the worker to create a new validated output there. Existing database path
+values require no migration and are ignored operationally.
+
 ## Health contract
 
 - `/health/live/` confirms that the application process can answer and reports

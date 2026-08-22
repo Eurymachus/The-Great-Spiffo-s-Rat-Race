@@ -8,6 +8,7 @@ from django.utils import timezone
 from registry.models import Notification, Participant
 
 from .models import ReferenceSource, ReferenceUpdateJob
+from .reference_paths import resolved_reference_paths
 
 
 BUILD_ID = re.compile(r'"buildid"\s+"(?P<build_id>\d+)"')
@@ -68,8 +69,9 @@ def _finish_failure(job, source, summary):
 
 def run_reference_update(job):
     source = job.source
-    executable_value = source.steamcmd_path or settings.STEAMCMD_EXECUTABLE
-    install_root_value = source.install_root or settings.PZ_REFERENCE_ROOT
+    paths = resolved_reference_paths()
+    executable_value = str(paths.steamcmd_executable)
+    install_root_value = str(paths.install_root)
     username = (source.account_name or settings.STEAMCMD_USERNAME).strip()
     executable = Path(executable_value) if executable_value else Path()
     install_root = Path(install_root_value) if install_root_value else Path()
@@ -80,8 +82,8 @@ def run_reference_update(job):
         or not executable.is_file()
     ):
         summary = (
-            "Connect Steam and configure valid SteamCMD and installation paths "
-            "on the Project Zomboid reference source first."
+            "Connect Steam and configure valid SteamCMD and Project Zomboid "
+            "reference paths in the protected deployment environment first."
         )
         _finish_failure(job, source, summary)
         return job

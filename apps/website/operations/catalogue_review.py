@@ -17,6 +17,7 @@ from zomboid_catalogue.models import (
 from zomboid_catalogue.pz_import import PZCatalogueSource
 
 from .models import CatalogueImportReview, ReferenceSource
+from .reference_paths import resolved_reference_paths
 
 
 CATEGORY_SKILLS = {"Agility", "Combat", "Crafting", "FarmingCategory", "Firearm", "PhysicalCategory", "Survivalist"}
@@ -171,7 +172,19 @@ def approve_catalogue_review(review, reviewer):
     source = ReferenceSource.objects.select_for_update().get(pk=review.source_id)
     if review.status != CatalogueImportReview.Status.READY:
         raise ValueError("Only a ready catalogue review can be approved.")
-    if (source.installed_build_id, source.decompiled_build_id, source.install_root, source.decompiled_root) != (review.installed_build_id, review.decompiled_build_id, review.install_root, review.decompiled_root):
+    paths = resolved_reference_paths()
+    decompiled_root = paths.decompiled_root(source.decompiled_build_id)
+    if (
+        source.installed_build_id,
+        source.decompiled_build_id,
+        str(paths.install_root),
+        str(decompiled_root or ""),
+    ) != (
+        review.installed_build_id,
+        review.decompiled_build_id,
+        review.install_root,
+        review.decompiled_root,
+    ):
         review.status = CatalogueImportReview.Status.STALE
         review.summary += " Approval blocked because the reference source changed."
         review.save(update_fields=("status", "summary"))

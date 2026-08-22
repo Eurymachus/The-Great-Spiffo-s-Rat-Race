@@ -12,6 +12,7 @@ from operations.runtime_state import (
     runtime_state_ready,
     uses_database_runtime_state,
 )
+from operations.reference_paths import resolved_reference_paths
 
 
 def _database_ready():
@@ -52,7 +53,7 @@ def readiness(request):
         ),
         "reference_storage": lambda: _directory_writable(settings.PZ_REFERENCE_ROOT),
         "decompiled_storage": lambda: _directory_writable(
-            settings.PZ_DECOMPILED_ROOT
+            resolved_reference_paths().decompiled_parent
         ),
     }
     for name, operation in operations.items():

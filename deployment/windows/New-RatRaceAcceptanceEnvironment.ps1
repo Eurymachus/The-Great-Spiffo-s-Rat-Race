@@ -56,7 +56,6 @@ $lines = @(
     "PZ_REFERENCE_ROOT=G:\RatRace\reference"
     "JAVA_EXECUTABLE=C:\ProgramData\RatRace\bin\java\bin\java.exe"
     "VINEFLOWER_JAR=C:\ProgramData\RatRace\bin\vineflower.jar"
-    "PZ_DECOMPILED_ROOT=G:\RatRace\decompiled"
     "STATIC_ROOT=C:\ProgramData\RatRace\static"
     "MEDIA_ROOT=G:\RatRace\media"
     "AVATAR_QUARANTINE_ROOT=G:\RatRace\private\avatars"

@@ -29,10 +29,15 @@ the password out of process arguments while still supporting Steam Guard.
 
 ## Configuration
 
-The executable and reference-install paths can be configured on the singleton
-**System operations → Project Zomboid reference source** admin record. The
-account login name is saved only after successful authentication. Environment
-values remain supported as deployment defaults:
+Host filesystem paths are deployment configuration, not administrator-authored
+data. The singleton **System operations → Project Zomboid reference source**
+record accepts only the Steam account login name and the temporary Steam
+authentication flow. It displays the resolved deployment paths read-only for
+diagnosis. Legacy path columns remain in the database for compatibility with
+existing records, but no update, authentication, decompilation, or catalogue
+operation reads them.
+
+The protected deployment environment supplies:
 
 ```text
 STEAMCMD_EXECUTABLE=/opt/steamcmd/steamcmd.sh
@@ -42,9 +47,11 @@ STEAMCMD_UPDATE_TIMEOUT_SECONDS=1800
 STEAMCMD_AUTH_TIMEOUT_SECONDS=15
 JAVA_EXECUTABLE=/srv/tgsrr/project-zomboid-reference/jre64/bin/java
 VINEFLOWER_JAR=/opt/vineflower/vineflower-1.12.0.jar
-PZ_DECOMPILED_ROOT=/srv/tgsrr/project-zomboid-decompiled
 PZ_DECOMPILATION_TIMEOUT_SECONDS=3600
 ```
+
+Validated decompiled outputs live beneath
+`PZ_REFERENCE_ROOT/tgsrr_decompiled` in immutable build/job directories.
 
 The Windows development equivalents may point at `steamcmd.exe` and the local
 Project Zomboid reference directory. Press **Connect Steam** on the reference
@@ -105,9 +112,9 @@ repair the cached Steam session using **Reconnect Steam**.
 ## Decompiled Java reference
 
 Provision a pinned [Vineflower](https://vineflower.org/usage/) JAR on the host
-and record its path either in `VINEFLOWER_JAR` or on the reference-source
-record. Java may use Project Zomboid's bundled runtime. The JAR is a deployment
-dependency and is not committed to this repository; verify the downloaded
+and record its path in the protected `VINEFLOWER_JAR` setting. Java may use
+Project Zomboid's bundled runtime through `JAVA_EXECUTABLE`. The JAR is a
+deployment dependency and is not committed to this repository; verify the downloaded
 release checksum as part of provisioning.
 
 The locally verified Vineflower 1.12.0 full JAR has SHA-256:
@@ -120,10 +127,11 @@ After a successful Steam update, open **System operations → Project Zomboid
 reference source** and press **Decompile installed build**. The web request only
 queues an audited job. The same separately supervised worker runs Vineflower.
 
-Each run writes into a new build/job directory under `PZ_DECOMPILED_ROOT`,
+Each run writes into a new build/job directory under
+`PZ_REFERENCE_ROOT/tgsrr_decompiled`,
 checks for `zombie/characters/skills/PerkFactory.java`, writes a
-`.tgsrr-build-id` marker and only then changes the active path on the reference
-source. A failed or partial run therefore cannot replace the previous
+`.tgsrr-build-id` marker and only then marks the decompiled build current. A
+failed or partial run therefore cannot replace the previous
 known-good decompiled tree. The source record clearly reports whether its
 decompiled build matches the installed Steam build.
 
@@ -132,7 +140,7 @@ The catalogue importer accepts the promoted tree explicitly:
 ```text
 python manage.py import_pz_catalogue \
   --game-root /srv/tgsrr/project-zomboid-reference \
-  --decompiled-root /srv/tgsrr/project-zomboid-decompiled/build-BUILD-job-JOB \
+  --decompiled-root /srv/tgsrr/project-zomboid-reference/tgsrr_decompiled/build-BUILD-job-JOB \
   --game-version 42.x
 ```
 
@@ -168,9 +176,10 @@ decompilation:
 
 1. A super-administrator opens **System operations → Project Zomboid reference
    source** and selects **Generate catalogue review**.
-2. The request captures the installed build ID, decompiled build ID, both source
-   paths, and the chosen game-version label. The background worker parses that
-   exact source into an immutable review snapshot.
+2. The request resolves the protected deployment settings and captures the
+   installed build ID, decompiled build ID, installation root, selected
+   build/job directory, and chosen game-version label. The background worker
+   parses that exact source into an immutable review snapshot.
 3. The review lists additions, changed presentation/detail fields, and records
    that would be deactivated. Generating the review never changes catalogue
    records.
@@ -178,8 +187,9 @@ decompilation:
    transaction. **Reject review** records the decision without changing the
    catalogue.
 
-Approval is blocked as stale if the configured installed build, decompiled build,
-or source paths have changed since the review. Missing records are deactivated,
+Approval is blocked as stale if the installed build, decompiled build, or
+resolved deployment paths have changed since the review. Missing records are
+deactivated,
 not deleted, so existing run evidence and relationships remain valid. Notes,
 aliases, captions, and other website-owned editorial data are not replaced by
 the automated source snapshot.

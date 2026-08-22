@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from operations.reference_update import installed_build_id
+from operations.reference_paths import resolved_reference_paths
 from operations.decompilation import run_decompilation
 from operations.management.commands.run_reference_update_worker import (
     run_wiki_icon_sync,
@@ -176,6 +177,20 @@ class ReferenceUpdateTests(TestCase):
             manifest.write_text('"buildid" "654321"', encoding="utf-8")
             self.assertEqual(installed_build_id(game_root), "654321")
 
+    def test_resolved_paths_select_latest_job_for_the_requested_build(self):
+        with TemporaryDirectory() as root:
+            reference_root = Path(root)
+            decompiled = reference_root / "tgsrr_decompiled"
+            (decompiled / "build-123-job-2").mkdir(parents=True)
+            newest = decompiled / "build-123-job-10"
+            newest.mkdir()
+            (decompiled / "build-999-job-20").mkdir()
+
+            with self.settings(PZ_REFERENCE_ROOT=reference_root):
+                paths = resolved_reference_paths()
+
+            self.assertEqual(paths.decompiled_root("123"), newest)
+
     @override_settings(
         STEAMCMD_USERNAME="reference-account",
         STEAMCMD_UPDATE_TIMEOUT_SECONDS=30,
@@ -212,23 +227,21 @@ class ReferenceUpdateTests(TestCase):
             ).exists()
         )
 
-    @override_settings(
-        STEAMCMD_EXECUTABLE="",
-        STEAMCMD_USERNAME="",
-        PZ_REFERENCE_ROOT="",
-        STEAMCMD_UPDATE_TIMEOUT_SECONDS=30,
-    )
-    def test_update_uses_reference_source_configuration(self):
+    @override_settings(STEAMCMD_UPDATE_TIMEOUT_SECONDS=30)
+    def test_update_uses_protected_settings_not_legacy_source_paths(self):
         with TemporaryDirectory() as root:
             executable = Path(root) / "steamcmd.exe"
             executable.touch()
             install_root = Path(root) / "pz"
             source = ReferenceSource.objects.get()
             source.account_name = "reference-account"
-            source.steamcmd_path = str(executable)
-            source.install_root = str(install_root)
+            source.steamcmd_path = "C:/legacy/steamcmd.exe"
+            source.install_root = "C:/legacy/reference"
             source.save()
-            with patch("subprocess.run") as run:
+            with self.settings(
+                STEAMCMD_EXECUTABLE=executable,
+                PZ_REFERENCE_ROOT=install_root,
+            ), patch("subprocess.run") as run:
                 run.return_value.returncode = 0
                 run.return_value.stdout = "Success"
                 run.return_value.stderr = ""
@@ -238,12 +251,7 @@ class ReferenceUpdateTests(TestCase):
         self.assertEqual(arguments[0], str(executable))
         self.assertIn("reference-account", arguments)
 
-    @override_settings(
-        JAVA_EXECUTABLE="",
-        VINEFLOWER_JAR="",
-        PZ_DECOMPILED_ROOT="",
-        PZ_DECOMPILATION_TIMEOUT_SECONDS=30,
-    )
+    @override_settings(PZ_DECOMPILATION_TIMEOUT_SECONDS=30)
     def test_decompilation_replaces_reference_only_after_validation(self):
         with TemporaryDirectory() as root:
             library = Path(root)
@@ -256,15 +264,15 @@ class ReferenceUpdateTests(TestCase):
             java.touch()
             decompiler = library / "vineflower.jar"
             decompiler.touch()
-            output_parent = install_root / "decompiled"
+            output_parent = install_root / "tgsrr_decompiled"
             old_file = output_parent / "old-reference" / "old.txt"
             old_file.parent.mkdir(parents=True)
             old_file.write_text("old", encoding="utf-8")
 
             source = ReferenceSource.objects.get()
-            source.install_root = str(install_root)
-            source.java_executable = str(java)
-            source.decompiler_jar = str(decompiler)
+            source.install_root = "C:/legacy/reference"
+            source.java_executable = "C:/legacy/java.exe"
+            source.decompiler_jar = "C:/legacy/vineflower.jar"
             source.save()
             job = ReferenceUpdateJob.objects.create(
                 source=source,
@@ -285,7 +293,11 @@ class ReferenceUpdateTests(TestCase):
                 sentinel.write_text("class PerkFactory {}", encoding="utf-8")
                 return MagicMock(returncode=0)
 
-            with self.settings(PZ_DECOMPILED_ROOT=output_parent), patch(
+            with self.settings(
+                PZ_REFERENCE_ROOT=install_root,
+                JAVA_EXECUTABLE=java,
+                VINEFLOWER_JAR=decompiler,
+            ), patch(
                 "operations.decompilation.subprocess.run",
                 side_effect=write_decompiled_output,
             ):
@@ -296,7 +308,7 @@ class ReferenceUpdateTests(TestCase):
             self.assertEqual(job.status, ReferenceUpdateJob.Status.UPDATED)
             self.assertEqual(source.decompiled_build_id, "777")
             self.assertTrue(old_file.exists())
-            output_root = Path(source.decompiled_root)
+            output_root = output_parent / f"build-777-job-{job.pk}"
             self.assertEqual(
                 (output_root / ".tgsrr-build-id").read_text(encoding="utf-8"),
                 "777\n",
@@ -316,22 +328,26 @@ class ReferenceUpdateTests(TestCase):
             java.touch()
             decompiler = library / "vineflower.jar"
             decompiler.touch()
-            output_parent = install_root / "decompiled"
+            output_parent = install_root / "tgsrr_decompiled"
             old_file = output_parent / "old-reference" / "old.txt"
             old_file.parent.mkdir(parents=True)
             old_file.write_text("old", encoding="utf-8")
 
             source = ReferenceSource.objects.get()
-            source.install_root = str(install_root)
-            source.java_executable = str(java)
-            source.decompiler_jar = str(decompiler)
+            source.install_root = "C:/legacy/reference"
+            source.java_executable = "C:/legacy/java.exe"
+            source.decompiler_jar = "C:/legacy/vineflower.jar"
             source.save()
             job = ReferenceUpdateJob.objects.create(
                 source=source,
                 operation=ReferenceUpdateJob.Operation.DECOMPILE,
                 status=ReferenceUpdateJob.Status.RUNNING,
             )
-            with self.settings(PZ_DECOMPILED_ROOT=output_parent), patch(
+            with self.settings(
+                PZ_REFERENCE_ROOT=install_root,
+                JAVA_EXECUTABLE=java,
+                VINEFLOWER_JAR=decompiler,
+            ), patch(
                 "operations.decompilation.subprocess.run"
             ) as run:
                 run.return_value.returncode = 0
@@ -400,6 +416,61 @@ class SteamAuthenticationTests(TestCase):
         self.assertEqual(job.operation, ReferenceUpdateJob.Operation.DECOMPILE)
         self.assertEqual(job.status, ReferenceUpdateJob.Status.QUEUED)
         self.assertEqual(job.requested_by, self.superuser)
+
+    def test_admin_shows_deployment_paths_read_only_and_hides_legacy_fields(self):
+        self.source.steamcmd_path = "C:/legacy/steamcmd.exe"
+        self.source.install_root = "C:/legacy/reference"
+        self.source.java_executable = "C:/legacy/java.exe"
+        self.source.decompiler_jar = "C:/legacy/vineflower.jar"
+        self.source.save()
+        self.client.force_login(self.superuser)
+
+        with self.settings(
+            STEAMCMD_EXECUTABLE="C:/deployment/steamcmd.exe",
+            PZ_REFERENCE_ROOT="C:/deployment/reference",
+            JAVA_EXECUTABLE="C:/deployment/java.exe",
+            VINEFLOWER_JAR="C:/deployment/vineflower.jar",
+        ):
+            response = self.client.get(
+                reverse(
+                    "admin:operations_referencesource_change",
+                    args=(self.source.pk,),
+                )
+            )
+
+        self.assertEqual(
+            set(response.context["adminform"].form.fields), {"account_name"}
+        )
+        self.assertContains(response, "C:\\deployment\\steamcmd.exe")
+        self.assertContains(response, "C:\\deployment\\reference")
+        self.assertNotContains(response, "C:\\legacy\\steamcmd.exe")
+        self.assertNotContains(response, "C:\\legacy\\reference")
+
+    def test_catalogue_review_snapshots_resolved_deployment_paths(self):
+        with TemporaryDirectory() as root:
+            reference_root = Path(root)
+            decompiled_root = reference_root / "tgsrr_decompiled/build-123-job-4"
+            decompiled_root.mkdir(parents=True)
+            self.source.installed_build_id = "123"
+            self.source.decompiled_build_id = "123"
+            self.source.install_root = "C:/legacy/reference"
+            self.source.decompiled_root = "C:/legacy/decompiled"
+            self.source.save()
+            self.client.force_login(self.superuser)
+
+            with self.settings(PZ_REFERENCE_ROOT=reference_root):
+                response = self.client.post(
+                    reverse(
+                        "admin:operations_referencesource_catalogue_dry_run",
+                        args=(self.source.pk,),
+                    ),
+                    {"game_version": "42.20"},
+                )
+
+        self.assertEqual(response.status_code, 302)
+        review = CatalogueImportReview.objects.get()
+        self.assertEqual(review.install_root, str(reference_root))
+        self.assertEqual(review.decompiled_root, str(decompiled_root))
 
     def test_manual_pzwiki_sync_queues_latest_approved_catalogue(self):
         review = CatalogueImportReview.objects.create(
@@ -506,6 +577,15 @@ class CatalogueImportReviewTests(TestCase):
         self.source.installed_build_id = "123"
         self.source.decompiled_build_id = "123"
         self.source.save()
+        paths = MagicMock()
+        paths.install_root = "C:/pz"
+        paths.decompiled_root.return_value = "C:/pz/decompiled/build-123"
+        paths_patch = patch(
+            "operations.catalogue_review.resolved_reference_paths",
+            return_value=paths,
+        )
+        paths_patch.start()
+        self.addCleanup(paths_patch.stop)
         self.admin = Participant.objects.create_superuser(
             email="catalogue-admin@example.com",
             nickname="CatalogueAdmin",

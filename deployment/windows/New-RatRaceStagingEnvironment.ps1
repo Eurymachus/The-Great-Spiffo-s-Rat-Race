@@ -61,7 +61,6 @@ $lines = @(
     "MEDIA_ROOT=$root\media"
     "AVATAR_QUARANTINE_ROOT=$root\private\avatars"
     "PZ_REFERENCE_ROOT=$root\reference"
-    "PZ_DECOMPILED_ROOT=$root\decompiled"
     "STREAMING_TOKEN_ENCRYPTION_KEY=$fernetKey"
     "TRUST_CLOUDFLARE_CONNECTING_IP=true"
     "STAGING_ENVIRONMENT=true"

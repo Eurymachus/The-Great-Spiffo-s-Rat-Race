@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from django import forms
-from django.conf import settings
 from django.contrib import admin, messages
 from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
@@ -36,6 +35,7 @@ from .models import (
 )
 from .pzwiki_artwork import enqueue_pzwiki_artwork_sync
 from .queue import enqueue_reference_update
+from .reference_paths import resolved_reference_paths
 from .steam_auth import (
     begin_authentication,
     complete_authentication,
@@ -160,16 +160,16 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
         "app_id",
         "authentication_status",
         "account_name",
-        "steamcmd_path",
-        "install_root",
+        "resolved_steamcmd_executable",
+        "resolved_install_root",
         "authenticated_at",
         "installed_build_id",
         "decompiled_build_id",
         "decompiled_at",
         "decompilation_status",
-        "java_executable",
-        "decompiler_jar",
-        "decompiled_root",
+        "resolved_java_executable",
+        "resolved_vineflower_jar",
+        "resolved_decompiled_root",
         "last_checked_at",
         "last_updated_at",
         "last_error",
@@ -183,11 +183,15 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
         "name",
         "app_id",
         "authentication_status",
+        "resolved_steamcmd_executable",
+        "resolved_install_root",
         "authenticated_at",
         "installed_build_id",
         "decompiled_build_id",
         "decompiled_at",
-        "decompiled_root",
+        "resolved_java_executable",
+        "resolved_vineflower_jar",
+        "resolved_decompiled_root",
         "decompilation_status",
         "last_checked_at",
         "last_updated_at",
@@ -198,6 +202,28 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
         "catalogue_action",
         "pzwiki_action",
     )
+
+    @admin.display(description="SteamCMD executable (deployment setting)")
+    def resolved_steamcmd_executable(self, obj):
+        return str(resolved_reference_paths().steamcmd_executable)
+
+    @admin.display(description="Project Zomboid reference root (deployment setting)")
+    def resolved_install_root(self, obj):
+        return str(resolved_reference_paths().install_root)
+
+    @admin.display(description="Java executable (deployment setting)")
+    def resolved_java_executable(self, obj):
+        return resolved_reference_paths().java_executable
+
+    @admin.display(description="Vineflower JAR (deployment setting)")
+    def resolved_vineflower_jar(self, obj):
+        return str(resolved_reference_paths().vineflower_jar)
+
+    @admin.display(description="Decompiled reference (resolved)")
+    def resolved_decompiled_root(self, obj):
+        paths = resolved_reference_paths()
+        root = paths.decompiled_root(obj.decompiled_build_id if obj else "")
+        return str(root or paths.decompiled_parent)
 
     def get_urls(self):
         return [
@@ -269,7 +295,9 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
         if (
             not obj.installed_build_id
             or obj.installed_build_id != obj.decompiled_build_id
-            or not obj.decompiled_root
+            or not resolved_reference_paths().decompiled_root(
+                obj.decompiled_build_id
+            )
         ):
             return "Update and decompile the installed build first."
         url = reverse(
@@ -380,10 +408,12 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
         if not request.user.is_superuser:
             return HttpResponseForbidden()
         source = get_object_or_404(ReferenceSource, pk=object_id)
+        paths = resolved_reference_paths()
+        decompiled_root = paths.decompiled_root(source.decompiled_build_id)
         if (
             not source.installed_build_id
             or source.installed_build_id != source.decompiled_build_id
-            or not source.decompiled_root
+            or not decompiled_root
         ):
             messages.error(request, "Update and decompile the installed build first.")
             return redirect("admin:operations_referencesource_change", source.pk)
@@ -395,8 +425,8 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
                 game_version=form.cleaned_data["game_version"].strip(),
                 installed_build_id=source.installed_build_id,
                 decompiled_build_id=source.decompiled_build_id,
-                install_root=source.install_root,
-                decompiled_root=source.decompiled_root,
+                install_root=str(paths.install_root),
+                decompiled_root=str(decompiled_root),
                 requested_by=request.user,
             )
             messages.success(request, f"Catalogue review #{review.pk} was queued.")
@@ -475,7 +505,7 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
                 increment_rate_limit(rate_scope, rate_identifier, 900)
                 form.add_error("admin_password", "Your administrator password is incorrect.")
             else:
-                executable = source.steamcmd_path or settings.STEAMCMD_EXECUTABLE
+                executable = str(resolved_reference_paths().steamcmd_executable)
                 if not executable or not Path(executable).is_file():
                     form.add_error(None, "Configure a valid SteamCMD executable first.")
                 else:
@@ -529,7 +559,7 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
             return JsonResponse({"status": status})
         form = SteamGuardForm(request.POST or None)
         if request.method == "POST" and form.is_valid():
-            executable = source.steamcmd_path or settings.STEAMCMD_EXECUTABLE
+            executable = str(resolved_reference_paths().steamcmd_executable)
             try:
                 success = complete_authentication(
                     executable,

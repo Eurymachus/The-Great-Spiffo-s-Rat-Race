@@ -978,3 +978,17 @@ a normal run-moderation bulk action.
   It must stop the full matching launcher tree, prove both new task trees are
   running the requested release, and verify web readiness plus the current
   worker heartbeat before reporting success.
+
+# 2026-08-22 - Keep reference filesystem paths in protected deployment settings
+
+- The Project Zomboid reference-source record stores the Steam account name and
+  operational state, but administrators do not configure filesystem paths.
+- SteamCMD, the game installation, Java, and Vineflower resolve exclusively
+  from `STEAMCMD_EXECUTABLE`, `PZ_REFERENCE_ROOT`, `JAVA_EXECUTABLE`, and
+  `VINEFLOWER_JAR` in the protected deployment environment.
+- Validated decompiled outputs use immutable build/job directories beneath
+  `PZ_REFERENCE_ROOT/tgsrr_decompiled`.
+- Legacy database path columns remain for compatibility but have no operational
+  precedence. Administration presents resolved values read-only.
+- Catalogue reviews snapshot the resolved installation and build/job paths;
+  approval rejects a snapshot when those resolved values or build IDs changed.

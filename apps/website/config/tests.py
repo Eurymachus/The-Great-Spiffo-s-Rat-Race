@@ -109,7 +109,6 @@ def valid_environment():
         "PZ_REFERENCE_ROOT": "/srv/tgsrr/reference",
         "JAVA_EXECUTABLE": "/srv/tgsrr/reference/jre64/bin/java",
         "VINEFLOWER_JAR": "/opt/vineflower/vineflower.jar",
-        "PZ_DECOMPILED_ROOT": "/srv/tgsrr/decompiled",
         "STATIC_ROOT": "/srv/tgsrr/static",
         "MEDIA_ROOT": "/srv/tgsrr/media",
         "AVATAR_QUARANTINE_ROOT": "/srv/tgsrr/private/avatars",

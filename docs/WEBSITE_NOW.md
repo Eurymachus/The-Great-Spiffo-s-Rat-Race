@@ -34,6 +34,12 @@ records, while aliases and assets remain shared catalogue relationships.
 
 ## Implemented
 
+- Project Zomboid reference administration accepts the Steam account identity
+  and temporary authentication only. SteamCMD, installation, Java, and
+  Vineflower paths resolve from protected deployment settings and appear
+  read-only for diagnosis. Legacy database path values remain compatible but
+  cannot override updates, decompilation, or catalogue-review snapshots.
+
 - Production-shaped ASGI deployments require request-scoped PostgreSQL
   connections with `POSTGRES_CONN_MAX_AGE=0`; startup validation, deployment
   checks, environment examples, and Windows generators reject or avoid a

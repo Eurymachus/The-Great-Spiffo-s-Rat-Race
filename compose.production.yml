@@ -17,13 +17,12 @@ x-website-service: &website-service
     MEDIA_ROOT: /srv/rat-race/media
     AVATAR_QUARANTINE_ROOT: /srv/rat-race/private/avatars
     PZ_REFERENCE_ROOT: /srv/rat-race/reference
-    PZ_DECOMPILED_ROOT: /srv/rat-race/decompiled
   volumes:
     - static-data:/srv/rat-race/static
     - media-data:/srv/rat-race/media
     - private-data:/srv/rat-race/private
     - reference-data:/srv/rat-race/reference
-    - decompiled-data:/srv/rat-race/decompiled
+    - decompiled-data:/srv/rat-race/reference/tgsrr_decompiled
     - steam-session:/home/rat-race/.steam
     - ./deployment/runtime:/opt/rat-race/runtime:ro
   depends_on:
