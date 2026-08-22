@@ -1988,6 +1988,7 @@ class RegistrationTests(TestCase):
             )
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.streaming)
+            self.assertTrue(response.is_async)
             self.assertEqual(response["Content-Type"], "text/event-stream")
             self.assertEqual(response["X-Accel-Buffering"], "no")
             try:

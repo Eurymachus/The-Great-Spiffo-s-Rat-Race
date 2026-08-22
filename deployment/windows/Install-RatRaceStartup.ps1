@@ -25,6 +25,7 @@ $environmentPath = (Resolve-Path -LiteralPath $EnvironmentFile).Path
 $pythonPath = (Resolve-Path -LiteralPath $PythonExecutable).Path
 $postgresPath = (Resolve-Path -LiteralPath $PostgresRoot).Path
 $scheduledLauncher = Join-Path $releasePath "deployment\windows\Start-RatRaceScheduledProcess.ps1"
+$processHelpers = Join-Path $releasePath "deployment\windows\RatRaceProcessHelpers.ps1"
 $pgCtl = Join-Path $postgresPath "runtime\pgsql\bin\pg_ctl.exe"
 $dataRoot = Join-Path $postgresPath "data"
 
@@ -34,12 +35,54 @@ foreach ($scopedPath in @($releasePath, $environmentPath, $pythonPath, $postgres
     }
 }
 
-foreach ($requiredPath in @($scheduledLauncher, $pgCtl, $dataRoot)) {
+foreach ($requiredPath in @($scheduledLauncher, $processHelpers, $pgCtl, $dataRoot)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "Required deployment path is missing: $requiredPath"
     }
 }
+. $processHelpers
 New-Item -ItemType Directory -Path $LogRoot -Force | Out-Null
+
+$taskNames = @("${DeploymentName}Web", "${DeploymentName}Worker")
+foreach ($taskName in $taskNames) {
+    if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
+        Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+    }
+}
+
+$stopDeadline = [DateTime]::UtcNow.AddSeconds(30)
+do {
+    $runningTasks = @($taskNames | Where-Object {
+        $task = Get-ScheduledTask -TaskName $_ -ErrorAction SilentlyContinue
+        $task -and $task.State -ne "Ready"
+    })
+    if (-not $runningTasks.Count) { break }
+    Start-Sleep -Milliseconds 500
+} while ([DateTime]::UtcNow -lt $stopDeadline)
+if ($runningTasks.Count) {
+    throw "Scheduled tasks did not stop: $($runningTasks -join ', ')"
+}
+
+$allProcesses = @(Get-CimInstance Win32_Process)
+$deploymentRoots = @(Get-RatRaceDeploymentProcessRoots `
+    -Processes $allProcesses `
+    -InstallationRoot $installationPath `
+    -PythonExecutable $pythonPath)
+$processesToStop = @(Get-RatRaceProcessTreeIds `
+    -Processes $allProcesses `
+    -RootProcessIds @($deploymentRoots | Select-Object -ExpandProperty ProcessId))
+foreach ($processId in $processesToStop | Sort-Object -Descending) {
+    Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+}
+Start-Sleep -Seconds 1
+$remainingRoots = @(Get-RatRaceDeploymentProcessRoots `
+    -Processes @(Get-CimInstance Win32_Process) `
+    -InstallationRoot $installationPath `
+    -PythonExecutable $pythonPath)
+if ($remainingRoots.Count) {
+    $remainingIds = $remainingRoots.ProcessId -join ", "
+    throw "Old $DeploymentName release processes remain after replacement: $remainingIds"
+}
 
 $postgresServiceName = "${DeploymentName}Postgres"
 if (-not (Get-Service -Name $postgresServiceName -ErrorAction SilentlyContinue)) {
@@ -120,34 +163,28 @@ if ($LASTEXITCODE) { throw "Unable to enable PostgreSQL recovery actions." }
 & sc.exe config $postgresServiceName start= delayed-auto | Out-Null
 if ($LASTEXITCODE) { throw "Unable to configure PostgreSQL delayed startup." }
 
-$allProcesses = @(Get-CimInstance Win32_Process)
-$manualRoots = @(
-    $allProcesses |
-        Where-Object {
-            $_.Name -eq "powershell.exe" -and
-            $_.CommandLine -match ([regex]::Escape($installationPath)) -and
-            $_.CommandLine -match "Start-RatRaceProcess\.ps1" -and
-            $_.CommandLine -match "-Process (Web|Worker)"
-        } |
-        Select-Object -ExpandProperty ProcessId
-)
-$processesToStop = New-Object System.Collections.Generic.HashSet[int]
-function Add-ProcessTree {
-    param([int]$ProcessId)
-    foreach ($child in $allProcesses | Where-Object ParentProcessId -eq $ProcessId) {
-        Add-ProcessTree -ProcessId ([int]$child.ProcessId)
-    }
-    [void]$processesToStop.Add($ProcessId)
-}
-foreach ($rootProcessId in $manualRoots) {
-    Add-ProcessTree -ProcessId ([int]$rootProcessId)
-}
-foreach ($processId in @($processesToStop) | Sort-Object -Descending) {
-    Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-}
-
 Start-ScheduledTask -TaskName "${DeploymentName}Web"
 Start-ScheduledTask -TaskName "${DeploymentName}Worker"
+
+foreach ($process in @("Web", "Worker")) {
+    $processDeadline = [DateTime]::UtcNow.AddSeconds(30)
+    do {
+        Start-Sleep -Milliseconds 500
+        $roots = @(Get-RatRaceDeploymentProcessRoots `
+            -Processes @(Get-CimInstance Win32_Process) `
+            -InstallationRoot $installationPath `
+            -PythonExecutable $pythonPath `
+            -Process $process)
+        $task = Get-ScheduledTask -TaskName "${DeploymentName}$process"
+        if ($roots.Count -and $task.State -eq "Running") { break }
+    } while ([DateTime]::UtcNow -lt $processDeadline)
+    if (-not $roots.Count -or $task.State -ne "Running") {
+        throw "$DeploymentName $process task did not start its deployment process tree."
+    }
+    if ($roots.CommandLine -notmatch ([regex]::Escape($releasePath))) {
+        throw "$DeploymentName $process is not running the requested release."
+    }
+}
 
 $readinessStatus = "000"
 for ($attempt = 0; $attempt -lt 30; $attempt++) {
@@ -162,7 +199,7 @@ for ($attempt = 0; $attempt -lt 30; $attempt++) {
     if ($readinessStatus -eq "200") { break }
 }
 if ($readinessStatus -ne "200") {
-    throw "Rat Race readiness did not recover after startup-task cutover."
+    throw "Rat Race web readiness or worker heartbeat did not recover after startup-task cutover."
 }
 
 $result = [pscustomobject]@{

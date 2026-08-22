@@ -122,11 +122,18 @@ class ProductionEnvironmentTests(TestCase):
         result = validate_production_environment(valid_environment())
 
         self.assertEqual(result["postgres_port"], 5432)
-        self.assertEqual(result["postgres_conn_max_age"], 60)
+        self.assertEqual(result["postgres_conn_max_age"], 0)
         self.assertEqual(result["secure_hsts_seconds"], 3600)
         self.assertTrue(result["trust_cloudflare_connecting_ip"])
         self.assertEqual(result["runtime_state_backend"], "cache")
         self.assertEqual(result["allowed_hosts"], ["tgsrr.com", "www.tgsrr.com"])
+
+    def test_persistent_database_connections_are_rejected_for_asgi(self):
+        environment = valid_environment()
+        environment["POSTGRES_CONN_MAX_AGE"] = "60"
+
+        with self.assertRaisesRegex(RuntimeError, "must be 0.*ASGI"):
+            validate_production_environment(environment)
 
     def test_missing_variables_are_reported_by_name_without_values(self):
         environment = valid_environment()

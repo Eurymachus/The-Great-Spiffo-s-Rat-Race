@@ -29,7 +29,7 @@ $lines = @(
     "SITE_PUBLIC_URL=https://tgsrr.com"
     "RUNTIME_STATE_BACKEND=database"
     (Get-Content -LiteralPath $postgresPath)
-    "POSTGRES_CONN_MAX_AGE=60"
+    "POSTGRES_CONN_MAX_AGE=0"
     "EMAIL_HOST=127.0.0.1"
     "EMAIL_PORT=2525"
     "EMAIL_HOST_USER=ACCEPTANCE_ONLY_SMTP_USER"

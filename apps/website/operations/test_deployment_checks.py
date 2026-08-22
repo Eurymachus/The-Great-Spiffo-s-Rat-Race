@@ -1,10 +1,12 @@
 from io import StringIO
+from pathlib import Path
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.management import CommandError, call_command
 from django.test import SimpleTestCase
 
-from operations.deployment_checks import executable_available
+from operations.deployment_checks import executable_available, production_deployment_checks
 
 
 class ExecutableAvailabilityTests(SimpleTestCase):
@@ -19,6 +21,38 @@ class ExecutableAvailabilityTests(SimpleTestCase):
     def test_rejects_missing_command(self):
         with patch("operations.deployment_checks.shutil.which", return_value=None):
             self.assertFalse(executable_available("missing-command"))
+
+    def test_deployment_checks_require_disabled_asgi_persistence(self):
+        with patch.object(
+            settings, "DATABASES", {"default": {"CONN_MAX_AGE": 0}}
+        ):
+            self.assertTrue(
+                production_deployment_checks()["ASGI database connections"]
+            )
+
+    def test_deployment_checks_reject_persistent_asgi_connections(self):
+        with patch.object(
+            settings, "DATABASES", {"default": {"CONN_MAX_AGE": 60}}
+        ):
+            self.assertFalse(
+                production_deployment_checks()["ASGI database connections"]
+            )
+
+
+class DeploymentRepositoryConfigurationTests(SimpleTestCase):
+    def test_asgi_environment_templates_disable_persistent_connections(self):
+        repository_root = Path(__file__).resolve().parents[3]
+        files = (
+            repository_root / ".env.example",
+            repository_root / "deployment/windows/New-RatRaceStagingEnvironment.ps1",
+            repository_root / "deployment/windows/New-RatRaceAcceptanceEnvironment.ps1",
+        )
+
+        for path in files:
+            with self.subTest(path=path.name):
+                content = path.read_text(encoding="utf-8")
+                self.assertIn("POSTGRES_CONN_MAX_AGE=0", content)
+                self.assertNotIn("POSTGRES_CONN_MAX_AGE=60", content)
 
 
 class ProductionDeploymentCommandTests(SimpleTestCase):

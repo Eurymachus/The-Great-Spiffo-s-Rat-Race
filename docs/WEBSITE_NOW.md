@@ -34,6 +34,19 @@ records, while aliases and assets remain shared catalogue relationships.
 
 ## Implemented
 
+- Production-shaped ASGI deployments require request-scoped PostgreSQL
+  connections with `POSTGRES_CONN_MAX_AGE=0`; startup validation, deployment
+  checks, environment examples, and Windows generators reject or avoid a
+  persistent connection value.
+- Windows startup-task replacement now stops the complete Rat Race process tree
+  within the selected installation root, proves web and worker task startup,
+  and waits for web readiness plus the matching worker heartbeat without
+  affecting another Rat Race environment or unrelated processes.
+- Run approval limits its PostgreSQL row lock to the submission while retaining
+  the separate Challenge Run lock, including first approval with no baseline.
+- The live-notification event stream supplies an explicitly asynchronous
+  iterator to Django under ASGI.
+
 - The first normalized run-authority slice now stores the approved export
   contract version, one character, selected starting traits, spawned starting
   traits, mutable current traits, and starting-location evidence on the run.

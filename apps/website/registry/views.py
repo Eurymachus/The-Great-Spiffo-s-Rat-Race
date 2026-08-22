@@ -1873,6 +1873,35 @@ async def _notification_stream_state(user_id):
     )
 
 
+class AsyncNotificationEventStream:
+    """An explicitly asynchronous SSE iterator for Django's ASGI handler."""
+
+    def __init__(self, user_id):
+        self.user_id = user_id
+
+    def __aiter__(self):
+        return self._events()
+
+    async def _events(self):
+        state = await _notification_stream_state(self.user_id)
+        yield b"event: ready\ndata: {}\n\n"
+        elapsed = 0
+        try:
+            while True:
+                await asyncio.sleep(3)
+                elapsed += 3
+                next_state = await _notification_stream_state(self.user_id)
+                if next_state != state:
+                    state = next_state
+                    yield b"event: notifications-changed\ndata: {}\n\n"
+                    elapsed = 0
+                elif elapsed >= 18:
+                    yield b": keep-alive\n\n"
+                    elapsed = 0
+        except asyncio.CancelledError:
+            return
+
+
 @login_required
 @require_http_methods(["GET"])
 async def notification_stream(request):
@@ -1889,27 +1918,8 @@ async def notification_stream(request):
     user = await request.auser()
     user_id = user.pk
 
-    async def events():
-        state = await _notification_stream_state(user_id)
-        yield "event: ready\ndata: {}\n\n"
-        elapsed = 0
-        try:
-            while True:
-                await asyncio.sleep(3)
-                elapsed += 3
-                next_state = await _notification_stream_state(user_id)
-                if next_state != state:
-                    state = next_state
-                    yield "event: notifications-changed\ndata: {}\n\n"
-                    elapsed = 0
-                elif elapsed >= 18:
-                    yield ": keep-alive\n\n"
-                    elapsed = 0
-        except asyncio.CancelledError:
-            return
-
     response = StreamingHttpResponse(
-        events(),
+        AsyncNotificationEventStream(user_id),
         content_type="text/event-stream",
     )
     response["Cache-Control"] = "no-cache, no-store"

@@ -66,6 +66,9 @@ def production_deployment_checks():
             }
             and settings.DEBUG is False
         ),
+        "ASGI database connections": (
+            settings.DATABASES["default"].get("CONN_MAX_AGE") == 0
+        ),
         "database": database_available,
         state_check_name: runtime_state_ready,
         "migrations": migrations_current,

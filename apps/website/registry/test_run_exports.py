@@ -1279,6 +1279,22 @@ class RunSubmissionTests(TestCase):
         self.assertContains(dashboard, "Day 1", count=2)
         self.assertNotContains(dashboard, "Events verified")
 
+    def test_approval_lock_targets_only_submission_with_no_approved_baseline(self):
+        from .admin import locked_run_submission_queryset
+
+        self.client.post(
+            reverse("registry:submit_run"), {"run_export": make_export()}
+        )
+        run = ChallengeRun.objects.get()
+        self.assertIsNone(run.approved_submission)
+
+        query = locked_run_submission_queryset().filter(
+            pk=RunSubmission.objects.get().pk
+        ).query
+
+        self.assertTrue(query.select_for_update)
+        self.assertEqual(query.select_for_update_of, ("self",))
+
     def test_approval_uses_approved_cursor_for_exact_format_four_successor(self):
         run_id = "rr-incremental-approval-test"
         projection = {"schema": 1, "currentKills": 0, "character": {}}

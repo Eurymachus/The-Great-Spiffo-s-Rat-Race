@@ -153,7 +153,7 @@ def validate_production_environment(environ):
             environ["POSTGRES_PORT"], name="POSTGRES_PORT"
         ),
         "postgres_conn_max_age": parse_positive_integer(
-            environ.get("POSTGRES_CONN_MAX_AGE", "60"),
+            environ.get("POSTGRES_CONN_MAX_AGE", "0"),
             name="POSTGRES_CONN_MAX_AGE",
             allow_zero=True,
         ),
@@ -163,6 +163,11 @@ def validate_production_environment(environ):
             allow_zero=True,
         ),
     }
+
+    if integer_values["postgres_conn_max_age"] != 0:
+        raise RuntimeError(
+            "POSTGRES_CONN_MAX_AGE must be 0 because production runs under ASGI."
+        )
 
     return {
         **split_values,

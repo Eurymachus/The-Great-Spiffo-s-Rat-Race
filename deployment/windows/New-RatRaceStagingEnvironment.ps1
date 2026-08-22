@@ -56,7 +56,7 @@ $lines = @(
     "SITE_PUBLIC_URL=https://$Hostname"
     "RUNTIME_STATE_BACKEND=database"
     (Get-Content -LiteralPath $postgresPath)
-    "POSTGRES_CONN_MAX_AGE=60"
+    "POSTGRES_CONN_MAX_AGE=0"
     "STATIC_ROOT=$root\static"
     "MEDIA_ROOT=$root\media"
     "AVATAR_QUARANTINE_ROOT=$root\private\avatars"

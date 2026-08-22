@@ -30,6 +30,12 @@ It validates the complete environment before Django starts. Missing integrations
 are startup failures because production is expected to provide every documented
 website capability.
 
+The application is served through ASGI. `POSTGRES_CONN_MAX_AGE` must therefore
+be `0`; startup validation and the deployment check both reject positive values.
+Each request closes its database connection instead of accumulating persistent
+connections in the ASGI process. Do not compensate by raising PostgreSQL's
+`max_connections` setting.
+
 `.env.example` is the non-secret inventory. Real values must be supplied by the
 host's secret and configuration mechanism and must never be committed.
 
@@ -121,7 +127,11 @@ separate installation root, `G:\RatRace_Staging`. Production defaults remain
 
 `Install-RatRaceStartup.ps1` validates that every supplied release, environment,
 Python, PostgreSQL, and log path stays beneath its `InstallationRoot`. Process
-cleanup is installation-root scoped so staging cannot terminate production.
+cleanup is installation-root scoped so staging cannot terminate production. A
+cutover stops both deployment tasks, terminates only Rat Race launcher process
+trees beneath that installation root, and fails if an old tree remains. It then
+requires both requested task trees to run the selected release and waits for the
+readiness endpoint, including the matching worker heartbeat, before succeeding.
 Use `Install-RatRaceStagingStartup.ps1 -ReleaseRoot <release>` for the standard
 staging identity, paths and ports; this keeps the elevated invocation short and
 repeatable.

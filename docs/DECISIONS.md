@@ -966,3 +966,15 @@ a normal run-moderation bulk action.
 - Graphs, filters, search, rankings, and public statistics query normalized
   authority only. Projection JSON remains immutable compatibility evidence,
   not an analytical database.
+
+# 2026-08-22 - Use request-scoped PostgreSQL connections under ASGI
+
+- Production and staging web processes run Django through Uvicorn and ASGI.
+- `POSTGRES_CONN_MAX_AGE` is fixed at zero and positive values are rejected at
+  application startup and by deployment checks.
+- PostgreSQL capacity is not used to mask application connection lifecycle
+  defects.
+- Windows release replacement is deployment-name and installation-root scoped.
+  It must stop the full matching launcher tree, prove both new task trees are
+  running the requested release, and verify web readiness plus the current
+  worker heartbeat before reporting success.

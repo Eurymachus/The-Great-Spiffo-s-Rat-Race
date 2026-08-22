@@ -45,6 +45,12 @@ from .run_authority import refresh_initial_run_authority
 from .run_block_cache import attach_verified_blocks, decode_run_export_cached
 
 
+def locked_run_submission_queryset():
+    return RunSubmission.objects.select_for_update(of=("self",)).select_related(
+        "run", "run__approved_submission"
+    )
+
+
 class ExploitRulingImageInline(admin.TabularInline):
     model = ExploitRulingImage
     extra = 0
@@ -1244,9 +1250,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         if request.method != "POST":
             return HttpResponseNotAllowed(("POST",))
         submission = self.review_submission(request, object_id)
-        submission = RunSubmission.objects.select_for_update().select_related(
-            "run", "run__approved_submission"
-        ).get(pk=submission.pk)
+        submission = locked_run_submission_queryset().get(pk=submission.pk)
         run = ChallengeRun.objects.select_for_update().get(pk=submission.run_id)
         if submission.status != RunSubmission.Status.RECEIVED:
             self.message_user(request, "This submission has already been reviewed.", level=messages.WARNING)
