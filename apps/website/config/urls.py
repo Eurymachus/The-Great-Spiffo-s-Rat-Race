@@ -24,19 +24,17 @@ from .staging import robots_txt
 
 
 def admin_home(request):
-    if request.user.is_authenticated and request.user.has_perm(
-        "registry.view_participant"
-    ):
+    if request.user.has_perm("registry.view_participant"):
         return redirect("admin:registry_participant_changelist")
-    if request.user.is_authenticated and request.user.has_perm(
-        "branding.view_sitebranding"
-    ):
+    if request.user.has_perm("registry.view_runsubmission"):
+        return redirect("admin:registry_runsubmission_changelist")
+    if request.user.has_perm("registry.view_workshopmod"):
+        return redirect("admin:registry_workshopmod_changelist")
+    if request.user.has_perm("branding.view_sitebranding"):
         return redirect("admin:branding_sitebranding_change", object_id="1")
-    if request.user.is_authenticated and request.user.has_perm(
-        "zomboid_catalogue.view_catalogueentry"
-    ):
+    if request.user.has_perm("zomboid_catalogue.view_catalogueentry"):
         return redirect("admin:zomboid_catalogue_catalogueentry_changelist")
-    return redirect("admin:index")
+    return admin.site.index(request)
 
 urlpatterns = [
     path("robots.txt", robots_txt, name="robots-txt"),
@@ -44,7 +42,7 @@ urlpatterns = [
     path("health/ready/", health.readiness, name="health-ready"),
     path(
         'admin/',
-        admin_home,
+        admin.site.admin_view(admin_home),
         name='admin-home',
     ),
     path('admin/', admin.site.urls),

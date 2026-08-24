@@ -2365,6 +2365,57 @@ class RegistrationTests(TestCase):
             fetch_redirect_response=False,
         )
 
+    def test_admin_home_routes_every_standard_staff_role(self):
+        call_command("bootstrap_roles", verbosity=0)
+        destinations = {
+            "Workshop Mod Approver": "admin:registry_workshopmod_changelist",
+            "Run Submission Approver": "admin:registry_runsubmission_changelist",
+            "Moderator": "admin:registry_participant_changelist",
+            "Challenge Administrator": "admin:registry_participant_changelist",
+            "Branding Administrator": "admin:branding_sitebranding_change",
+            "Zomboid Integration": (
+                "admin:zomboid_catalogue_catalogueentry_changelist"
+            ),
+        }
+
+        for index, (role_name, destination_name) in enumerate(destinations.items()):
+            with self.subTest(role=role_name):
+                user = get_user_model().objects.create_user(
+                    email=f"role-{index}@example.com",
+                    nickname=f"Role {index}",
+                    password="test-password-only",
+                    is_active=True,
+                )
+                user.groups.add(Group.objects.get(name=role_name))
+                self.client.force_login(user)
+
+                response = self.client.get("/admin/")
+
+                destination_arguments = {"object_id": "1"} if (
+                    role_name == "Branding Administrator"
+                ) else {}
+                self.assertRedirects(
+                    response,
+                    reverse(destination_name, kwargs=destination_arguments),
+                    fetch_redirect_response=False,
+                )
+                self.client.logout()
+
+    def test_admin_home_renders_index_for_staff_without_known_role(self):
+        user = get_user_model().objects.create_user(
+            email="unassigned-staff@example.com",
+            nickname="Unassigned Staff",
+            password="test-password-only",
+            is_active=True,
+            is_staff=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get("/admin/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "admin/rat_race_index.html")
+
     def test_challenge_admin_can_confirm_and_process_account_closure(self):
         admin_user = get_user_model().objects.create_superuser(
             email="closure-admin@example.com",
