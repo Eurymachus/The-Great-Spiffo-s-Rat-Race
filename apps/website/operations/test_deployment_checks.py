@@ -54,6 +54,29 @@ class DeploymentRepositoryConfigurationTests(SimpleTestCase):
                 self.assertIn("POSTGRES_CONN_MAX_AGE=0", content)
                 self.assertNotIn("POSTGRES_CONN_MAX_AGE=60", content)
 
+    def test_windows_release_preparation_reconciles_roles_after_migrations(self):
+        repository_root = Path(__file__).resolve().parents[3]
+        script = (
+            repository_root
+            / "deployment/windows/Prepare-RatRaceRelease.ps1"
+        ).read_text(encoding="utf-8")
+
+        migrate_position = script.index("manage.py migrate --noinput")
+        roles_position = script.index("manage.py bootstrap_roles")
+        static_position = script.index("manage.py collectstatic --noinput")
+
+        self.assertLess(migrate_position, roles_position)
+        self.assertLess(roles_position, static_position)
+
+        staging_installer = (
+            repository_root
+            / "deployment/windows/Install-RatRaceStagingStartup.ps1"
+        ).read_text(encoding="utf-8")
+        preparation_position = staging_installer.index("& $preparer")
+        installation_position = staging_installer.index("& $installer")
+
+        self.assertLess(preparation_position, installation_position)
+
 
 class ProductionDeploymentCommandTests(SimpleTestCase):
     @patch(

@@ -102,7 +102,11 @@ credentials, exception details, or participant data.
 2. Supply `.env.production` through the host's protected deployment storage.
 3. Put the pinned Vineflower JAR in `deployment/runtime/` and build the images.
 4. Back up durable state.
-5. Apply migrations and build static files with one-shot website containers.
+5. Prepare the release with a one-shot website process. Run migrations, then
+   `python manage.py bootstrap_roles`, then build static files. Role bootstrap
+   is idempotent and mandatory after every migration so fresh and existing
+   databases reconcile the code-owned role and permission definitions. On a
+   Windows deployment, use `Prepare-RatRaceRelease.ps1` to enforce this order.
 6. Run `python manage.py check_production_deployment` in a one-shot website
    container. This also proves that stored provider credentials remain
    decryptable with the supplied Fernet key.
@@ -153,6 +157,10 @@ readiness endpoint, including the matching worker heartbeat, before succeeding.
 Use `Install-RatRaceStagingStartup.ps1 -ReleaseRoot <release>` for the standard
 staging identity, paths and ports; this keeps the elevated invocation short and
 repeatable.
+The standard staging installer invokes `Prepare-RatRaceRelease.ps1` with the
+release, protected staging environment file, and staging Python executable. The
+preparation command applies migrations, reconciles all standard roles, and
+collects static files before the web and worker processes are replaced.
 Create the protected staging environment with
 `New-RatRaceStagingEnvironment.ps1` only after its isolated PostgreSQL fragment
 exists. Cloudflare routing and any optional Access policy are configured last,
