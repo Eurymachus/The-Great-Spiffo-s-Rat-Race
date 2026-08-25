@@ -304,6 +304,17 @@ records, while aliases and assets remain shared catalogue relationships.
   irreversibly deactivate their own active run without review; this marks it
   Abandoned, declines its pending submissions, prevents future updates to the
   same run ID, and immediately releases the mode slot.
+- Active-slot admission uses the latest integrity-validated reported lifecycle
+  without treating it as approved authority. Pending deceased runs release their
+  active slot and are unlimited by default; Challenge Modes and expiring,
+  reasoned participant overrides can bound active or pending-deceased runs.
+  Approval still owns official lifecycle and prevents a newer active run from
+  being approved before earlier terminal evidence is resolved.
+- Challenge Run administration presents lifecycle as a dedicated `Set status`
+  moderation action rather than an ordinary editable field. The moderator must
+  choose a status and provide a reason; the previous status, new status, acting
+  moderator, timestamp, and reason are retained in the run's administration
+  history.
 - The protected two-file Legacy Leaderboard and Legacy Hall of Fame importer,
   merged Unstable run records, public legacy ranking sources and participant
   claim journey are implemented. Signed-in participants can claim one legacy

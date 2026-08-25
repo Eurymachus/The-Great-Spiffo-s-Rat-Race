@@ -1,0 +1,63 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block object-tools-items %}
+  {% if original and has_change_permission %}
+    <li><button type="button" class="button" data-run-status-open>Set status</button></li>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}
+
+{% block after_related_objects %}
+  {{ block.super }}
+  {% if original and has_change_permission %}
+    <dialog data-run-status-dialog{% if status_error %} data-run-status-error{% endif %} aria-labelledby="run-status-title">
+      <form method="post" action="{% url 'admin:registry_challengerun_set_status' original.pk %}">
+        {% csrf_token %}
+        <h2 id="run-status-title">Set lifecycle status</h2>
+        <p>Choose the run's new status and record the moderation reason. This change will appear in the run's history.</p>
+        {% if status_error == "reason_required" %}<p class="errornote" role="alert">A reason is required when setting a run's status.</p>{% endif %}
+        {% if status_error == "invalid_status" %}<p class="errornote" role="alert">Choose a valid lifecycle status.</p>{% endif %}
+        <div class="form-row">
+          <label for="run-lifecycle-status">Status</label>
+          <select id="run-lifecycle-status" name="lifecycle_status" required>
+            {% for value, label in lifecycle_choices %}
+              <option value="{{ value }}"{% if value == original.lifecycle_status %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="run-status-reason">Reason</label>
+          <textarea id="run-status-reason" name="reason" rows="5" maxlength="1000" required></textarea>
+        </div>
+        <div class="submit-row">
+          <button type="button" class="button" data-run-status-close>Cancel</button>
+          <button type="submit" class="default">Set status</button>
+        </div>
+      </form>
+    </dialog>
+  {% endif %}
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+  {{ block.super }}
+  <script>
+    (() => {
+      const dialog = document.querySelector("[data-run-status-dialog]");
+      const open = document.querySelector("[data-run-status-open]");
+      const close = document.querySelector("[data-run-status-close]");
+      if (!dialog || !open) return;
+      const reason = dialog.querySelector("textarea");
+      const showDialog = () => {
+        dialog.showModal();
+        reason.focus();
+      };
+      if (dialog.hasAttribute("data-run-status-error")) showDialog();
+      open.addEventListener("click", showDialog);
+      close?.addEventListener("click", () => dialog.close());
+      dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) dialog.close();
+      });
+    })();
+  </script>
+{% endblock %}

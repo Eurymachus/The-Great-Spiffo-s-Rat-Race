@@ -437,6 +437,10 @@ class ChallengeMode(models.Model):
             "Updates to an existing active run do not use another slot."
         ),
     )
+    max_pending_deceased_runs_per_participant = models.PositiveSmallIntegerField(
+        null=True, blank=True, default=None,
+        help_text="Maximum pending deceased runs per participant. Leave blank for unlimited.",
+    )
     is_active = models.BooleanField(default=True)
     display_order = models.PositiveSmallIntegerField(default=0)
 
@@ -466,6 +470,24 @@ class ChallengeModeAlias(models.Model):
 
     def __str__(self):
         return self.key
+
+
+class ParticipantChallengeModeLimit(models.Model):
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name="challenge_mode_limits")
+    challenge_mode = models.ForeignKey(ChallengeMode, on_delete=models.CASCADE, related_name="participant_limits")
+    max_active_runs = models.PositiveSmallIntegerField(null=True, blank=True)
+    max_pending_deceased_runs = models.PositiveSmallIntegerField(null=True, blank=True)
+    reason = models.TextField()
+    expires_at = models.DateTimeField(null=True, blank=True)
+    set_by = models.ForeignKey(Participant, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = (models.UniqueConstraint(fields=("participant", "challenge_mode"), name="unique_participant_challenge_mode_limit"),)
+
+    def __str__(self):
+        return f"{self.participant} - {self.challenge_mode}"
 
 
 class ChallengeRun(models.Model):
@@ -518,6 +540,9 @@ class ChallengeRun(models.Model):
     starting_challenge_id = models.CharField(max_length=160, blank=True)
     starting_challenge_game_mode = models.CharField(max_length=255, blank=True)
     lifecycle_status = models.CharField(
+        max_length=16, choices=Lifecycle.choices, default=Lifecycle.ACTIVE
+    )
+    reported_lifecycle_status = models.CharField(
         max_length=16, choices=Lifecycle.choices, default=Lifecycle.ACTIVE
     )
     participant_deactivated_at = models.DateTimeField(null=True, blank=True)
@@ -1267,6 +1292,10 @@ class RunSubmission(models.Model):
     event_sequence = models.PositiveBigIntegerField(default=0)
     event_hash = models.CharField(max_length=64)
     projection = models.JSONField(default=dict, blank=True)
+    reported_lifecycle_status = models.CharField(
+        max_length=16, choices=ChallengeRun.Lifecycle.choices,
+        default=ChallengeRun.Lifecycle.ACTIVE,
+    )
     challenge_mode = models.ForeignKey(
         ChallengeMode,
         null=True,

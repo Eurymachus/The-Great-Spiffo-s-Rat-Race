@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+from django.contrib.admin.models import LogEntry
 from django.test import TestCase
 from django.urls import reverse
 
@@ -13,6 +14,7 @@ from .models import (
     ChallengeRun,
     Notification,
     Participant,
+    ParticipantChallengeModeLimit,
     RunCharacterTrait,
     RunDailyMetric,
     RunDailyRecord,
@@ -1085,6 +1087,125 @@ class RunSubmissionTests(TestCase):
 
         self.assertEqual(ChallengeRun.objects.count(), 2)
 
+    def test_pending_deceased_run_releases_active_slot_before_approval(self):
+        deceased_projection = {
+            "schema": 1,
+            "currentKills": 42,
+            "character": {"current": {"displayName": "Late Survivor"}},
+            "lifecycle": "deceased",
+            "endedReason": "deceased",
+            "endedUtc": 1784800003,
+            "endedWorldAgeHours": 3,
+            "endedEventSequence": 3,
+        }
+        deceased = self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(
+                run_id="pending-deceased",
+                challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
+                projection=deceased_projection,
+                event_specs=[
+                    ("session.started", {"character": {"displayName": "Late Survivor"}}),
+                    ("day.started", {"partial": False}),
+                    ("run.ended", {"reason": "deceased"}),
+                ],
+            )},
+        )
+        self.assertRedirects(deceased, reverse("registry:account"))
+
+        active = self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(
+                run_id="new-active",
+                challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
+            )},
+        )
+
+        self.assertRedirects(active, reverse("registry:account"))
+        self.assertEqual(ChallengeRun.objects.count(), 2)
+        pending = ChallengeRun.objects.get(run_id="pending-deceased")
+        self.assertEqual(pending.lifecycle_status, ChallengeRun.Lifecycle.ACTIVE)
+        self.assertEqual(pending.reported_lifecycle_status, ChallengeRun.Lifecycle.DECEASED)
+
+    def test_participant_pending_deceased_override_limits_new_terminal_runs(self):
+        mode = ChallengeMode.objects.get(key="TGSRR")
+        ParticipantChallengeModeLimit.objects.create(
+            participant=self.participant,
+            challenge_mode=mode,
+            max_pending_deceased_runs=0,
+            reason="Temporary moderation restriction.",
+        )
+        projection = {
+            "schema": 1, "currentKills": 1,
+            "character": {"current": {"displayName": "Ended"}},
+            "lifecycle": "deceased", "endedReason": "deceased",
+            "endedUtc": 1784800003, "endedWorldAgeHours": 3,
+            "endedEventSequence": 3,
+        }
+
+        response = self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(
+                run_id="restricted-deceased", projection=projection,
+                challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
+                event_specs=[
+                    ("session.started", {"character": {"displayName": "Ended"}}),
+                    ("day.started", {"partial": False}),
+                    ("run.ended", {"reason": "deceased"}),
+                ],
+            )},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "maximum of 0 pending deceased runs")
+        self.assertFalse(ChallengeRun.objects.filter(run_id="restricted-deceased").exists())
+
+    def test_active_approval_waits_for_earlier_pending_terminal_submission(self):
+        projection = {
+            "schema": 1, "currentKills": 1,
+            "character": {"current": {"displayName": "Ended"}},
+            "lifecycle": "deceased", "endedReason": "deceased",
+            "endedUtc": 1784800003, "endedWorldAgeHours": 3,
+            "endedEventSequence": 3,
+        }
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(
+                run_id="earlier-terminal", projection=projection,
+                challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
+                event_specs=[
+                    ("session.started", {"character": {"displayName": "Ended"}}),
+                    ("day.started", {"partial": False}),
+                    ("run.ended", {"reason": "deceased"}),
+                ],
+            )},
+        )
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(
+                run_id="later-active",
+                challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
+            )},
+        )
+        active_submission = RunSubmission.objects.get(run__run_id="later-active")
+        administrator = Participant.objects.create_superuser(
+            email="ordering-reviewer@example.com",
+            nickname="Ordering Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+
+        response = self.client.post(
+            reverse("admin:registry_runsubmission_approve", args=(active_submission.pk,))
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("admin:registry_runsubmission_change", args=(active_submission.pk,)),
+        )
+        active_submission.refresh_from_db()
+        self.assertEqual(active_submission.status, RunSubmission.Status.RECEIVED)
+
     def test_participant_can_irreversibly_deactivate_active_run(self):
         self.client.post(
             reverse("registry:submit_run"),
@@ -1886,6 +2007,47 @@ class RunSubmissionTests(TestCase):
                 message__contains=reason,
             ).exists()
         )
+
+    def test_admin_sets_run_lifecycle_with_required_audited_reason(self):
+        self.client.post(
+            reverse("registry:submit_run"), {"run_export": make_export()}
+        )
+        run = ChallengeRun.objects.get()
+        administrator = Participant.objects.create_superuser(
+            email="lifecycle-reviewer@example.com",
+            nickname="Lifecycle Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+        change_url = reverse("admin:registry_challengerun_change", args=(run.pk,))
+        set_status_url = reverse(
+            "admin:registry_challengerun_set_status", args=(run.pk,)
+        )
+
+        page = self.client.get(change_url)
+        self.assertContains(page, "Set status")
+        self.assertContains(page, "Lifecycle status:")
+        self.assertContains(page, "This change will appear in the run's history.")
+
+        response = self.client.post(
+            set_status_url,
+            {"lifecycle_status": ChallengeRun.Lifecycle.INVALIDATED, "reason": "  "},
+        )
+        self.assertRedirects(response, f"{change_url}?status_error=reason_required")
+        run.refresh_from_db()
+        self.assertEqual(run.lifecycle_status, ChallengeRun.Lifecycle.ACTIVE)
+
+        reason = "The submitted evidence was found to be ineligible."
+        response = self.client.post(
+            set_status_url,
+            {"lifecycle_status": ChallengeRun.Lifecycle.INVALIDATED, "reason": reason},
+        )
+        self.assertRedirects(response, change_url)
+        run.refresh_from_db()
+        self.assertEqual(run.lifecycle_status, ChallengeRun.Lifecycle.INVALIDATED)
+        log_entry = LogEntry.objects.get(object_id=str(run.pk))
+        self.assertIn('from "Active" to "Invalidated"', log_entry.change_message)
+        self.assertIn(reason, log_entry.change_message)
 
     def test_admin_submission_page_uses_review_controls_instead_of_save_controls(self):
         self.client.post(

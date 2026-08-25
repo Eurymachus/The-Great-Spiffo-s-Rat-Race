@@ -54,6 +54,7 @@ from .models import (
     ExploitRuling,
     Notification,
     Participant,
+    ParticipantChallengeModeLimit,
     RunSubmission,
     StreamingAccount,
     StreamingMedia,
@@ -88,6 +89,21 @@ from .streaming import (
 
 class SubmissionBlocked(Exception):
     """Raised when a valid export cannot enter the submission workflow."""
+
+
+def effective_run_limits(participant, challenge_mode):
+    override = ParticipantChallengeModeLimit.objects.filter(
+        participant=participant,
+        challenge_mode=challenge_mode,
+    ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())).first()
+    active = challenge_mode.max_active_runs_per_participant
+    pending_deceased = challenge_mode.max_pending_deceased_runs_per_participant
+    if override:
+        if override.max_active_runs is not None:
+            active = override.max_active_runs
+        if override.max_pending_deceased_runs is not None:
+            pending_deceased = override.max_pending_deceased_runs
+    return active, pending_deceased
 
 
 def submission_media_payload(form, kind):
@@ -957,27 +973,47 @@ def submit_run(request):
                                 "This run was deactivated and cannot receive further updates. "
                                 "Start a new character to submit another run."
                             )
-                        if not locked_existing and challenge_mode:
+                        reported_lifecycle = decoded.lifecycle
+                        if challenge_mode:
+                            active_limit, deceased_limit = effective_run_limits(
+                                request.user, challenge_mode
+                            )
                             active_runs = ChallengeRun.objects.select_for_update().filter(
                                 participant=request.user,
                                 challenge_mode=challenge_mode,
-                                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE,
+                                reported_lifecycle_status=ChallengeRun.Lifecycle.ACTIVE,
                             )
+                            if locked_existing:
+                                active_runs = active_runs.exclude(pk=locked_existing.pk)
                             active_count = active_runs.count()
-                            limit = challenge_mode.max_active_runs_per_participant
-                            if active_count >= limit:
+                            if reported_lifecycle == ChallengeRun.Lifecycle.ACTIVE and active_count >= active_limit:
                                 submission_blocked_run = (
                                     active_runs.select_related("challenge_mode")
                                     .prefetch_related("submissions__challenge_mode")
                                     .order_by("first_submitted_at", "pk")
                                     .first()
                                 )
-                                noun = "run" if limit == 1 else "runs"
+                                noun = "run" if active_limit == 1 else "runs"
                                 raise SubmissionBlocked(
-                                    f"You already have the maximum of {limit} active {noun} "
+                                    f"You already have the maximum of {active_limit} active {noun} "
                                     f"for {challenge_mode.display_name}. Deactivate an existing "
                                     "run before submitting a new character."
                                 )
+                            adds_pending_deceased = (
+                                reported_lifecycle == ChallengeRun.Lifecycle.DECEASED
+                                and (not locked_existing or locked_existing.reported_lifecycle_status != ChallengeRun.Lifecycle.DECEASED)
+                            )
+                            if adds_pending_deceased and deceased_limit is not None:
+                                pending_deceased = ChallengeRun.objects.filter(
+                                    participant=request.user,
+                                    challenge_mode=challenge_mode,
+                                    reported_lifecycle_status=ChallengeRun.Lifecycle.DECEASED,
+                                    submissions__status=RunSubmission.Status.RECEIVED,
+                                ).distinct().count()
+                                if pending_deceased >= deceased_limit:
+                                    raise SubmissionBlocked(
+                                        f"You already have the maximum of {deceased_limit} pending deceased runs for {challenge_mode.display_name}."
+                                    )
                         run, _ = ChallengeRun.objects.get_or_create(
                             run_id=decoded.run_id,
                             defaults={
@@ -993,6 +1029,7 @@ def submit_run(request):
                                 "starting_challenge_mode": challenge_mode,
                                 "starting_challenge_id": decoded.challenge_id,
                                 "starting_challenge_game_mode": decoded.challenge_game_mode,
+                                "reported_lifecycle_status": reported_lifecycle,
                             },
                         )
                         run.participant = request.user
@@ -1009,7 +1046,11 @@ def submit_run(request):
                             run.challenge_mode = challenge_mode
                             run.challenge_id = decoded.challenge_id
                             run.challenge_game_mode = decoded.challenge_game_mode
+                            run.reported_lifecycle_status = reported_lifecycle
                             run.save()
+                        elif run.reported_lifecycle_status != reported_lifecycle:
+                            run.reported_lifecycle_status = reported_lifecycle
+                            run.save(update_fields=("reported_lifecycle_status", "updated_at"))
                         selected_media = form.media_by_id.get(
                             form.cleaned_data.get("evidence_video")
                         )
@@ -1029,6 +1070,7 @@ def submit_run(request):
                             event_sequence=decoded.event_sequence,
                             event_hash=decoded.event_hash,
                             projection=decoded.projection,
+                            reported_lifecycle_status=reported_lifecycle,
                             challenge_mode=challenge_mode,
                             challenge_id=decoded.challenge_id,
                             challenge_game_mode=decoded.challenge_game_mode,
@@ -1242,9 +1284,11 @@ def deactivate_run(request, run_id):
 
         deactivated_at = timezone.now()
         run.lifecycle_status = ChallengeRun.Lifecycle.ABANDONED
+        run.reported_lifecycle_status = ChallengeRun.Lifecycle.ABANDONED
         run.participant_deactivated_at = deactivated_at
         run.save(update_fields=(
-            "lifecycle_status", "participant_deactivated_at", "updated_at"
+            "lifecycle_status", "reported_lifecycle_status",
+            "participant_deactivated_at", "updated_at"
         ))
         run.submissions.filter(status=RunSubmission.Status.RECEIVED).update(
             status=RunSubmission.Status.DECLINED,

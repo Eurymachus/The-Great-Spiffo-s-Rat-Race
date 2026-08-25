@@ -9,7 +9,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth.models import Group
 from django.db import transaction
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect
 from django.urls import path
@@ -33,6 +33,7 @@ from .models import (
     ExploitRulingImage,
     Notification,
     Participant,
+    ParticipantChallengeModeLimit,
     RunSubmission,
     StreamingAccount,
     StreamingMedia,
@@ -1154,15 +1155,30 @@ class ChallengeModeAliasInline(admin.TabularInline):
 class ChallengeModeAdmin(admin.ModelAdmin):
     list_display = (
         "display_name", "key", "game_mode_name", "max_active_runs_per_participant",
+        "max_pending_deceased_runs_per_participant",
         "is_active", "display_order",
     )
-    list_editable = ("max_active_runs_per_participant", "is_active", "display_order")
+    list_editable = ("max_active_runs_per_participant", "max_pending_deceased_runs_per_participant", "is_active", "display_order")
     search_fields = ("display_name", "key", "game_mode_name", "aliases__key")
     inlines = (ChallengeModeAliasInline,)
 
 
+@admin.register(ParticipantChallengeModeLimit)
+class ParticipantChallengeModeLimitAdmin(admin.ModelAdmin):
+    list_display = ("participant", "challenge_mode", "max_active_runs", "max_pending_deceased_runs", "expires_at", "set_by")
+    list_filter = ("challenge_mode", "expires_at")
+    search_fields = ("participant__nickname", "participant__email", "reason")
+    autocomplete_fields = ("participant", "challenge_mode")
+    readonly_fields = ("set_by", "created_at", "updated_at")
+
+    def save_model(self, request, obj, form, change):
+        obj.set_by = request.user
+        super().save_model(request, obj, form, change)
+
+
 @admin.register(ChallengeRun)
 class ChallengeRunAdmin(admin.ModelAdmin):
+    change_form_template = "admin/registry/challengerun/change_form.html"
     list_display = (
         "run_id", "participant", "character_name", "challenge_mode", "lifecycle_status", "status",
         "current_kills", "event_sequence", "updated_at",
@@ -1172,7 +1188,7 @@ class ChallengeRunAdmin(admin.ModelAdmin):
     )
     search_fields = ("run_id", "character_name", "participant__nickname", "participant__email")
     readonly_fields = (
-        "participant", "status", "approved_submission", "challenge_mode",
+        "participant", "status", "approved_submission", "challenge_mode", "lifecycle_status",
         "challenge_id", "challenge_game_mode",
         "starting_challenge_mode", "starting_challenge_id",
         "starting_challenge_game_mode",
@@ -1187,6 +1203,54 @@ class ChallengeRunAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def get_urls(self):
+        return [
+            path(
+                "<path:object_id>/set-status/",
+                self.admin_site.admin_view(self.set_status_view),
+                name="registry_challengerun_set_status",
+            ),
+        ] + super().get_urls()
+
+    @transaction.atomic
+    def set_status_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        run = self.get_object(request, object_id)
+        if not run or not self.has_change_permission(request, run):
+            raise Http404
+
+        status = request.POST.get("lifecycle_status", "").strip()
+        reason = request.POST.get("reason", "").strip()
+        valid_statuses = {value for value, _label in ChallengeRun.Lifecycle.choices}
+        change_url = reverse("admin:registry_challengerun_change", args=(run.pk,))
+        if status not in valid_statuses:
+            return redirect(f"{change_url}?status_error=invalid_status")
+        if not reason:
+            return redirect(f"{change_url}?status_error=reason_required")
+
+        previous_status = run.get_lifecycle_status_display()
+        run.lifecycle_status = status
+        run.save(update_fields=("lifecycle_status", "updated_at"))
+        new_status = run.get_lifecycle_status_display()
+        self.log_change(
+            request,
+            run,
+            f'Lifecycle status changed from "{previous_status}" to "{new_status}". Reason: {reason}',
+        )
+        self.message_user(
+            request,
+            f"Lifecycle status set to {new_status}.",
+            level=messages.SUCCESS,
+        )
+        return redirect(change_url)
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        context = dict(extra_context or {})
+        context["lifecycle_choices"] = ChallengeRun.Lifecycle.choices
+        context["status_error"] = request.GET.get("status_error", "")
+        return super().change_view(request, object_id, form_url, context)
 
 
 @admin.register(RunSubmission)
@@ -1296,6 +1360,36 @@ class RunSubmissionAdmin(admin.ModelAdmin):
                     return redirect("admin:registry_runsubmission_change", submission.pk)
         approved_events = list(run.latest_events or [])
         decoded = decode_run_export_cached(submission.raw_export)
+        if decoded.lifecycle == ChallengeRun.Lifecycle.ACTIVE and run.participant and run.challenge_mode:
+            override = ParticipantChallengeModeLimit.objects.filter(
+                participant=run.participant,
+                challenge_mode=run.challenge_mode,
+            ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())).first()
+            active_limit = (
+                override.max_active_runs
+                if override and override.max_active_runs is not None
+                else run.challenge_mode.max_active_runs_per_participant
+            )
+            approved_active = ChallengeRun.objects.select_for_update().filter(
+                participant=run.participant,
+                challenge_mode=run.challenge_mode,
+                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE,
+                status=ChallengeRun.Status.OFFICIAL,
+            ).exclude(pk=run.pk).count()
+            unresolved_terminal = RunSubmission.objects.filter(
+                submitter=run.participant,
+                challenge_mode=run.challenge_mode,
+                reported_lifecycle_status=ChallengeRun.Lifecycle.DECEASED,
+                status=RunSubmission.Status.RECEIVED,
+                submitted_at__lt=submission.submitted_at,
+            ).exclude(run=run).exists()
+            if approved_active >= active_limit or unresolved_terminal:
+                self.message_user(
+                    request,
+                    "Resolve the participant's earlier terminal submission before approving this active run.",
+                    level=messages.ERROR,
+                )
+                return redirect("admin:registry_runsubmission_change", submission.pk)
         if decoded.event_blocks and not submission.event_blocks.exists():
             attach_verified_blocks(submission, decoded)
         reviewed_at = timezone.now()
@@ -1321,6 +1415,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         run.latest_events = decoded.events
         if decoded.lifecycle == ChallengeRun.Lifecycle.DECEASED:
             run.lifecycle_status = ChallengeRun.Lifecycle.DECEASED
+        run.reported_lifecycle_status = decoded.lifecycle
         run.save()
         incremental = bool(
             baseline
@@ -1361,6 +1456,15 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         submission.reviewed_at = timezone.now()
         submission.review_note = reason
         submission.save(update_fields=("status", "reviewed_at", "review_note"))
+        latest_pending = submission.run.submissions.filter(
+            status=RunSubmission.Status.RECEIVED
+        ).order_by("-event_sequence", "-generated_at").first()
+        submission.run.reported_lifecycle_status = (
+            latest_pending.reported_lifecycle_status
+            if latest_pending
+            else submission.run.lifecycle_status
+        )
+        submission.run.save(update_fields=("reported_lifecycle_status", "updated_at"))
         if submission.run.participant:
             notify(
                 submission.run.participant,

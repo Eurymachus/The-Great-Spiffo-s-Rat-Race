@@ -184,6 +184,21 @@ for it are declined, later exports for that run ID are rejected, and its active
 slot becomes available immediately. The participant interface must show an
 explicit confirmation warning before applying this action.
 
+## 2026-08-25 - Let validated terminal submissions release active-run slots
+
+The active-run limit uses the latest structurally valid reported lifecycle while
+moderation is pending. A run whose latest valid export reports death does not
+consume an active slot, so the participant may upload a new active run without
+waiting for the terminal submission to be reviewed. Approval remains the sole
+authority for the official lifecycle, rankings, and historical presentation.
+
+Challenge Modes configure the maximum active runs and maximum pending deceased
+runs per participant. Pending deceased runs are unlimited by default. A scoped
+participant and challenge-mode override may narrow either limit, must retain a
+moderation reason, may expire, and records the administrator who set it. An
+active run cannot be approved while an earlier terminal submission remains
+unresolved or doing so would exceed the participant's approved active-run limit.
+
 ## 2026-07-17 - Use a constrained, reusable page system
 
 Public editorial content will evolve through backend-managed Pages assembled
