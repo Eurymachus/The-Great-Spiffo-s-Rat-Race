@@ -1253,14 +1253,36 @@ class ChallengeRunAdmin(admin.ModelAdmin):
         return super().change_view(request, object_id, form_url, context)
 
 
+class RunSubmissionApprovalFilter(admin.SimpleListFilter):
+    title = "approval"
+    parameter_name = "approval_state"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("approved", "Approved"),
+            ("unapproved", "Unapproved"),
+            ("declined", "Declined"),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "approved":
+            return queryset.filter(status=RunSubmission.Status.APPROVED)
+        if self.value() == "unapproved":
+            return queryset.filter(status=RunSubmission.Status.RECEIVED)
+        if self.value() == "declined":
+            return queryset.filter(status=RunSubmission.Status.DECLINED)
+        return queryset
+
+
 @admin.register(RunSubmission)
 class RunSubmissionAdmin(admin.ModelAdmin):
     change_form_template = "admin/registry/runsubmission/change_form.html"
     list_display = (
-        "run", "submitter", "status", "current_kills",
+        "run", "submitter", "review_status", "first_approval", "current_kills",
         "event_sequence", "submitted_at",
     )
-    list_filter = ("status", "export_format", "submitted_at")
+    list_filter = (RunSubmissionApprovalFilter, "export_format", "submitted_at")
+    actions = ("approve_selected_clean_submissions",)
     search_fields = ("run__run_id", "run__character_name", "submitter__nickname")
     autocomplete_fields = ("run", "submitter")
     readonly_fields = (
@@ -1271,10 +1293,78 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         "evidence_media_id", "evidence_url", "evidence_title",
         "evidence_start_seconds", "evidence_end_seconds", "evidence_clips",
         "projection", "reviewed_at", "review_note",
+        "preapproval_state", "preapproval_findings", "preapproval_version",
+        "preapproval_assessed_at",
     )
 
     class Media:
         css = {"all": ("registry/admin_run_review.css",)}
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "run", "run__approved_submission", "baseline_submission", "submitter",
+            "challenge_mode",
+        )
+
+    @admin.display(description="Approval")
+    def first_approval(self, submission):
+        if submission.baseline_submission_id is None:
+            return format_html(
+                '<span class="run-review-list-badge is-first">First approval</span>'
+            )
+        return ""
+
+    @admin.display(description="Status", ordering="status")
+    def review_status(self, submission):
+        if submission.status == RunSubmission.Status.APPROVED:
+            return format_html(
+                '<span class="run-review-list-badge status-approved"><span aria-hidden="true">✓</span> Approved</span>'
+            )
+        if submission.status == RunSubmission.Status.DECLINED:
+            return format_html(
+                '<span class="run-review-list-badge status-declined"><span aria-hidden="true">!</span> Declined</span>'
+            )
+        severity, icon, label = {
+            RunSubmission.PreapprovalState.GREEN: ("pass", "✓", "All checks passed"),
+            RunSubmission.PreapprovalState.ORANGE: ("warning", "△", "Needs attention"),
+            RunSubmission.PreapprovalState.RED: ("danger", "!", "Blocking issue"),
+        }[submission.preapproval_state]
+        if any(
+            finding.get("title") == "Invalid export"
+            for finding in submission.preapproval_findings
+            if isinstance(finding, dict)
+        ):
+            label = "Invalid export"
+        return format_html(
+            '<span class="run-review-list-badge finding-{}"><span aria-hidden="true">{}</span> {}</span>',
+            severity, icon, label,
+        )
+
+    @admin.action(description="Approve selected all-green submissions")
+    def approve_selected_clean_submissions(self, request, queryset):
+        approved = 0
+        skipped = 0
+        for submission in queryset.order_by("submitted_at"):
+            if (
+                submission.status != RunSubmission.Status.RECEIVED
+                or submission.preapproval_state != RunSubmission.PreapprovalState.GREEN
+            ):
+                skipped += 1
+                continue
+            self.approve_submission_view(request, str(submission.pk))
+            submission.refresh_from_db(fields=("status",))
+            if submission.status == RunSubmission.Status.APPROVED:
+                approved += 1
+            else:
+                skipped += 1
+        if approved:
+            self.message_user(request, f"Approved {approved} all-green submission(s).", level=messages.SUCCESS)
+        if skipped:
+            self.message_user(
+                request,
+                f"Skipped {skipped} submission(s) that were not received, were not all green, or could not be approved.",
+                level=messages.WARNING,
+            )
 
     def changelist_view(self, request, extra_context=None):
         context = dict(extra_context or {})
@@ -1308,6 +1398,17 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         if not submission or not self.has_change_permission(request, submission):
             raise Http404
         return submission
+
+    def redirect_to_review(self, request, submission):
+        change_url = reverse(
+            "admin:registry_runsubmission_change", args=(submission.pk,)
+        )
+        preserved = request.GET.get("_changelist_filters")
+        if preserved:
+            from urllib.parse import urlencode
+
+            change_url = f"{change_url}?{urlencode({'_changelist_filters': preserved})}"
+        return redirect(change_url)
 
     @transaction.atomic
     def approve_submission_view(self, request, object_id):
@@ -1437,7 +1538,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
                 destination=reverse("registry:account"),
             )
         self.message_user(request, "The submission was approved.", level=messages.SUCCESS)
-        return redirect("admin:registry_runsubmission_change", submission.pk)
+        return self.redirect_to_review(request, submission)
 
     def decline_submission_view(self, request, object_id):
         if request.method != "POST":

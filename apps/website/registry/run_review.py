@@ -2,6 +2,8 @@ import json
 from collections import Counter
 from datetime import datetime, timezone
 
+from django.utils import timezone as django_timezone
+
 from .models import RunSubmission
 from .run_exports import InvalidRunExport
 from .run_block_cache import decode_run_export_cached
@@ -127,6 +129,16 @@ def _baseline_for(current_submission):
     return current_submission.baseline_submission
 
 
+def review_severity(findings):
+    """Return the most serious actionable finding level."""
+    levels = {"pass": 0, "warning": 1, "danger": 2}
+    return max(
+        (finding["level"] for finding in findings if finding["level"] in levels),
+        key=levels.get,
+        default="pass",
+    )
+
+
 def build_run_review(current_submission):
     run = current_submission.run
     decoded = decode_run_export_cached(current_submission.raw_export)
@@ -158,6 +170,15 @@ def build_run_review(current_submission):
                 "level": "pass",
                 "title": "No bootstrap marker",
                 "message": "The export does not identify its first recorded day as partial.",
+            }
+        )
+
+    if not current_submission.evidence_url:
+        findings.append(
+            {
+                "level": "warning",
+                "title": "No URL or VOD provided",
+                "message": "The participant did not attach a cached broadcast or provide a manual URL.",
             }
         )
 
@@ -313,6 +334,7 @@ def build_run_review(current_submission):
         "challenge_id": decoded.challenge_id,
         "challenge_game_mode": decoded.challenge_game_mode,
         "findings": findings,
+        "severity": review_severity(findings),
         "event_counts": [
             {
                 "event_type": event_type,
@@ -334,3 +356,38 @@ def build_run_review(current_submission):
             events, indent=2, ensure_ascii=False, sort_keys=True
         ),
     }
+
+
+def capture_preapproval_assessment(submission):
+    """Persist the immutable automated assessment created at submission time."""
+    if submission.preapproval_assessed_at is not None:
+        return submission.preapproval_state
+    try:
+        review = build_run_review(submission)
+        findings = review["findings"]
+        state = {
+            "pass": RunSubmission.PreapprovalState.GREEN,
+            "warning": RunSubmission.PreapprovalState.ORANGE,
+            "danger": RunSubmission.PreapprovalState.RED,
+        }[review["severity"]]
+    except InvalidRunExport as exc:
+        state = RunSubmission.PreapprovalState.RED
+        findings = [
+            {
+                "level": "danger",
+                "title": "Invalid export",
+                "message": str(exc),
+            }
+        ]
+    assessed_at = django_timezone.now()
+    RunSubmission.objects.filter(pk=submission.pk).update(
+        preapproval_state=state,
+        preapproval_findings=findings,
+        preapproval_version=1,
+        preapproval_assessed_at=assessed_at,
+    )
+    submission.preapproval_state = state
+    submission.preapproval_findings = findings
+    submission.preapproval_version = 1
+    submission.preapproval_assessed_at = assessed_at
+    return state

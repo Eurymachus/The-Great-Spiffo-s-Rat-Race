@@ -17,7 +17,14 @@
 
     const backLink = document.createElement("a");
     backLink.className = "admin-navigation-back";
-    backLink.href = parentLink.href;
+    const parentUrl = new URL(parentLink.href, window.location.href);
+    const preservedFilters = new URLSearchParams(window.location.search).get(
+        "_changelist_filters"
+    );
+    if (preservedFilters) {
+        parentUrl.search = preservedFilters;
+    }
+    backLink.href = parentUrl.href;
     backLink.textContent = "Back";
     const parentName = parentLink.textContent.trim();
     if (parentName) {

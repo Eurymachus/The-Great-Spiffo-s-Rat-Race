@@ -140,11 +140,13 @@
 
 {% block submit_buttons_bottom %}
   {% if original and original.status == "received" %}
+    {% url 'admin:registry_runsubmission_approve' original.pk as approve_url %}
+    {% url 'admin:registry_runsubmission_decline' original.pk as decline_url %}
     <div class="submit-row run-review-submit-row">
       <button
         type="submit"
         class="button run-review-approve"
-        formaction="{% url 'admin:registry_runsubmission_approve' original.pk %}"
+        formaction="{% add_preserved_filters approve_url %}"
         formmethod="post"
       >Approve</button>
       <button type="button" class="button run-review-decline" data-run-decline-open>Decline</button>
@@ -160,7 +162,7 @@
         <button
           type="submit"
           class="button run-review-decline"
-          formaction="{% url 'admin:registry_runsubmission_decline' original.pk %}"
+          formaction="{% add_preserved_filters decline_url %}"
           formmethod="post"
         >Decline submission</button>
       </div>

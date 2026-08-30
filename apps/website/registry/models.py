@@ -1263,6 +1263,11 @@ class RunSubmission(models.Model):
         APPROVED = "approved", "Approved"
         DECLINED = "declined", "Declined"
 
+    class PreapprovalState(models.TextChoices):
+        GREEN = "green", "All checks passed"
+        ORANGE = "orange", "Needs attention"
+        RED = "red", "Blocking issue"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     run = models.ForeignKey(
         ChallengeRun, on_delete=models.CASCADE, related_name="submissions"
@@ -1308,6 +1313,15 @@ class RunSubmission(models.Model):
     submitted_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
     review_note = models.TextField(blank=True)
+    preapproval_state = models.CharField(
+        max_length=8,
+        choices=PreapprovalState.choices,
+        default=PreapprovalState.RED,
+        editable=False,
+    )
+    preapproval_findings = models.JSONField(default=list, blank=True, editable=False)
+    preapproval_version = models.PositiveSmallIntegerField(default=1, editable=False)
+    preapproval_assessed_at = models.DateTimeField(null=True, editable=False)
     evidence_provider = models.CharField(max_length=16, blank=True)
     evidence_media_type = models.CharField(max_length=12, blank=True)
     evidence_media_id = models.CharField(max_length=255, blank=True)

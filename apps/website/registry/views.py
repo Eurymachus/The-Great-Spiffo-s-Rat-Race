@@ -62,6 +62,7 @@ from .models import (
 )
 from .run_exports import InvalidRunExport
 from .run_block_cache import attach_verified_blocks, decode_run_export_cached
+from .run_review import capture_preapproval_assessment
 from .run_public import build_public_run_context
 from .steam_workshop import (
     SteamWorkshopError,
@@ -1107,6 +1108,7 @@ def submit_run(request):
                                 for clip in selected_clips
                             ],
                         )
+                        capture_preapproval_assessment(submission)
                         attach_verified_blocks(submission, decoded)
                 except SubmissionBlocked as exc:
                     submission_blocked_message = str(exc)

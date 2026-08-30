@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.admin.models import LogEntry
 from django.test import TestCase
 from django.urls import reverse
@@ -34,7 +35,7 @@ from .models import (
 from .run_block_cache import decode_run_export_cached
 from .run_authority import refresh_initial_run_authority
 from .run_exports import InvalidRunExport, decode_run_export
-from .run_review import build_run_review
+from .run_review import build_run_review, capture_preapproval_assessment
 
 
 def frame(value):
@@ -1336,6 +1337,144 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "already been submitted")
         self.assertEqual(RunSubmission.objects.count(), 1)
+
+    def test_admin_overview_marks_missing_vod_or_url_orange_and_skips_bulk_approval(self):
+        self.client.post(reverse("registry:submit_run"), {"run_export": make_export()})
+        submission = RunSubmission.objects.get()
+        administrator = Participant.objects.create_superuser(
+            email="orange-reviewer@example.com",
+            nickname="Orange Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+
+        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
+        self.assertContains(overview, "First approval")
+        self.assertContains(overview, "Needs attention")
+        self.assertContains(overview, "admin_run_submission_filters.js?v=20260829-1")
+        self.assertEqual(
+            submission.preapproval_state, RunSubmission.PreapprovalState.ORANGE
+        )
+        self.assertIsNotNone(submission.preapproval_assessed_at)
+        review = build_run_review(submission)
+        self.assertEqual(review["severity"], "warning")
+        self.assertTrue(
+            any(finding["title"] == "No URL or VOD provided" for finding in review["findings"])
+        )
+        assessed_at = submission.preapproval_assessed_at
+        submission.evidence_url = "https://example.com/vod/added-too-late"
+        submission.save(update_fields=("evidence_url",))
+        capture_preapproval_assessment(submission)
+        submission.refresh_from_db()
+        self.assertEqual(
+            submission.preapproval_state, RunSubmission.PreapprovalState.ORANGE
+        )
+        self.assertEqual(submission.preapproval_assessed_at, assessed_at)
+
+        self.client.post(
+            reverse("admin:registry_runsubmission_changelist"),
+            {
+                "action": "approve_selected_clean_submissions",
+                ACTION_CHECKBOX_NAME: [str(submission.pk)],
+                "select_across": "0",
+            },
+        )
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, RunSubmission.Status.RECEIVED)
+
+    def test_admin_overview_marks_legacy_invalid_export_red_and_skips_it(self):
+        self.client.post(reverse("registry:submit_run"), {"run_export": make_export()})
+        submission = RunSubmission.objects.get()
+        submission.preapproval_state = RunSubmission.PreapprovalState.RED
+        submission.preapproval_findings = [
+            {
+                "level": "danger",
+                "title": "Invalid export",
+                "message": "The export contains invalid outpost lifecycle summaries.",
+            }
+        ]
+        submission.save(update_fields=("preapproval_state", "preapproval_findings"))
+        administrator = Participant.objects.create_superuser(
+            email="invalid-export-reviewer@example.com",
+            nickname="Invalid Export Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+        with patch(
+            "registry.admin.build_run_review",
+            side_effect=AssertionError("The overview must use the stored assessment."),
+        ):
+            overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
+            self.assertEqual(overview.status_code, 200)
+            self.assertContains(overview, "Invalid export")
+            self.client.post(
+                reverse("admin:registry_runsubmission_changelist"),
+                {
+                    "action": "approve_selected_clean_submissions",
+                    ACTION_CHECKBOX_NAME: [str(submission.pk)],
+                    "select_across": "0",
+                },
+            )
+
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, RunSubmission.Status.RECEIVED)
+
+    def test_admin_bulk_approves_green_submission_and_preserves_received_filter(self):
+        self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(),
+                "manual_evidence_url": "https://example.com/vod/clean-run",
+            },
+        )
+        submission = RunSubmission.objects.get()
+        self.assertEqual(
+            submission.preapproval_state, RunSubmission.PreapprovalState.GREEN
+        )
+        administrator = Participant.objects.create_superuser(
+            email="green-reviewer@example.com",
+            nickname="Green Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+
+        overview = self.client.get(
+            f'{reverse("admin:registry_runsubmission_changelist")}?approval_state=unapproved'
+        )
+        self.assertContains(overview, "By approval")
+        self.assertContains(overview, "Unapproved")
+        self.assertContains(overview, "All checks passed")
+        self.assertContains(overview, "First approval")
+        review_page = self.client.get(
+            reverse("admin:registry_runsubmission_change", args=(submission.pk,))
+            + "?_changelist_filters=approval_state%3Dunapproved"
+        )
+        self.assertContains(
+            review_page, "_changelist_filters=approval_state%3Dunapproved"
+        )
+
+        self.client.post(
+            reverse("admin:registry_runsubmission_changelist"),
+            {
+                "action": "approve_selected_clean_submissions",
+                ACTION_CHECKBOX_NAME: [str(submission.pk)],
+                "select_across": "0",
+            },
+        )
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, RunSubmission.Status.APPROVED)
+        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
+        self.assertContains(overview, "status-approved")
+        self.assertContains(overview, "Approved</span>")
+        self.assertNotContains(overview, "All checks passed")
+        approved_overview = self.client.get(
+            f'{reverse("admin:registry_runsubmission_changelist")}?approval_state=approved'
+        )
+        self.assertContains(approved_overview, submission.run.character_name)
+        unapproved_overview = self.client.get(
+            f'{reverse("admin:registry_runsubmission_changelist")}?approval_state=unapproved'
+        )
+        self.assertNotContains(unapproved_overview, submission.run.character_name)
 
     def test_admin_approval_updates_submission_and_dashboard(self):
         self.client.post(
