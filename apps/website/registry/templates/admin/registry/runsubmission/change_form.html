@@ -3,6 +3,7 @@
 
 {% block field_sets %}
   {% if original and run_review %}
+    {% if return_to_run %}<span hidden data-admin-return-url="{{ run_queue_url }}"></span>{% endif %}
     <div class="run-review">
       <section class="run-review-hero">
         <div>
@@ -146,7 +147,7 @@
       <button
         type="submit"
         class="button run-review-approve"
-        formaction="{% add_preserved_filters approve_url %}"
+        formaction="{% if return_to_run %}{{ approve_url }}?return_to_run=1{% else %}{% add_preserved_filters approve_url %}{% endif %}"
         formmethod="post"
       >Approve</button>
       <button type="button" class="button run-review-decline" data-run-decline-open>Decline</button>
@@ -162,7 +163,7 @@
         <button
           type="submit"
           class="button run-review-decline"
-          formaction="{% add_preserved_filters decline_url %}"
+          formaction="{% if return_to_run %}{{ decline_url }}?return_to_run=1{% else %}{% add_preserved_filters decline_url %}{% endif %}"
           formmethod="post"
         >Decline submission</button>
       </div>

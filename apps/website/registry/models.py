@@ -1333,6 +1333,7 @@ class RunSubmission(models.Model):
 
     class Meta:
         ordering = ("-submitted_at",)
+        verbose_name_plural = "run reviews"
 
     def __str__(self):
         return f"{self.run}: {self.get_status_display()}"

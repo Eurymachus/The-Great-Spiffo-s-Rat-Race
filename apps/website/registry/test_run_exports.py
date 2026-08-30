@@ -801,7 +801,7 @@ class RunSubmissionTests(TestCase):
         )
         dashboard = self.client.get(reverse("registry:account"))
         self.assertContains(dashboard, "Test Survivor")
-        self.assertContains(dashboard, "42 kills")
+        self.assertContains(dashboard, "1 update")
 
     def test_format_four_submission_retains_verified_block_references(self):
         run_id = "rr-submission-block-cache-test"
@@ -949,7 +949,7 @@ class RunSubmissionTests(TestCase):
         submission = RunSubmission.objects.get()
         self.assertEqual(submission.challenge_id, "")
         self.assertEqual(submission.challenge_mode.key, "TGSRR")
-        self.assertEqual(submission.challenge_mode_display, "TGSRR - Standard")
+        self.assertEqual(submission.challenge_mode_display, "TGSRR")
 
     def test_submission_snapshots_selected_stream_evidence(self):
         account = StreamingAccount.objects.create(
@@ -1350,8 +1350,8 @@ class RunSubmissionTests(TestCase):
 
         overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
         self.assertContains(overview, "First approval")
-        self.assertContains(overview, "Needs attention")
-        self.assertContains(overview, "admin_run_submission_filters.js?v=20260829-1")
+        self.assertContains(overview, "No URL or VOD provided")
+        self.assertContains(overview, "admin_run_submission_filters.js?v=20260831-1")
         self.assertEqual(
             submission.preapproval_state, RunSubmission.PreapprovalState.ORANGE
         )
@@ -1371,14 +1371,10 @@ class RunSubmissionTests(TestCase):
         )
         self.assertEqual(submission.preapproval_assessed_at, assessed_at)
 
-        self.client.post(
-            reverse("admin:registry_runsubmission_changelist"),
-            {
-                "action": "approve_selected_clean_submissions",
-                ACTION_CHECKBOX_NAME: [str(submission.pk)],
-                "select_across": "0",
-            },
+        run_queue = reverse(
+            "admin:registry_runsubmission_run_queue", args=(submission.run_id,)
         )
+        self.client.post(run_queue, {ACTION_CHECKBOX_NAME: [str(submission.pk)]})
         submission.refresh_from_db()
         self.assertEqual(submission.status, RunSubmission.Status.RECEIVED)
 
@@ -1407,19 +1403,15 @@ class RunSubmissionTests(TestCase):
             overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
             self.assertEqual(overview.status_code, 200)
             self.assertContains(overview, "Invalid export")
-            self.client.post(
-                reverse("admin:registry_runsubmission_changelist"),
-                {
-                    "action": "approve_selected_clean_submissions",
-                    ACTION_CHECKBOX_NAME: [str(submission.pk)],
-                    "select_across": "0",
-                },
+            run_queue = reverse(
+                "admin:registry_runsubmission_run_queue", args=(submission.run_id,)
             )
+            self.client.post(run_queue, {ACTION_CHECKBOX_NAME: [str(submission.pk)]})
 
         submission.refresh_from_db()
         self.assertEqual(submission.status, RunSubmission.Status.RECEIVED)
 
-    def test_admin_bulk_approves_green_submission_and_preserves_received_filter(self):
+    def test_admin_run_queue_approves_green_submission_and_returns_to_grouped_queue(self):
         self.client.post(
             reverse("registry:submit_run"),
             {
@@ -1438,43 +1430,113 @@ class RunSubmissionTests(TestCase):
         )
         self.client.force_login(administrator)
 
-        overview = self.client.get(
-            f'{reverse("admin:registry_runsubmission_changelist")}?approval_state=unapproved'
-        )
-        self.assertContains(overview, "By approval")
-        self.assertContains(overview, "Unapproved")
+        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
+        self.assertContains(overview, "Approval baseline")
+        self.assertContains(overview, "1 submission")
         self.assertContains(overview, "All checks passed")
-        self.assertContains(overview, "First approval")
+        self.assertContains(overview, "First approval pending")
+        run_queue_url = reverse(
+            "admin:registry_runsubmission_run_queue", args=(submission.run_id,)
+        )
+        run_queue = self.client.get(run_queue_url)
+        self.assertContains(run_queue, "Next to review")
+        self.assertContains(run_queue, "Approve selected clean sequence")
         review_page = self.client.get(
             reverse("admin:registry_runsubmission_change", args=(submission.pk,))
-            + "?_changelist_filters=approval_state%3Dunapproved"
+            + "?return_to_run=1"
         )
-        self.assertContains(
-            review_page, "_changelist_filters=approval_state%3Dunapproved"
-        )
+        self.assertContains(review_page, f'data-admin-return-url="{run_queue_url}"')
 
-        self.client.post(
-            reverse("admin:registry_runsubmission_changelist"),
-            {
-                "action": "approve_selected_clean_submissions",
-                ACTION_CHECKBOX_NAME: [str(submission.pk)],
-                "select_across": "0",
-            },
+        response = self.client.post(
+            run_queue_url, {ACTION_CHECKBOX_NAME: [str(submission.pk)]}
         )
+        self.assertRedirects(response, run_queue_url)
         submission.refresh_from_db()
         self.assertEqual(submission.status, RunSubmission.Status.APPROVED)
         overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
-        self.assertContains(overview, "status-approved")
-        self.assertContains(overview, "Approved</span>")
-        self.assertNotContains(overview, "All checks passed")
-        approved_overview = self.client.get(
-            f'{reverse("admin:registry_runsubmission_changelist")}?approval_state=approved'
+        self.assertNotContains(overview, submission.run.character_name)
+
+    def test_run_queue_groups_updates_and_enforces_chronological_review(self):
+        evidence = "https://example.com/vod/ordered-run"
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(run_id="ordered-run"), "manual_evidence_url": evidence},
         )
-        self.assertContains(approved_overview, submission.run.character_name)
-        unapproved_overview = self.client.get(
-            f'{reverse("admin:registry_runsubmission_changelist")}?approval_state=unapproved'
+        self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    run_id="ordered-run",
+                    generated_at=1784800200,
+                    event_specs=[
+                        ("session.started", {"character": {"displayName": "Test Survivor"}}),
+                        ("day.started", {"partial": False}),
+                        ("day.started", {"partial": False}),
+                    ],
+                ),
+                "manual_evidence_url": evidence,
+            },
         )
-        self.assertNotContains(unapproved_overview, submission.run.character_name)
+        submissions = list(RunSubmission.objects.order_by("submitted_at", "pk"))
+        self.assertEqual(len(submissions), 2)
+        administrator = Participant.objects.create_superuser(
+            email="ordered-reviewer@example.com",
+            nickname="Ordered Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
+        self.assertContains(overview, "2 submissions")
+        self.assertContains(overview, "Manage run", count=1)
+
+        run_queue_url = reverse(
+            "admin:registry_runsubmission_run_queue", args=(submissions[0].run_id,)
+        )
+        run_queue = self.client.get(run_queue_url)
+        self.assertContains(run_queue, "Next to review", count=1)
+        self.assertContains(run_queue, "Waiting for earlier review", count=1)
+
+        later_approve_url = reverse(
+            "admin:registry_runsubmission_approve", args=(submissions[1].pk,)
+        ) + "?return_to_run=1"
+        response = self.client.post(later_approve_url)
+        self.assertRedirects(response, run_queue_url)
+        submissions[1].refresh_from_db()
+        self.assertEqual(submissions[1].status, RunSubmission.Status.RECEIVED)
+
+        response = self.client.post(
+            run_queue_url,
+            {ACTION_CHECKBOX_NAME: [str(item.pk) for item in submissions]},
+        )
+        self.assertRedirects(response, run_queue_url)
+        for submission in submissions:
+            submission.refresh_from_db()
+            self.assertEqual(submission.status, RunSubmission.Status.APPROVED)
+
+    def test_dashboard_groups_pending_updates_by_run(self):
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"run_export": make_export(run_id="grouped-dashboard-run")},
+        )
+        self.client.post(
+            reverse("registry:submit_run"),
+            {
+                "run_export": make_export(
+                    run_id="grouped-dashboard-run",
+                    generated_at=1784800200,
+                    event_specs=[
+                        ("session.started", {"character": {"displayName": "Test Survivor"}}),
+                        ("day.started", {"partial": False}),
+                        ("day.started", {"partial": False}),
+                    ],
+                )
+            },
+        )
+
+        dashboard = self.client.get(reverse("registry:account"))
+
+        self.assertContains(dashboard, "2 updates")
+        self.assertContains(dashboard, 'class="dashboard-run-entry"', count=1)
 
     def test_admin_approval_updates_submission_and_dashboard(self):
         self.client.post(

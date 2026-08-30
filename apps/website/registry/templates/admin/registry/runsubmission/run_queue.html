@@ -1,0 +1,56 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260830-2">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; <a href="{% url 'admin:registry_runsubmission_changelist' %}">Run reviews</a> &rsaquo; {{ run }}</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="run-management">
+  <section class="run-review-hero">
+    <div><p class="run-review-kicker">Run moderation</p><h2>{{ run.character_name|default:"Unnamed survivor" }}</h2><p>{{ run.participant|default:"Former Rat Racer" }} · {{ run.challenge_mode_display }}</p></div>
+    {% if run.approved_submission %}<div class="run-management-baseline"><small>Last approved</small><strong>{{ run.approved_submission.reviewed_at|date:"j M Y, H:i" }}</strong></div>{% else %}<span class="run-review-list-badge is-first">First approval pending</span>{% endif %}
+  </section>
+
+  <section class="run-review-panel">
+    <header><div><p class="run-review-kicker">Awaiting moderation</p><h3>{{ pending_submissions|length }} submission{{ pending_submissions|length|pluralize }}</h3></div>{% if green_prefix_count %}<span>{{ green_prefix_count }} clean in sequence</span>{% endif %}</header>
+    <form id="batch-form" method="post">{% csrf_token %}</form>
+    <div class="run-event-table-wrap">
+      <table class="run-event-table run-management-table">
+        <thead><tr><th>Select</th><th>Submission date</th><th>Status</th><th>Evidence</th><th>Events</th><th>Kills</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% for submission in pending_submissions %}
+          <tr{% if submission.is_next_pending %} class="is-next-review"{% endif %}>
+            <td><input type="checkbox" form="batch-form" name="_selected_action" value="{{ submission.pk }}"{% if not submission.batch_eligible %} disabled{% endif %} aria-label="Select submission from {{ submission.submitted_at|date:'j M Y, H:i' }}"></td>
+            <td>{{ submission.submitted_at|date:"j M Y, H:i" }}{% if submission.is_next_pending %}<small>Next to review</small>{% endif %}</td>
+            <td>{{ submission.status_badge }}</td>
+            <td>{% if submission.evidence_url %}<a href="{{ submission.evidence_url }}" target="_blank" rel="noopener noreferrer">Open VOD</a>{% else %}<span class="run-management-missing">Not supplied</span>{% endif %}</td>
+            <td>{{ submission.event_sequence }}</td>
+            <td>{{ submission.current_kills }}</td>
+            <td class="run-management-actions">
+              <a class="button" href="{% url 'admin:registry_runsubmission_change' submission.pk %}?return_to_run=1">Review</a>
+              {% if submission.is_next_pending %}
+                <form method="post" action="{% url 'admin:registry_runsubmission_approve' submission.pk %}?return_to_run=1">{% csrf_token %}<button type="submit" class="button run-review-approve">Approve</button></form>
+                <details><summary class="button run-review-decline">Decline</summary><form method="post" action="{% url 'admin:registry_runsubmission_decline' submission.pk %}?return_to_run=1">{% csrf_token %}<label>Reason<textarea name="reason" rows="3" maxlength="1000" required></textarea></label><button type="submit" class="button run-review-decline">Confirm decline</button></form></details>
+              {% else %}
+                <small>Waiting for earlier review</small>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">No submissions are awaiting moderation for this run.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if green_prefix_count %}<div class="run-management-batch"><button type="submit" form="batch-form" class="button run-review-approve">Approve selected clean sequence</button><small>Selection must begin with the oldest submission and contain no gaps.</small></div>{% endif %}
+  </section>
+
+  {% if history %}<details class="run-review-evidence run-management-history"><summary>Submission history</summary><div class="run-event-table-wrap"><table class="run-event-table"><thead><tr><th>Submitted</th><th>Status</th><th>Events</th><th>Kills</th><th>Reviewed</th></tr></thead><tbody>{% for submission in history %}<tr><td><a href="{% url 'admin:registry_runsubmission_change' submission.pk %}?return_to_run=1">{{ submission.submitted_at|date:"j M Y, H:i" }}</a></td><td>{{ submission.get_status_display }}</td><td>{{ submission.event_sequence }}</td><td>{{ submission.current_kills }}</td><td>{{ submission.reviewed_at|date:"j M Y, H:i"|default:"Not reviewed" }}</td></tr>{% endfor %}</tbody></table></div></details>{% endif %}
+</div>
+{% endblock %}

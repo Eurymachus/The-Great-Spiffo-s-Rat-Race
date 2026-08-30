@@ -373,7 +373,7 @@ class PublicRunDetailTests(TestCase):
         self.assertContains(response, "Back to RatRacer")
         self.assertContains(response, "Esteban Grossman")
         self.assertContains(response, "RatRacer")
-        self.assertContains(response, "TGSRR - Standard")
+        self.assertContains(response, "TGSRR")
         self.assertContains(response, "6,124")
         self.assertContains(response, "Echo Creek")
         self.assertContains(response, "Challenge progress")

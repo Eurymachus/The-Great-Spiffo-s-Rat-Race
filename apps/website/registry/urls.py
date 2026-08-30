@@ -159,6 +159,7 @@ urlpatterns = [
         name="open_notification",
     ),
     path("privacy/", views.privacy_notice, name="privacy"),
+    path("development/", views.development_disclosure, name="development"),
     path("account/data/", views.download_my_data, name="download_my_data"),
     path(
         "account/closure/",

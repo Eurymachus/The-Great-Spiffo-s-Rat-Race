@@ -582,13 +582,22 @@ def account_dashboard_context(user):
         runs.filter(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE), progress_cache
     )
     past_runs = list(runs.exclude(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE))
+    pending_by_run = {}
+    pending_submissions = user.run_submissions.filter(
+        status=RunSubmission.Status.RECEIVED
+    ).select_related("run", "challenge_mode").order_by("run_id", "-submitted_at")
+    for submission in pending_submissions:
+        pending_run = pending_by_run.get(submission.run_id)
+        if pending_run is None:
+            submission.pending_submission_count = 1
+            pending_by_run[submission.run_id] = submission
+        else:
+            pending_run.pending_submission_count += 1
     return {
         "personal_best": personal_best,
         "active_runs": active_runs,
         "past_runs": past_runs,
-        "pending_submissions": user.run_submissions.filter(
-            status=RunSubmission.Status.RECEIVED
-        ).select_related("run", "challenge_mode"),
+        "pending_runs": list(pending_by_run.values()),
         "legacy_run": legacy_run,
         "legacy_claim": legacy_claim,
         "legacy_dashboard_submission": legacy_dashboard_submission,
@@ -2002,6 +2011,10 @@ def mark_notifications_read(request):
 
 def privacy_notice(request):
     return render(request, "registry/privacy_notice.html")
+
+
+def development_disclosure(request):
+    return render(request, "registry/development_disclosure.html")
 
 
 @login_required

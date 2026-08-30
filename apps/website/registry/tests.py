@@ -918,6 +918,19 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "within one calendar month")
         self.assertContains(response, "https://ico.org.uk/make-a-complaint/")
 
+    def test_development_disclosure_is_public_and_linked_from_footer(self):
+        response = self.client.get(reverse("registry:development"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Development disclosure")
+        self.assertContains(response, "powered by LLMs")
+        self.assertContains(response, "Any code produced with its assistance")
+
+        home_response = self.client.get(reverse("registry:home"))
+        self.assertContains(home_response, reverse("registry:development"))
+        self.assertContains(home_response, "data-development-modal")
+        self.assertContains(home_response, "data-development-dialog")
+
     @override_settings(STAGING_ENVIRONMENT=True)
     def test_staging_privacy_notice_warns_that_test_data_may_be_reset(self):
         response = self.client.get(reverse("registry:privacy"))

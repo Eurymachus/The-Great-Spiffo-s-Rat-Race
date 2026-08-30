@@ -43,6 +43,9 @@
         });
     });
 
+    document.documentElement.classList.remove("admin-nav-sidebar-open");
+    document.querySelector("#admin-sidebar-prepaint")?.remove();
+
     const filter = sidebar.querySelector("#nav-filter");
     if (filter) {
         const updateFilteringState = () => {

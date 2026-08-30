@@ -17,7 +17,11 @@
 
     const backLink = document.createElement("a");
     backLink.className = "admin-navigation-back";
-    const parentUrl = new URL(parentLink.href, window.location.href);
+    const explicitReturn = document.querySelector("[data-admin-return-url]");
+    const parentUrl = new URL(
+        explicitReturn?.dataset.adminReturnUrl || parentLink.href,
+        window.location.href
+    );
     const preservedFilters = new URLSearchParams(window.location.search).get(
         "_changelist_filters"
     );

@@ -1,0 +1,77 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260831-3">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Challenge runs</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="run-moderation-queue challenge-run-registry">
+  <form method="get" class="run-queue-filters challenge-run-filters">
+    <label class="challenge-run-filter-search">Search <input type="search" name="q" value="{{ search }}" placeholder="Character, participant, or run ID"></label>
+    <label>Challenge mode
+      <select name="challenge_mode">
+        <option value="">All modes</option>
+        {% for mode in challenge_modes %}<option value="{{ mode.pk }}"{% if selected_challenge_mode == mode.pk|stringformat:"s" %} selected{% endif %}>{{ mode.display_name }}</option>{% endfor %}
+        <option value="unmapped"{% if selected_challenge_mode == "unmapped" %} selected{% endif %}>Unmapped</option>
+      </select>
+    </label>
+    <label>Lifecycle
+      <select name="lifecycle_status"><option value="">All lifecycles</option>{% for value, label in lifecycle_choices %}<option value="{{ value }}"{% if selected_lifecycle_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </label>
+    <details class="challenge-run-more-filters"{% if additional_filter_count %} data-has-active-filters{% endif %}>
+      <summary class="button">More filters{% if additional_filter_count %} ({{ additional_filter_count }}){% endif %}</summary>
+      <div class="challenge-run-more-filter-fields">
+        <label>Verification
+          <select name="status"><option value="">All verification</option>{% for value, label in status_choices %}<option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </label>
+        <label>Export format
+          <select name="export_format"><option value="">All formats</option>{% for value in export_formats %}<option value="{{ value }}"{% if selected_export_format == value|stringformat:"s" %} selected{% endif %}>Format {{ value }}</option>{% endfor %}</select>
+        </label>
+        <label>Existing save
+          <select name="bootstrapped"><option value="">All runs</option><option value="yes"{% if selected_bootstrapped == "yes" %} selected{% endif %}>Yes</option><option value="no"{% if selected_bootstrapped == "no" %} selected{% endif %}>No</option></select>
+        </label>
+        <label>Updated
+          <select name="updated"><option value="">Any date</option><option value="today"{% if selected_updated == "today" %} selected{% endif %}>Today</option><option value="7days"{% if selected_updated == "7days" %} selected{% endif %}>Past 7 days</option><option value="month"{% if selected_updated == "month" %} selected{% endif %}>Past 30 days</option><option value="year"{% if selected_updated == "year" %} selected{% endif %}>Past year</option></select>
+        </label>
+      </div>
+    </details>
+    <button type="submit" class="button">Apply filters</button>
+    <a href="{% url 'admin:registry_challengerun_changelist' %}" class="button">Clear</a>
+  </form>
+
+  <div class="results challenge-run-results">
+    <table id="result_list">
+      <thead><tr><th>Run</th><th>Participant</th><th>Lifecycle</th><th>Verification</th><th>Kills</th><th>Events</th><th>Updated</th><th></th></tr></thead>
+      <tbody>
+      {% for run in runs %}
+        <tr>
+          <th><a href="{% url 'admin:registry_challengerun_change' run.pk %}">{{ run.character_name|default:"Unnamed survivor" }}</a><small>{{ run.run_id }}</small><small>{{ run.challenge_mode_display }}</small></th>
+          <td>{{ run.participant|default:"Former Rat Racer" }}</td>
+          <td><span class="run-review-list-badge lifecycle-{{ run.lifecycle_status }}">{{ run.get_lifecycle_status_display }}</span></td>
+          <td>{% if run.status == "official" %}<span class="run-review-list-badge status-approved"><span aria-hidden="true">✓</span> Verified</span>{% else %}<span class="run-review-list-badge finding-warning">Pending first approval</span>{% endif %}</td>
+          <td>{{ run.current_kills }}</td>
+          <td>{{ run.event_sequence }}</td>
+          <td>{{ run.updated_at|date:"j M Y, H:i" }}</td>
+          <td><a class="button" href="{% url 'admin:registry_challengerun_change' run.pk %}">Open run</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8">No challenge runs match these filters.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <nav class="paginator challenge-run-pagination" aria-label="Challenge run pages">
+    <span>{{ filtered_count }} run{{ filtered_count|pluralize }}</span>
+    {% if page.has_previous %}<a class="button" href="?{% if query_without_page %}{{ query_without_page }}&amp;{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}
+    {% if page.paginator.num_pages > 1 %}<span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>{% endif %}
+    {% if page.has_next %}<a class="button" href="?{% if query_without_page %}{{ query_without_page }}&amp;{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}
+  </nav>
+</div>
+{% endblock %}

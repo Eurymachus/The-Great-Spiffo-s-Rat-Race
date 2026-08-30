@@ -1019,3 +1019,24 @@ a normal run-moderation bulk action.
 - Media responses preserve detected content types and provide public browser
   caching headers. WhiteNoise remains responsible only for collected static
   assets.
+
+# 2026-08-25 - Retain the base loot multiplier through year five
+
+- Set `MaximumDiminishedLoot` to `0`, so no additional generated loot is
+  removed and the configured `0.04` category multipliers remain fully retained.
+- Set `DaysUntilMaximumDiminishedLoot` to `1825`, representing the agreed
+  five-year horizon. The horizon does not alter loot while the maximum
+  reduction remains zero.
+- This replaces the unstable rule of 90% additional removal over ten years.
+
+# 2026-08-30 - Disclose LLM-assisted development at subscription and project-information surfaces
+
+- Use the approved wording recorded in
+  [DEVELOPMENT_DISCLOSURE.md](DEVELOPMENT_DISCLOSURE.md).
+- The Steam Workshop description is the primary disclosure point because it is
+  visible before a player subscribes to the mod.
+- The website publishes the same complete statement on a public project
+  information page. A footer link may expose that page, but the development
+  disclosure remains separate from The Indie Stone non-affiliation disclaimer.
+- The space-constrained in-game `mod.info` description does not need the complete
+  statement. It may later link or point to the full public disclosure.

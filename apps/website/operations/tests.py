@@ -71,12 +71,76 @@ class SystemOperationChangelistTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Run submission reviews")
+        self.assertContains(response, "Run reviews")
         self.assertNotContains(response, "Select run submission to change")
         self.assertContains(
             response,
             "operations/js/clickable-operation-rows.js",
         )
+
+    def test_challenge_run_changelist_uses_run_registry_layout(self):
+        ChallengeRun.objects.create(
+            participant=self.admin,
+            run_id="rr-visible-test-run",
+            status=ChallengeRun.Status.OFFICIAL,
+            lifecycle_status=ChallengeRun.Lifecycle.ACTIVE,
+            export_format=4,
+            generated_at=timezone.now(),
+            current_kills=12,
+            event_sequence=7,
+            event_hash="0" * 64,
+            character_name="Visible Survivor",
+        )
+        response = self.client.get(
+            reverse("admin:registry_challengerun_changelist")
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Run registry")
+        self.assertNotContains(response, "challenge-run-summary")
+        self.assertContains(response, "challenge-run-filters")
+        self.assertContains(response, "All verification")
+        self.assertContains(response, "1 run")
+        self.assertContains(response, "Visible Survivor")
+        self.assertContains(response, "rr-visible-test-run")
+        self.assertContains(
+            response,
+            "admin_run_submission_filters.js?v=20260831-1",
+        )
+        self.assertContains(response, "admin_prepaint.js?v=20260830-3")
+        self.assertContains(response, "admin_sidebar_sections.js?v=20260830-1")
+
+    def test_challenge_run_changelist_applies_saved_filters_before_rendering(self):
+        ChallengeRun.objects.create(
+            participant=self.admin,
+            run_id="rr-active-saved-filter",
+            status=ChallengeRun.Status.OFFICIAL,
+            lifecycle_status=ChallengeRun.Lifecycle.ACTIVE,
+            export_format=4,
+            generated_at=timezone.now(),
+            event_hash="1" * 64,
+            character_name="Active Survivor",
+        )
+        ChallengeRun.objects.create(
+            participant=self.admin,
+            run_id="rr-deceased-saved-filter",
+            status=ChallengeRun.Status.OFFICIAL,
+            lifecycle_status=ChallengeRun.Lifecycle.DECEASED,
+            export_format=4,
+            generated_at=timezone.now(),
+            event_hash="2" * 64,
+            character_name="Deceased Survivor",
+        )
+        self.client.cookies["rat_race_admin_challenge_run_filters"] = (
+            "lifecycle_status=active"
+        )
+
+        response = self.client.get(reverse("admin:registry_challengerun_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Active Survivor")
+        self.assertNotContains(response, "Deceased Survivor")
+        self.assertContains(response, "1 run")
 
 
 class RunDataDangerZoneTests(TestCase):
