@@ -84,7 +84,13 @@ local function groundFloorRoomsFullyStreamed(outpost)
         if room.level == outpost.sealingLevel then
             local isoRoom = room.definition:getIsoRoom()
             local squares = isoRoom and isoRoom:getSquares() or nil
-            if not squares or squares:size() < room.definition:getArea() then return false end
+            -- RoomDef:getArea() is the sum of its map rectangles, not the number
+            -- of IsoGridSquares that IsoRoom will contain. Voids in an otherwise
+            -- loaded room can therefore keep the two counts permanently unequal.
+            -- Every registered outpost is smaller than the loaded-cell radius, so
+            -- having each ground-floor IsoRoom populated is the reliable streaming
+            -- gate while the player is evaluating that outpost.
+            if not squares or squares:isEmpty() then return false end
         end
     end
     return true

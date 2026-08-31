@@ -183,8 +183,8 @@ This table compares the vanilla Build 42.20 settings inherited by Rat Race.
 | `DaysUntilMaximumLooted` | `90` | `3650` | `90` |  |  |
 | `RuralLooted` | `0.5` | `2.0` | `0.5` |  |  |
 | **Diminished generated loot** |  |  |  |  |  |
-| `MaximumDiminishedLoot` | `0` | `90` | `0` |  |  |
-| `DaysUntilMaximumDiminishedLoot` | `3650` | `3650` | `3650` |  |  |
+| `MaximumDiminishedLoot` | `0` | `90` | `0` | `0` | No additional generated-loot removal; the base `0.04` loot multipliers remain fully effective. |
+| `DaysUntilMaximumDiminishedLoot` | `3650` | `3650` | `3650` | `1825` | Five years. With a 0% maximum reduction, generated loot remains at the base multiplier throughout. |
 | **Utilities** |  |  |  |  |  |
 | `WaterShut` | `2` | `1` | `2` |  |  |
 | `ElecShut` | `2` | `1` | `2` |  |  |

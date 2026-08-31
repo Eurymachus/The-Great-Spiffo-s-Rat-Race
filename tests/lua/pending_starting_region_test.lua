@@ -21,10 +21,12 @@ package.loaded["TGSRR/Run/CharacterSnapshot"] = {
 local selectedMap = nil
 local spawnRegion = nil
 local resetViewCount = 0
+local challengeID = "TGSRR"
+local gameMode = "The Great Spiffo's Rat Race"
 getCore = function()
     return {
-        getChallengeID = function() return "TGSRR" end,
-        getGameMode = function() return "The Great Spiffo's Rat Race" end,
+        getChallengeID = function() return challengeID end,
+        getGameMode = function() return gameMode end,
         setSelectedMap = function(_, value) selectedMap = value end,
     }
 end
@@ -129,5 +131,15 @@ assert(encodedPayload.schema == 2)
 assert(encodedPayload.chosenStartingRegion.selectionMode == "random")
 assert(encodedPayload.chosenStartingRegion.resolvedRegionId == "Rosewood, KY")
 assert(type(encodedPayload.chosenStartingRegion.capturedUtc) == "number")
+
+challengeID = ""
+gameMode = "Sandbox"
+spawnScreen._tgsrrPendingRandomRegion = { candidates = { muldraugh, rosewood } }
+spawnScreen.selectedRegion = nil
+MapSpawnSelect.clickNext(spawnScreen)
+assert(spawnScreen.selectedRegion == rosewood)
+assert(spawnScreen._tgsrrPendingRandomRegion == nil)
+assert(spawnRegion == "Rosewood, KY")
+assert(selectedMap == "Rosewood, KY")
 
 print("pending starting region test passed")

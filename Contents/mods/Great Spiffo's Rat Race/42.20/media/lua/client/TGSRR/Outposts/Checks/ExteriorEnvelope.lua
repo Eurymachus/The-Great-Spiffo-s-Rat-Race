@@ -2,6 +2,14 @@ local Resolver = require "TGSRR/Outposts/WorldResolver"
 
 local Envelope = {}
 local cache = {}
+local WALL_FRAME_SPRITES = {
+    ["carpentry_02_100"] = true,
+    ["carpentry_02_101"] = true,
+    ["walls_exterior_wooden_01_27"] = true,
+    ["constructedobjects_01_68"] = true,
+    ["constructedobjects_01_69"] = true,
+    ["constructedobjects_01_51"] = true,
+}
 
 local function tileKey(x, y)
     return tostring(x) .. ":" .. tostring(y)
@@ -31,6 +39,14 @@ local function isDoorFrame(object, north)
     if instanceof(object, "IsoThumpable") and object:isDoorFrame() and object:getNorth() == north then return true end
     local properties = object:getProperties()
     return properties and properties:has(north and "DoorWallN" or "DoorWallW") or false
+end
+
+local function isWallFrame(object)
+    if not object or not instanceof(object, "IsoThumpable") then return false end
+    if object:getName() == "WoodenWallFrame" then return true end
+    local sprite = object:getSprite()
+    local spriteName = sprite and sprite:getName() or nil
+    return WALL_FRAME_SPRITES[spriteName] == true
 end
 
 local function addSegment(byKey, x, y, z, north)
@@ -127,7 +143,8 @@ function Envelope.inspect(outpost, context)
 
             local door = square:getDoor(segment.north)
             local wall = square:getWall(segment.north)
-            local solidWall = wall ~= nil and not isDoorFrame(wall, segment.north)
+            local solidWall = wall ~= nil and not isWallFrame(wall)
+                and not isDoorFrame(wall, segment.north)
                 and windowKind(wall) == nil
             result.segments[#result.segments + 1] = {
                 key = segment.key,

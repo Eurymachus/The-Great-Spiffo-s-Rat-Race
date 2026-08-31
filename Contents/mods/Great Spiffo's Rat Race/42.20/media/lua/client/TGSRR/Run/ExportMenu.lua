@@ -193,6 +193,10 @@ local function finishExport(ok, result)
         "Synthetic benchmark export ready. Do not submit this export."
         or L.text("UI_TGSRR_Tracker_ExportReady", "Run export ready.")
     local savedPath = absoluteLuaPath(result.filename)
+    local normalizedFilename = tostring(
+        result.filename or "runexport.txt"):gsub("\\", "/")
+    local displayedPath = "../" ..
+        (string.match(normalizedFilename, "([^/]+)$") or "runexport.txt")
     local summaryText = tostring(result.eventSequence) .. " " ..
         L.text("UI_TGSRR_Tracker_ExportEvents", "events") .. "  |  " ..
         tostring(result.encodedCharacters) .. " " ..
@@ -247,7 +251,7 @@ local function finishExport(ok, result)
                 UIFont.Small
             )
             local firstPathLine, secondPathLine = splitPath(
-                savedPath, UIFont.Small, self:getWidth() - 24)
+                displayedPath, UIFont.Small, self:getWidth() - 24)
             self:drawTextCentre(
                 L.text("UI_TGSRR_Tracker_ExportSavedTo", "Saved to:"),
                 self:getWidth() / 2,

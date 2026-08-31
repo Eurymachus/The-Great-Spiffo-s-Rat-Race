@@ -196,19 +196,26 @@ local function installSpawnSelectionHook()
         local entry = self.listbox and self.listbox.items
             and self.listbox.items[self.listbox.selected] or nil
         local item = entry and entry.item or nil
-        if not isRatRaceChallenge() or not item or not item._tgsrrRandom then
+        if not item or not item._tgsrrRandom then
             self._tgsrrPendingRandomRegion = nil
             return previousClickNext(self, ...)
         end
         local candidates = randomCandidates(self)
         if #candidates == 0 then return previousClickNext(self, ...) end
-        self._tgsrrPendingRandomRegion = {
-            candidates = candidates,
-        }
+        local selectedRegion = nil
+        if isRatRaceChallenge() then
+            self._tgsrrPendingRandomRegion = {
+                candidates = candidates,
+            }
+            selectedRegion = candidates[1]
+        else
+            self._tgsrrPendingRandomRegion = nil
+            selectedRegion = candidates[ZombRand(#candidates) + 1]
+        end
         local originalName = item.name
         local originalRegion = item.region
         item.name = RANDOM_PENDING_NAME
-        item.region = candidates[1]
+        item.region = selectedRegion
         local result = previousClickNext(self, ...)
         item.name = originalName
         item.region = originalRegion

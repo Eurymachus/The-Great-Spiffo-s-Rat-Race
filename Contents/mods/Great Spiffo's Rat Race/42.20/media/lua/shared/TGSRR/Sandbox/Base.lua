@@ -1681,12 +1681,12 @@ TGSRR_SandboxBase.apply = function()
 	-- The maximum loot that won't spawn when Days Until Maximum Diminished Loot is reached. Check the "Advanced" box below to use an exact percentage.
 	-- Allowed range: integer 0 to 100.
 	-- Vanilla default: 0.
-	SandboxVars.MaximumDiminishedLoot = 90;
+	SandboxVars.MaximumDiminishedLoot = 0;
 
 	-- How long it takes for Maximum Diminished Loot Percentage to be reached.
 	-- Allowed range: integer 0 to 3650.
 	-- Vanilla default: 3650.
-	SandboxVars.DaysUntilMaximumDiminishedLoot = 3650;
+	SandboxVars.DaysUntilMaximumDiminishedLoot = 1825;
 
 	-- The number of in-game minutes it takes to read one page of a skill book.
 	-- Allowed range: double 0.0 to 60.0.
