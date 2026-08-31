@@ -11,12 +11,16 @@
     const parentLink = breadcrumbLinks.at(-1);
     if (!content || !parentLink) return;
 
-    const bar = document.createElement("nav");
-    bar.className = "admin-navigation-bar";
-    bar.setAttribute("aria-label", "Section navigation");
-
-    const backLink = document.createElement("a");
-    backLink.className = "admin-navigation-back";
+    let bar = content.querySelector(".admin-navigation-bar");
+    let backLink = bar?.querySelector(".admin-navigation-back");
+    const navigationWasRendered = Boolean(bar && backLink);
+    if (!navigationWasRendered) {
+        bar = document.createElement("nav");
+        bar.className = "admin-navigation-bar";
+        bar.setAttribute("aria-label", "Section navigation");
+        backLink = document.createElement("a");
+        backLink.className = "admin-navigation-back";
+    }
     const explicitReturn = document.querySelector("[data-admin-return-url]");
     const parentUrl = new URL(
         explicitReturn?.dataset.adminReturnUrl || parentLink.href,
@@ -42,6 +46,8 @@
         navigation.navigate(backLink.href);
     });
 
-    bar.append(backLink);
-    content.prepend(bar);
+    if (!navigationWasRendered) {
+        bar.append(backLink);
+        content.prepend(bar);
+    }
 })();

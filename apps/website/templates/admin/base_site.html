@@ -19,7 +19,7 @@
     <script src="{% static 'registry/admin_prepaint.js' %}?v=20260830-3"></script>
     <script src="{% static 'registry/admin_close.js' %}?v=20260721-1" defer></script>
     <script src="{% static 'registry/admin_save.js' %}?v=20260810-3" defer></script>
-    <script src="{% static 'registry/admin_navigation.js' %}?v=20260830-1" defer></script>
+    <script src="{% static 'registry/admin_navigation.js' %}?v=20260831-1" defer></script>
     <script src="{% static 'registry/admin_run_submission_filters.js' %}?v=20260831-1" defer></script>
     <script src="{% static 'registry/admin_sidebar_sections.js' %}?v=20260830-1" defer></script>
     <script src="{% static 'operations/js/clickable-operation-rows.js' %}?v=20260730-1" defer></script>
@@ -36,3 +36,12 @@
 {% endblock %}
 
 {% block nav-global %}{% endblock %}
+
+{% block messages %}
+{% if request.resolver_match.app_name == "admin" and request.resolver_match.url_name != "index" and request.resolver_match.url_name != "app_list" %}
+<nav class="admin-navigation-bar" aria-label="Section navigation" data-server-rendered>
+    <a class="admin-navigation-back" href="{% url 'admin:index' %}" aria-label="Back to Home" title="Back to Home">Back</a>
+</nav>
+{% endif %}
+{{ block.super }}
+{% endblock %}

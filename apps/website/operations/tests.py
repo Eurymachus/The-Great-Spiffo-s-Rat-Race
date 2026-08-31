@@ -73,6 +73,7 @@ class SystemOperationChangelistTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Run reviews")
         self.assertNotContains(response, "Select run submission to change")
+        self.assertContains(response, "data-server-rendered", count=1)
         self.assertContains(
             response,
             "operations/js/clickable-operation-rows.js",
@@ -99,6 +100,7 @@ class SystemOperationChangelistTests(TestCase):
         self.assertNotContains(response, "Run registry")
         self.assertNotContains(response, "challenge-run-summary")
         self.assertContains(response, "challenge-run-filters")
+        self.assertContains(response, "data-server-rendered", count=1)
         self.assertContains(response, "All verification")
         self.assertContains(response, "1 run")
         self.assertContains(response, "Visible Survivor")
