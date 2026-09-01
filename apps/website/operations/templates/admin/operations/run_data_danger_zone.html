@@ -1,51 +1,109 @@
 {% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'operations/run_data_danger_zone.css' %}?v=20260901-1">
+{% endblock %}
 
 {% block content_title %}{% endblock %}
 
 {% block content %}
-  <div id="content-main">
-    <fieldset class="module aligned">
-      <h2>Permanent run-data purge</h2>
-      <div class="form-row">
-        <p>
-          This permanently removes every challenge run, every run submission,
-          and all submission notifications.
-        </p>
-        <p>
-          Participants, sign-in accounts, platform integrations, challenge modes,
-          catalogue records, website content, and configuration are preserved.
-        </p>
-        <table>
-          <tbody>
-            <tr><th scope="row">Challenge runs</th><td>{{ counts.runs }}</td></tr>
-            <tr><th scope="row">Run submissions</th><td>{{ counts.submissions }}</td></tr>
-            <tr>
-              <th scope="row">Submission notifications</th>
-              <td>{{ counts.notifications }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </fieldset>
+  <div id="content-main" class="run-data-danger-zone">
+    <header class="danger-zone-heading">
+      <p class="danger-zone-kicker neutral-kicker">System operations</p>
+      <h1>Run data danger zone</h1>
+      <p>Reset test moderation safely, or permanently remove all run data.</p>
+    </header>
 
-    {% if counts.runs or counts.submissions or counts.notifications %}
-      <form method="post" novalidate>
-        {% csrf_token %}
-        <fieldset class="module aligned">
-          <h2>Confirm purge</h2>
-          <div class="form-row{% if form.confirmation.errors %} errors{% endif %}">
-            {{ form.confirmation.errors }}
-            {{ form.confirmation.label_tag }}
-            {{ form.confirmation }}
-            <div class="help">This action cannot be undone.</div>
-          </div>
-        </fieldset>
-        <div class="submit-row">
-          <input type="submit" value="Purge all run data" class="deletelink">
+    <section class="danger-zone-card reset-card">
+      <header class="danger-zone-card-header">
+        <div>
+          <p class="danger-zone-kicker neutral-kicker">Reversible test operation</p>
+          <h2>Reset moderation state</h2>
+          <p>Return reviewed submissions to the moderation queue without deleting uploaded exports or evidence.</p>
         </div>
-      </form>
-    {% else %}
-      <p>There is no run data to purge.</p>
-    {% endif %}
+        <span class="danger-zone-badge">Data preserved</span>
+      </header>
+      <div class="danger-zone-note">
+        Approval-derived run records will be rebuilt when submissions are approved again. Participant notifications are preserved.
+      </div>
+
+      {% if reset_available %}
+        {% if counts.runs %}
+          <form method="post" novalidate class="danger-zone-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reset_moderation">
+            <div class="danger-zone-fields reset-fields">
+              <div class="danger-zone-field{% if reset_form.scope.errors %} errors{% endif %}">
+                {{ reset_form.scope.errors }}
+                {{ reset_form.scope.label_tag }}
+                {{ reset_form.scope }}
+              </div>
+              <div class="danger-zone-field{% if reset_form.run.errors %} errors{% endif %}">
+                {{ reset_form.run.errors }}
+                {{ reset_form.run.label_tag }}
+                {{ reset_form.run }}
+                <small>{{ reset_form.run.help_text }}</small>
+              </div>
+              <div class="danger-zone-field{% if reset_form.confirmation.errors %} errors{% endif %}">
+                {{ reset_form.confirmation.errors }}
+                {{ reset_form.confirmation.label_tag }}
+                {{ reset_form.confirmation }}
+                <small>For all runs, type "RESET ALL MODERATION" instead.</small>
+              </div>
+            </div>
+            <div class="danger-zone-actions">
+              <input type="submit" value="Reset moderation state" class="default">
+            </div>
+          </form>
+        {% else %}
+          <p class="danger-zone-empty">There are no challenge runs to reset.</p>
+        {% endif %}
+      {% else %}
+        <p class="danger-zone-empty">This operation is disabled outside staging and local development.</p>
+      {% endif %}
+    </section>
+
+    <section class="danger-zone-card purge-card">
+      <header class="danger-zone-card-header">
+        <div>
+          <p class="danger-zone-kicker">Permanent operation</p>
+          <h2>Purge all run data</h2>
+          <p>Permanently remove every challenge run, run submission, and submission notification.</p>
+        </div>
+        <span class="danger-zone-badge danger-badge">Cannot be undone</span>
+      </header>
+
+      <div class="danger-zone-counts" aria-label="Data that will be removed">
+        <div><span>Challenge runs</span><strong>{{ counts.runs }}</strong></div>
+        <div><span>Run submissions</span><strong>{{ counts.submissions }}</strong></div>
+        <div><span>Submission notifications</span><strong>{{ counts.notifications }}</strong></div>
+      </div>
+
+      <p class="danger-zone-preserved">
+        Participants, sign-in accounts, platform integrations, challenge modes, catalogue records, website content, and configuration are preserved.
+      </p>
+
+      {% if counts.runs or counts.submissions or counts.notifications %}
+        <form method="post" novalidate class="danger-zone-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="purge">
+          <div class="danger-zone-fields purge-fields">
+            <div class="danger-zone-field{% if form.confirmation.errors %} errors{% endif %}">
+              {{ form.confirmation.errors }}
+              {{ form.confirmation.label_tag }}
+              {{ form.confirmation }}
+              <small>This action cannot be undone.</small>
+            </div>
+          </div>
+          <div class="danger-zone-actions">
+            <input type="submit" value="Purge all run data" class="danger-zone-delete">
+          </div>
+        </form>
+      {% else %}
+        <p class="danger-zone-empty">There is no run data to purge.</p>
+      {% endif %}
+    </section>
   </div>
 {% endblock %}

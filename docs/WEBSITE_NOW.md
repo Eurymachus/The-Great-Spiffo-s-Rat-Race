@@ -69,6 +69,11 @@ records, while aliases and assets remain shared catalogue relationships.
   authority slice, updates the approved snapshot, and sends its notification in
   one database transaction. A forced importer failure is covered by a rollback
   test and leaves the submission received and the run pending.
+- The Run data danger zone provides a staging and local-development moderation
+  reset for one run or all runs. It transactionally returns submissions to the
+  review queue, clears approval-derived authority and baseline links, and
+  preserves uploaded exports, evidence, run identities, and participant
+  notifications. The permanent data purge remains a separate operation.
 - The signed-in player run page presents `Spawn choice` and `Starting location`
   from run-owned authority. Starting location is an icon-only link using the
   newest active `Base.Map` catalogue artwork, with `View map` alternative text;

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from django import forms
+from django.conf import settings
 from django.contrib import admin, messages
 from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
@@ -36,6 +37,7 @@ from .models import (
 from .pzwiki_artwork import enqueue_pzwiki_artwork_sync
 from .queue import enqueue_reference_update
 from .reference_paths import resolved_reference_paths
+from .run_moderation_reset import reset_run_moderation
 from .steam_auth import (
     begin_authentication,
     complete_authentication,
@@ -84,6 +86,50 @@ class PurgeRunDataForm(forms.Form):
         return confirmation
 
 
+class ResetRunModerationForm(forms.Form):
+    scope = forms.ChoiceField(
+        choices=(
+            ("selected", "One challenge run"),
+            ("all", "All challenge runs"),
+        ),
+        label="Reset scope",
+    )
+    run = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        label="Challenge run",
+        help_text="Required when resetting one challenge run.",
+    )
+    confirmation = forms.CharField(
+        label='Type "RESET MODERATION" to confirm',
+        strip=True,
+    )
+
+    def __init__(self, *args, **kwargs):
+        from registry.models import ChallengeRun
+
+        super().__init__(*args, **kwargs)
+        self.fields["run"].queryset = ChallengeRun.objects.select_related(
+            "participant"
+        ).order_by("character_name", "run_id")
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("scope") == "selected" and not cleaned.get("run"):
+            self.add_error("run", "Select the challenge run to reset.")
+        expected = (
+            "RESET ALL MODERATION"
+            if cleaned.get("scope") == "all"
+            else "RESET MODERATION"
+        )
+        if cleaned.get("confirmation") != expected:
+            self.add_error(
+                "confirmation",
+                f'Type "{expected}" exactly to confirm this reset.',
+            )
+        return cleaned
+
+
 @admin.register(RunDataDangerZone)
 class RunDataDangerZoneAdmin(admin.ModelAdmin):
     change_list_template = "admin/operations/run_data_danger_zone.html"
@@ -101,8 +147,41 @@ class RunDataDangerZoneAdmin(admin.ModelAdmin):
                 category=Notification.Category.SUBMISSION
             ).count(),
         }
-        form = PurgeRunDataForm(request.POST or None)
-        if request.method == "POST" and form.is_valid():
+        action = request.POST.get("action") or (
+            "purge" if request.method == "POST" else None
+        )
+        form = PurgeRunDataForm(request.POST if action == "purge" else None)
+        reset_available = bool(
+            getattr(settings, "DEBUG", False)
+            or getattr(settings, "STAGING_ENVIRONMENT", False)
+        )
+        reset_form = ResetRunModerationForm(
+            request.POST if action == "reset_moderation" else None
+        )
+        if request.method == "POST" and action == "reset_moderation":
+            if not reset_available:
+                return HttpResponseForbidden(
+                    "Moderation reset is available only in staging or local development."
+                )
+            if reset_form.is_valid():
+                with transaction.atomic():
+                    if reset_form.cleaned_data["scope"] == "all":
+                        run_ids = list(
+                            ChallengeRun.objects.values_list("pk", flat=True)
+                        )
+                    else:
+                        run_ids = [reset_form.cleaned_data["run"].pk]
+                    result = reset_run_moderation(run_ids)
+                messages.success(
+                    request,
+                    (
+                        "Moderation reset: "
+                        f"{result['runs']} runs and {result['submissions']} submissions "
+                        "returned to review. Uploaded exports and evidence were preserved."
+                    ),
+                )
+                return redirect("admin:operations_rundatadangerzone_changelist")
+        elif request.method == "POST" and action == "purge" and form.is_valid():
             with transaction.atomic():
                 deleted_notifications, _ = Notification.objects.filter(
                     category=Notification.Category.SUBMISSION
@@ -123,6 +202,8 @@ class RunDataDangerZoneAdmin(admin.ModelAdmin):
             "title": "Run data danger zone",
             "opts": self.model._meta,
             "form": form,
+            "reset_form": reset_form,
+            "reset_available": reset_available,
             "counts": counts,
         }
         return TemplateResponse(request, self.change_list_template, context)

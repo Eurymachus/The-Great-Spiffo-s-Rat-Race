@@ -36,7 +36,13 @@ from zomboid_catalogue.models import (
 )
 from operations import steam_auth
 from operations.steam_auth import begin_authentication
-from registry.models import ChallengeRun, Notification, Participant, RunSubmission
+from registry.models import (
+    ChallengeRun,
+    Notification,
+    Participant,
+    RunContractState,
+    RunSubmission,
+)
 
 
 class SystemOperationChangelistTests(TestCase):
@@ -202,6 +208,71 @@ class RunDataDangerZoneTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(ChallengeRun.objects.exists())
         self.assertTrue(RunSubmission.objects.exists())
+
+    @override_settings(STAGING_ENVIRONMENT=True)
+    @patch("operations.run_moderation_reset.decode_run_export_cached")
+    def test_selected_moderation_reset_preserves_export_and_evidence(self, decode):
+        self.client.force_login(self.admin)
+        decoded = MagicMock()
+        decoded.character_name = "Reset Survivor"
+        decoded.bootstrapped = True
+        decoded.events = [{"sequence": 1}]
+        decode.return_value = decoded
+        self.run.status = ChallengeRun.Status.OFFICIAL
+        self.run.character_name = "Approved Survivor"
+        self.run.lifecycle_status = ChallengeRun.Lifecycle.DECEASED
+        self.run.latest_projection = {"approved": True}
+        self.run.latest_events = [{"approved": True}]
+        self.run.save()
+        self.submission.status = RunSubmission.Status.APPROVED
+        self.submission.reviewed_at = timezone.now()
+        self.submission.review_note = "Approved"
+        self.submission.evidence_url = "https://example.com/vod"
+        self.submission.projection = {"pending": True}
+        self.submission.save()
+        RunContractState.objects.create(run=self.run, projection_schema=3)
+
+        response = self.client.post(
+            self.url,
+            {
+                "action": "reset_moderation",
+                "scope": "selected",
+                "run": self.run.pk,
+                "confirmation": "RESET MODERATION",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.run.refresh_from_db()
+        self.submission.refresh_from_db()
+        self.assertEqual(self.run.status, ChallengeRun.Status.PENDING)
+        self.assertIsNone(self.run.approved_submission)
+        self.assertEqual(self.run.lifecycle_status, ChallengeRun.Lifecycle.ACTIVE)
+        self.assertEqual(self.run.character_name, "Reset Survivor")
+        self.assertEqual(self.run.latest_projection, {"pending": True})
+        self.assertEqual(self.run.latest_events, [{"sequence": 1}])
+        self.assertEqual(self.submission.status, RunSubmission.Status.RECEIVED)
+        self.assertIsNone(self.submission.reviewed_at)
+        self.assertEqual(self.submission.review_note, "")
+        self.assertEqual(self.submission.raw_export, "test export")
+        self.assertEqual(self.submission.evidence_url, "https://example.com/vod")
+        self.assertFalse(RunContractState.objects.filter(run=self.run).exists())
+
+    @override_settings(DEBUG=False, STAGING_ENVIRONMENT=False)
+    def test_moderation_reset_is_forbidden_outside_staging_and_development(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            self.url,
+            {
+                "action": "reset_moderation",
+                "scope": "all",
+                "confirmation": "RESET ALL MODERATION",
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(ChallengeRun.objects.filter(pk=self.run.pk).exists())
 
     def test_confirmed_purge_removes_run_graph_and_submission_notifications(self):
         self.client.force_login(self.admin)
