@@ -33,19 +33,20 @@
       <div class="run-detail-table-wrap">
         <table class="run-detail-table">
           <thead>
-            <tr><th>Received by website</th><th>Challenge mode</th><th>Status</th><th>Kills</th><th>Reviewed</th></tr>
+            <tr><th>Received by website</th><th>Challenge mode</th><th>Status</th><th>Kills</th><th>Reviewed</th><th></th></tr>
           </thead>
           <tbody>
             {% for submission in run.submissions.all %}
               <tr{% if run.approved_submission_id == submission.pk %} class="is-current"{% endif %}>
                 <td><time datetime="{{ submission.submitted_at|date:'c' }}" data-local-datetime data-local-seconds>{{ submission.submitted_at|date:"j M Y, H:i:s" }}</time></td>
                 <td>{{ submission.challenge_mode_display }}</td>
-                <td>{{ submission.get_status_display }}{% if run.approved_submission_id == submission.pk %} <small>Current</small>{% endif %}</td>
+                <td>{{ submission.get_status_display }}{% if run.challenge_mode.evidence_required and not submission.evidence_url and submission.status != "approved" and submission.status != "declined" %}<small class="participant-evidence-warning"><span aria-hidden="true">△</span> Evidence missing, needed for approval</small>{% endif %}{% if run.approved_submission_id == submission.pk %} <small>Current</small>{% endif %}</td>
                 <td>{{ submission.current_kills }}</td>
                 <td>{% if submission.reviewed_at %}<time datetime="{{ submission.reviewed_at|date:'c' }}" data-local-datetime data-local-seconds>{{ submission.reviewed_at|date:"j M Y, H:i:s" }}</time>{% else %}Awaiting review{% endif %}</td>
+                <td>{% if submission.status == "received" or submission.status == "awaiting_evidence" %}<a class="dashboard-header-action" href="{% url 'registry:update_run_submission_evidence' submission.pk %}">{% if submission.evidence_url %}Update evidence{% else %}Add evidence{% endif %}</a>{% endif %}</td>
               </tr>
             {% empty %}
-              <tr><td colspan="5">No submissions recorded.</td></tr>
+              <tr><td colspan="6">No submissions recorded.</td></tr>
             {% endfor %}
           </tbody>
         </table>

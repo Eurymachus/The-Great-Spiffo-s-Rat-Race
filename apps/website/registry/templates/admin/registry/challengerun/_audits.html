@@ -1,0 +1,18 @@
+<section class="run-review-panel">
+  <header><h3>Submission audits for this run</h3></header>
+  <div class="run-event-table-wrap">
+    <table class="run-event-table">
+      <thead><tr><th>Submission</th><th>Approval</th><th>Audit history</th><th></th></tr></thead>
+      <tbody>
+      {% for submission in run_audit_submissions %}
+        <tr>
+          <td>{{ submission.submitted_at|date:"j M Y, H:i" }}</td>
+          <td>{{ submission.moderator_status }}</td>
+          <td>{% for entry in submission.audit_entries.all %}<p><strong>{{ entry.get_outcome_display }}</strong> · {{ entry.reviewer|default:"Former moderator" }} · {{ entry.created_at|date:"j M Y, H:i" }}<br>{{ entry.evidence_intervals|linebreaksbr }}<br>{{ entry.note|linebreaksbr }}</p>{% empty %}Not audited{% endfor %}</td>
+          <td><a class="run-context-button" href="{% url 'admin:registry_runsubmission_change' submission.pk %}?return_to_run=1&amp;run_tab=audits">Review audit</a></td>
+        </tr>
+      {% empty %}<tr><td colspan="4">No approved submissions are available to audit for this run.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>

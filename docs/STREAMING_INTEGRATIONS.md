@@ -154,8 +154,19 @@ The submission UI:
 3. Record the selected video's stable platform ID and canonical URL.
 4. Allow start and end timestamps plus optional supporting clips.
 5. Preserve a human-readable evidence snapshot for moderation and audit.
-6. Continue to require explicit moderator approval; platform linkage is evidence,
-   not automatic proof that a run is valid.
+6. Follow the agreed [submission review policy](SUBMISSION_REVIEW_POLICY.md):
+   new runs and significant findings require human approval; routine eligible
+   updates may be Auto-Approved with valid VOD evidence. Platform linkage alone
+   does not qualify as evidence of the submitted gameplay. This policy is
+   implemented locally and replaces the previous blanket manual requirement.
+   Direct Twitch/YouTube video checks require a connected matching channel for
+   automatic approval; unavailable verification routes to a moderator.
+7. Embed the supplied VOD on its submission record where supported, with evidence
+   timestamps and a direct provider link. An embed does not preserve deleted VODs.
+8. Keep accepted submissions available in Submission Audits. Use a seven-day
+   operational audit window from broadcast, sooner where possible; later
+   disputes require team discussion rather than assuming expired footage means
+   wrongdoing.
 
 Manual evidence URLs should remain available as a fallback when a provider is
 unavailable, a VOD is unlisted, or official API support is insufficient.

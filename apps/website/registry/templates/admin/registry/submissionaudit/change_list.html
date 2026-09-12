@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260911-4">
+{% endblock %}
+
+{% block content %}
+{% include "admin/registry/_run_navigation.html" with active="audits" %}
+<p>Inspect accepted submissions and record audits. Auditing preserves the original approval decision.</p>
+{{ block.super }}
+{% endblock %}

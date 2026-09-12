@@ -1,18 +1,34 @@
 {% extends "admin/change_form.html" %}
-{% load i18n admin_urls %}
+{% load i18n admin_urls static %}
 
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260912-8">
+{% endblock %}
+
+{% block content_title %}{% if not original or not run_review %}{{ block.super }}{% endif %}{% endblock %}
+{% block content_subtitle %}{% if not original or not run_review %}{{ block.super }}{% endif %}{% endblock %}
+{% block object-tools %}{% if not original or not run_review %}{{ block.super }}{% endif %}{% endblock %}
 {% block field_sets %}
   {% if original and run_review %}
     {% if return_to_run %}<span hidden data-admin-return-url="{{ run_queue_url }}"></span>{% endif %}
     <div class="run-review">
-      <section class="run-review-hero">
+      <section class="run-review-hero run-record-banner">
         <div>
           <p class="run-review-kicker">Run submission review</p>
-          <h2>{{ original.run.character_name|default:"Unnamed survivor" }}</h2>
+          <h1>{{ original.run.character_name|default:"Unnamed survivor" }}</h1>
           <p>Submitted by <strong>{{ original.submitter|default:"Former Rat Racer" }}</strong></p>
         </div>
-        <span class="run-review-status status-{{ original.status }}">{{ original.get_status_display }}</span>
+        <div class="run-banner-statuses">
+          <span class="run-review-status status-{{ original.status }}">{{ original.moderator_status }}</span>
+          {% if review_unavailable %}<span class="run-review-status finding-warning">Review unavailable: run {{ original.run.get_lifecycle_status_display|lower }}</span>{% endif %}
+          {% for reason in current_review_reasons %}
+            <span class="run-review-status finding-warning">{% if reason == "First approval for this run" %}First Approval{% else %}{{ reason }}{% endif %}</span>
+          {% endfor %}
+        </div>
+        <div class="run-header-actions"><a class="run-history-button" href="{% url 'admin:registry_runsubmission_history' original.pk %}">History</a></div>
       </section>
+      {% include "admin/registry/_run_local_navigation.html" with run=original.run active=run_tab|default:"submissions" %}
 
       <section class="run-review-summary" aria-label="Run summary">
         <div><small>Zombie kills</small><strong>{{ original.current_kills }}</strong></div>
@@ -37,7 +53,8 @@
 
         <section class="run-review-panel">
           <header><div><p class="run-review-kicker">Approved baseline</p><h3>Material changes</h3></div></header>
-          {% if run_review.comparison %}
+          {% if run_review.invalid_export %}<div class="run-review-empty"><strong>Comparison unavailable</strong><p>The export must pass validation before its history can be compared.</p></div>
+          {% elif run_review.comparison %}
             <dl class="run-review-comparison">
               <div><dt>Approved snapshot</dt><dd>{{ run_review.baseline.reviewed_at|date:"j M Y, H:i" }}</dd></div>
               <div><dt>Additional events</dt><dd>{{ run_review.comparison.event_delta|stringformat:"+d" }}</dd></div>
@@ -50,8 +67,43 @@
         </section>
       </div>
 
+      {% if run_review.comparison.changed_events %}
       <section class="run-review-panel">
+        <details class="run-event-differences">
+          <summary>Compare changes ({{ run_review.comparison.changed_events|length }} events)</summary>
+          {% for event in run_review.comparison.changed_events %}
+          <article class="run-event-change-card">
+            <div class="run-event-change-heading"><strong>Event {{ event.sequence }}</strong><span>{% if event.removed %}Missing from this submission{% elif event.replacement %}Different event at this position{% else %}Event details changed{% endif %}</span></div>
+            <div class="run-event-change-pair">
+              <div><small>Previously approved</small><strong>{{ event.label }}</strong></div>
+              <div><small>This submission</small><strong>{{ event.after_label }}</strong></div>
+            </div>
+            {% if not event.removed %}<p><a href="#ledger-event-{{ event.sequence }}">View event in ledger</a></p>{% endif %}
+            <details class="run-event-field-details"><summary>{% if event.replacement or event.removed %}Technical details{% else %}Compare changed fields ({{ event.fields|length }}){% endif %}</summary>
+            {% if not event.replacement and not event.removed %}
+            <div class="run-diff-table-wrap"><table>
+              <thead><tr><th>Changed field</th><th>Previously approved</th><th>This submission</th></tr></thead>
+              <tbody>{% for field in event.fields %}<tr><th>{{ field.field }}</th><td class="run-diff-before"><pre>{{ field.before }}</pre></td><td class="run-diff-after"><pre>{{ field.after }}</pre></td></tr>{% endfor %}</tbody>
+            </table></div>
+            {% endif %}
+            <details><summary>Raw event data</summary><h4>Previously approved</h4><pre>{{ event.before_json }}</pre><h4>This submission</h4><pre>{{ event.after_json }}</pre></details>
+            </details>
+          </article>
+          {% endfor %}
+        </details>
+      </section>
+      {% endif %}
+
+      <section class="run-review-panel run-stream-evidence">
         <header><div><p class="run-review-kicker">Stream evidence</p><h3>Broadcast and clips</h3></div></header>
+        {% if original.evidence_url %}
+        <div class="run-evidence-notice run-section-finding {% if original.evidence_check.state == 'valid' and not vod.expired %}finding-pass{% else %}finding-warning{% endif %}">
+          <span class="finding-icon" aria-hidden="true">{% if original.evidence_check.state == 'valid' and not vod.expired %}✓{% else %}△{% endif %}</span>
+          <div><strong>{% if vod.expired %}Audit window elapsed{% elif original.evidence_check.state == 'valid' %}Video link verified{% else %}Evidence needs checking{% endif %}</strong><p>{{ vod.reason }}</p>
+        {% if vod.deadline %}<p>VOD audit window: {{ vod.deadline|date:"j M Y, H:i" }}{% if vod.expired %} (elapsed; later disputes require team discussion){% endif %}</p>{% else %}<p>Broadcast date unknown. Check footage availability promptly.</p>{% endif %}
+        </div></div>
+        {% endif %}
+        {% if vod.embed %}<iframe class="submission-vod" src="{{ vod.embed }}" title="Submission VOD evidence" loading="lazy" allow="fullscreen" allowfullscreen></iframe>{% endif %}
         {% with evidence=original %}
           {% if evidence and evidence.evidence_url %}
             <dl class="run-review-comparison">
@@ -63,43 +115,71 @@
             {% if evidence.evidence_clips %}
               <div class="run-event-counts">
                 {% for clip in evidence.evidence_clips %}
-                  <div><strong>Clip</strong><a href="{{ clip.url }}" target="_blank" rel="noopener noreferrer">{{ clip.title|default:clip.media_id }}</a><small>{% if clip.vod_offset_seconds is not None %}VOD offset {{ clip.vod_offset_seconds }} seconds{% endif %}</small></div>
+                  <div><strong>{% if clip.kind == "video" %}Broadcast{% else %}Clip{% endif %}</strong><a href="{{ clip.url }}" target="_blank" rel="noopener noreferrer">{{ clip.title|default:clip.media_id }}</a><small>{% if clip.vod_offset_seconds is not None %}VOD offset {{ clip.vod_offset_seconds }} seconds{% endif %}</small></div>
                 {% endfor %}
               </div>
             {% endif %}
           {% else %}
-            <div class="run-review-empty"><strong>No stream evidence attached</strong><p>The participant did not select a cached broadcast or provide a manual URL.</p></div>
+            <div class="run-section-finding {% if original.challenge_mode.evidence_required %}finding-warning{% else %}finding-info{% endif %}"><span class="finding-icon" aria-hidden="true">{% if original.challenge_mode.evidence_required %}△{% else %}i{% endif %}</span><div><strong>No stream evidence attached</strong><p>{% if original.challenge_mode.evidence_required %}A VOD link is required before approval. Request evidence from the participant.{% else %}Evidence is optional in this challenge. Clean updates can be approved automatically after the first review.{% endif %}</p></div></div>
+          {% endif %}
+          {% if original.evidence_request_note %}
+            <div class="run-section-finding finding-warning"><span class="finding-icon" aria-hidden="true">△</span><div><strong>Evidence requested</strong><p>{{ original.evidence_request_note }}</p></div></div>
+          {% endif %}
+          {% if original.evidence_revisions.count > 1 %}
+      <details class="run-review-evidence">
+              <summary>Evidence revision history</summary>
+              <dl>
+                {% for revision in original.evidence_revisions.all %}
+                  <div><dt>{{ revision.created_at|date:"j M Y, H:i" }} · {{ revision.get_source_display }}</dt><dd>{% if revision.evidence_url %}<a href="{{ revision.evidence_url }}" target="_blank" rel="noopener noreferrer">{{ revision.evidence_title|default:revision.evidence_url }}</a>{% else %}No broadcast URL{% endif %}</dd></div>
+                {% endfor %}
+              </dl>
+            </details>
           {% endif %}
         {% endwith %}
       </section>
 
+            {% if original.status == "approved" %}
+      <section class="run-review-panel">
+        <header><div><p class="run-review-kicker">Submission audit</p><h3>Audit history</h3></div></header>
+        <div style="padding: 1.25rem">
+        <p>Accepted {{ original.reviewed_at|date:"j M Y, H:i" }} by {% if original.approval_method == "automatic" %}automatic policy{% else %}{{ original.reviewed_by|default:"Historical reviewer" }}{% endif %}. Policy version: {{ original.approval_policy_version }}. Acceptance does not mean all footage was watched.</p>
+        {% for entry in audit_entries %}<article><strong>{{ entry.get_outcome_display }}</strong> · {{ entry.reviewer|default:"Former moderator" }} · {{ entry.created_at|date:"j M Y, H:i" }}<p>{{ entry.evidence_intervals|linebreaksbr }}</p><p>{{ entry.note|linebreaksbr }}</p></article>{% empty %}<p>Not audited.</p>{% endfor %}
+
+        </div>
+      </section>
+      {% endif %}
       <section class="run-review-panel">
         <header><div><p class="run-review-kicker">Ledger overview</p><h3>Recorded event types</h3></div></header>
+        {% if run_review.event_counts %}
         <div class="run-event-counts">
           {% for event in run_review.event_counts %}
             <div><strong>{{ event.count }}</strong><span>{{ event.label }}</span><small>{{ event.event_type }}</small></div>
-          {% empty %}
-            <p>No ledger events were decoded.</p>
           {% endfor %}
         </div>
+        {% else %}
+        <div class="run-review-empty">
+          <strong>{% if run_review.invalid_export %}Ledger overview unavailable{% else %}No ledger events{% endif %}</strong>
+          <p>{% if run_review.invalid_export %}The export could not be validated, so its event types cannot be displayed.{% else %}This submission contains no decoded events.{% endif %}</p>
+        </div>
+        {% endif %}
       </section>
 
       <section class="run-review-panel">
-        <header><div><p class="run-review-kicker">Chronology</p><h3>Event ledger</h3></div><span>{{ run_review.event_rows|length }} events</span></header>
+        <header><div><p class="run-review-kicker">Chronology</p><h3>Event ledger</h3></div><span>{% if run_review.invalid_export %}Unavailable{% else %}{{ run_review.event_rows|length }} events{% endif %}</span></header>
         <div class="run-event-table-wrap">
           <table class="run-event-table">
             <thead><tr><th>Seq.</th><th>Day</th><th>Event</th><th>Details</th><th>Recorded</th></tr></thead>
             <tbody>
               {% for event in run_review.event_rows reversed %}
-                <tr>
+                <tr id="ledger-event-{{ event.sequence }}" class="ledger-row-{{ event.review_level }}">
                   <td>{{ event.sequence }}</td>
                   <td>{% if event.day %}{{ event.day }}{% else %}Not recorded{% endif %}</td>
-                  <td><strong>{{ event.label }}</strong><small>{{ event.event_type }}</small></td>
+                  <td><strong>{{ event.label }}</strong><small>{{ event.event_type }}</small>{% if event.review_reason %}<span class="ledger-finding finding-{{ event.review_level }}"><span aria-hidden="true">{% if event.review_level == "danger" %}!{% elif event.review_level == "warning" %}△{% else %}✓{% endif %}</span> {{ event.review_reason }}</span>{% endif %}</td>
                   <td>{{ event.summary }}{% if event.identifiers %}<small>{{ event.identifiers }}</small>{% endif %}</td>
                   <td>{% if event.occurred_at %}{{ event.occurred_at|date:"j M Y, H:i:s" }}{% else %}Not recorded{% endif %}</td>
                 </tr>
               {% empty %}
-                <tr><td colspan="5">No events were decoded.</td></tr>
+                <tr><td colspan="5"><div class="run-review-empty"><strong>{% if run_review.invalid_export %}Event ledger unavailable{% else %}No ledger events{% endif %}</strong><p>{% if run_review.invalid_export %}The export must pass validation before its events can be displayed.{% else %}This submission contains no decoded events.{% endif %}</p></div></td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -140,17 +220,20 @@
 {% endblock %}
 
 {% block submit_buttons_bottom %}
-  {% if original and original.status == "received" %}
+  {% if original and original.status == "received" and not review_unavailable %}
     {% url 'admin:registry_runsubmission_approve' original.pk as approve_url %}
     {% url 'admin:registry_runsubmission_decline' original.pk as decline_url %}
+    {% url 'admin:registry_runsubmission_request_evidence' original.pk as evidence_url %}
     <div class="submit-row run-review-submit-row">
       <button
         type="submit"
         class="button run-review-approve"
-        formaction="{% if return_to_run %}{{ approve_url }}?return_to_run=1{% else %}{% add_preserved_filters approve_url %}{% endif %}"
+        formaction="{% if return_to_run %}{{ approve_url }}?{{ review_return_query }}{% else %}{% add_preserved_filters approve_url %}{% endif %}"
         formmethod="post"
+        {% if run_review.invalid_export %}disabled title="Export validation failed"{% endif %}
       >Approve</button>
       <button type="button" class="button run-review-decline" data-run-decline-open>Decline</button>
+      <button type="button" class="button" data-run-evidence-open>Request evidence</button>
     </div>
     <dialog class="run-decline-dialog" data-run-decline-dialog{% if decline_error %} data-run-decline-error{% endif %} aria-labelledby="run-decline-title">
       <h2 id="run-decline-title">Decline this submission?</h2>
@@ -163,11 +246,40 @@
         <button
           type="submit"
           class="button run-review-decline"
-          formaction="{% if return_to_run %}{{ decline_url }}?return_to_run=1{% else %}{% add_preserved_filters decline_url %}{% endif %}"
+          formaction="{% if return_to_run %}{{ decline_url }}?{{ review_return_query }}{% else %}{% add_preserved_filters decline_url %}{% endif %}"
           formmethod="post"
         >Decline submission</button>
       </div>
     </dialog>
+    <dialog class="run-decline-dialog" data-run-evidence-dialog{% if evidence_error %} data-run-evidence-error{% endif %} aria-labelledby="run-evidence-title">
+      <h2 id="run-evidence-title">Request more evidence?</h2>
+      <p>The participant will be notified and taken directly to the evidence update page. Later submissions remain blocked until this is resolved.</p>
+      <label for="run-evidence-reason">What evidence is needed?</label>
+      {% if evidence_error == "reason_required" %}<p class="run-decline-error" role="alert">Explain what evidence the participant needs to provide.</p>{% endif %}
+      <textarea id="run-evidence-reason" name="reason" rows="5" maxlength="1000" required disabled></textarea>
+      <div class="run-decline-actions">
+        <button type="button" class="button" data-run-evidence-close>Cancel</button>
+        <button type="submit" class="button" formaction="{% if return_to_run %}{{ evidence_url }}?{{ review_return_query }}{% else %}{% add_preserved_filters evidence_url %}{% endif %}" formmethod="post">Request evidence</button>
+      </div>
+    </dialog>
+  {% elif original.status == "approved" and can_audit %}
+    <div class="submit-row run-review-submit-row"><button type="button" class="button run-review-approve" data-audit-open>Submit audit</button></div>
+    <dialog class="run-decline-dialog" data-audit-dialog aria-labelledby="audit-dialog-title">
+      <h2 id="audit-dialog-title">Submit audit</h2>
+      <p>Record what you inspected and the outcome of your audit.</p>
+      <label for="audit-outcome">Audit state</label>
+      <select id="audit-outcome" name="outcome">{% for value,label in audit_outcomes %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+      <label for="audit-intervals">Video links and intervals inspected</label>
+      <textarea id="audit-intervals" name="evidence_intervals" rows="3" maxlength="5000"></textarea>
+      <label for="audit-note">Conclusion or next action</label>
+      <textarea id="audit-note" name="audit_note" rows="3" maxlength="5000"></textarea>
+      <div class="run-decline-actions"><button type="button" class="button" data-audit-close>Cancel</button><button type="submit" class="button" formaction="{% url 'admin:registry_runsubmission_audit' original.pk %}{% if return_to_run %}?{{ review_return_query }}{% endif %}" formmethod="post">Submit audit</button></div>
+    </dialog>
+  {% elif original and original.status == "awaiting_evidence" %}
+    <div class="submit-row run-review-complete">
+      Awaiting evidence from the participant
+      {% if original.evidence_request_note %}<span>{{ original.evidence_request_note }}</span>{% endif %}
+    </div>
   {% else %}
     <div class="submit-row run-review-complete">
       Review completed
@@ -179,6 +291,14 @@
 {% block admin_change_form_document_ready %}
   {{ block.super }}
   <script>
+    (() => {
+      const auditDialog = document.querySelector("[data-audit-dialog]");
+      document.querySelector("[data-audit-open]")?.addEventListener("click", () => {
+        auditDialog.showModal();
+        auditDialog.querySelector("select").focus();
+      });
+      document.querySelector("[data-audit-close]")?.addEventListener("click", () => auditDialog.close());
+    })();
     (() => {
       const dialog = document.querySelector("[data-run-decline-dialog]");
       const open = document.querySelector("[data-run-decline-open]");
@@ -204,6 +324,29 @@
       });
       dialog.addEventListener("click", (event) => {
         if (event.target === dialog) closeDialog();
+      });
+
+      const evidenceDialog = document.querySelector("[data-run-evidence-dialog]");
+      const evidenceOpen = document.querySelector("[data-run-evidence-open]");
+      const evidenceClose = document.querySelector("[data-run-evidence-close]");
+      if (!evidenceDialog || !evidenceOpen) return;
+      const evidenceReason = evidenceDialog.querySelector("textarea");
+      if (evidenceDialog.hasAttribute("data-run-evidence-error")) {
+        evidenceReason.disabled = false;
+        evidenceDialog.showModal();
+        evidenceReason.focus();
+      }
+      evidenceOpen.addEventListener("click", () => {
+        evidenceReason.disabled = false;
+        evidenceDialog.showModal();
+        evidenceReason.focus();
+      });
+      evidenceClose?.addEventListener("click", () => evidenceDialog.close());
+      evidenceDialog.addEventListener("close", () => {
+        evidenceReason.disabled = true;
+      });
+      evidenceDialog.addEventListener("click", (event) => {
+        if (event.target === evidenceDialog) evidenceDialog.close();
       });
     })();
   </script>

@@ -10,8 +10,8 @@ from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth.models import Group
-from django.db import transaction
-from django.db.models import Case, IntegerField, Q, Value, When
+from django.db import transaction, OperationalError
+from django.db.models import Case, Count, IntegerField, Q, Value, When
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed, QueryDict
 from django.shortcuts import redirect
 from django.urls import path
@@ -38,6 +38,8 @@ from .models import (
     Participant,
     ParticipantChallengeModeLimit,
     RunSubmission,
+    SubmissionAudit,
+    SubmissionAuditEntry,
     StreamingAccount,
     StreamingMedia,
     WorkshopMod,
@@ -465,7 +467,7 @@ from .tokens import create_verification_token
 from .verification_email import send_verification_email
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
 from .notifications import notify
-from .run_review import build_run_review
+from .run_review import build_challenge_run_overview, build_run_review
 from .run_exports import decode_run_export
 from .challenge_modes import resolve_challenge_mode
 
@@ -1157,11 +1159,11 @@ class ChallengeModeAliasInline(admin.TabularInline):
 @admin.register(ChallengeMode)
 class ChallengeModeAdmin(admin.ModelAdmin):
     list_display = (
-        "display_name", "key", "game_mode_name", "max_active_runs_per_participant",
+        "display_name", "key", "game_mode_name", "evidence_required", "max_active_runs_per_participant",
         "max_pending_deceased_runs_per_participant",
         "is_active", "display_order",
     )
-    list_editable = ("max_active_runs_per_participant", "max_pending_deceased_runs_per_participant", "is_active", "display_order")
+    list_editable = ("evidence_required", "max_active_runs_per_participant", "max_pending_deceased_runs_per_participant", "is_active", "display_order")
     search_fields = ("display_name", "key", "game_mode_name", "aliases__key")
     inlines = (ChallengeModeAliasInline,)
 
@@ -1179,8 +1181,34 @@ class ParticipantChallengeModeLimitAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
+class RunModerationHistoryMixin:
+    object_history_template = "admin/registry/run_history.html"
+
+    def history_view(self, request, object_id, extra_context=None):
+        obj = self.get_object(request, object_id)
+        context = dict(extra_context or {})
+        events = []
+        if obj and self.has_view_or_change_permission(request, obj):
+            submissions = obj.submissions.all() if isinstance(obj, ChallengeRun) else RunSubmission.objects.filter(pk=obj.pk)
+            for sub in submissions.select_related("submitter", "reviewed_by", "evidence_requested_by").prefetch_related("audit_entries__reviewer"):
+                label = str(sub.pk)
+                events.append({"date": sub.submitted_at, "actor": sub.submitter or "Former participant", "action": "Submission received", "detail": "", "submission": label})
+                if sub.reviewed_at:
+                    events.append({"date": sub.reviewed_at, "actor": "Automatic approval" if sub.approval_method == "automatic" else sub.reviewed_by or "Former reviewer", "action": sub.get_status_display(), "detail": sub.review_note, "submission": label})
+                if sub.evidence_requested_at:
+                    events.append({"date": sub.evidence_requested_at, "actor": sub.evidence_requested_by or "System", "action": "Evidence requested", "detail": sub.evidence_request_note, "submission": label})
+                for audit in sub.audit_entries.all():
+                    events.append({"date": audit.created_at, "actor": audit.reviewer or "Former reviewer", "action": "Audit: " + audit.get_outcome_display(), "detail": audit.note, "submission": label})
+            run = obj if isinstance(obj, ChallengeRun) else obj.run
+            if run.participant_deactivated_at:
+                events.append({"date": run.participant_deactivated_at, "actor": run.participant or "Former participant", "action": "Run deactivated", "detail": "Participant deactivation recorded.", "submission": ""})
+            events.sort(key=lambda event: event["date"], reverse=True)
+        context["moderation_events"] = events
+        return super().history_view(request, object_id, context)
+
+
 @admin.register(ChallengeRun)
-class ChallengeRunAdmin(admin.ModelAdmin):
+class ChallengeRunAdmin(RunModerationHistoryMixin, admin.ModelAdmin):
     change_form_template = "admin/registry/challengerun/change_form.html"
     change_list_template = "admin/registry/challengerun/change_list.html"
     list_display = (
@@ -1202,6 +1230,9 @@ class ChallengeRunAdmin(admin.ModelAdmin):
         "first_submitted_at", "updated_at",
     )
 
+    class Media:
+        css = {"all": ("registry/admin_run_review.css",)}
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
             "participant", "challenge_mode", "approved_submission"
@@ -1211,15 +1242,12 @@ class ChallengeRunAdmin(admin.ModelAdmin):
         if not self.has_view_permission(request):
             raise Http404
 
-        params = request.GET
-        if not request.META.get("QUERY_STRING"):
-            saved_filters = unquote(
-                request.COOKIES.get("rat_race_admin_challenge_run_filters", "")
-            )
-            if saved_filters:
-                params = QueryDict(saved_filters)
+        from .run_saved_views import resolve_view, apply_work_filters, manage_view
+        if request.method == "POST":
+            return manage_view(request)
+        params, view_context = resolve_view(request)
 
-        runs = self.get_queryset(request)
+        runs = self.get_queryset(request).annotate(submission_count=Count("submissions"))
         search = params.get("q", "").strip()
         if search:
             runs = runs.filter(
@@ -1229,46 +1257,84 @@ class ChallengeRunAdmin(admin.ModelAdmin):
                 | Q(participant__email__icontains=search)
             )
 
+        def filter_values(runs, params):
+            challenge_mode = params.get("challenge_mode", "")
+            if challenge_mode == "unmapped":
+                runs = runs.filter(challenge_mode__isnull=True)
+            elif challenge_mode:
+                runs = runs.filter(challenge_mode_id=challenge_mode)
+
+            lifecycle_status = params.get("lifecycle_status", "")
+            if lifecycle_status in ChallengeRun.Lifecycle.values:
+                runs = runs.filter(lifecycle_status=lifecycle_status)
+
+            verification_status = params.get("status", "")
+            if verification_status in ChallengeRun.Status.values:
+                runs = runs.filter(status=verification_status)
+
+            export_format = params.get("export_format", "")
+            if export_format.isdigit():
+                runs = runs.filter(export_format=int(export_format))
+
+            bootstrapped = params.get("bootstrapped", "")
+            if bootstrapped in {"yes", "no"}:
+                runs = runs.filter(bootstrapped=bootstrapped == "yes")
+
+            updated = params.get("updated", "")
+            now = timezone.now()
+            if updated == "today":
+                runs = runs.filter(updated_at__date=timezone.localdate())
+            elif updated == "7days":
+                runs = runs.filter(updated_at__gte=now - timedelta(days=7))
+            elif updated == "month":
+                runs = runs.filter(updated_at__gte=now - timedelta(days=30))
+            elif updated == "year":
+                runs = runs.filter(updated_at__gte=now - timedelta(days=365))
+
+            runs = apply_work_filters(runs, params)
+            return runs
+        for filter_key in ("challenge_mode", "lifecycle_status", "status", "export_format", "bootstrapped", "updated", "work", "audit", "vod"):
+            values = [value for value in params.get(filter_key, "").split(",") if value]
+            if values:
+                matching = Q(pk__in=[])
+                for value in values:
+                    matching |= Q(pk__in=filter_values(runs, {filter_key: value}).values("pk"))
+                runs = runs.filter(matching)
+        runs = apply_work_filters(runs, {})
         challenge_mode = params.get("challenge_mode", "")
-        if challenge_mode == "unmapped":
-            runs = runs.filter(challenge_mode__isnull=True)
-        elif challenge_mode:
-            runs = runs.filter(challenge_mode_id=challenge_mode)
-
         lifecycle_status = params.get("lifecycle_status", "")
-        if lifecycle_status in ChallengeRun.Lifecycle.values:
-            runs = runs.filter(lifecycle_status=lifecycle_status)
-
         verification_status = params.get("status", "")
-        if verification_status in ChallengeRun.Status.values:
-            runs = runs.filter(status=verification_status)
-
         export_format = params.get("export_format", "")
-        if export_format.isdigit():
-            runs = runs.filter(export_format=int(export_format))
-
         bootstrapped = params.get("bootstrapped", "")
-        if bootstrapped in {"yes", "no"}:
-            runs = runs.filter(bootstrapped=bootstrapped == "yes")
-
         updated = params.get("updated", "")
-        now = timezone.now()
-        if updated == "today":
-            runs = runs.filter(updated_at__date=timezone.localdate())
-        elif updated == "7days":
-            runs = runs.filter(updated_at__gte=now - timedelta(days=7))
-        elif updated == "month":
-            runs = runs.filter(updated_at__gte=now - timedelta(days=30))
-        elif updated == "year":
-            runs = runs.filter(updated_at__gte=now - timedelta(days=365))
-
+        table_headers = []
+        current_sort = params.get("sort") or "-updated_at"
+        for label, field in [("Run", "character_name"), ("Participant", "participant__nickname"), ("Lifecycle", "lifecycle_status"), ("Verification", "status"), ("Kills", "current_kills"), ("Events", "event_sequence"), ("Submissions / Work", "submission_count"), ("Updated", "updated_at")]:
+            header_params = params.copy()
+            header_params.pop("page", None)
+            header_params["sort"] = "-" + field if current_sort == field else field
+            table_headers.append({"label": label, "url": "?" + header_params.urlencode(), "direction": ("descending" if current_sort.startswith("-") else "ascending") if current_sort.lstrip("-") == field else "none"})
+        view_context["table_headers"] = table_headers
         filtered_count = runs.count()
-        paginator = Paginator(runs.order_by("-updated_at"), 50)
+        paginator = Paginator(runs.order_by(params.get("sort") or "-updated_at", "pk"), 50)
         try:
             page_number = max(1, int(params.get("page", "1")))
         except ValueError:
             page_number = 1
         page = paginator.get_page(page_number)
+        from django.db.models import Prefetch
+        page.object_list = page.object_list.prefetch_related(Prefetch(
+            "submissions", queryset=RunSubmission.objects.filter(status__in=("received", "awaiting_evidence")).order_by("submitted_at", "pk"), to_attr="pending_reviews"))
+        for run in page.object_list:
+            oldest = run.pending_reviews[0] if run.pending_reviews else None
+            run.direct_review_url = (reverse("admin:registry_runsubmission_change", args=(oldest.pk,)) + "?return_to_run=1&run_tab=submissions") if oldest and params.get("work") == "review" else ""
+            if params.get("audit") and not run.direct_review_url and run.approved_submission_id:
+                run.direct_review_url = reverse("admin:registry_runsubmission_change", args=(run.approved_submission_id,)) + "?return_to_run=1&run_tab=audits"
+            from .run_review import current_review_reasons
+            run.review_findings = current_review_reasons(oldest) if oldest else []
+
+
+
 
         query = params.copy()
         query.pop("page", None)
@@ -1283,7 +1349,8 @@ class ChallengeRunAdmin(admin.ModelAdmin):
         )
         context = {
             **self.admin_site.each_context(request),
-            "title": "Challenge runs",
+            **view_context,
+            "title": "Challenge Runs",
             "opts": self.model._meta,
             "runs": page.object_list,
             "page": page,
@@ -1358,6 +1425,25 @@ class ChallengeRunAdmin(admin.ModelAdmin):
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         context = dict(extra_context or {})
+        run = self.get_object(request, object_id)
+        if run:
+            context["run_overview"] = build_challenge_run_overview(run)
+            context["run_tab"] = request.GET.get("tab", "overview")
+            if context["run_tab"] not in {"overview", "submissions", "audits"}:
+                context["run_tab"] = "overview"
+            context["run_audit_submissions"] = run.submissions.filter(status="approved").prefetch_related("audit_entries__reviewer").order_by("submitted_at", "pk")
+            context["next_review_id"] = run.submissions.filter(status__in=RunSubmission.moderation_queue_statuses()).order_by("submitted_at", "pk").values_list("pk", flat=True).first()
+            context["pending_statuses"] = RunSubmission.moderation_queue_statuses() if run.lifecycle_status not in {"invalidated"} else ()
+            context["run_submissions"] = run.submissions.select_related(
+                "submitter", "reviewed_by", "challenge_mode"
+            ).order_by(
+                "generated_at", "submitted_at", "pk"
+            )
+            if context["run_tab"] == "submissions":
+                from .run_review import current_review_summary
+                for submission in context["run_submissions"]:
+                    submission.run = run
+                    submission.current_review = current_review_summary(submission)
         context["lifecycle_choices"] = ChallengeRun.Lifecycle.choices
         context["status_error"] = request.GET.get("status_error", "")
         return super().change_view(request, object_id, form_url, context)
@@ -1378,21 +1464,23 @@ class RunSubmissionApprovalFilter(admin.SimpleListFilter):
         if self.value() == "approved":
             return queryset.filter(status=RunSubmission.Status.APPROVED)
         if self.value() == "unapproved":
-            return queryset.filter(status=RunSubmission.Status.RECEIVED)
+            return queryset.filter(
+                status__in=RunSubmission.moderation_queue_statuses()
+            )
         if self.value() == "declined":
             return queryset.filter(status=RunSubmission.Status.DECLINED)
         return queryset
 
 
 @admin.register(RunSubmission)
-class RunSubmissionAdmin(admin.ModelAdmin):
+class RunSubmissionAdmin(RunModerationHistoryMixin, admin.ModelAdmin):
     change_form_template = "admin/registry/runsubmission/change_form.html"
     list_display = (
         "run", "submitter", "review_status", "first_approval", "current_kills",
         "event_sequence", "submitted_at",
     )
     list_filter = (RunSubmissionApprovalFilter, "export_format", "submitted_at")
-    actions = ("approve_selected_clean_submissions",)
+    actions = None
     search_fields = ("run__run_id", "run__character_name", "submitter__nickname")
     autocomplete_fields = ("run", "submitter")
     readonly_fields = (
@@ -1403,8 +1491,11 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         "evidence_media_id", "evidence_url", "evidence_title",
         "evidence_start_seconds", "evidence_end_seconds", "evidence_clips",
         "projection", "reviewed_at", "review_note",
+        "reviewed_by", "evidence_requested_at", "evidence_requested_by",
+        "evidence_request_note",
         "preapproval_state", "preapproval_findings", "preapproval_version",
-        "preapproval_assessed_at",
+        "preapproval_assessed_at", "approval_method", "approval_policy_version",
+        "routing_reasons", "evidence_check", "evidence_checked_at",
     )
 
     class Media:
@@ -1414,7 +1505,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related(
             "run", "run__approved_submission", "baseline_submission", "submitter",
             "challenge_mode",
-        )
+        ).prefetch_related("evidence_revisions")
 
     @admin.display(description="Approval")
     def first_approval(self, submission):
@@ -1426,6 +1517,8 @@ class RunSubmissionAdmin(admin.ModelAdmin):
 
     @admin.display(description="Status", ordering="status")
     def review_status(self, submission):
+        if submission.status == RunSubmission.Status.APPROVED and submission.approval_method == "automatic":
+            return format_html('<span class="run-review-list-badge">{}</span>', "Auto-Approved")
         if submission.status == RunSubmission.Status.APPROVED:
             return format_html(
                 '<span class="run-review-list-badge status-approved"><span aria-hidden="true">✓</span> Approved</span>'
@@ -1433,6 +1526,10 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         if submission.status == RunSubmission.Status.DECLINED:
             return format_html(
                 '<span class="run-review-list-badge status-declined"><span aria-hidden="true">!</span> Declined</span>'
+            )
+        if submission.status == RunSubmission.Status.AWAITING_EVIDENCE:
+            return format_html(
+                '<span class="run-review-list-badge finding-warning"><span aria-hidden="true">△</span> Awaiting evidence</span>'
             )
         severity, icon, label = {
             RunSubmission.PreapprovalState.GREEN: ("pass", "✓", "All checks passed"),
@@ -1450,33 +1547,11 @@ class RunSubmissionAdmin(admin.ModelAdmin):
             severity, icon, label,
         )
 
-    @admin.action(description="Approve selected all-green submissions")
-    def approve_selected_clean_submissions(self, request, queryset):
-        approved = 0
-        skipped = 0
-        for submission in queryset.order_by("submitted_at"):
-            if (
-                submission.status != RunSubmission.Status.RECEIVED
-                or submission.preapproval_state != RunSubmission.PreapprovalState.GREEN
-            ):
-                skipped += 1
-                continue
-            self.approve_submission_view(request, str(submission.pk))
-            submission.refresh_from_db(fields=("status",))
-            if submission.status == RunSubmission.Status.APPROVED:
-                approved += 1
-            else:
-                skipped += 1
-        if approved:
-            self.message_user(request, f"Approved {approved} all-green submission(s).", level=messages.SUCCESS)
-        if skipped:
-            self.message_user(
-                request,
-                f"Skipped {skipped} submission(s) that were not received, were not all green, or could not be approved.",
-                level=messages.WARNING,
-            )
-
     def changelist_view(self, request, extra_context=None):
+        if request.method == "GET":
+            from .models import RunSavedView
+            view = RunSavedView.objects.filter(system_key="review").first()
+            return redirect(reverse("admin:registry_challengerun_changelist") + (f"?view={view.pk}&reset=1" if view else ""))
         if not self.has_view_permission(request):
             raise Http404
         params = request.GET
@@ -1487,7 +1562,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
             if saved_filters:
                 params = QueryDict(saved_filters)
         pending = RunSubmission.objects.filter(
-            status=RunSubmission.Status.RECEIVED
+            status__in=RunSubmission.moderation_queue_statuses()
         ).select_related("run", "run__participant", "run__challenge_mode")
         search = params.get("q", "").strip()
         if search:
@@ -1549,7 +1624,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         runs.sort(key=lambda group: group["oldest_pending"].submitted_at)
         context = {
             **self.admin_site.each_context(request),
-            "title": "Run reviews",
+            "title": "Submission Reviews",
             "opts": self.model._meta,
             "runs": runs,
             "search": search,
@@ -1576,41 +1651,18 @@ class RunSubmissionAdmin(admin.ModelAdmin):
         if run is None:
             raise Http404
         pending = list(
-            run.submissions.filter(status=RunSubmission.Status.RECEIVED)
+            run.submissions.filter(status__in=RunSubmission.moderation_queue_statuses())
             .select_related("submitter", "challenge_mode")
             .order_by("submitted_at", "pk")
         )
-        green_prefix = []
-        for submission in pending:
-            if submission.preapproval_state != RunSubmission.PreapprovalState.GREEN:
-                break
-            green_prefix.append(submission)
         if request.method == "POST":
-            selected_ids = request.POST.getlist(ACTION_CHECKBOX_NAME)
-            selected_set = set(selected_ids)
-            expected = green_prefix[:len(selected_ids)]
-            if not selected_ids or selected_set != {str(item.pk) for item in expected}:
-                self.message_user(
-                    request,
-                    "Select a contiguous green sequence starting with the oldest pending submission.",
-                    level=messages.ERROR,
-                )
-            else:
-                for submission in expected:
-                    self.approve_submission_view(request, str(submission.pk))
-                self.message_user(
-                    request,
-                    f"Approved {len(expected)} submission(s) in chronological order.",
-                    level=messages.SUCCESS,
-                )
-            return redirect("admin:registry_runsubmission_run_queue", run.pk)
+            return HttpResponseNotAllowed(("GET",))
         for index, submission in enumerate(pending):
             submission.is_next_pending = index == 0
-            submission.batch_eligible = submission in green_prefix
             submission.status_badge = self.review_status(submission)
-        history = run.submissions.exclude(status=RunSubmission.Status.RECEIVED).order_by(
-            "-submitted_at"
-        )[:25]
+        history = run.submissions.exclude(
+            status__in=RunSubmission.moderation_queue_statuses()
+        ).order_by("-submitted_at")
         context = {
             **self.admin_site.each_context(request),
             "title": f"Moderate {run}",
@@ -1618,7 +1670,6 @@ class RunSubmissionAdmin(admin.ModelAdmin):
             "run": run,
             "pending_submissions": pending,
             "history": history,
-            "green_prefix_count": len(green_prefix),
         }
         return TemplateResponse(
             request,
@@ -1628,14 +1679,37 @@ class RunSubmissionAdmin(admin.ModelAdmin):
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         submission = self.get_object(request, object_id)
+        if request.method == "POST":
+            return HttpResponseNotAllowed(("GET",))
         context = dict(extra_context or {})
         if submission:
+            if not self.has_view_or_change_permission(request, submission):
+                raise PermissionDenied
+            context["review_unavailable"] = submission.run.lifecycle_status in {"invalidated"}
+            if not context["review_unavailable"] and submission.status in RunSubmission.moderation_queue_statuses():
+                first = submission.run.submissions.filter(status__in=RunSubmission.moderation_queue_statuses()).order_by("submitted_at", "pk").first()
+                if first and first.pk != submission.pk:
+                    self.message_user(request, "Review the earlier submission first. Later submissions will be reassessed after that decision.", level=messages.INFO)
+                    return redirect(reverse("admin:registry_challengerun_change", args=(submission.run_id,)) + "?tab=submissions")
             context["run_review"] = build_run_review(submission)
+            from .run_review import current_review_reasons
+            context["current_review_reasons"] = current_review_reasons(submission, context["run_review"])
+            from .vod_evidence import evidence_presentation
+            context["vod"] = evidence_presentation(submission, request.get_host().split(":")[0])
+            context["audit_entries"] = submission.audit_entries.select_related("reviewer").all()
+            context["audit_outcomes"] = SubmissionAuditEntry.Outcome.choices
+            context["can_audit"] = request.user.has_perm("registry.change_runsubmission")
             context["run_queue_url"] = reverse(
                 "admin:registry_runsubmission_run_queue", args=(submission.run_id,)
             )
         context["return_to_run"] = request.GET.get("return_to_run") == "1"
+        context["run_tab"] = request.GET.get("run_tab") if request.GET.get("run_tab") in {"submissions", "audits"} else ""
+        context["review_return_query"] = "return_to_run=1"
+        if submission and context["run_tab"]:
+            context["run_queue_url"] = reverse("admin:registry_challengerun_change", args=(submission.run_id,)) + "?tab=" + context["run_tab"]
+            context["review_return_query"] += "&run_tab=" + context["run_tab"]
         context["decline_error"] = request.GET.get("decline_error", "")
+        context["evidence_error"] = request.GET.get("evidence_error", "")
         return super().change_view(request, object_id, form_url, context)
 
     def get_urls(self):
@@ -1645,6 +1719,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.run_queue_view),
                 name="registry_runsubmission_run_queue",
             ),
+            path("<uuid:object_id>/audit/", self.admin_site.admin_view(self.audit_view), name="registry_runsubmission_audit"),
             path(
                 "<path:object_id>/approve/",
                 self.admin_site.admin_view(self.approve_submission_view),
@@ -1655,6 +1730,11 @@ class RunSubmissionAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.decline_submission_view),
                 name="registry_runsubmission_decline",
             ),
+            path(
+                "<path:object_id>/request-evidence/",
+                self.admin_site.admin_view(self.request_evidence_view),
+                name="registry_runsubmission_request_evidence",
+            ),
         ] + super().get_urls()
 
     def review_submission(self, request, object_id):
@@ -1663,7 +1743,32 @@ class RunSubmissionAdmin(admin.ModelAdmin):
             raise Http404
         return submission
 
+    @transaction.atomic
+    def audit_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        submission = self.review_submission(request, object_id)
+        submission = RunSubmission.objects.select_for_update().get(pk=submission.pk)
+        outcome = request.POST.get("outcome", "")
+        intervals = request.POST.get("evidence_intervals", "").strip()
+        note = request.POST.get("audit_note", "").strip()
+        if submission.status != RunSubmission.Status.APPROVED:
+            self.message_user(request, "Only accepted submissions can be audited.", level=messages.ERROR)
+        elif outcome not in SubmissionAuditEntry.Outcome.values or (
+            outcome in ("passed", "action_required") and not note
+        ) or (outcome == "passed" and not intervals):
+            self.message_user(request, "Choose an audit outcome. Completed audits need a conclusion; passed audits also need the video intervals inspected.", level=messages.ERROR)
+        elif len(intervals) > 5000 or len(note) > 5000:
+            self.message_user(request, "Keep each audit field within 5,000 characters.", level=messages.ERROR)
+        else:
+            SubmissionAuditEntry.objects.create(submission=submission, reviewer=request.user,
+                outcome=outcome, evidence_intervals=intervals, note=note)
+            self.message_user(request, "Audit recorded. Run status and original approval are preserved.", level=messages.SUCCESS)
+        return self.redirect_to_review(request, submission)
+
     def redirect_to_review(self, request, submission):
+        if request.GET.get("return_to_run") == "1" and request.GET.get("run_tab") in {"submissions", "audits"}:
+            return redirect(reverse("admin:registry_challengerun_change", args=(submission.run_id,)) + "?tab=" + request.GET["run_tab"])
         if request.GET.get("return_to_run") == "1":
             return redirect(
                 "admin:registry_runsubmission_run_queue", submission.run_id
@@ -1678,144 +1783,37 @@ class RunSubmissionAdmin(admin.ModelAdmin):
             change_url = f"{change_url}?{urlencode({'_changelist_filters': preserved})}"
         return redirect(change_url)
 
-    @transaction.atomic
     def approve_submission_view(self, request, object_id):
         if request.method != "POST":
             return HttpResponseNotAllowed(("POST",))
         submission = self.review_submission(request, object_id)
-        submission = locked_run_submission_queryset().get(pk=submission.pk)
-        run = ChallengeRun.objects.select_for_update().get(pk=submission.run_id)
-        if submission.status != RunSubmission.Status.RECEIVED:
-            self.message_user(request, "This submission has already been reviewed.", level=messages.WARNING)
-            return self.redirect_to_review(request, submission)
-        oldest_pending = run.submissions.filter(
-            status=RunSubmission.Status.RECEIVED
-        ).order_by("submitted_at", "pk").first()
-        if oldest_pending and oldest_pending.pk != submission.pk:
-            self.message_user(
-                request,
-                "Review the run's older pending submission first.",
-                level=messages.ERROR,
-            )
-            return self.redirect_to_review(request, submission)
-        baseline = run.approved_submission
-        starting_challenge_id = run.starting_challenge_id
-        expected_challenge_id = (
-            baseline.challenge_id if baseline and baseline.challenge_id else starting_challenge_id
-        )
-        if (
-            expected_challenge_id
-            and submission.challenge_id
-            and expected_challenge_id != submission.challenge_id
-        ):
-            self.message_user(
-                request,
-                "This submission reports a different challenge mode from the approved baseline.",
-                level=messages.ERROR,
-            )
-            return self.redirect_to_review(request, submission)
-        if baseline:
-            if submission.event_sequence < baseline.event_sequence:
-                self.message_user(
-                    request,
-                    "This submission is older than the current approved snapshot.",
-                    level=messages.ERROR,
-                )
-                return self.redirect_to_review(request, submission)
-            if submission.event_sequence == baseline.event_sequence:
-                if submission.event_hash != baseline.event_hash:
-                    self.message_user(
-                        request,
-                        "This submission conflicts with the current approved ledger.",
-                        level=messages.ERROR,
-                    )
-                    return self.redirect_to_review(request, submission)
-                if submission.generated_at <= baseline.generated_at:
-                    self.message_user(
-                        request,
-                        "This submission is not newer than the current approved snapshot.",
-                        level=messages.ERROR,
-                    )
-                    return self.redirect_to_review(request, submission)
-        approved_events = list(run.latest_events or [])
-        decoded = decode_run_export_cached(submission.raw_export)
-        if decoded.lifecycle == ChallengeRun.Lifecycle.ACTIVE and run.participant and run.challenge_mode:
-            override = ParticipantChallengeModeLimit.objects.filter(
-                participant=run.participant,
-                challenge_mode=run.challenge_mode,
-            ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())).first()
-            active_limit = (
-                override.max_active_runs
-                if override and override.max_active_runs is not None
-                else run.challenge_mode.max_active_runs_per_participant
-            )
-            approved_active = ChallengeRun.objects.select_for_update().filter(
-                participant=run.participant,
-                challenge_mode=run.challenge_mode,
-                lifecycle_status=ChallengeRun.Lifecycle.ACTIVE,
-                status=ChallengeRun.Status.OFFICIAL,
-            ).exclude(pk=run.pk).count()
-            unresolved_terminal = RunSubmission.objects.filter(
-                submitter=run.participant,
-                challenge_mode=run.challenge_mode,
-                reported_lifecycle_status=ChallengeRun.Lifecycle.DECEASED,
-                status=RunSubmission.Status.RECEIVED,
-                submitted_at__lt=submission.submitted_at,
-            ).exclude(run=run).exists()
-            if approved_active >= active_limit or unresolved_terminal:
-                self.message_user(
-                    request,
-                    "Resolve the participant's earlier terminal submission before approving this active run.",
-                    level=messages.ERROR,
-                )
-                return self.redirect_to_review(request, submission)
-        if decoded.event_blocks and not submission.event_blocks.exists():
-            attach_verified_blocks(submission, decoded)
-        reviewed_at = timezone.now()
-        submission.status = RunSubmission.Status.APPROVED
-        submission.reviewed_at = reviewed_at
-        submission.review_note = ""
-        submission.save(update_fields=("status", "reviewed_at", "review_note"))
-        run.status = ChallengeRun.Status.OFFICIAL
-        run.approved_submission = submission
-        run.challenge_mode = resolve_challenge_mode(
-            decoded.challenge_id, decoded.challenge_game_mode
-        )
-        run.challenge_id = decoded.challenge_id
-        run.challenge_game_mode = decoded.challenge_game_mode
-        run.export_format = decoded.format
-        run.generated_at = decoded.generated_at
-        run.current_kills = decoded.current_kills
-        run.event_sequence = decoded.event_sequence
-        run.event_hash = decoded.event_hash
-        run.character_name = decoded.character_name
-        run.bootstrapped = decoded.bootstrapped
-        run.latest_projection = decoded.projection
-        run.latest_events = decoded.events
-        if decoded.lifecycle == ChallengeRun.Lifecycle.DECEASED:
-            run.lifecycle_status = ChallengeRun.Lifecycle.DECEASED
-        run.reported_lifecycle_status = decoded.lifecycle
-        run.save()
-        incremental = bool(
-            baseline
-            and baseline.event_sequence <= len(decoded.events)
-            and approved_events == decoded.events[:baseline.event_sequence]
-        )
-        refresh_initial_run_authority(
-            run,
-            decoded.projection,
-            decoded.events,
-            previous_event_sequence=(baseline.event_sequence if incremental else 0),
-        )
-        if run.participant:
-            notify(
-                run.participant,
-                category=Notification.Category.SUBMISSION,
-                title="Submission approved",
-                message="Your Rat Race submission has been approved.",
-                destination=reverse("registry:account"),
-            )
-        self.message_user(request, "The submission was approved.", level=messages.SUCCESS)
+        from .submission_approval import approve_submission, route_run, ApprovalBlocked
+        try:
+            submission = approve_submission(submission.pk, request.user)
+        except (ApprovalBlocked, OperationalError) as exc:
+            if isinstance(exc, OperationalError) and "locked" not in str(exc).lower():
+                raise
+            error_message = "The database is busy. Approval was not saved. Please try again." if isinstance(exc, OperationalError) else str(exc)
+            if isinstance(exc, ApprovalBlocked) and exc.related_run:
+                related_url = reverse("admin:registry_challengerun_change", args=(exc.related_run.pk,)) + "?tab=submissions"
+                error_message = format_html('{} <a href="{}">Open {} submissions</a>.', error_message, related_url, exc.related_run.character_name or "related run")
+            self.message_user(request, error_message, level=messages.ERROR)
+            review_url = reverse("admin:registry_runsubmission_change", args=(submission.pk,))
+            context_query = []
+            if request.GET.get("return_to_run") == "1":
+                context_query.append("return_to_run=1")
+            if request.GET.get("run_tab") in {"submissions", "audits"}:
+                context_query.append("run_tab=" + request.GET["run_tab"])
+            return redirect(review_url + ("?" + "&".join(context_query) if context_query else ""))
+        else:
+            try:
+                route_run(submission.run_id)
+            except OperationalError as exc:
+                if "locked" not in str(exc).lower():
+                    raise
+                self.message_user(request, "This submission was approved, but the database was busy while checking later submissions. They may still need review.", level=messages.WARNING)
+            else:
+                self.message_user(request, "The submission was approved.", level=messages.SUCCESS)
         return self.redirect_to_review(request, submission)
 
     @transaction.atomic
@@ -1829,7 +1827,7 @@ class RunSubmissionAdmin(admin.ModelAdmin):
             self.message_user(request, "This submission has already been reviewed.", level=messages.WARNING)
             return self.redirect_to_review(request, submission)
         oldest_pending = run.submissions.filter(
-            status=RunSubmission.Status.RECEIVED
+            status__in=RunSubmission.moderation_queue_statuses()
         ).order_by("submitted_at", "pk").first()
         if oldest_pending and oldest_pending.pk != submission.pk:
             self.message_user(
@@ -1844,15 +1842,20 @@ class RunSubmissionAdmin(admin.ModelAdmin):
                 "admin:registry_runsubmission_change", args=(submission.pk,)
             )
             return_to_run = "&return_to_run=1" if request.GET.get("return_to_run") == "1" else ""
+            if request.GET.get("run_tab") in {"submissions", "audits"}:
+                return_to_run += "&run_tab=" + request.GET["run_tab"]
             return redirect(
                 f"{change_url}?decline_error=reason_required{return_to_run}"
             )
         submission.status = RunSubmission.Status.DECLINED
         submission.reviewed_at = timezone.now()
+        submission.reviewed_by = request.user
         submission.review_note = reason
-        submission.save(update_fields=("status", "reviewed_at", "review_note"))
+        submission.save(
+            update_fields=("status", "reviewed_at", "reviewed_by", "review_note")
+        )
         latest_pending = run.submissions.filter(
-            status=RunSubmission.Status.RECEIVED
+            status__in=RunSubmission.moderation_queue_statuses()
         ).order_by("-event_sequence", "-generated_at").first()
         run.reported_lifecycle_status = (
             latest_pending.reported_lifecycle_status
@@ -1869,6 +1872,74 @@ class RunSubmissionAdmin(admin.ModelAdmin):
                 destination=reverse("registry:account"),
             )
         self.message_user(request, "The submission was declined.", level=messages.SUCCESS)
+        from .submission_approval import route_run
+        transaction.on_commit(lambda run_id=run.pk: route_run(run_id))
+        return self.redirect_to_review(request, submission)
+
+    @transaction.atomic
+    def request_evidence_view(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(("POST",))
+        submission = self.review_submission(request, object_id)
+        submission = locked_run_submission_queryset().get(pk=submission.pk)
+        run = ChallengeRun.objects.select_for_update().get(pk=submission.run_id)
+        if submission.status != RunSubmission.Status.RECEIVED:
+            self.message_user(
+                request,
+                "Evidence can be requested only for a received submission.",
+                level=messages.WARNING,
+            )
+            return self.redirect_to_review(request, submission)
+        oldest_pending = run.submissions.filter(
+            status__in=RunSubmission.moderation_queue_statuses()
+        ).order_by("submitted_at", "pk").first()
+        if oldest_pending and oldest_pending.pk != submission.pk:
+            self.message_user(
+                request,
+                "Resolve the run's older submission first.",
+                level=messages.ERROR,
+            )
+            return self.redirect_to_review(request, submission)
+        reason = request.POST.get("reason", "").strip()
+        if not reason:
+            change_url = reverse(
+                "admin:registry_runsubmission_change", args=(submission.pk,)
+            )
+            return_to_run = (
+                "&return_to_run=1" if request.GET.get("return_to_run") == "1" else ""
+            )
+            if request.GET.get("run_tab") in {"submissions", "audits"}:
+                return_to_run += "&run_tab=" + request.GET["run_tab"]
+            return redirect(
+                f"{change_url}?evidence_error=reason_required{return_to_run}"
+            )
+        submission.status = RunSubmission.Status.AWAITING_EVIDENCE
+        submission.evidence_requested_at = timezone.now()
+        submission.evidence_requested_by = request.user
+        submission.evidence_request_note = reason
+        submission.save(
+            update_fields=(
+                "status",
+                "evidence_requested_at",
+                "evidence_requested_by",
+                "evidence_request_note",
+            )
+        )
+        if run.participant:
+            notify(
+                run.participant,
+                category=Notification.Category.SUBMISSION,
+                title="More evidence needed",
+                message=f"A moderator needs more evidence for your submission: {reason}",
+                destination=reverse(
+                    "registry:update_run_submission_evidence", args=(submission.pk,)
+                ),
+            )
+        self.message_user(
+            request,
+            "The participant has been asked to update their evidence.",
+            level=messages.SUCCESS,
+        )
         return self.redirect_to_review(request, submission)
 
     def has_add_permission(self, request):
@@ -1876,3 +1947,77 @@ class RunSubmissionAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+class SubmissionAuditStateFilter(admin.SimpleListFilter):
+    title = "audit state"
+    parameter_name = "audit_state"
+
+    def lookups(self, request, model_admin):
+        return [("none", "Not audited"), *SubmissionAuditEntry.Outcome.choices]
+
+    def queryset(self, request, queryset):
+        from django.db.models import OuterRef, Subquery
+        latest = SubmissionAuditEntry.objects.filter(submission_id=OuterRef("pk")).order_by("-created_at", "-pk")
+        queryset = queryset.annotate(latest_audit_state=Subquery(latest.values("outcome")[:1]))
+        if self.value() == "none":
+            return queryset.filter(latest_audit_state__isnull=True)
+        if self.value() in SubmissionAuditEntry.Outcome.values:
+            return queryset.filter(latest_audit_state=self.value())
+        return queryset
+
+
+@admin.register(SubmissionAudit)
+class SubmissionAuditAdmin(admin.ModelAdmin):
+    change_list_template = "admin/registry/submissionaudit/change_list.html"
+    list_display = ("run", "submitter", "acceptance", "audit_state", "broadcast_deadline", "reviewed_at", "reviewed_by")
+    list_filter = (SubmissionAuditStateFilter, "approval_method", "reviewed_at")
+    search_fields = ("run__run_id", "run__character_name", "submitter__nickname")
+    actions = None
+    list_per_page = 50
+
+    def changelist_view(self, request, extra_context=None):
+        from .models import RunSavedView
+        view = RunSavedView.objects.filter(system_key="audit").first()
+        return redirect(reverse("admin:registry_challengerun_changelist") + (f"?view={view.pk}&reset=1" if view else ""))
+
+    def has_module_permission(self, request):
+        return request.user.has_perm("registry.view_runsubmission")
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.has_perm("registry.view_runsubmission")
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.has_perm("registry.change_runsubmission")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(status="approved").select_related(
+            "run", "submitter", "reviewed_by").prefetch_related("audit_entries")
+
+    @admin.display(description="Approval")
+    def acceptance(self, obj):
+        return obj.moderator_status
+
+    @admin.display(description="Audit")
+    def audit_state(self, obj):
+        entry = next(iter(obj.audit_entries.all()), None)
+        return entry.get_outcome_display() if entry else "Not audited"
+
+    @admin.display(description="VOD audit deadline")
+    def broadcast_deadline(self, obj):
+        from .vod_evidence import evidence_presentation
+        evidence = evidence_presentation(obj, "localhost")
+        if not evidence["deadline"]:
+            return "Broadcast date unknown"
+        return evidence["deadline"].strftime("%d %b %Y %H:%M UTC") + (" (elapsed)" if evidence["expired"] else "")
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        if not self.has_view_permission(request):
+            raise Http404
+        return redirect("admin:registry_runsubmission_change", object_id)

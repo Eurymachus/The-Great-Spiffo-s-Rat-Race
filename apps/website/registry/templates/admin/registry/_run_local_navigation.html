@@ -1,0 +1,5 @@
+<nav class="run-local-tabs" aria-label="This run">
+  <a href="{% url 'admin:registry_challengerun_change' run.pk %}?tab=overview"{% if active == 'overview' %} aria-current="page"{% endif %}>Overview</a>
+  <a href="{% url 'admin:registry_challengerun_change' run.pk %}?tab=submissions"{% if active == 'submissions' %} aria-current="page"{% endif %}>Submissions</a>
+  <a href="{% url 'admin:registry_challengerun_change' run.pk %}?tab=audits"{% if active == 'audits' %} aria-current="page"{% endif %}>Audits</a>
+</nav>

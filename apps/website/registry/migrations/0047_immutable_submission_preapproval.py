@@ -4,6 +4,10 @@ from django.db import migrations, models
 
 
 def capture_existing_preapproval_assessments(apps, schema_editor):
+    HistoricalRunSubmission = apps.get_model("registry", "RunSubmission")
+    if not HistoricalRunSubmission.objects.exists():
+        return
+
     from registry.models import RunSubmission
     from registry.run_review import capture_preapproval_assessment
 
@@ -12,6 +16,11 @@ def capture_existing_preapproval_assessments(apps, schema_editor):
         "run__approved_submission",
         "baseline_submission",
         "challenge_mode",
+    ).defer(
+        "reviewed_by",
+        "evidence_requested_at",
+        "evidence_requested_by",
+        "evidence_request_note",
     )
     for submission in submissions.iterator():
         capture_preapproval_assessment(submission)

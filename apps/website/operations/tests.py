@@ -1,5 +1,6 @@
 import io
 import hashlib
+from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
@@ -43,6 +44,7 @@ from registry.models import (
     RunContractState,
     RunSubmission,
 )
+from registry.run_exports import InvalidRunExport
 
 
 class SystemOperationChangelistTests(TestCase):
@@ -73,11 +75,11 @@ class SystemOperationChangelistTests(TestCase):
 
     def test_run_submission_changelist_uses_review_title_and_clickable_rows(self):
         response = self.client.get(
-            reverse("admin:registry_runsubmission_changelist")
+            reverse("admin:registry_runsubmission_changelist"), follow=True
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Run reviews")
+        self.assertContains(response, "Challenge Runs")
         self.assertNotContains(response, "Select run submission to change")
         self.assertContains(response, "data-server-rendered", count=1)
         self.assertContains(
@@ -86,7 +88,7 @@ class SystemOperationChangelistTests(TestCase):
         )
 
     def test_challenge_run_changelist_uses_run_registry_layout(self):
-        ChallengeRun.objects.create(
+        run = ChallengeRun.objects.create(
             participant=self.admin,
             run_id="rr-visible-test-run",
             status=ChallengeRun.Status.OFFICIAL,
@@ -97,6 +99,15 @@ class SystemOperationChangelistTests(TestCase):
             event_sequence=7,
             event_hash="0" * 64,
             character_name="Visible Survivor",
+        )
+        RunSubmission.objects.create(
+            run=run,
+            submitter=self.admin,
+            checksum="9" * 64,
+            raw_export="list export",
+            export_format=4,
+            generated_at=timezone.now(),
+            event_hash="8" * 64,
         )
         response = self.client.get(
             reverse("admin:registry_challengerun_changelist")
@@ -111,6 +122,8 @@ class SystemOperationChangelistTests(TestCase):
         self.assertContains(response, "1 run")
         self.assertContains(response, "Visible Survivor")
         self.assertContains(response, "rr-visible-test-run")
+        self.assertContains(response, "Submissions")
+        self.assertContains(response, 'data-submission-count="1"')
         self.assertContains(
             response,
             "admin_run_submission_filters.js?v=20260831-1",
@@ -139,16 +152,97 @@ class SystemOperationChangelistTests(TestCase):
             event_hash="2" * 64,
             character_name="Deceased Survivor",
         )
-        self.client.cookies["rat_race_admin_challenge_run_filters"] = (
-            "lifecycle_status=active"
-        )
-
+        from registry.models import RunSavedView
+        active = RunSavedView.objects.get(system_key="active")
+        self.client.get(reverse("admin:registry_challengerun_changelist"), {"view": active.pk})
         response = self.client.get(reverse("admin:registry_challengerun_changelist"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Active Survivor")
         self.assertNotContains(response, "Deceased Survivor")
         self.assertContains(response, "1 run")
+
+    def test_challenge_run_detail_presents_run_overview_instead_of_raw_form(self):
+        run = ChallengeRun.objects.create(
+            participant=self.admin,
+            run_id="rr-run-detail",
+            status=ChallengeRun.Status.OFFICIAL,
+            lifecycle_status=ChallengeRun.Lifecycle.ACTIVE,
+            export_format=4,
+            generated_at=timezone.now(),
+            current_kills=17,
+            event_sequence=1,
+            event_hash="3" * 64,
+            character_name="Detail Survivor",
+            latest_projection={"private_internal_value": 42},
+            latest_events=[
+                {
+                    "sequence": 1,
+                    "event_type": "session.started",
+                    "world_age_hours": 2,
+                    "payload": {"character": {"displayName": "Detail Survivor"}},
+                }
+            ],
+        )
+        submission = RunSubmission.objects.create(
+            run=run,
+            submitter=self.admin,
+            checksum="4" * 64,
+            raw_export="stored export",
+            export_format=4,
+            generated_at=timezone.now(),
+            current_kills=17,
+            event_sequence=1,
+            event_hash="5" * 64,
+            preapproval_state=RunSubmission.PreapprovalState.ORANGE,
+            preapproval_findings=[
+                {
+                    "level": "warning",
+                    "title": "No URL or VOD provided",
+                    "message": "No evidence was attached.",
+                }
+            ],
+        )
+        later_submission = RunSubmission.objects.create(
+            run=run,
+            submitter=self.admin,
+            checksum="6" * 64,
+            raw_export="later stored export",
+            export_format=4,
+            generated_at=submission.generated_at + timedelta(minutes=1),
+            current_kills=18,
+            event_sequence=2,
+            event_hash="7" * 64,
+        )
+
+        response = self.client.get(
+            reverse("admin:registry_challengerun_change", args=(run.pk,))
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Challenge run")
+        self.assertContains(response, "Current state")
+        history = self.client.get(reverse("admin:registry_challengerun_change", args=(run.pk,)) + "?tab=submissions")
+        self.assertContains(history, "Submission history")
+        self.assertContains(history, "Current checks")
+        self.assertContains(history, "Blocking issue")
+        self.assertContains(history, "Review")
+        self.assertNotContains(response, "Review context")
+        self.assertNotContains(response, "Integrity findings")
+        self.assertContains(response, "Recorded event types")
+        self.assertContains(response, "Current event ledger")
+        self.assertContains(response, "Technical evidence and identifiers")
+        self.assertContains(response, "Detail Survivor")
+        self.assertContains(response, "Zombie kills")
+        self.assertContains(
+            history,
+            reverse("admin:registry_runsubmission_change", args=(submission.pk,)),
+        )
+        self.assertEqual(
+            list(response.context["run_submissions"]),
+            [submission, later_submission],
+        )
+        self.assertNotContains(response, "Latest projection:")
 
 
 class RunDataDangerZoneTests(TestCase):
@@ -258,6 +352,45 @@ class RunDataDangerZoneTests(TestCase):
         self.assertEqual(self.submission.raw_export, "test export")
         self.assertEqual(self.submission.evidence_url, "https://example.com/vod")
         self.assertFalse(RunContractState.objects.filter(run=self.run).exists())
+
+    @override_settings(STAGING_ENVIRONMENT=True)
+    @patch(
+        "operations.run_moderation_reset.decode_run_export_cached",
+        side_effect=InvalidRunExport("historic invalid export"),
+    )
+    def test_all_moderation_reset_tolerates_historical_invalid_exports(self, decode):
+        self.client.force_login(self.admin)
+        self.run.status = ChallengeRun.Status.OFFICIAL
+        self.run.character_name = "Approved Survivor"
+        self.run.latest_events = [{"approved": True}]
+        self.run.save()
+        self.submission.status = RunSubmission.Status.APPROVED
+        self.submission.projection = {
+            "character": {"current": {"displayName": "Stored Survivor"}}
+        }
+        self.submission.save()
+
+        response = self.client.post(
+            self.url,
+            {
+                "action": "reset_moderation",
+                "scope": "all",
+                "confirmation": "RESET ALL MODERATION",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.run.refresh_from_db()
+        self.submission.refresh_from_db()
+        self.assertEqual(self.run.status, ChallengeRun.Status.PENDING)
+        self.assertIsNone(self.run.approved_submission)
+        self.assertEqual(self.run.character_name, "Stored Survivor")
+        self.assertEqual(self.run.latest_events, [])
+        self.assertFalse(self.run.bootstrapped)
+        self.assertEqual(self.submission.status, RunSubmission.Status.RECEIVED)
+        self.assertEqual(self.submission.raw_export, "test export")
+        decode.assert_called_once_with("test export")
 
     @override_settings(DEBUG=False, STAGING_ENVIRONMENT=False)
     def test_moderation_reset_is_forbidden_outside_staging_and_development(self):

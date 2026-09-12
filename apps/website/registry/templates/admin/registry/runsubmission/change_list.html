@@ -3,14 +3,15 @@
 
 {% block extrastyle %}
   {{ block.super }}
-  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260830-2">
+  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260911-4">
 {% endblock %}
 
 {% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Run reviews</div>
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Submission Reviews</div>
 {% endblock %}
 
 {% block content %}
+{% include "admin/registry/_run_navigation.html" with active="reviews" %}
 <div id="content-main" class="run-moderation-queue">
   <form method="get" class="run-queue-filters">
     <label>Search <input type="search" name="q" value="{{ search }}" placeholder="Character, participant, or run ID"></label>
@@ -43,7 +44,7 @@
           <td>{% if item.first_approval_pending %}<span class="run-review-list-badge is-first">First approval pending</span>{% else %}{{ item.run.approved_submission.reviewed_at|date:"j M Y, H:i" }}{% endif %}</td>
           <td>{{ item.pending_count }} submission{{ item.pending_count|pluralize }}</td>
           <td>{{ item.oldest_pending.submitted_at|date:"j M Y, H:i" }}</td>
-          <td>{% if item.worst_state == "red" %}<span class="run-review-list-badge finding-danger">! {{ item.worst_label|default:"Blocking issue" }}</span>{% elif item.worst_state == "orange" %}<span class="run-review-list-badge finding-warning">△ {{ item.worst_label|default:"Needs attention" }}</span>{% else %}<span class="run-review-list-badge finding-pass">✓ All checks passed</span>{% endif %}</td>
+          <td>{% if item.worst_state == "red" %}<span class="run-review-list-badge finding-danger">! {{ item.worst_label|default:"Blocking issue" }}</span>{% elif item.worst_state == "orange" %}<span class="run-review-list-badge finding-warning">△ {{ item.worst_label|default:"Needs attention" }}</span>{% else %}<span class="run-review-list-badge finding-pass">✓ All checks passed</span>{% endif %}{% for reason in item.oldest_pending.routing_reasons %}<small>{{ reason }}</small>{% endfor %}</td>
           <td><a class="button" href="{% url 'admin:registry_runsubmission_run_queue' item.run.pk %}">Manage run</a></td>
         </tr>
       {% empty %}

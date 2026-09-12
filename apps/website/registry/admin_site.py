@@ -14,7 +14,7 @@ class RatRaceAdminSite(AdminSite):
             ("Participant", "Notification", "AccountClosureRecord"),
         ),
         ("Challenge configuration", ("ChallengeMode",)),
-        ("Run moderation", ("ChallengeRun", "RunSubmission")),
+        ("Run moderation", ("ChallengeRun",)),
         (
             "Legacy data",
             (
@@ -59,6 +59,10 @@ class RatRaceAdminSite(AdminSite):
 
     def get_app_list(self, request, app_label=None):
         app_list = super().get_app_list(request, app_label)
+        for app in app_list:
+            for model in app["models"]:
+                if model["object_name"] == "ChallengeRun":
+                    model["name"] = "Challenge Runs"
         if app_label is not None:
             return app_list
 

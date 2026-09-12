@@ -1,0 +1,34 @@
+<div class="run-table-tabs"><nav class="run-saved-tabs" aria-label="Saved run views">
+  {% for pref in saved_tabs %}<a href="?view={{ pref.view_id }}"{% if selected_view.pk == pref.view_id %} aria-current="page"{% endif %}>{{ pref.view.name }}{% if pref.view.shared %}<span class="view-scope">Shared</span>{% endif %}</a>{% endfor %}
+  <button type="button" data-run-panel="create-run-view" aria-label="Create a filtered view">+</button>
+</nav><div class="run-table-tools">
+
+<button type="button" data-run-panel="manage-run-tabs" aria-label="Manage tabs" title="Manage tabs">Manage tabs</button>
+</div></div>
+<dialog class="run-workspace-panel" id="create-run-view" aria-labelledby="create-view-title">
+  <header><h2 id="create-view-title">Save view</h2><button type="button" data-close-panel aria-label="Close">×</button></header>
+  <p>Saves the currently applied search, filters and sorting. Use Search &amp; filters to adjust them first.</p>
+  <form method="post">
+    {% csrf_token %}<input type="hidden" name="view" value="{{ selected_view.pk }}">
+    {% for key,value in saved_filter_fields %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    <label>View name <input name="name" value="{{ selected_view.name }}" maxlength="80" required></label>
+    {% if can_share_views %}<label><input type="checkbox" name="shared"{% if selected_view.shared %} checked{% endif %}> Shared with moderators</label>{% endif %}
+    <button class="button" name="action" value="create">Save new view</button>
+    {% if can_edit_view %}<button class="button" name="action" value="update">Update this view</button>{% endif %}
+  </form>
+</dialog>
+<dialog class="run-workspace-panel" id="manage-run-tabs" aria-labelledby="manage-tabs-title">
+  <header><h2 id="manage-tabs-title">Manage tabs</h2><button type="button" data-close-panel aria-label="Close">×</button></header>
+  <button type="button" data-edit-current>Edit current view</button>
+  <p>Visibility and ordering only affect your workspace. Keep at least one tab visible.</p>
+  {% for pref in managed_tabs %}
+    <form method="post" class="run-view-management-row">
+      {% csrf_token %}<input type="hidden" name="view" value="{{ pref.view_id }}">
+      <strong>{{ pref.view.name }}</strong><span>{% if pref.view.shared %}Shared{% else %}Personal{% endif %}</span>
+      <button name="action" value="{% if pref.hidden %}show{% else %}hide{% endif %}">{% if pref.hidden %}Show{% else %}Hide{% endif %}</button>
+      <button name="action" value="up" aria-label="Move {{ pref.view.name }} up">↑</button>
+      <button name="action" value="down" aria-label="Move {{ pref.view.name }} down">↓</button>
+      {% if not pref.view.system_key %}{% if pref.view.shared and can_share_views or not pref.view.shared and pref.view.owner_id == request.user.pk %}<button name="action" value="delete">Delete</button>{% endif %}{% endif %}
+    </form>
+  {% endfor %}
+</dialog>

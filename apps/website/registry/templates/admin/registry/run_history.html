@@ -1,0 +1,17 @@
+{% extends "admin/object_history.html" %}
+{% load static %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260912-8">{% endblock %}
+{% block content %}
+<div class="run-review">
+<section class="run-review-panel">
+<header><div><p class="run-review-kicker">Moderation history</p><h3>Submission decisions and audits</h3></div></header>
+{% if moderation_events %}
+<div class="run-event-table-wrap"><table class="run-event-table">
+<thead><tr><th>Date</th><th>Who</th><th>Action</th><th>Reason / notes</th><th>Submission</th></tr></thead>
+<tbody>{% for event in moderation_events %}<tr><td>{{ event.date|date:"j M Y, H:i:s" }}</td><td>{{ event.actor }}</td><td>{{ event.action }}</td><td>{{ event.detail|default:"-"|linebreaksbr }}</td><td>{% if event.submission %}<a href="{% url 'admin:registry_runsubmission_change' event.submission %}">View submission</a>{% else %}-{% endif %}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="run-review-empty">No recorded moderation events.</div>{% endif %}
+</section>
+{% if action_list %}<h2>Admin changes</h2>{{ block.super }}{% endif %}
+</div>
+{% endblock %}

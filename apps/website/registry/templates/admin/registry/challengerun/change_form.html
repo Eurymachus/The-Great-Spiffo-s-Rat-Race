@@ -1,17 +1,156 @@
 {% extends "admin/change_form.html" %}
-{% load i18n admin_urls %}
+{% load i18n admin_urls static %}
 
-{% block object-tools-items %}
-  {% if original and has_change_permission %}
-    <li><button type="button" class="button" data-run-status-open>Set status</button></li>
-  {% endif %}
+{% block extrastyle %}
   {{ block.super }}
+  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260912-7">
 {% endblock %}
+
+{% block bodyclass %}{{ block.super }} challenge-run-page{% endblock %}
+{% block content_title %}{% if not original or not run_overview %}{{ block.super }}{% endif %}{% endblock %}
+{% block content_subtitle %}{% if not original or not run_overview %}{{ block.super }}{% endif %}{% endblock %}
+
+{% block object-tools %}{% if not original or not run_overview %}{{ block.super }}{% endif %}{% endblock %}
+
+{% block field_sets %}
+  {% if original and run_overview %}
+
+    <div class="run-review challenge-run-detail">
+      <section class="run-review-hero run-record-banner">
+        <div>
+          <p class="run-review-kicker">Challenge Run</p>
+          <h1>{{ original.character_name|default:"Unnamed survivor" }}</h1>
+          <p>Run by <strong>{{ original.participant|default:"Former Rat Racer" }}</strong></p>
+        </div>
+        <div class="run-banner-statuses">
+          <span class="run-review-status status-{{ original.status }}">{{ original.get_status_display }}</span>
+          <span class="run-review-status lifecycle-{{ original.lifecycle_status }}">Lifecycle status: {{ original.get_lifecycle_status_display }}</span>
+        </div>
+        <div class="run-header-actions">
+          {% if has_change_permission %}<button type="button" class="run-context-button" data-run-status-open>Set status</button>{% endif %}
+          <a class="run-history-button" href="{% url 'admin:registry_challengerun_history' original.pk %}" title="Administrative changes to this run">History</a>
+        </div>
+      </section>
+
+      {% include "admin/registry/_run_local_navigation.html" with run=original active=run_tab %}
+      {% if run_tab == 'overview' %}
+      <section class="run-review-summary" aria-label="Current run summary">
+        <div><small>Zombie kills</small><strong>{{ original.current_kills }}</strong></div>
+        <div><small>Ledger events</small><strong>{{ original.event_sequence }}</strong></div>
+        <div><small>In-game day</small><strong>{{ original.in_game_day|default:"Not recorded" }}</strong></div>
+        <div><small>Submissions</small><strong>{{ run_submissions|length }}</strong></div>
+        <div><small>Challenge mode</small><strong>{{ original.challenge_mode_display }}</strong></div>
+      </section>
+
+      <div class="run-review-columns">
+        <section class="run-review-panel">
+          <header><div><p class="run-review-kicker">Current state</p><h3>Run record</h3></div></header>
+          <dl class="run-review-comparison">
+            <div><dt>Participant</dt><dd>{{ original.participant|default:"Former Rat Racer" }}</dd></div>
+            <div><dt>Verification</dt><dd>{{ original.get_status_display }}</dd></div>
+            <div><dt>Lifecycle</dt><dd>{{ original.get_lifecycle_status_display }}</dd></div>
+            <div><dt>Reported lifecycle</dt><dd>{{ original.get_reported_lifecycle_status_display }}</dd></div>
+            <div><dt>Partial first day</dt><dd>{{ original.bootstrapped|yesno:"Yes,No" }}</dd></div>
+          </dl>
+        </section>
+        <section class="run-review-panel">
+          <header><div><p class="run-review-kicker">Timeline</p><h3>Run activity</h3></div></header>
+          <dl class="run-review-comparison">
+            <div><dt>First submitted</dt><dd>{{ original.first_submitted_at|date:"j M Y, H:i" }}</dd></div>
+            <div><dt>Latest export generated</dt><dd>{{ original.generated_at|date:"j M Y, H:i" }}</dd></div>
+            <div><dt>Record updated</dt><dd>{{ original.updated_at|date:"j M Y, H:i" }}</dd></div>
+            <div><dt>Export format</dt><dd>{{ original.export_format }}</dd></div>
+            <div><dt>Approved submission</dt><dd>{% if original.approved_submission %}<a href="{% url 'admin:registry_runsubmission_change' original.approved_submission.pk %}?return_to_run=1&amp;run_tab=submissions">Open review</a>{% else %}None yet{% endif %}</dd></div>
+          </dl>
+        </section>
+      </div>
+
+      <section class="run-review-panel">
+        <header><div><p class="run-review-kicker">Ledger overview</p><h3>Recorded event types</h3></div></header>
+        <div class="run-event-counts">
+          {% for event in run_overview.event_counts %}
+            <div><strong>{{ event.count }}</strong><span>{{ event.label }}</span><small>{{ event.event_type }}</small></div>
+          {% empty %}
+            <div><span>No current ledger events are available.</span></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="run-review-panel">
+        <header><div><p class="run-review-kicker">Chronology</p><h3>Current event ledger</h3></div><span>{{ run_overview.event_rows|length }} events</span></header>
+        <div class="run-event-table-wrap">
+          <table class="run-event-table">
+            <thead><tr><th>Seq.</th><th>Day</th><th>Event</th><th>Details</th><th>Recorded</th></tr></thead>
+            <tbody>
+              {% for event in run_overview.event_rows reversed %}
+                <tr class="ledger-row-{{ event.review_level }}">
+                  <td>{{ event.sequence }}</td>
+                  <td>{{ event.day|default:"Not recorded" }}</td>
+                  <td><strong>{{ event.label }}</strong><small>{{ event.event_type }}</small>{% if event.review_reason %}<span class="ledger-finding finding-{{ event.review_level }}"><span aria-hidden="true">{% if event.review_level == "danger" %}!{% elif event.review_level == "warning" %}△{% else %}✓{% endif %}</span> {{ event.review_reason }}</span>{% endif %}</td>
+                  <td>{{ event.summary }}{% if event.identifiers %}<small>{{ event.identifiers }}</small>{% endif %}</td>
+                  <td>{% if event.occurred_at %}{{ event.occurred_at|date:"j M Y, H:i:s" }}{% else %}Not recorded{% endif %}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5">No current ledger events are available.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <details class="run-review-evidence">
+        <summary>Technical evidence and identifiers</summary>
+        <dl>
+          <div><dt>Run ID</dt><dd><code>{{ original.run_id }}</code></dd></div>
+          <div><dt>Ledger head</dt><dd><code>{{ original.event_hash }}</code></dd></div>
+          <div><dt>Challenge ID</dt><dd>{{ original.challenge_id|default:"Not recorded" }}</dd></div>
+          <div><dt>Challenge game mode</dt><dd>{{ original.challenge_game_mode|default:"Not recorded" }}</dd></div>
+        </dl>
+        <div class="run-review-json-group">
+          <details class="run-review-json"><summary><span>Current run snapshot JSON</span><small>Latest stored projection</small></summary><pre>{{ run_overview.snapshot_json }}</pre></details>
+          <details class="run-review-json"><summary><span>Current event history JSON</span><small>Latest stored ledger</small></summary><pre>{{ run_overview.event_history_json }}</pre></details>
+        </div>
+      </details>
+      {% elif run_tab == 'submissions' %}
+      <section class="run-review-panel">
+        <header><div><p class="run-review-kicker">Submission history</p><h3>Uploaded run snapshots</h3></div><span>{{ run_submissions|length }} total</span></header>
+        <div class="run-event-table-wrap challenge-run-submissions">
+          <table class="run-event-table">
+            <thead><tr><th>Snapshot</th><th>Status</th><th>Current checks</th><th>Kills</th><th>Events</th><th>Evidence</th><th></th></tr></thead>
+            <tbody>
+              {% for submission in run_submissions %}
+                <tr>
+                  <td><strong>{{ submission.generated_at|date:"j M Y, H:i:s" }}</strong><small>Submitted {{ submission.submitted_at|date:"j M Y, H:i:s" }}</small></td>
+                  <td><span class="run-review-list-badge status-{{ submission.status }}">{{ submission.moderator_status }}</span></td>
+                  <td><span class="run-review-list-badge finding-{{ submission.current_review.level }}" title="{{ submission.current_review.details }}">{{ submission.current_review.label }}</span></td>
+                  <td>{{ submission.current_kills }}</td>
+                  <td>{{ submission.event_sequence }}</td>
+                  <td>{% if submission.evidence_url %}<a href="{{ submission.evidence_url }}" target="_blank" rel="noopener noreferrer">Attached</a>{% else %}None{% endif %}</td>
+                  <td>{% if submission.status in pending_statuses %}{% if submission.pk == next_review_id %}<a class="run-context-button" href="{% url 'admin:registry_runsubmission_change' submission.pk %}?return_to_run=1&amp;run_tab=submissions">Review</a>{% else %}<span class="run-waiting-review">Waiting for earlier review</span>{% endif %}{% else %}<a class="run-context-button" href="{% url 'admin:registry_runsubmission_change' submission.pk %}?return_to_run=1&amp;run_tab=submissions">View</a>{% endif %}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="7">No submissions are recorded for this run.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {% elif run_tab == 'audits' %}
+        {% include "admin/registry/challengerun/_audits.html" %}
+      {% endif %}
+    </div>
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block submit_buttons_bottom %}{% endblock %}
 
 {% block after_related_objects %}
   {{ block.super }}
   {% if original and has_change_permission %}
-    <dialog data-run-status-dialog{% if status_error %} data-run-status-error{% endif %} aria-labelledby="run-status-title">
+    <dialog class="run-status-dialog" data-run-status-dialog{% if status_error %} data-run-status-error{% endif %} aria-labelledby="run-status-title">
       <form method="post" action="{% url 'admin:registry_challengerun_set_status' original.pk %}">
         {% csrf_token %}
         <h2 id="run-status-title">Set lifecycle status</h2>
@@ -30,7 +169,7 @@
           <label for="run-status-reason">Reason</label>
           <textarea id="run-status-reason" name="reason" rows="5" maxlength="1000" required></textarea>
         </div>
-        <div class="submit-row">
+        <div class="run-dialog-actions">
           <button type="button" class="button" data-run-status-close>Cancel</button>
           <button type="submit" class="default">Set status</button>
         </div>

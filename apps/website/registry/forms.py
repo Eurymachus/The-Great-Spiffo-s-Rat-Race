@@ -238,6 +238,19 @@ class AvatarUploadForm(forms.Form):
 
 
 class RunSubmissionForm(forms.Form):
+    additional_vod_urls = forms.CharField(
+        label="Additional broadcasts", required=False, max_length=5000,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="If this update spans several broadcasts, add their video links here, one per line (up to five).",
+    )
+
+    def clean_additional_vod_urls(self):
+        from .vod_evidence import parse_vod_url
+        urls = list(dict.fromkeys(self.cleaned_data.get("additional_vod_urls", "").split()))
+        if len(urls) > 5 or any(not parse_vod_url(url) for url in urls):
+            raise forms.ValidationError("Supply up to five HTTPS Twitch or YouTube video links, one per line.")
+        return [{"kind": "video", "url": url, "title": "Additional broadcast"} for url in urls]
+
     evidence_provider = forms.ChoiceField(
         label="Evidence channel",
         required=False,
@@ -327,6 +340,23 @@ class RunSubmissionForm(forms.Form):
         selected = cleaned.get("evidence_video")
         provider = cleaned.get("evidence_provider")
         manual = cleaned.get("manual_evidence_url")
+        if cleaned.get("run_export"):
+            from .run_exports import InvalidRunExport
+            from .run_block_cache import decode_run_export_cached
+            from .challenge_modes import resolve_challenge_mode
+            from .vod_evidence import parse_vod_url
+            try:
+                decoded = decode_run_export_cached(cleaned["run_export"])
+            except InvalidRunExport:
+                pass  # The submission view reports export validation errors.
+            else:
+                mode = resolve_challenge_mode(decoded.challenge_id, decoded.challenge_game_mode)
+                if not mode or mode.evidence_required:
+                    media = self.media_by_id.get(selected)
+                    url = media.canonical_url if media else manual
+                    if not url or not parse_vod_url(url):
+                        self.add_error("manual_evidence_url", "This challenge requires evidence. Select a Twitch or YouTube broadcast, or enter a valid VOD URL.")
+
         if selected and selected not in self.media_by_id:
             self.add_error("evidence_video", "Choose a broadcast from your connected channel.")
         elif selected and self.media_by_id[selected].account.provider != provider:
@@ -350,6 +380,23 @@ class RunSubmissionForm(forms.Form):
             self.add_error(
                 "evidence_end_seconds", "The end must be later than the start."
             )
+        return cleaned
+
+
+class RunEvidenceUpdateForm(RunSubmissionForm):
+    run_export = None
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("evidence_video") and not cleaned.get("manual_evidence_url"):
+            self.add_error(
+                "manual_evidence_url",
+                "Choose a recent broadcast or enter the VOD URL.",
+            )
+        from .vod_evidence import parse_vod_url
+        manual = cleaned.get("manual_evidence_url")
+        if manual and not parse_vod_url(manual):
+            self.add_error("manual_evidence_url", "Enter a valid Twitch or YouTube VOD URL.")
         return cleaned
 
 

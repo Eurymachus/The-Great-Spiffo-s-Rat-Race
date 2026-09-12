@@ -54,7 +54,7 @@
       <header class="submission-step-heading">
         <span class="submission-step-number" aria-hidden="true">2</span>
         <div>
-          <h3>Stream evidence</h3>
+          <h3>Stream evidence</h3><p>Required when the challenge mode requires evidence. Select a Twitch or YouTube broadcast or provide its VOD URL.</p>
           <p>Select the broadcast containing this run and narrow down the section moderators should review.</p>
         </div>
       </header>
@@ -117,6 +117,7 @@
         <div class="submission-evidence-times">
           <div class="field">{{ form.evidence_start_seconds.label_tag }}{{ form.evidence_start_seconds }}<small>Seconds from the beginning of the broadcast.</small>{{ form.evidence_start_seconds.errors }}</div>
           <div class="field">{{ form.evidence_end_seconds.label_tag }}{{ form.evidence_end_seconds }}<small>Leave blank if the run continues to the end.</small>{{ form.evidence_end_seconds.errors }}</div>
+          <div class="field submission-additional-broadcasts">{{ form.additional_vod_urls.label_tag }}{{ form.additional_vod_urls }}<small>{{ form.additional_vod_urls.help_text }}</small>{{ form.additional_vod_urls.errors }}</div>
         </div>
         {% if streaming_accounts %}<div class="submission-supporting-clips" data-evidence-clips>
           <div><strong>Supporting clips</strong><small data-selected-clips-summary>No supporting clips selected.</small></div>

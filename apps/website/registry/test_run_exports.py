@@ -783,7 +783,7 @@ class RunSubmissionTests(TestCase):
 
     def test_verified_export_creates_run_submission_and_notification(self):
         response = self.client.post(
-            reverse("registry:submit_run"), {"run_export": make_export()}
+            reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export()}
         )
         self.assertRedirects(response, reverse("registry:account"))
         run = ChallengeRun.objects.get()
@@ -817,7 +817,7 @@ class RunSubmissionTests(TestCase):
         )
 
         response = self.client.post(
-            reverse("registry:submit_run"), {"run_export": value}
+            reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": value}
         )
 
         self.assertRedirects(response, reverse("registry:account"))
@@ -881,7 +881,7 @@ class RunSubmissionTests(TestCase):
     def test_submission_maps_known_challenge_mode_and_preserves_raw_evidence(self):
         response = self.client.post(
             reverse("registry:submit_run"),
-            {
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
                 "run_export": make_export(
                     challenge={
                         "id": "TGSRR_CDDA",
@@ -913,7 +913,7 @@ class RunSubmissionTests(TestCase):
     def test_unknown_challenge_mode_is_preserved_without_rejecting_submission(self):
         response = self.client.post(
             reverse("registry:submit_run"),
-            {
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
                 "run_export": make_export(
                     challenge={
                         "id": "TGSRR_FutureMode",
@@ -935,7 +935,7 @@ class RunSubmissionTests(TestCase):
     def test_empty_challenge_id_maps_by_exact_game_mode_name(self):
         response = self.client.post(
             reverse("registry:submit_run"),
-            {
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
                 "run_export": make_export(
                     challenge={
                         "id": "",
@@ -1006,11 +1006,11 @@ class RunSubmissionTests(TestCase):
         mode.save(update_fields=("max_active_runs_per_participant",))
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(run_id="active-run")},
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export(run_id="active-run")},
         )
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(run_id="past-run")},
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export(run_id="past-run")},
         )
         active_run = ChallengeRun.objects.get(run_id="active-run")
         active_run.character_name = "Active Survivor"
@@ -1037,7 +1037,7 @@ class RunSubmissionTests(TestCase):
     def test_mode_active_run_limit_blocks_a_second_character(self):
         first = self.client.post(
             reverse("registry:submit_run"),
-            {
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
                 "run_export": make_export(
                     run_id="first-active-run",
                     challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
@@ -1048,7 +1048,7 @@ class RunSubmissionTests(TestCase):
 
         response = self.client.post(
             reverse("registry:submit_run"),
-            {
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
                 "run_export": make_export(
                     run_id="second-active-run",
                     challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
@@ -1077,7 +1077,7 @@ class RunSubmissionTests(TestCase):
         for run_id in ("first-active-run", "second-active-run"):
             response = self.client.post(
                 reverse("registry:submit_run"),
-                {
+                {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
                     "run_export": make_export(
                         run_id=run_id,
                         challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
@@ -1101,7 +1101,7 @@ class RunSubmissionTests(TestCase):
         }
         deceased = self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export(
                 run_id="pending-deceased",
                 challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
                 projection=deceased_projection,
@@ -1116,7 +1116,7 @@ class RunSubmissionTests(TestCase):
 
         active = self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export(
                 run_id="new-active",
                 challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
             )},
@@ -1146,7 +1146,7 @@ class RunSubmissionTests(TestCase):
 
         response = self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export(
                 run_id="restricted-deceased", projection=projection,
                 challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
                 event_specs=[
@@ -1179,14 +1179,14 @@ class RunSubmissionTests(TestCase):
                     ("day.started", {"partial": False}),
                     ("run.ended", {"reason": "deceased"}),
                 ],
-            )},
+            ), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         self.client.post(
             reverse("registry:submit_run"),
             {"run_export": make_export(
                 run_id="later-active",
                 challenge={"id": "TGSRR", "gameMode": "The Great Spiffo's Rat Race"},
-            )},
+            ), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         active_submission = RunSubmission.objects.get(run__run_id="later-active")
         administrator = Participant.objects.create_superuser(
@@ -1210,7 +1210,7 @@ class RunSubmissionTests(TestCase):
     def test_participant_can_irreversibly_deactivate_active_run(self):
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(run_id="run-to-deactivate")},
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export(run_id="run-to-deactivate")},
         )
         run = ChallengeRun.objects.get(run_id="run-to-deactivate")
 
@@ -1234,7 +1234,7 @@ class RunSubmissionTests(TestCase):
     def test_deactivation_from_submission_block_returns_to_submission_form(self):
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(run_id="blocked-active-run")},
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export(run_id="blocked-active-run")},
         )
         run = ChallengeRun.objects.get(run_id="blocked-active-run")
 
@@ -1253,7 +1253,7 @@ class RunSubmissionTests(TestCase):
     def test_deactivation_from_submission_block_supports_in_page_response(self):
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(run_id="ajax-active-run")},
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export(run_id="ajax-active-run")},
         )
         run = ChallengeRun.objects.get(run_id="ajax-active-run")
 
@@ -1280,7 +1280,7 @@ class RunSubmissionTests(TestCase):
     def test_deactivated_run_rejects_later_updates_and_frees_mode_slot(self):
         self.client.post(
             reverse("registry:submit_run"),
-            {
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
                 "run_export": make_export(
                     run_id="retired-run",
                     challenge={
@@ -1298,7 +1298,7 @@ class RunSubmissionTests(TestCase):
 
         blocked = self.client.post(
             reverse("registry:submit_run"),
-            {
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
                 "run_export": make_export(
                     run_id="retired-run",
                     kills=50,
@@ -1315,7 +1315,7 @@ class RunSubmissionTests(TestCase):
 
         replacement = self.client.post(
             reverse("registry:submit_run"),
-            {
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
                 "run_export": make_export(
                     run_id="replacement-run",
                     challenge={
@@ -1330,17 +1330,144 @@ class RunSubmissionTests(TestCase):
 
     def test_duplicate_export_is_rejected(self):
         value = make_export()
-        self.client.post(reverse("registry:submit_run"), {"run_export": value})
+        self.client.post(reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": value})
         response = self.client.post(
-            reverse("registry:submit_run"), {"run_export": value}
+            reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": value}
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "already been submitted")
         self.assertEqual(RunSubmission.objects.count(), 1)
 
-    def test_admin_overview_marks_missing_vod_or_url_orange_and_skips_bulk_approval(self):
-        self.client.post(reverse("registry:submit_run"), {"run_export": make_export()})
+    def test_participant_can_add_evidence_without_replacing_locked_export(self):
+        value = make_export(run_id="evidence-correction-run")
+        self.client.post(reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": value})
         submission = RunSubmission.objects.get()
+        original_checksum = submission.checksum
+        original_export = submission.raw_export
+        self.assertEqual(submission.evidence_revisions.count(), 1)
+
+        update_url = reverse(
+            "registry:update_run_submission_evidence", args=(submission.pk,)
+        )
+        page = self.client.get(update_url)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Locked tracker export")
+        self.assertNotContains(page, submission.checksum)
+        response = self.client.post(
+            update_url,
+            {"manual_evidence_url": "https://www.twitch.tv/videos/234567"},
+        )
+
+        self.assertRedirects(response, reverse("registry:account"))
+        submission.refresh_from_db()
+        self.assertEqual(submission.checksum, original_checksum)
+        self.assertEqual(submission.raw_export, original_export)
+        self.assertEqual(
+            submission.evidence_url, "https://www.twitch.tv/videos/234567"
+        )
+        self.assertEqual(submission.status, RunSubmission.Status.RECEIVED)
+        self.assertEqual(submission.evidence_revisions.count(), 2)
+        self.assertEqual(
+            submission.preapproval_state, RunSubmission.PreapprovalState.GREEN
+        )
+        submission.status = RunSubmission.Status.APPROVED
+        submission.save(update_fields=("status",))
+        self.assertEqual(self.client.get(update_url).status_code, 404)
+
+    def test_request_evidence_notifies_participant_and_blocks_later_review(self):
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export(run_id="awaiting-evidence-run")},
+        )
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
+                "run_export": make_export(
+                    run_id="awaiting-evidence-run",
+                    generated_at=1784800200,
+                    event_specs=[
+                        ("session.started", {"character": {"displayName": "Test Survivor"}}),
+                        ("day.started", {"partial": False}),
+                        ("day.started", {"partial": False}),
+                    ],
+                )
+            },
+        )
+        first, second = RunSubmission.objects.order_by("submitted_at", "pk")
+        administrator = Participant.objects.create_superuser(
+            email="evidence-reviewer@example.com",
+            nickname="Evidence Reviewer",
+            password="Local-test-password-482!",
+        )
+        self.client.force_login(administrator)
+        reason = "Please add the complete broadcast URL."
+        response = self.client.post(
+            reverse(
+                "admin:registry_runsubmission_request_evidence", args=(first.pk,)
+            ),
+            {"reason": reason},
+        )
+        self.assertEqual(response.status_code, 302)
+        first.refresh_from_db()
+        self.assertEqual(first.status, RunSubmission.Status.AWAITING_EVIDENCE)
+        self.assertEqual(first.evidence_request_note, reason)
+        notification = Notification.objects.get(title="More evidence needed")
+        self.assertEqual(
+            notification.destination,
+            reverse("registry:update_run_submission_evidence", args=(first.pk,)),
+        )
+
+        self.client.post(
+            reverse("admin:registry_runsubmission_approve", args=(second.pk,))
+        )
+        second.refresh_from_db()
+        self.assertEqual(second.status, RunSubmission.Status.RECEIVED)
+
+        self.client.force_login(self.participant)
+        response = self.client.post(
+            notification.destination,
+            {"manual_evidence_url": "https://www.twitch.tv/videos/345678"},
+        )
+        self.assertRedirects(response, reverse("registry:account"))
+        first.refresh_from_db()
+        self.assertEqual(first.status, RunSubmission.Status.RECEIVED)
+
+    def test_export_older_than_newest_pending_snapshot_is_rejected(self):
+        self.client.post(
+            reverse("registry:submit_run"),
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
+                "run_export": make_export(
+                    run_id="pending-order-run",
+                    event_specs=[
+                        ("session.started", {"character": {"displayName": "Test Survivor"}}),
+                        ("day.started", {"partial": False}),
+                        ("day.started", {"partial": False}),
+                    ],
+                )
+            },
+        )
+        response = self.client.post(
+            reverse("registry:submit_run"),
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
+                "run_export": make_export(
+                    run_id="pending-order-run",
+                    generated_at=1784800200,
+                )
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "older than the latest version")
+        self.assertEqual(RunSubmission.objects.count(), 1)
+
+    def test_admin_overview_marks_missing_vod_or_url_orange_and_skips_bulk_approval(self):
+        self.client.post(reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export()})
+        submission = RunSubmission.objects.get()
+        # A historical submission can predate the evidence requirement.
+        submission.evidence_url = ""
+        submission.save(update_fields=["evidence_url"])
+        submission.preapproval_assessed_at = None
+        capture_preapproval_assessment(submission)
         administrator = Participant.objects.create_superuser(
             email="orange-reviewer@example.com",
             nickname="Orange Reviewer",
@@ -1348,10 +1475,9 @@ class RunSubmissionTests(TestCase):
         )
         self.client.force_login(administrator)
 
-        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
-        self.assertContains(overview, "First approval")
+        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"), follow=True)
+        self.assertContains(overview, "Pending first approval")
         self.assertContains(overview, "No URL or VOD provided")
-        self.assertContains(overview, "admin_run_submission_filters.js?v=20260831-1")
         self.assertEqual(
             submission.preapproval_state, RunSubmission.PreapprovalState.ORANGE
         )
@@ -1379,7 +1505,7 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(submission.status, RunSubmission.Status.RECEIVED)
 
     def test_admin_overview_marks_legacy_invalid_export_red_and_skips_it(self):
-        self.client.post(reverse("registry:submit_run"), {"run_export": make_export()})
+        self.client.post(reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export()})
         submission = RunSubmission.objects.get()
         submission.preapproval_state = RunSubmission.PreapprovalState.RED
         submission.preapproval_findings = [
@@ -1400,7 +1526,7 @@ class RunSubmissionTests(TestCase):
             "registry.admin.build_run_review",
             side_effect=AssertionError("The overview must use the stored assessment."),
         ):
-            overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
+            overview = self.client.get(reverse("admin:registry_runsubmission_changelist"), follow=True)
             self.assertEqual(overview.status_code, 200)
             self.assertContains(overview, "Invalid export")
             run_queue = reverse(
@@ -1416,7 +1542,7 @@ class RunSubmissionTests(TestCase):
             reverse("registry:submit_run"),
             {
                 "run_export": make_export(),
-                "manual_evidence_url": "https://example.com/vod/clean-run",
+                "manual_evidence_url": "https://www.twitch.tv/videos/123456",
             },
         )
         submission = RunSubmission.objects.get()
@@ -1430,17 +1556,17 @@ class RunSubmissionTests(TestCase):
         )
         self.client.force_login(administrator)
 
-        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
-        self.assertContains(overview, "Approval baseline")
-        self.assertContains(overview, "1 submission")
-        self.assertContains(overview, "All checks passed")
-        self.assertContains(overview, "First approval pending")
+        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"), follow=True)
+        self.assertContains(overview, "Verification")
+        self.assertContains(overview, 'data-submission-count="1"')
+        self.assertContains(overview, "Review required")
+        self.assertContains(overview, "Pending first approval")
         run_queue_url = reverse(
             "admin:registry_runsubmission_run_queue", args=(submission.run_id,)
         )
         run_queue = self.client.get(run_queue_url)
         self.assertContains(run_queue, "Next to review")
-        self.assertContains(run_queue, "Approve selected clean sequence")
+        self.assertNotContains(run_queue, "Approve selected clean sequence")
         review_page = self.client.get(
             reverse("admin:registry_runsubmission_change", args=(submission.pk,))
             + "?return_to_run=1"
@@ -1448,16 +1574,16 @@ class RunSubmissionTests(TestCase):
         self.assertContains(review_page, f'data-admin-return-url="{run_queue_url}"')
 
         response = self.client.post(
-            run_queue_url, {ACTION_CHECKBOX_NAME: [str(submission.pk)]}
+            reverse("admin:registry_runsubmission_approve", args=(submission.pk,)) + "?return_to_run=1"
         )
         self.assertRedirects(response, run_queue_url)
         submission.refresh_from_db()
         self.assertEqual(submission.status, RunSubmission.Status.APPROVED)
-        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
+        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"), follow=True)
         self.assertNotContains(overview, submission.run.character_name)
 
     def test_run_queue_groups_updates_and_enforces_chronological_review(self):
-        evidence = "https://example.com/vod/ordered-run"
+        evidence = "https://www.twitch.tv/videos/123456"
         self.client.post(
             reverse("registry:submit_run"),
             {"run_export": make_export(run_id="ordered-run"), "manual_evidence_url": evidence},
@@ -1485,9 +1611,9 @@ class RunSubmissionTests(TestCase):
             password="Local-test-password-482!",
         )
         self.client.force_login(administrator)
-        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"))
-        self.assertContains(overview, "2 submissions")
-        self.assertContains(overview, "Manage run", count=1)
+        overview = self.client.get(reverse("admin:registry_runsubmission_changelist"), follow=True)
+        self.assertContains(overview, 'data-submission-count="2"')
+        self.assertContains(overview, "run_tab=submissions")
 
         run_queue_url = reverse(
             "admin:registry_runsubmission_run_queue", args=(submissions[0].run_id,)
@@ -1500,7 +1626,7 @@ class RunSubmissionTests(TestCase):
             "admin:registry_runsubmission_approve", args=(submissions[1].pk,)
         ) + "?return_to_run=1"
         response = self.client.post(later_approve_url)
-        self.assertRedirects(response, run_queue_url)
+        self.assertRedirects(response, reverse("admin:registry_runsubmission_change", args=(submissions[1].pk,)) + "?return_to_run=1", fetch_redirect_response=False)
         submissions[1].refresh_from_db()
         self.assertEqual(submissions[1].status, RunSubmission.Status.RECEIVED)
 
@@ -1508,19 +1634,19 @@ class RunSubmissionTests(TestCase):
             run_queue_url,
             {ACTION_CHECKBOX_NAME: [str(item.pk) for item in submissions]},
         )
-        self.assertRedirects(response, run_queue_url)
+        self.assertEqual(response.status_code, 405)
         for submission in submissions:
             submission.refresh_from_db()
-            self.assertEqual(submission.status, RunSubmission.Status.APPROVED)
+            self.assertEqual(submission.status, RunSubmission.Status.RECEIVED)
 
     def test_dashboard_groups_pending_updates_by_run(self):
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(run_id="grouped-dashboard-run")},
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export(run_id="grouped-dashboard-run")},
         )
         self.client.post(
             reverse("registry:submit_run"),
-            {
+            {"manual_evidence_url": "https://www.twitch.tv/videos/123456",
                 "run_export": make_export(
                     run_id="grouped-dashboard-run",
                     generated_at=1784800200,
@@ -1540,7 +1666,7 @@ class RunSubmissionTests(TestCase):
 
     def test_admin_approval_updates_submission_and_dashboard(self):
         self.client.post(
-            reverse("registry:submit_run"), {"run_export": make_export()}
+            reverse("registry:submit_run"), {"run_export": make_export(), "manual_evidence_url": "https://www.twitch.tv/videos/123456"}
         )
         run = ChallengeRun.objects.get()
         submission = RunSubmission.objects.get()
@@ -1605,7 +1731,7 @@ class RunSubmissionTests(TestCase):
         from .admin import locked_run_submission_queryset
 
         self.client.post(
-            reverse("registry:submit_run"), {"run_export": make_export()}
+            reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export()}
         )
         run = ChallengeRun.objects.get()
         self.assertIsNone(run.approved_submission)
@@ -1628,7 +1754,7 @@ class RunSubmissionTests(TestCase):
             reverse("registry:submit_run"),
             {"run_export": make_block_export_from_bodies(
                 first_bodies, run_id=run_id, projection=projection
-            )},
+            ), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         administrator = Participant.objects.create_superuser(
             email="incremental-reviewer@example.com",
@@ -1652,12 +1778,12 @@ class RunSubmissionTests(TestCase):
                 run_id=run_id,
                 generated_at=1784800200,
                 projection=projection,
-            )},
+            ), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         successor = RunSubmission.objects.get(status=RunSubmission.Status.RECEIVED)
         self.client.force_login(administrator)
         with patch(
-            "registry.admin.refresh_initial_run_authority",
+            "registry.submission_approval.refresh_initial_run_authority",
             wraps=refresh_initial_run_authority,
         ) as refresh:
             self.client.post(
@@ -1670,7 +1796,7 @@ class RunSubmissionTests(TestCase):
 
     def test_admin_approval_rolls_back_if_authority_refresh_fails(self):
         self.client.post(
-            reverse("registry:submit_run"), {"run_export": make_export()}
+            reverse("registry:submit_run"), {"run_export": make_export(), "manual_evidence_url": "https://www.twitch.tv/videos/123456"}
         )
         run = ChallengeRun.objects.get()
         submission = RunSubmission.objects.get()
@@ -1682,7 +1808,7 @@ class RunSubmissionTests(TestCase):
         self.client.force_login(administrator)
 
         with patch(
-            "registry.admin.refresh_initial_run_authority",
+            "registry.submission_approval.refresh_initial_run_authority",
             side_effect=RuntimeError("authority refresh failed"),
         ):
             with self.assertRaisesRegex(RuntimeError, "authority refresh failed"):
@@ -1723,7 +1849,7 @@ class RunSubmissionTests(TestCase):
         }
         response = self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(projection=projection)},
+            {"run_export": make_export(projection=projection), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         self.assertEqual(response.status_code, 302, response.content.decode())
         submission = RunSubmission.objects.get()
@@ -1768,7 +1894,7 @@ class RunSubmissionTests(TestCase):
         }
         response = self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(projection=projection)},
+            {"run_export": make_export(projection=projection), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         self.assertEqual(response.status_code, 302, response.content.decode())
         submission = RunSubmission.objects.get()
@@ -2086,7 +2212,7 @@ class RunSubmissionTests(TestCase):
                         ("run.ended", {"reason": "deceased"}),
                     ],
                 )
-            },
+            , "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         run = ChallengeRun.objects.get()
         submission = RunSubmission.objects.get()
@@ -2107,7 +2233,7 @@ class RunSubmissionTests(TestCase):
     def test_newer_snapshot_can_be_approved_without_new_ledger_events(self):
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(kills=42)},
+            {"run_export": make_export(kills=42), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         initial_submission = RunSubmission.objects.get()
         administrator = Participant.objects.create_superuser(
@@ -2131,7 +2257,7 @@ class RunSubmissionTests(TestCase):
                     kills=55,
                     generated_at=1784800200,
                 )
-            },
+            , "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         newer_snapshot = RunSubmission.objects.get(
             status=RunSubmission.Status.RECEIVED
@@ -2159,7 +2285,7 @@ class RunSubmissionTests(TestCase):
 
     def test_admin_decline_requires_and_records_reason(self):
         self.client.post(
-            reverse("registry:submit_run"), {"run_export": make_export()}
+            reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export()}
         )
         run = ChallengeRun.objects.get()
         submission = RunSubmission.objects.get()
@@ -2211,7 +2337,7 @@ class RunSubmissionTests(TestCase):
 
     def test_admin_sets_run_lifecycle_with_required_audited_reason(self):
         self.client.post(
-            reverse("registry:submit_run"), {"run_export": make_export()}
+            reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export()}
         )
         run = ChallengeRun.objects.get()
         administrator = Participant.objects.create_superuser(
@@ -2252,7 +2378,7 @@ class RunSubmissionTests(TestCase):
 
     def test_admin_submission_page_uses_review_controls_instead_of_save_controls(self):
         self.client.post(
-            reverse("registry:submit_run"), {"run_export": make_export()}
+            reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export()}
         )
         submission = RunSubmission.objects.get()
         administrator = Participant.objects.create_superuser(
@@ -2271,7 +2397,7 @@ class RunSubmissionTests(TestCase):
 
     def test_admin_submission_page_presents_structured_review(self):
         self.client.post(
-            reverse("registry:submit_run"), {"run_export": make_export()}
+            reverse("registry:submit_run"), {"manual_evidence_url": "https://www.twitch.tv/videos/123456", "run_export": make_export()}
         )
         submission = RunSubmission.objects.get()
         administrator = Participant.objects.create_superuser(
@@ -2309,7 +2435,7 @@ class RunSubmissionTests(TestCase):
         }
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(challenge=cdda)},
+            {"run_export": make_export(challenge=cdda), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         extended_events = [
             ("session.started", {"character": {"displayName": "Test Survivor"}}),
@@ -2324,7 +2450,7 @@ class RunSubmissionTests(TestCase):
                     event_specs=extended_events,
                     challenge=sprinters,
                 )
-            },
+            , "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         changed = RunSubmission.objects.order_by("-submitted_at").first()
         review = build_run_review(changed)
@@ -2335,7 +2461,6 @@ class RunSubmissionTests(TestCase):
                 for finding in review["findings"]
             )
         )
-
         administrator = Participant.objects.create_superuser(
             email="challenge-reviewer@example.com",
             nickname="Challenge Reviewer",
@@ -2355,7 +2480,7 @@ class RunSubmissionTests(TestCase):
         ]
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(kills=42, event_specs=initial_specs)},
+            {"run_export": make_export(kills=42, event_specs=initial_specs), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         run = ChallengeRun.objects.get()
         initial_submission = RunSubmission.objects.get()
@@ -2377,7 +2502,7 @@ class RunSubmissionTests(TestCase):
         ]
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(kills=55, event_specs=extended_specs)},
+            {"run_export": make_export(kills=55, event_specs=extended_specs), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         pending_submission = RunSubmission.objects.get(status=RunSubmission.Status.RECEIVED)
         review = build_run_review(pending_submission)
@@ -2419,7 +2544,7 @@ class RunSubmissionTests(TestCase):
         ]
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(kills=42, event_specs=initial_specs)},
+            {"run_export": make_export(kills=42, event_specs=initial_specs), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         run = ChallengeRun.objects.get()
         initial_submission = RunSubmission.objects.get()
@@ -2443,7 +2568,7 @@ class RunSubmissionTests(TestCase):
         ]
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(kills=55, event_specs=changed_specs)},
+            {"run_export": make_export(kills=55, event_specs=changed_specs), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         pending_submission = RunSubmission.objects.get(status=RunSubmission.Status.RECEIVED)
         review = build_run_review(pending_submission)
@@ -2451,16 +2576,27 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(review["comparison"]["changed_sequences"], [2])
         self.assertTrue(
             any(
-                finding["title"] == "Previously approved history changed"
+                "previously approved event(s) changed" in finding["title"]
                 and finding["level"] == "danger"
                 for finding in review["findings"]
             )
         )
+        self.client.force_login(administrator)
+        self.client.post(
+            reverse(
+                "admin:registry_runsubmission_approve",
+                args=(pending_submission.pk,),
+            )
+        )
+        pending_submission.refresh_from_db()
+        run.refresh_from_db()
+        self.assertEqual(pending_submission.status, RunSubmission.Status.RECEIVED)
+        self.assertEqual(run.approved_submission, initial_submission)
 
     def test_pending_and_declined_update_do_not_change_approved_run(self):
         self.client.post(
             reverse("registry:submit_run"),
-            {"run_export": make_export(kills=42)},
+            {"run_export": make_export(kills=42), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         initial_submission = RunSubmission.objects.get()
         administrator = Participant.objects.create_superuser(
@@ -2485,7 +2621,7 @@ class RunSubmissionTests(TestCase):
                 ("session.started", {"character": {"displayName": "Test Survivor"}}),
                 ("day.started", {"partial": False}),
                 ("skill.level.reached", {"skill": "Woodwork", "level": 3}),
-            ])},
+            ]), "manual_evidence_url": "https://www.twitch.tv/videos/123456"},
         )
         update = RunSubmission.objects.get(status=RunSubmission.Status.RECEIVED)
         run.refresh_from_db()

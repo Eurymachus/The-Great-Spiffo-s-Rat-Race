@@ -40,6 +40,7 @@ from .forms import (
     ResendVerificationForm,
     SignInForm,
     LegacyRunSubmissionForm,
+    RunEvidenceUpdateForm,
     RunSubmissionForm,
     ModReviewRequestForm,
     validate_registration_email,
@@ -56,6 +57,7 @@ from .models import (
     Participant,
     ParticipantChallengeModeLimit,
     RunSubmission,
+    RunSubmissionEvidenceRevision,
     StreamingAccount,
     StreamingMedia,
     WorkshopMod,
@@ -63,6 +65,8 @@ from .models import (
 from .run_exports import InvalidRunExport
 from .run_block_cache import attach_verified_blocks, decode_run_export_cached
 from .run_review import capture_preapproval_assessment
+from .submission_evidence import record_evidence_revision
+from .submission_approval import route_run
 from .run_public import build_public_run_context
 from .steam_workshop import (
     SteamWorkshopError,
@@ -582,9 +586,14 @@ def account_dashboard_context(user):
         runs.filter(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE), progress_cache
     )
     past_runs = list(runs.exclude(lifecycle_status=ChallengeRun.Lifecycle.ACTIVE))
+    for dashboard_run in [*active_runs, *past_runs]:
+        dashboard_run.evidence_missing = any(
+            not submission.evidence_url and (not dashboard_run.challenge_mode or dashboard_run.challenge_mode.evidence_required) and submission.status in RunSubmission.moderation_queue_statuses()
+            for submission in dashboard_run.submissions.all()
+        )
     pending_by_run = {}
     pending_submissions = user.run_submissions.filter(
-        status=RunSubmission.Status.RECEIVED
+        status__in=RunSubmission.moderation_queue_statuses()
     ).select_related("run", "challenge_mode").order_by("run_id", "-submitted_at")
     for submission in pending_submissions:
         pending_run = pending_by_run.get(submission.run_id)
@@ -942,6 +951,11 @@ def submit_run(request):
                 decoded.challenge_id, decoded.challenge_game_mode
             )
             existing = ChallengeRun.objects.filter(run_id=decoded.run_id).first()
+            newest_submission = (
+                existing.submissions.order_by("-event_sequence", "-generated_at").first()
+                if existing
+                else None
+            )
             if existing and existing.participant_id != request.user.id:
                 form.add_error(
                     "run_export",
@@ -955,15 +969,15 @@ def submit_run(request):
                 form.add_error(None, submission_blocked_message)
             elif RunSubmission.objects.filter(checksum=decoded.checksum).exists():
                 form.add_error("run_export", "This exact export has already been submitted.")
-            elif existing and decoded.event_sequence < existing.event_sequence:
+            elif newest_submission and decoded.event_sequence < newest_submission.event_sequence:
                 form.add_error(
                     "run_export",
                     "This export is older than the latest version already submitted for this run.",
                 )
             elif (
-                existing
-                and decoded.event_sequence == existing.event_sequence
-                and decoded.event_hash != existing.event_hash
+                newest_submission
+                and decoded.event_sequence == newest_submission.event_sequence
+                and decoded.event_hash != newest_submission.event_hash
             ):
                 form.add_error(
                     "run_export",
@@ -982,6 +996,29 @@ def submit_run(request):
                             raise SubmissionBlocked(
                                 "This run was deactivated and cannot receive further updates. "
                                 "Start a new character to submit another run."
+                            )
+                        locked_newest = (
+                            RunSubmission.objects.select_for_update()
+                            .filter(run=locked_existing)
+                            .order_by("-event_sequence", "-generated_at")
+                            .first()
+                            if locked_existing
+                            else None
+                        )
+                        if (
+                            locked_newest
+                            and decoded.event_sequence < locked_newest.event_sequence
+                        ):
+                            raise SubmissionBlocked(
+                                "This export is older than the latest version already submitted for this run."
+                            )
+                        if (
+                            locked_newest
+                            and decoded.event_sequence == locked_newest.event_sequence
+                            and decoded.event_hash != locked_newest.event_hash
+                        ):
+                            raise SubmissionBlocked(
+                                "This export conflicts with the existing ledger for this run."
                             )
                         reported_lifecycle = decoded.lifecycle
                         if challenge_mode:
@@ -1018,7 +1055,7 @@ def submit_run(request):
                                     participant=request.user,
                                     challenge_mode=challenge_mode,
                                     reported_lifecycle_status=ChallengeRun.Lifecycle.DECEASED,
-                                    submissions__status=RunSubmission.Status.RECEIVED,
+                                    submissions__status__in=RunSubmission.moderation_queue_statuses(),
                                 ).distinct().count()
                                 if pending_deceased >= deceased_limit:
                                     raise SubmissionBlocked(
@@ -1115,10 +1152,14 @@ def submit_run(request):
                                     "vod_offset_seconds": clip.vod_offset_seconds,
                                 }
                                 for clip in selected_clips
-                            ],
+                            ] + form.cleaned_data.get("additional_vod_urls", []),
                         )
                         capture_preapproval_assessment(submission)
                         attach_verified_blocks(submission, decoded)
+                        record_evidence_revision(
+                            submission, RunSubmissionEvidenceRevision.Source.INITIAL
+                        )
+                        transaction.on_commit(lambda run_id=run.pk: route_run(run_id))
                 except SubmissionBlocked as exc:
                     submission_blocked_message = str(exc)
                     form.add_error(None, submission_blocked_message)
@@ -1127,7 +1168,7 @@ def submit_run(request):
                         request.user,
                         category=Notification.Category.SUBMISSION,
                         title="Submission received",
-                        message="Your Rat Race export passed its integrity checks and is awaiting review.",
+                        message="Your Rat Race export was received. Check your submission status for approval or evidence requests.",
                         destination=reverse("registry:account"),
                     )
                     return redirect("registry:account")
@@ -1257,6 +1298,160 @@ def submit_legacy_run(request):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
+def update_run_submission_evidence(request, submission_id):
+    submission = get_object_or_404(
+        RunSubmission.objects.select_related("run", "challenge_mode"),
+        pk=submission_id,
+        submitter=request.user,
+        status__in=RunSubmission.moderation_queue_statuses(),
+    )
+    connected_streaming_accounts = list(
+        request.user.streaming_accounts.filter(
+            status=StreamingAccount.Status.CONNECTED,
+            provider__in=(
+                StreamingAccount.Provider.TWITCH,
+                StreamingAccount.Provider.YOUTUBE,
+            ),
+        ).order_by("provider")
+    )
+    selected_provider = submission.evidence_provider
+    if not selected_provider:
+        primary = request.user.primary_streaming_account
+        selected_provider = (
+            primary.provider
+            if primary in connected_streaming_accounts
+            else connected_streaming_accounts[0].provider
+            if connected_streaming_accounts
+            else ""
+        )
+    initial = {
+        "evidence_provider": selected_provider,
+        "manual_evidence_url": (
+            submission.evidence_url if not submission.evidence_media_id else ""
+        ),
+        "additional_vod_urls": "\n".join(item["url"] for item in submission.evidence_clips if item.get("kind") == "video"),
+        "evidence_start_seconds": submission.evidence_start_seconds,
+        "evidence_end_seconds": submission.evidence_end_seconds,
+    }
+    form = RunEvidenceUpdateForm(
+        request.POST or None,
+        participant=request.user,
+        selected_provider=selected_provider,
+        initial=initial,
+    )
+    if request.method == "GET":
+        selected_media = next(
+            (
+                item
+                for item in form.media_by_id.values()
+                if item.provider_media_id == submission.evidence_media_id
+            ),
+            None,
+        )
+        if selected_media:
+            form.initial["evidence_video"] = str(selected_media.pk)
+        clip_media_ids = {
+            clip.get("media_id")
+            for clip in submission.evidence_clips
+            if isinstance(clip, dict)
+        }
+        form.initial["evidence_clips"] = [
+            str(item.pk)
+            for item in form.media_by_id.values()
+            if item.provider_media_id in clip_media_ids
+        ]
+    if request.method == "POST" and form.is_valid():
+        selected_media = form.media_by_id.get(form.cleaned_data.get("evidence_video"))
+        selected_clips = [
+            form.media_by_id[value]
+            for value in form.cleaned_data.get("evidence_clips", [])
+        ]
+        with transaction.atomic():
+            locked = get_object_or_404(
+                RunSubmission.objects.select_for_update(),
+                pk=submission.pk,
+                submitter=request.user,
+                status__in=RunSubmission.moderation_queue_statuses(),
+            )
+            locked.evidence_provider = (
+                selected_media.account.provider if selected_media else ""
+            )
+            locked.evidence_media_type = selected_media.kind if selected_media else ""
+            locked.evidence_media_id = (
+                selected_media.provider_media_id if selected_media else ""
+            )
+            locked.evidence_url = (
+                selected_media.canonical_url
+                if selected_media
+                else form.cleaned_data["manual_evidence_url"]
+            )
+            locked.evidence_title = selected_media.title if selected_media else ""
+            locked.evidence_start_seconds = form.cleaned_data.get(
+                "evidence_start_seconds"
+            )
+            locked.evidence_end_seconds = form.cleaned_data.get("evidence_end_seconds")
+            locked.evidence_clips = [
+                {
+                    "provider": clip.account.provider,
+                    "media_id": clip.provider_media_id,
+                    "url": clip.canonical_url,
+                    "title": clip.title,
+                    "parent_media_id": clip.parent_media_id,
+                    "vod_offset_seconds": clip.vod_offset_seconds,
+                }
+                for clip in selected_clips
+            ] + form.cleaned_data.get("additional_vod_urls", [])
+            locked.status = RunSubmission.Status.RECEIVED
+            locked.preapproval_assessed_at = None
+            locked.save(
+                update_fields=(
+                    "evidence_provider",
+                    "evidence_media_type",
+                    "evidence_media_id",
+                    "evidence_url",
+                    "evidence_title",
+                    "evidence_start_seconds",
+                    "evidence_end_seconds",
+                    "evidence_clips",
+                    "status",
+                    "preapproval_assessed_at",
+                )
+            )
+            record_evidence_revision(
+                locked, RunSubmissionEvidenceRevision.Source.PARTICIPANT
+            )
+            capture_preapproval_assessment(locked)
+            transaction.on_commit(lambda run_id=locked.run_id: route_run(run_id))
+        messages.success(request, "Your stream evidence has been updated.")
+        return redirect("registry:account")
+
+    submission_videos = [
+        item for item in form.media_by_id.values() if item.kind == StreamingMedia.Kind.VIDEO
+    ]
+    submission_clips = [
+        item for item in form.media_by_id.values() if item.kind == StreamingMedia.Kind.CLIP
+    ]
+    return render(
+        request,
+        "registry/update_run_submission_evidence.html",
+        {
+            "form": form,
+            "submission": submission,
+            "streaming_accounts": connected_streaming_accounts,
+            "selected_provider": form.selected_provider,
+            "submission_videos": submission_videos,
+            "submission_clips": submission_clips,
+            "selected_video_id": str(form["evidence_video"].value() or ""),
+            "selected_clip_ids": {
+                str(value) for value in (form["evidence_clips"].value() or [])
+            },
+            "cached_media_count": len(submission_videos),
+        },
+    )
+
+
+@login_required
 @require_http_methods(["POST"])
 def deactivate_run(request, run_id):
     return_to_submission = request.POST.get("return_to_submission") == "1"
@@ -1301,7 +1496,9 @@ def deactivate_run(request, run_id):
             "lifecycle_status", "reported_lifecycle_status",
             "participant_deactivated_at", "updated_at"
         ))
-        run.submissions.filter(status=RunSubmission.Status.RECEIVED).update(
+        run.submissions.filter(
+            status__in=RunSubmission.moderation_queue_statuses()
+        ).update(
             status=RunSubmission.Status.DECLINED,
             reviewed_at=deactivated_at,
             review_note="Run deactivated by participant.",

@@ -68,6 +68,11 @@ urlpatterns = [
         name="account_dashboard_fragment",
     ),
     path("account/submit/", views.submit_run, name="submit_run"),
+    path(
+        "account/submissions/<uuid:submission_id>/evidence/",
+        views.update_run_submission_evidence,
+        name="update_run_submission_evidence",
+    ),
     path("account/legacy/submit/", views.submit_legacy_run, name="submit_legacy_run"),
     path(
         "account/runs/<uuid:run_id>/deactivate/",

@@ -32,6 +32,44 @@ records, while aliases and assets remain shared catalogue relationships.
 - The final Unstable legacy dataset is imported only after the team selects its
   cutoff date.
 
+## Submission review journey: implemented locally
+
+The owner agreed the revised [submission review policy](SUBMISSION_REVIEW_POLICY.md)
+on 11 September 2026. The local website now implements:
+
+- **Challenge Runs** is the single moderation workspace. Shared starting views
+  are Needs Review, No Recent Audit, Active and All. Needs Review is the first
+  visit default; the last selected accessible tab and filters are remembered
+  per moderator in the database.
+- Moderators can save personal filter/sort views and hide, restore or reorder
+  available tabs. Administrators with `manage_shared_run_views` can publish
+  and edit shared views. New shared views append without resetting user order.
+- Only the earliest unresolved submission can be opened for review. Later pending
+  rows remain visible but locked until reassessment after the earlier decision.
+  Completed submissions remain available for inspection and audits.
+- Run-local Overview, Submissions and Audits tabs retain the complete ordered
+  history and preserve run context when reviewing. Old list links redirect to
+  the unified workspace; approval and audit decisions remain separate.
+- Audit filters include unfinished audits and VOD windows closing within 48
+  hours, elapsed windows and unknown broadcast dates. No Recent Audit finds
+  accepted submissions without a latest passed audit, rather than inventing
+  an obligation based only on elapsed time.
+- Challenge Modes configure Evidence required (default on). Required modes reject
+  new submissions without a supported VOD and block manual approval without evidence.
+  Optional modes permit manual review and clean automatic updates without footage. Accepted records are not retroactively changed.
+- Automatically approve routine updates only after validation and applicable VOD evidence
+  checks pass, with no review trigger or unresolved earlier submission.
+- Require human review for new mod changes, debug use, outpost completions,
+  explicit time-deviation events and reconciliation/recovery events. Previously
+  reviewed cumulative events do not trigger again.
+- Embed VOD evidence where supported. Audit within seven days of broadcast where
+  possible; later disputes require team discussion. No mass approval is planned.
+
+Next action: a signed-in team acceptance pass covering a first submission,
+clean VOD-backed update, flagged update, evidence correction and recorded audit.
+Migrations are applied locally; production deployment and live provider checks
+remain outstanding. Earlier manual-only descriptions below describe prior behaviour.
+
 ## Implemented
 
 - Production-shaped direct-Uvicorn deployments serve persistent branding,
@@ -74,6 +112,14 @@ records, while aliases and assets remain shared catalogue relationships.
   review queue, clears approval-derived authority and baseline links, and
   preserves uploaded exports, evidence, run identities, and participant
   notifications. The permanent data purge remains a separate operation.
+- Pending run submissions now support evidence-only corrections without
+  replacing their immutable tracker export. Participants can update evidence
+  proactively from the dashboard or follow a moderator's direct Awaiting
+  Evidence notification. Every evidence snapshot remains in an audit history,
+  later submissions stay chronologically blocked, and corrected evidence is
+  reassessed before review. Approval independently rejects red blocking
+  findings and any change to the currently approved event prefix. New uploads
+  must also be at least as current as the newest existing submission.
 - The signed-in player run page presents `Spawn choice` and `Starting location`
   from run-owned authority. Starting location is an icon-only link using the
   newest active `Base.Map` catalogue artwork, with `View map` alternative text;
@@ -543,7 +589,11 @@ outward.
 
 ## Recommended next action
 
-Prepare and test the production deployment path, including persistent database
+Implement and verify the agreed submission review journey across Submission
+Reviews, Submission Audits and Challenge Runs, following
+[SUBMISSION_REVIEW_POLICY.md](SUBMISSION_REVIEW_POLICY.md).
+
+Production deployment acceptance remains required, including persistent database
 and media storage, independent web and worker supervision, secret validation,
 health checks, backup, restore, restart, and rollback procedures.
 
@@ -556,6 +606,8 @@ runs, submissions, credentials, notifications, or operational state.
 
 ### Before launch
 
+- Complete the agreed submission review and audit policy and its three distinct
+  administration areas, including automatic-approval eligibility and safeguards.
 - Complete retention automation and the final privacy review.
 - Run a production-shaped acceptance test across registration, account,
   submission, moderation, rankings, Rules, Mods, and Exploits.

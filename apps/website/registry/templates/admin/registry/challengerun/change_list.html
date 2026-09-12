@@ -3,16 +3,24 @@
 
 {% block extrastyle %}
   {{ block.super }}
-  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260831-3">
+  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260912-chips-5">
 {% endblock %}
 
 {% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Challenge runs</div>
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Challenge Runs</div>
 {% endblock %}
 
 {% block content %}
 <div id="content-main" class="run-moderation-queue challenge-run-registry">
+{% include "admin/registry/challengerun/_saved_views.html" %}
+{{ saved_filter_fields|json_script:"run-filter-values" }}
+<div class="run-filter-toolbar"><form method="get" class="run-inline-search"><input type="hidden" name="view" value="{{ selected_view.pk }}"><input type="search" name="q" value="{{ search }}" placeholder="Search runs" aria-label="Search runs"><button type="submit">Search</button></form><button type="button" id="run-filter-toggle" popovertarget="run-filter-popover" aria-expanded="false" aria-controls="run-filter-popover"><span>Filters</span><span class="run-filter-arrow" aria-hidden="true">▾</span></button><a class="run-reset-view" href="?view={{ selected_view.pk }}&amp;reset=1">Reset view</a><div id="run-filter-chips" aria-label="Applied filters"></div></div>
+<div id="run-filter-popover" popover><strong>Filter runs</strong><div id="run-filter-options"></div></div>
+<dialog hidden class="run-workspace-panel run-filter-drawer" id="run-filters" aria-labelledby="run-filters-title">
+<header><h2 id="run-filters-title">Add filter</h2><button type="button" data-close-panel aria-label="Close">×</button></header>
+  <label>Filter<select id="run-filter-type"><option value="">Choose a filter</option></select></label>
   <form method="get" class="run-queue-filters challenge-run-filters">
+    <input type="hidden" name="view" value="{{ selected_view.pk }}">
     <label class="challenge-run-filter-search">Search <input type="search" name="q" value="{{ search }}" placeholder="Character, participant, or run ID"></label>
     <label>Challenge mode
       <select name="challenge_mode">
@@ -24,9 +32,12 @@
     <label>Lifecycle
       <select name="lifecycle_status"><option value="">All lifecycles</option>{% for value, label in lifecycle_choices %}<option value="{{ value }}"{% if selected_lifecycle_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
     </label>
-    <details class="challenge-run-more-filters"{% if additional_filter_count %} data-has-active-filters{% endif %}>
-      <summary class="button">More filters{% if additional_filter_count %} ({{ additional_filter_count }}){% endif %}</summary>
       <div class="challenge-run-more-filter-fields">
+        <label>Review work<select name="work"><option value="">Any</option><option value="review"{% if selected_work == 'review' %} selected{% endif %}>Needs review</option><option value="evidence"{% if selected_work == 'evidence' %} selected{% endif %}>Awaiting evidence</option></select></label>
+        <label>Audit<select name="audit"><option value="">Any</option><option value="unaudited"{% if selected_audit == 'unaudited' %} selected{% endif %}>No recent audit</option><option value="selected"{% if selected_audit == 'selected' %} selected{% endif %}>Selected</option><option value="in_progress"{% if selected_audit == 'in_progress' %} selected{% endif %}>In progress</option><option value="action_required"{% if selected_audit == 'action_required' %} selected{% endif %}>Action required</option></select></label>
+        <label>VOD window<select name="vod"><option value="">Any</option><option value="closing"{% if selected_vod == 'closing' %} selected{% endif %}>Closing within 48 hours</option><option value="unknown"{% if selected_vod == 'unknown' %} selected{% endif %}>Broadcast date unknown</option><option value="expired"{% if selected_vod == 'expired' %} selected{% endif %}>Window elapsed</option></select></label>
+
+        <details{% if selected_status or selected_export_format or selected_bootstrapped or selected_updated %} open{% endif %}><summary>Advanced filters</summary>
         <label>Verification
           <select name="status"><option value="">All verification</option>{% for value, label in status_choices %}<option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
         </label>
@@ -39,29 +50,32 @@
         <label>Updated
           <select name="updated"><option value="">Any date</option><option value="today"{% if selected_updated == "today" %} selected{% endif %}>Today</option><option value="7days"{% if selected_updated == "7days" %} selected{% endif %}>Past 7 days</option><option value="month"{% if selected_updated == "month" %} selected{% endif %}>Past 30 days</option><option value="year"{% if selected_updated == "year" %} selected{% endif %}>Past year</option></select>
         </label>
+        </details>
       </div>
-    </details>
+
     <button type="submit" class="button">Apply filters</button>
-    <a href="{% url 'admin:registry_challengerun_changelist' %}" class="button">Clear</a>
+    <a href="?view={{ selected_view.pk }}&amp;reset=1" class="button">Reset view</a>
   </form>
+</dialog>
 
   <div class="results challenge-run-results">
     <table id="result_list">
-      <thead><tr><th>Run</th><th>Participant</th><th>Lifecycle</th><th>Verification</th><th>Kills</th><th>Events</th><th>Updated</th><th></th></tr></thead>
+      <thead><tr>{% for header in table_headers %}<th aria-sort="{{ header.direction }}"><a href="{{ header.url }}">{{ header.label }} <span aria-hidden="true">{% if header.direction == "ascending" %}↑{% elif header.direction == "descending" %}↓{% else %}↕{% endif %}</span></a></th>{% endfor %}<th></th></tr></thead>
       <tbody>
       {% for run in runs %}
         <tr>
-          <th><a href="{% url 'admin:registry_challengerun_change' run.pk %}">{{ run.character_name|default:"Unnamed survivor" }}</a><small>{{ run.run_id }}</small><small>{{ run.challenge_mode_display }}</small></th>
+          <th><a href="{% if run.direct_review_url %}{{ run.direct_review_url }}{% else %}{% url 'admin:registry_challengerun_change' run.pk %}{% endif %}">{{ run.character_name|default:"Unnamed survivor" }}</a><small>{{ run.run_id }}</small><small>{{ run.challenge_mode_display }}</small></th>
           <td>{{ run.participant|default:"Former Rat Racer" }}</td>
           <td><span class="run-review-list-badge lifecycle-{{ run.lifecycle_status }}">{{ run.get_lifecycle_status_display }}</span></td>
           <td>{% if run.status == "official" %}<span class="run-review-list-badge status-approved"><span aria-hidden="true">✓</span> Verified</span>{% else %}<span class="run-review-list-badge finding-warning">Pending first approval</span>{% endif %}</td>
           <td>{{ run.current_kills }}</td>
           <td>{{ run.event_sequence }}</td>
+          <td><span data-submission-count="{{ run.submission_count }}">{{ run.submission_count }}</span>{% if run.needs_review %}<small>Review required</small>{% endif %}{% if run.needs_evidence %}<small>Awaiting evidence</small>{% endif %}{% for finding in run.review_findings %}<small>{{ finding }}</small>{% endfor %}</td>
           <td>{{ run.updated_at|date:"j M Y, H:i" }}</td>
-          <td><a class="button" href="{% url 'admin:registry_challengerun_change' run.pk %}">Open run</a></td>
+          <td><a class="run-context-button" href="{% if run.direct_review_url %}{{ run.direct_review_url }}{% else %}{% url 'admin:registry_challengerun_change' run.pk %}?tab={% if run.needs_review or run.needs_evidence %}submissions{% elif selected_audit or selected_vod %}audits{% else %}overview{% endif %}{% endif %}">{% if run.needs_review %}Review{% elif run.needs_evidence %}View evidence{% elif selected_audit or selected_vod %}Open audits{% else %}Open run{% endif %}</a></td>
         </tr>
       {% empty %}
-        <tr><td colspan="8">No challenge runs match these filters.</td></tr>
+        <tr><td colspan="9">No challenge runs match these filters.</td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -74,4 +88,122 @@
     {% if page.has_next %}<a class="button" href="?{% if query_without_page %}{{ query_without_page }}&amp;{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}
   </nav>
 </div>
+{% endblock %}
+
+{% block footer %}
+{{ block.super }}
+<script>
+(() => {
+  let opener;
+  const open = (id, trigger) => {
+    opener = trigger;
+    document.getElementById(id).showModal();
+  };
+
+  const filterForm = document.querySelector('.challenge-run-filters');
+  const picker = document.querySelector('#run-filter-popover');
+  const filterOptions = document.querySelector('#run-filter-options');
+  const chips = document.querySelector('#run-filter-chips');
+  const activeValues = Object.fromEntries(JSON.parse(document.getElementById('run-filter-values').textContent));
+  let revision = 0, inFlight = false, refreshTimer;
+  const status = document.createElement('span'); status.setAttribute('role', 'status');
+  document.querySelector('.run-filter-toolbar').append(status);
+  const selection = key => (activeValues[key] || '').split(',').filter(Boolean);
+  const renderChips = () => {
+    chips.replaceChildren();
+    filterForm.querySelectorAll('select').forEach(select => {
+      const name = select.closest('label').firstChild.textContent.trim();
+      selection(select.name).forEach(value => {
+        const choice = Array.from(select.options).find(option => option.value === value);
+        const chip = document.createElement('button'); chip.type = 'button';
+        const text = document.createElement('span'); text.textContent = name + ': ' + (choice ? choice.textContent : value);
+        const icon = document.createElement('span'); icon.className = 'run-chip-remove'; icon.textContent = '×'; icon.setAttribute('aria-hidden','true');
+        chip.append(text, icon); chip.setAttribute('aria-label', 'Remove ' + text.textContent);
+        chip.addEventListener('click', () => navigateFilter(select.name, selection(select.name).filter(item => item !== value).join(',')));
+        chips.append(chip);
+      });
+    });
+    filterOptions.querySelectorAll('input').forEach(input => { input.checked = selection(input.name).includes(input.value); });
+  };
+  const refreshResults = async () => {
+    if (inFlight) return;
+    inFlight = true;
+    const requestedRevision = revision;
+    const params = new URLSearchParams(activeValues); params.set('view', '{{ selected_view.pk }}');
+    const url = window.location.pathname + '?' + params.toString();
+    status.textContent = 'Updating results…';
+    try {
+      const response = await fetch(url, {credentials:'same-origin'});
+      if (!response.ok) throw new Error('Request failed');
+      const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+      const results = page.querySelector('.challenge-run-results');
+      if (!results) throw new Error('Results unavailable');
+      if (requestedRevision === revision) {
+        document.querySelector('.challenge-run-results').replaceWith(results);
+        const pagination = document.querySelector('.challenge-run-pagination');
+        const replacement = page.querySelector('.challenge-run-pagination');
+        if (pagination && replacement) pagination.replaceWith(replacement);
+        results.querySelectorAll('tbody tr').forEach(row => {
+          const link = row.querySelector('th a'); if (!link) return;
+          row.tabIndex = 0; row.classList.add('operation-row-link'); row.setAttribute('role','link'); row.setAttribute('aria-label','Open ' + link.textContent.trim());
+          row.addEventListener('click', event => { if (!event.target.closest('a,button,input,select,textarea,label')) window.location.assign(link.href); });
+          row.addEventListener('keydown', event => { if (event.target === row && ['Enter',' '].includes(event.key)) { event.preventDefault(); window.location.assign(link.href); } });
+        });
+        history.replaceState(null, '', url);
+        document.querySelectorAll('#create-run-view input[type="hidden"]').forEach(input => { if (Object.hasOwn(activeValues, input.name)) input.value = activeValues[input.name]; });
+        status.textContent = '';
+      }
+    } catch (error) {
+      if (requestedRevision === revision) status.textContent = 'Could not update results. Change a filter to retry.';
+    } finally {
+      inFlight = false;
+      if (requestedRevision !== revision) refreshResults();
+    }
+  };
+  const navigateFilter = (key, value) => {
+    activeValues[key] = value; revision += 1; renderChips();
+    clearTimeout(refreshTimer); refreshTimer = setTimeout(refreshResults, 180);
+  };
+  filterForm.querySelectorAll('select').forEach(select => {
+    const label = select.closest('label');
+    const name = label.firstChild.textContent.trim();
+    label.hidden = true;
+    const group = document.createElement('fieldset');
+    const legend = document.createElement('legend'); legend.textContent = name; group.append(legend);
+    Array.from(select.options).filter(option => option.value).forEach(option => {
+      const item = document.createElement('label');
+      const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.name = select.name; checkbox.value = option.value; checkbox.checked = selection(select.name).includes(option.value);
+      item.append(checkbox, document.createTextNode(option.textContent)); group.append(item);
+      checkbox.addEventListener('change', () => {
+        const values = checkbox.checked ? [...new Set([...selection(select.name), option.value])] : selection(select.name).filter(value => value !== option.value);
+        navigateFilter(select.name, values.join(','));
+      });
+    });
+    filterOptions.append(group);
+  });
+  const positionPicker = () => {
+    const rect = document.querySelector('#run-filter-toggle').getBoundingClientRect();
+    picker.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 336)) + 'px';
+    picker.style.top = Math.min(rect.bottom + 6, window.innerHeight - 180) + 'px';
+    picker.style.maxHeight = Math.max(150, window.innerHeight - parseFloat(picker.style.top) - 12) + 'px';
+  };
+  picker.addEventListener('beforetoggle', event => { if (event.newState === 'open') positionPicker(); });
+  picker.addEventListener('toggle', event => {
+    const trigger = document.querySelector('#run-filter-toggle');
+    trigger.setAttribute('aria-expanded', String(event.newState === 'open'));
+    trigger.querySelector('.run-filter-arrow').textContent = event.newState === 'open' ? '▴' : '▾';
+  });
+  renderChips();
+  document.querySelectorAll('[data-run-panel]').forEach(button => button.addEventListener('click', () => open(button.dataset.runPanel, button)));
+  document.querySelectorAll('.run-workspace-panel').forEach(panel => {
+    panel.querySelector('[data-close-panel]').addEventListener('click', () => panel.close());
+    panel.addEventListener('click', event => { if (event.target === panel) { const r = panel.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) panel.close(); } });
+    panel.addEventListener('close', () => opener?.focus());
+  });
+  document.querySelector('[data-edit-current]').addEventListener('click', () => {
+    document.getElementById('manage-run-tabs').close();
+    open('create-run-view', document.querySelector('[data-run-panel="manage-run-tabs"]'));
+  });
+})();
+</script>
 {% endblock %}

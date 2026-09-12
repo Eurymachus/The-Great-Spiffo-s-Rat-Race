@@ -155,6 +155,10 @@ administrative controls remain version-controlled application text.
 
 ## 2026-07-16 — Run updates require explicit human approval
 
+The blanket human-approval requirement below is superseded by the 2026-09-11
+decision, "Separate submission reviews, audits and challenge runs". Immutable
+evidence, baseline protection and transactional application remain required.
+
 Each encoded upload is an immutable, complete cumulative snapshot identified by
 the mod-generated run ID. Uploading and decoding a snapshot must not add to,
 replace, or otherwise alter canonical approved run data.
@@ -198,6 +202,29 @@ participant and challenge-mode override may narrow either limit, must retain a
 moderation reason, may expire, and records the administrator who set it. An
 active run cannot be approved while an earlier terminal submission remains
 unresolved or doing so would exceed the participant's approved active-run limit.
+
+## 2026-09-01 - Correct submission evidence without replacing the export
+
+A participant may revise the stream evidence attached to a submission while it
+is still in the moderation queue. The tracker export, checksum, event ledger,
+run identity, and submission identity remain immutable. Every effective
+evidence snapshot is retained as a separate revision in chronological order.
+
+Moderators may place the oldest unresolved submission into Awaiting Evidence
+with a required explanation. The participant receives a notification linking
+directly to the evidence update page. Updating evidence returns the submission
+to Received and refreshes its automated evidence assessment. The unresolved
+submission continues to block later submissions for the same run until it is
+updated and reviewed.
+
+Participants may also correct evidence proactively from their pending run on
+the account dashboard. Approved and declined submissions remain locked.
+Declining a submission is a decision about that submitted snapshot, not an
+invalidation of the run identity.
+
+Approval must independently enforce the immutable approved event prefix. A red
+blocking assessment cannot be approved, and an export older than the newest
+submitted snapshot is rejected before entering the queue.
 
 ## 2026-07-17 - Use a constrained, reusable page system
 
@@ -1029,6 +1056,32 @@ a normal run-moderation bulk action.
   reduction remains zero.
 - This replaces the unstable rule of 90% additional removal over ten years.
 
+# 2026-09-11 - Separate submission reviews, audits and challenge runs
+
+- Adopt [SUBMISSION_REVIEW_POLICY.md](SUBMISSION_REVIEW_POLICY.md) as the agreed
+  target policy. Implemented in the local website worktree on 11 September;
+  team acceptance and deployment remain outstanding.
+- Require human approval for new runs and newly introduced mod changes, debug
+  use, outpost completions, explicit time-deviation events, reconciliation or
+  recovery events, and other significant findings. Previously reviewed events
+  in cumulative exports do not repeatedly trigger review.
+- Automatically approve eligible updates to approved runs when validation and
+  VOD evidence checks pass and no earlier submission remains unresolved. Preserve
+  blocking checks, immutable history and atomic canonical updates on both paths.
+- Missing or incorrect VOD evidence goes to Awaiting Evidence. Uncertain cases
+  go to Pending Approval with a specific reason. Evidence corrections trigger
+  reassessment without replacing the export.
+- Provide three distinct administration areas named **Submission Reviews**,
+  **Submission Audits**, and **Challenge Runs**, with linked submission history
+  and separate submission, audit and run-level decisions.
+- Keep **Auto-Approved** visible only to moderators; retain acceptance provenance
+  separately from subsequent audit state. All submissions remain inspectable.
+- Embed VODs on submission records where supported, retaining direct links.
+  Aim to audit within seven days of broadcast, sooner where possible; later
+  disputes require team discussion and expired footage alone is not wrongdoing.
+- Omit mass approval from the revised journey. This replaces the earlier blanket
+  human-approval requirement and the earlier discussion proposal for mass approval.
+
 # 2026-08-30 - Disclose LLM-assisted development at subscription and project-information surfaces
 
 - Use the approved wording recorded in
@@ -1040,3 +1093,23 @@ a normal run-moderation bulk action.
   disclosure remains separate from The Indie Stone non-affiliation disclaimer.
 - The space-constrained in-game `mod.info` description does not need the complete
   statement. It may later link or point to the full public disclosure.
+
+# 2026-09-11 - Unify run moderation with saved views
+
+- Replace three top-level moderation pages with one Challenge Runs workspace.
+- Seed shared Needs Review, No Recent Audit, Active and All views. Remember the
+  moderator's last visible, accessible view across sessions and devices.
+- Store view definitions separately from each user's hidden state, order and
+  remembered filters. Personal views are private; only administrators with the
+  dedicated permission can publish or change shared views.
+- Sharing never grants access to additional runs. Unavailable remembered tabs
+  fall back to Needs Review, then the first visible view.
+- Preserve run-local Overview, Submissions and Audits. Approval, audits and run
+  validity remain separate decisions. VOD urgency uses the operational seven-day
+  window, with a closing filter for the final 48 hours and separate unknown dates.
+
+### Evidence configuration and automatic approval (2026-09-12)
+Evidence required governs both manual and automatic approval. When disabled, missing evidence does not block clean updates after first human approval. Integrity, lifecycle and other review triggers remain enforced. This supersedes the earlier rule requiring verified evidence for every automatic approval.
+
+### Review of abandoned runs (2026-09-12)
+Abandonment stops future participation, not review of existing submissions. Pending submissions remain reviewable and approval preserves abandoned lifecycle and participant deactivation. Active-run admission limits do not apply to this historical approval. Invalidated runs remain excluded from review. This supersedes the earlier closed-run queue exclusion for abandoned runs.

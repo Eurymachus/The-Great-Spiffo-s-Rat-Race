@@ -17,6 +17,7 @@ ROLE_PERMISSIONS = {
     ),
     "Moderator": ("view_participant", "change_participant"),
     "Challenge Administrator": (
+        "manage_shared_run_views",
         "add_participant",
         "view_participant",
         "change_participant",

@@ -418,6 +418,7 @@ class WorkshopModVote(models.Model):
 
 
 class ChallengeMode(models.Model):
+    evidence_required = models.BooleanField(default=True, help_text="Require a Twitch or YouTube VOD for submission and manual approval. Automatic approval always requires verified evidence.")
     key = models.CharField(
         max_length=160,
         unique=True,
@@ -1258,8 +1259,13 @@ class LegacyRunClaim(models.Model):
 
 
 class RunSubmission(models.Model):
+    class ApprovalMethod(models.TextChoices):
+        HUMAN = "human", "Moderator approved"
+        AUTOMATIC = "automatic", "Auto-Approved"
+
     class Status(models.TextChoices):
-        RECEIVED = "received", "Received"
+        RECEIVED = "received", "Pending Approval"
+        AWAITING_EVIDENCE = "awaiting_evidence", "Awaiting evidence"
         APPROVED = "approved", "Approved"
         DECLINED = "declined", "Declined"
 
@@ -1287,7 +1293,7 @@ class RunSubmission(models.Model):
         related_name="run_submissions",
     )
     status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.RECEIVED
+        max_length=20, choices=Status.choices, default=Status.RECEIVED
     )
     checksum = models.CharField(max_length=64, unique=True)
     raw_export = models.TextField()
@@ -1312,7 +1318,23 @@ class RunSubmission(models.Model):
     challenge_game_mode = models.CharField(max_length=255, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        Participant,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_run_submissions",
+    )
     review_note = models.TextField(blank=True)
+    evidence_requested_at = models.DateTimeField(null=True, blank=True)
+    evidence_requested_by = models.ForeignKey(
+        Participant,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="evidence_requested_run_submissions",
+    )
+    evidence_request_note = models.TextField(blank=True)
     preapproval_state = models.CharField(
         max_length=8,
         choices=PreapprovalState.choices,
@@ -1331,9 +1353,23 @@ class RunSubmission(models.Model):
     evidence_end_seconds = models.PositiveIntegerField(null=True, blank=True)
     evidence_clips = models.JSONField(default=list, blank=True)
 
+    approval_method = models.CharField(max_length=12, blank=True, choices=ApprovalMethod.choices, editable=False)
+    approval_policy_version = models.PositiveSmallIntegerField(default=0, editable=False)
+    routing_reasons = models.JSONField(default=list, blank=True, editable=False)
+    evidence_checked_at = models.DateTimeField(null=True, blank=True, editable=False)
+    evidence_check = models.JSONField(default=dict, blank=True, editable=False)
+
     class Meta:
         ordering = ("-submitted_at",)
-        verbose_name_plural = "run reviews"
+        verbose_name_plural = "Submission Reviews"
+
+    @property
+    def moderator_status(self):
+        if self.status == self.Status.APPROVED and self.approval_method == self.ApprovalMethod.AUTOMATIC:
+            return "Auto-Approved"
+        if self.status == self.Status.RECEIVED:
+            return "Pending Approval"
+        return self.get_status_display()
 
     def __str__(self):
         return f"{self.run}: {self.get_status_display()}"
@@ -1345,6 +1381,63 @@ class RunSubmission(models.Model):
         if self.challenge_id:
             return f"{self.challenge_id} (Unmapped)"
         return "Legacy / Unspecified"
+
+    @classmethod
+    def moderation_queue_statuses(cls):
+        return (cls.Status.RECEIVED, cls.Status.AWAITING_EVIDENCE)
+
+
+class SubmissionAudit(RunSubmission):
+    class Meta:
+        proxy = True
+        verbose_name = "Submission Audit"
+        verbose_name_plural = "Submission Audits"
+
+
+class SubmissionAuditEntry(models.Model):
+    class Outcome(models.TextChoices):
+        SELECTED = "selected", "Selected"
+        IN_PROGRESS = "in_progress", "In progress"
+        PASSED = "passed", "Passed"
+        ACTION_REQUIRED = "action_required", "Action required"
+
+    submission = models.ForeignKey(RunSubmission, on_delete=models.CASCADE, related_name="audit_entries")
+    reviewer = models.ForeignKey(Participant, null=True, on_delete=models.SET_NULL)
+    outcome = models.CharField(max_length=20, choices=Outcome.choices)
+    evidence_intervals = models.TextField(blank=True, help_text="Video links and time intervals actually inspected.")
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at", "-pk")
+
+
+class RunSubmissionEvidenceRevision(models.Model):
+    class Source(models.TextChoices):
+        INITIAL = "initial", "Initial submission"
+        PARTICIPANT = "participant", "Participant update"
+
+    submission = models.ForeignKey(
+        RunSubmission,
+        on_delete=models.CASCADE,
+        related_name="evidence_revisions",
+    )
+    source = models.CharField(max_length=16, choices=Source.choices)
+    evidence_provider = models.CharField(max_length=16, blank=True)
+    evidence_media_type = models.CharField(max_length=12, blank=True)
+    evidence_media_id = models.CharField(max_length=255, blank=True)
+    evidence_url = models.URLField(max_length=1000, blank=True)
+    evidence_title = models.CharField(max_length=500, blank=True)
+    evidence_start_seconds = models.PositiveIntegerField(null=True, blank=True)
+    evidence_end_seconds = models.PositiveIntegerField(null=True, blank=True)
+    evidence_clips = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at", "pk")
+
+    def __str__(self):
+        return f"{self.submission}: {self.get_source_display()}"
 
 
 class VerifiedRunEventBlock(models.Model):
@@ -1387,3 +1480,32 @@ class RunSubmissionEventBlock(models.Model):
                 name="unique_run_submission_event_block_position",
             )
         ]
+
+
+class RunSavedView(models.Model):
+    owner = models.ForeignKey(Participant, null=True, on_delete=models.SET_NULL, related_name="run_saved_views")
+    name = models.CharField(max_length=80)
+    shared = models.BooleanField(default=False)
+    filters = models.JSONField(default=dict)
+    system_key = models.CharField(max_length=30, unique=True, null=True, blank=True)
+
+    class Meta:
+        permissions = [("manage_shared_run_views", "Can manage shared Challenge Runs views")]
+        ordering = ("pk",)
+
+
+class RunViewPreference(models.Model):
+    user = models.ForeignKey(Participant, on_delete=models.CASCADE)
+    view = models.ForeignKey(RunSavedView, on_delete=models.CASCADE)
+    hidden = models.BooleanField(default=False)
+    position = models.PositiveIntegerField(default=0)
+    filters = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ("position", "pk")
+        constraints = [models.UniqueConstraint(fields=("user", "view"), name="unique_user_run_view")]
+
+
+class RunWorkspacePreference(models.Model):
+    user = models.OneToOneField(Participant, on_delete=models.CASCADE)
+    last_view = models.ForeignKey(RunSavedView, null=True, blank=True, on_delete=models.SET_NULL)
