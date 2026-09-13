@@ -1,0 +1,7 @@
+<div class="run-table-tabs"><nav class="run-saved-tabs" aria-label="Saved participant views">
+  {% for pref in saved_tabs %}<a href="?view={{ pref.view_id }}"{% if selected_view.pk == pref.view_id %} aria-current="page"{% endif %}>{{ pref.view.name }}{% if pref.view.shared %}<span class="view-scope">Shared</span>{% endif %}</a>{% endfor %}
+  <button type="button" data-run-panel="create-run-view" aria-label="Create a filtered view">+</button>
+</nav><div class="run-table-tools">
+
+<button type="button" data-run-panel="manage-run-tabs" aria-label="Manage tabs" title="Manage tabs">Manage tabs</button>
+</div></div>

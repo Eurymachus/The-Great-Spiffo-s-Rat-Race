@@ -12,9 +12,8 @@
 
 {% block content %}
 <div id="content-main" class="run-moderation-queue challenge-run-registry">
-{% include "admin/registry/challengerun/_saved_views.html" %}
 {{ saved_filter_fields|json_script:"run-filter-values" }}
-<div class="run-filter-toolbar"><form method="get" class="run-inline-search"><input type="hidden" name="view" value="{{ selected_view.pk }}"><input type="search" name="q" value="{{ search }}" placeholder="Search runs" aria-label="Search runs"><button type="submit">Search</button></form><button type="button" id="run-filter-toggle" popovertarget="run-filter-popover" aria-expanded="false" aria-controls="run-filter-popover"><span>Filters</span><span class="run-filter-arrow" aria-hidden="true">▾</span></button><a class="run-reset-view" href="?view={{ selected_view.pk }}&amp;reset=1">Reset view</a><div id="run-filter-chips" aria-label="Applied filters"></div></div>
+<div class="run-filter-toolbar"><form method="get" class="run-inline-search" role="search"><input type="hidden" name="view" value="{{ selected_view.pk }}"><label for="run-searchbar"><img src="{% static 'admin/img/search.svg' %}" alt="Search"></label><input type="search" size="40" id="run-searchbar" name="q" value="{{ search }}" aria-label="Search runs"><button type="submit">Search</button></form><button type="button" id="run-filter-toggle" popovertarget="run-filter-popover" aria-expanded="false" aria-controls="run-filter-popover"><span>Filters</span><span class="run-filter-arrow" aria-hidden="true">▾</span></button><a class="run-reset-view" href="?view={{ selected_view.pk }}&amp;reset=1">Reset view</a><div id="run-filter-chips" aria-label="Applied filters"></div></div>
 <div id="run-filter-popover" popover><strong>Filter runs</strong><div id="run-filter-options"></div></div>
 <dialog hidden class="run-workspace-panel run-filter-drawer" id="run-filters" aria-labelledby="run-filters-title">
 <header><h2 id="run-filters-title">Add filter</h2><button type="button" data-close-panel aria-label="Close">×</button></header>
@@ -58,6 +57,7 @@
   </form>
 </dialog>
 
+{% include "admin/registry/challengerun/_saved_views.html" %}
   <div class="results challenge-run-results">
     <table id="result_list">
       <thead><tr>{% for header in table_headers %}<th aria-sort="{{ header.direction }}"><a href="{{ header.url }}">{{ header.label }} <span aria-hidden="true">{% if header.direction == "ascending" %}↑{% elif header.direction == "descending" %}↓{% else %}↕{% endif %}</span></a></th>{% endfor %}<th></th></tr></thead>
@@ -107,7 +107,14 @@
   const activeValues = Object.fromEntries(JSON.parse(document.getElementById('run-filter-values').textContent));
   let revision = 0, inFlight = false, refreshTimer;
   const status = document.createElement('span'); status.setAttribute('role', 'status');
-  document.querySelector('.run-filter-toolbar').append(status);
+  const toastRegion = document.createElement('div');
+  toastRegion.className = 'admin-save-toast-region';
+  toastRegion.append(status);
+  document.body.append(toastRegion);
+  const setFilterStatus = (message, type = 'info') => {
+    status.textContent = message;
+    status.className = 'admin-save-toast is-' + type + (message ? ' is-visible' : '');
+  };
   const selection = key => (activeValues[key] || '').split(',').filter(Boolean);
   const renderChips = () => {
     chips.replaceChildren();
@@ -131,7 +138,7 @@
     const requestedRevision = revision;
     const params = new URLSearchParams(activeValues); params.set('view', '{{ selected_view.pk }}');
     const url = window.location.pathname + '?' + params.toString();
-    status.textContent = 'Updating results…';
+    setFilterStatus('Updating results…');
     try {
       const response = await fetch(url, {credentials:'same-origin'});
       if (!response.ok) throw new Error('Request failed');
@@ -151,10 +158,10 @@
         });
         history.replaceState(null, '', url);
         document.querySelectorAll('#create-run-view input[type="hidden"]').forEach(input => { if (Object.hasOwn(activeValues, input.name)) input.value = activeValues[input.name]; });
-        status.textContent = '';
+        setFilterStatus('');
       }
     } catch (error) {
-      if (requestedRevision === revision) status.textContent = 'Could not update results. Change a filter to retry.';
+      if (requestedRevision === revision) setFilterStatus('Could not update results. Change a filter to retry.', 'error');
     } finally {
       inFlight = false;
       if (requestedRevision !== revision) refreshResults();

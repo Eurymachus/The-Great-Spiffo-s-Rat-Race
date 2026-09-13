@@ -6,6 +6,7 @@
 {% block extrastyle %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'registry/admin.css' %}?v=20260731-1">
+    <link rel="stylesheet" href="{% static 'registry/admin_list_toolbar.css' %}?v=6">
     {% if staging_environment %}<style>.staging-admin-banner{background:#ffb12b;color:#171007;font-weight:800;padding:.7rem;text-align:center;letter-spacing:.06em}</style>{% endif %}
 {% endblock %}
 
@@ -16,6 +17,7 @@
         localStorage.setItem("django.admin.navSidebarIsOpen", "false");
       }
     </script>
+    <script src="{% static 'registry/admin_list_toolbar.js' %}?v=7" defer></script>
     <script src="{% static 'registry/admin_prepaint.js' %}?v=20260830-3"></script>
     <script src="{% static 'registry/admin_close.js' %}?v=20260721-1" defer></script>
     <script src="{% static 'registry/admin_save.js' %}?v=20260810-3" defer></script>
@@ -45,3 +47,4 @@
 {% endif %}
 {{ block.super }}
 {% endblock %}
+

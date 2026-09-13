@@ -937,6 +937,33 @@ def process_account_closures(modeladmin, request, queryset):
 
 @admin.register(Participant)
 class ParticipantAdmin(UserAdmin):
+    change_list_template = "admin/registry/participant/change_list.html"
+
+    def changelist_view(self, request, extra_context=None):
+        from .participant_saved_views import manage_view, resolve_view
+        if not self.has_view_or_change_permission(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+        if request.method == "POST" and request.POST.get("saved_view_action"):
+            request.POST = request.POST.copy()
+            request.POST["action"] = request.POST["saved_view_action"]
+            return manage_view(request)
+        params, context = resolve_view(request)
+        request.GET = params
+        return super().changelist_view(request, {**(extra_context or {}), **context})
+
+    def get_changelist_instance(self, request):
+        original = request.GET
+        request.GET = original.copy()
+        request.GET.pop("view", None)
+        for key in list(request.GET):
+            if not request.GET[key]:
+                request.GET.pop(key)
+        try:
+            return super().get_changelist_instance(request)
+        finally:
+            request.GET = original
+
     form = ParticipantAdminForm
     list_display = (
         "nickname",
@@ -976,7 +1003,7 @@ class ParticipantAdmin(UserAdmin):
         (None, {"classes": ("wide",), "fields": ("email", "nickname", "password1", "password2", "is_active", "is_staff", "groups")}),
     )
     actions = (approve_avatars, reject_avatars, resend_verifications, promote_to_workshop_mod_approver, promote_to_run_submission_approver, promote_to_moderator, promote_to_challenge_admin, promote_to_branding_admin, promote_to_zomboid_integration, process_account_closures, export_registrations)
-    date_hierarchy = "registered_at"
+    date_hierarchy = None
 
     @admin.display(description="Pending avatar preview")
     def avatar_review_preview(self, obj):
