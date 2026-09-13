@@ -60,10 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
     menu.style.position = 'fixed';
     menu.style.left = Math.min(event.clientX, innerWidth - 180) + 'px';
     menu.style.top = Math.min(event.clientY, innerHeight - 150) + 'px';
-    for (const [action, label] of [['hide', 'Hide Tab'], ['up', 'Move Left'], ['down', 'Move Right']]) {
+    const actions = [['hide', 'Hide Tab'], ['up', 'Move Left'], ['down', 'Move Right']];
+    if (tab.dataset.tabDeletable === 'true') actions.push(['delete', 'Delete Tab']);
+    for (const [action, label] of actions) {
       const button = document.createElement('button');
       button.type = 'button'; button.textContent = label;
+      if (action === 'delete') button.className = 'tab-delete-action';
       button.addEventListener('click', async () => {
+        if (action === 'delete' && !confirm(tab.dataset.tabShared === 'true' ? 'Delete this shared tab for everyone?' : 'Delete this saved tab?')) return;
         menu.remove();
         try { const response = await send(action, tab.dataset.tabId); location.assign(response.url); }
         catch (error) { alert(error.message); }
