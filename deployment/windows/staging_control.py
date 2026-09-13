@@ -40,8 +40,10 @@ def request(data):
             value[key] = item
         return value
     value = json.loads(data, object_pairs_hook=unique)
-    if not isinstance(value, dict) or set(value) != {"schema", "sequence", "commit"}:
-        raise ValueError("Only schema, sequence and commit are accepted")
+    if not isinstance(value, dict) or set(value) != {"schema", "sequence", "commit", "request_id"}:
+        raise ValueError("Only schema, sequence, commit and request_id are accepted")
+    if not isinstance(value["request_id"], str) or not re.fullmatch("[0-9a-f]{32}", value["request_id"]):
+        raise ValueError("A 128-bit hexadecimal request ID is required")
     if type(value["schema"]) is not int or value["schema"] != 1:
         raise ValueError("Unknown request schema")
     if type(value["sequence"]) is not int or not 1 <= value["sequence"] <= 2**53:
@@ -83,7 +85,7 @@ def consume(root, stream, deploy):
     if value["sequence"] != old["next_sequence"]:
         raise ValueError("Stale or replayed request")
     status = dict(schema=1, sequence=value["sequence"], next_sequence=value["sequence"] + 1,
-                  commit=value["commit"], status="running")
+                  commit=value["commit"], request_id=value["request_id"], status="running")
     result(root, status)  # Durably consume identity before any side effect.
     try:
         selected = deploy(value["commit"])

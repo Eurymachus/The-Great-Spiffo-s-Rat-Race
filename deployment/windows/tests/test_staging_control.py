@@ -24,7 +24,21 @@ class ProtocolTests(unittest.TestCase):
         control.result(self.root, self.initial)
 
     def payload(self, **changes):
-        return json.dumps(dict(schema=1, sequence=1, commit='a'*40, **changes)).encode()
+        return json.dumps(dict(dict(schema=1, sequence=1, commit='a'*40, request_id='c'*32), **changes)).encode()
+
+    def test_same_sequence_distinct_callers(self):
+        control.consume(self.root, io.BytesIO(self.payload(commit='b'*40, request_id='d'*32)), lambda c: {'commit': c})
+        self.assertEqual(self.status()['commit'], 'b'*40)
+        self.assertEqual(self.status()['request_id'], 'd'*32)
+        with self.assertRaises(ValueError):
+            control.consume(self.root, io.BytesIO(self.payload()), lambda c: self.fail('replayed'))
+
+    def test_exact_host_paths(self):
+        script = (SCRIPTS / 'Move-RatRaceStagingHost.ps1').read_text()
+        for name, path in [('source', r'G:\RatRace_Staging'), ('destination', r'G:\RatRace_StagingSecured'), ('backup', r'G:\RatRace_StagingBackup')]:
+            self.assertIn(f"${name} = '{path}'", script)
+        for file in SCRIPTS.rglob('*.ps1'):
+            self.assertNotIn('G:' + '\\RatRace\\_Staging', file.read_text())
 
     def status(self):
         return json.loads((self.root / 'control/result/status.json').read_text())
@@ -66,10 +80,13 @@ class ProtocolTests(unittest.TestCase):
                 control.request(data)
         for commit in ('../a', 'G:\\GSA', '--help', 'a'*12, 'a'*40+';whoami'):
             with self.assertRaises(ValueError):
-                control.request(json.dumps(dict(schema=1, sequence=1, commit=commit)).encode())
+                control.request(self.payload(commit=commit))
         for sequence in (True, 0, -1, 1.5, '1'):
             with self.assertRaises(ValueError):
-                control.request(json.dumps(dict(schema=1, sequence=sequence, commit='a'*40)).encode())
+                control.request(self.payload(sequence=sequence))
+        for nonce in ('', '../evil', 'f'*31, 'F'*32, 123):
+            with self.assertRaises(ValueError):
+                control.request(self.payload(request_id=nonce))
 
     def test_exclusive_handle_prevents_write_and_replace(self):
         path = self.root / 'request.json'

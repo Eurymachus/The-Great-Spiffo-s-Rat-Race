@@ -2,12 +2,14 @@ param(
     [ValidateSet('Preflight','DryRun','Provision')][string]$Mode = 'Preflight',
     [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-f]{40}$')][string]$CurrentCommit,
     [Parameter(Mandatory=$true)][string]$CurrentReleaseRelative,
+    [Parameter(Mandatory=$true)][string]$ReviewedCheckout,
     [PSCredential]$StagingCredential
 )
 $ErrorActionPreference = 'Stop'
-$source = 'G:\RatRace\_Staging'
+$source = 'G:\RatRace_Staging'
 $destination = 'G:\RatRace_StagingSecured'
 $backup = 'G:\RatRace_StagingBackup'
+. (Join-Path $PSScriptRoot 'Test-RatRaceLegacyRelease.ps1')
 
 function Assert-Tree([string]$Path) {
     $cursor = [IO.DirectoryInfo]$Path
@@ -45,20 +47,7 @@ foreach ($required in @('config\staging.env','venv\Scripts\python.exe')) {
     if (-not (Test-Path -LiteralPath (Join-Path $source $required) -PathType Leaf)) { throw "Missing required staging component: $required" }
 }
 if (-not (Test-Path -LiteralPath "$current\apps\website\manage.py")) { throw 'Current release structure missing.' }
-$manifestPath = Join-Path $current 'staging-release.json'
-if (Test-Path -LiteralPath $manifestPath) {
-    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-    if ($manifest.schema -ne 1 -or $manifest.commit -cne $CurrentCommit -or -not $manifest.files) { throw 'Current release identity does not match its manifest.' }
-    foreach ($entry in $manifest.files.PSObject.Properties) {
-        $file = [IO.Path]::GetFullPath((Join-Path $current $entry.Name))
-        if (-not $file.StartsWith($current + '\', [StringComparison]::OrdinalIgnoreCase) -or (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $entry.Value) { throw 'Current release manifest failed validation.' }
-    }
-} else {
-    $head = & git -C $current rev-parse HEAD
-    if ($LASTEXITCODE -or $head -cne $CurrentCommit) { throw 'Cannot prove current release commit identity.' }
-    $dirty = & git -C $current status --porcelain --untracked-files=no
-    if ($LASTEXITCODE -or $dirty) { throw 'Current tracked release files are modified; archive/reconcile before migration.' }
-}
+$verifiedManifest = Test-RatRaceLegacyRelease -Release $current -Commit $CurrentCommit -ReviewedCheckout $ReviewedCheckout
 $envText = [IO.File]::ReadAllText("$source\config\staging.env")
 if ($envText -notmatch '(?m)^POSTGRES_PORT\s*=\s*["'']?5433["'']?\s*$') { throw 'Staging database must use port 5433.' }
 foreach ($key in @('MEDIA_ROOT','AVATAR_QUARANTINE_ROOT','PZ_REFERENCE_ROOT')) {
@@ -105,6 +94,8 @@ foreach ($target in @($backup,$destination)) {
     if (($inventory | ConvertTo-Json -Depth 4 -Compress) -cne ($copied | ConvertTo-Json -Depth 4 -Compress)) { throw 'Backup/copy hash validation failed.' }
 }
 if (($inventory | ConvertTo-Json -Depth 4 -Compress) -cne ((Get-Inventory $source) | ConvertTo-Json -Depth 4 -Compress)) { throw 'Source changed while copying; do not cut over.' }
+$destinationRelease = Join-Path $destination $CurrentReleaseRelative
+[IO.File]::WriteAllText((Join-Path $destinationRelease 'staging-release.json'), ($verifiedManifest | ConvertTo-Json -Depth 5))
 # Protected source backup remains byte-for-byte original, including environment/venv/cluster.
 $report | ConvertTo-Json | Set-Content -LiteralPath "$backup\migration-report.json"
 $inventory | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath "$backup\migration-inventory.json"

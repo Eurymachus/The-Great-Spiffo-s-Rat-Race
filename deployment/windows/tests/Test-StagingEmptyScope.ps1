@@ -12,7 +12,7 @@ if ($ids.Count -ne 0) { throw 'Empty staging scope selected unrelated processes.
 $rejected = $false
 try { Get-RatRaceProcessTreeIds -Processes $processes -RootProcessIds @(0) | Out-Null } catch { $rejected = $true }
 if (-not $rejected) { throw 'PID 0 must be rejected.' }
-$other = @([pscustomobject]@{ProcessId=99;ParentProcessId=1;CommandLine='powershell G:\RatRace\_StagingOther\Start-RatRaceProcess.ps1 -Process Web'})
-$matched = @(Get-RatRaceDeploymentProcessRoots -Processes $other -InstallationRoot 'G:\RatRace\_Staging')
+$other = @([pscustomobject]@{ProcessId=99;ParentProcessId=1;CommandLine='powershell G:\RatRace_StagingOther\Start-RatRaceProcess.ps1 -Process Web'})
+$matched = @(Get-RatRaceDeploymentProcessRoots -Processes $other -InstallationRoot 'G:\RatRace_Staging')
 if ($matched.Count) { throw 'Sibling installation entered staging scope.' }
 Write-Output 'Empty staging process scope passed.'

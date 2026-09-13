@@ -683,10 +683,15 @@ contract and remaining host-specific work live in
   drag cursor behaviour still needs broader manual verification.
 # Windows staging release switching (13 September 2026)
 
-- Existing staging root is `G:\RatRace\_Staging`. The revised host migration
+- Existing staging root is `G:\RatRace_Staging`. The revised host migration
   explicitly selects `G:\RatRace_StagingSecured`, retaining the old source plus
-  `G:\RatRace_StagingBackup`. Host wording named the same root as existing/missing;
-  do not infer another destination at installation time.
+  `G:\RatRace_StagingBackup`. The host confirmed these exact paths on 14 September.
+- Legacy release `releases\199e2d6` is verified read-only against git archive for
+  `199e2d6a4cf53ab29c66c889959f21b6a79f6a28` in a reviewed clean checkout,
+  including development-branch ancestry, inventory and hashes. Only the secured
+  destination receives a manifest, never the legacy source.
+- Requests/results carry a random 128-bit request ID. Clients require sequence,
+  ID and commit agreement and report competing submissions as superseded.
 - `RatRaceStagingDeploy` now accepts a data-only full commit request from the
   existing OSWALD\admin account. It publishes/prepares/switches as Limited
   RatRaceStage, without an interactive account switch or routine UAC prompt.

@@ -9,12 +9,24 @@ try {
         if ($TaskName -cne 'RatRaceStagingDeploy' -or $TaskPath -cne '\') { throw 'Client selected another task.' }
         $request = Get-Content "$temporary\control\inbox\request.json" -Raw | ConvertFrom-Json
         if ($request.commit -cne ('a'*40) -or $request.sequence -ne 1) { throw 'Client request mismatch.' }
-        [IO.File]::WriteAllText("$temporary\control\result\status.json", '{"schema":1,"sequence":1,"next_sequence":2,"status":"succeeded"}')
+        if ($request.request_id -cnotmatch '^[0-9a-f]{32}$') { throw 'Missing random request ID.' }
+        $reply = @{schema=1;sequence=1;next_sequence=2;status='succeeded';commit=$request.commit;request_id=$request.request_id}
+        if ($scenario -eq 'commit') { $reply.commit = 'b'*40 }
+        if ($scenario -eq 'nonce') { $reply.request_id = '0'*32 }
+        if ($scenario -eq 'newer') { $reply.sequence = 2 }
+        [IO.File]::WriteAllText("$temporary\control\result\status.json", ($reply | ConvertTo-Json -Compress))
     }
     function Start-Sleep { param($Seconds) }
     $code = [IO.File]::ReadAllText((Join-Path $PSScriptRoot '..\Submit-RatRaceStagingDeployment.ps1')).Replace('G:\RatRace_StagingSecured',$temporary)
     $result = & ([scriptblock]::Create($code)) -Commit ('a'*40) | ConvertFrom-Json
     if ($result.status -ne 'succeeded') { throw 'Client did not return the matching result.' }
+    foreach ($scenario in @('commit','nonce','newer')) {
+        [IO.File]::WriteAllText("$temporary\control\result\status.json", '{"schema":1,"sequence":0,"next_sequence":1,"status":"idle"}')
+        $rejected = $false
+        $output = @()
+        try { $output = @(& ([scriptblock]::Create($code)) -Commit ('a'*40)) } catch { $rejected = $_.Exception.Message -match 'superseded' }
+        if (-not $rejected -or $output.Count) { throw "Client falsely confirmed a $scenario mismatch." }
+    }
     # Validate SID-based ACL construction without applying host permissions.
     $acl = New-Object Security.AccessControl.FileSecurity
     $sid = New-Object Security.Principal.SecurityIdentifier('S-1-5-32-545')
