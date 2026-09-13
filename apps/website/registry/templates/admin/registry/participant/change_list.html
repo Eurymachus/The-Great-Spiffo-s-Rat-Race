@@ -12,16 +12,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   let opener;
-  const open = (id, button) => { opener = button; document.getElementById(id).showModal(); };
+  const open = (id, button) => { opener = button.closest('.run-tab-menu')?.querySelector('summary') || button; button.closest('.run-tab-menu')?.removeAttribute('open'); document.getElementById(id).showModal(); };
   document.querySelectorAll('[data-run-panel]').forEach(button => button.addEventListener('click', () => open(button.dataset.runPanel, button)));
   document.querySelectorAll('.run-workspace-panel').forEach(panel => {
     panel.querySelector('[data-close-panel]').addEventListener('click', () => panel.close());
     panel.addEventListener('close', () => opener?.focus());
   });
-  document.querySelector('[data-edit-current]').addEventListener('click', () => {
-    document.getElementById('manage-run-tabs').close();
-    open('create-run-view', document.querySelector('[data-run-panel="manage-run-tabs"]'));
-  });
+
 });
 </script>
 {% endblock %}

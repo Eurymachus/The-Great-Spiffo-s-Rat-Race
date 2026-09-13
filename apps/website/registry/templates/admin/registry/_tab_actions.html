@@ -1,0 +1,10 @@
+<details class="run-tab-menu">
+  <summary aria-label="Tab options" title="Tab options"><span aria-hidden="true">▾</span></summary>
+  <div class="run-tab-menu-options">
+    <button type="button" data-run-panel="create-run-view">Add Tab</button>
+    {% if can_edit_view %}<button type="button" data-run-panel="create-run-view">Edit Current Tab</button>{% endif %}
+    <details class="hidden-tabs-menu"><summary>Hidden Tabs</summary>
+      {% for pref in managed_tabs %}{% if pref.hidden %}<button type="button" data-tab-action="show" data-view="{{ pref.view_id }}">Restore {{ pref.view.name }}</button>{% endif %}{% endfor %}
+    </details>
+  </div>
+</details>

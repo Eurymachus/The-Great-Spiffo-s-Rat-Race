@@ -1,0 +1,197 @@
+/* Shared record identity and action sizing for administration. */
+#content .admin-record-header {
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  align-items:start;
+  gap:12px 24px;
+  padding:0;
+  margin:0 0 20px;
+  background:transparent;
+  border:0;
+}
+#content .admin-record-header h1 { margin:0; font-size:20px; font-weight:300; line-height:1.4; overflow-wrap:anywhere; }
+#content .admin-record-type,
+#content .admin-record-header .run-review-kicker {
+  margin:0 0 8px;
+  color:var(--link-fg);
+  font-size:12px;
+  font-weight:700;
+  line-height:1.4;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+#content .admin-record-header .object-tools { display:flex; flex-wrap:wrap; gap:8px; float:none; margin:0; padding:0; }
+#content .admin-record-header .object-tools li { float:none; height:auto; margin:0; padding:0; }
+#content .admin-record-header .object-tools a,
+#content .admin-record-header .run-header-actions a,
+#content .admin-record-header .run-header-actions button,
+body .submit-row input[type="submit"],
+body .submit-row button,
+body .submit-row a {
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:36px;
+  min-height:36px;
+  padding:8px 14px;
+  margin-top:0;
+  margin-bottom:0;
+  border:0;
+  border-radius:4px;
+  font-family:var(--font-family-primary);
+  font-size:13px;
+  font-weight:400;
+  line-height:20px;
+  text-transform:none;
+  text-decoration:none;
+  white-space:nowrap;
+}
+#content .admin-record-header .object-tools a,
+#content .admin-record-header .run-header-actions .run-history-button {
+  background-color:var(--object-tools-bg);
+  color:var(--object-tools-fg);
+}
+#content .admin-record-header .object-tools a:hover,
+#content .admin-record-header .run-header-actions .run-history-button:hover { background-color:var(--object-tools-hover-bg); }
+#content .admin-record-header .object-tools a::after { display:none; }
+#content .admin-record-header .object-tools a.viewsitelink { padding-right:14px; background-image:none; }
+#content .admin-record-header .run-header-actions .run-context-button { background:var(--button-bg); color:var(--button-fg); }
+#content .admin-record-header .run-header-actions .run-context-button:hover { background:var(--button-hover-bg); }
+body .submit-row { align-items:center; gap:8px; }
+#content .admin-record-header :focus-visible,
+body .submit-row :focus-visible { outline:2px solid var(--link-fg); outline-offset:2px; }
+@media(max-width:700px) {
+  #content .admin-record-header { grid-template-columns:1fr; padding:0; }
+  #content .admin-record-header .run-header-actions { grid-column:1; grid-row:auto; }
+}
+
+/* List and record titles share the same unboxed heading row. */
+#content .admin-list-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0 0 20px; min-height:28px; }
+#content .admin-list-heading h1 { margin:0; font-size:20px; font-weight:300; line-height:28px; }
+#content .admin-list-heading .object-tools { display:flex; flex-wrap:wrap; gap:8px; float:none; margin:0; padding:0; }
+#content .admin-list-heading .object-tools li { float:none; height:auto; padding:0; }
+#content .admin-record-type,
+#content .admin-record-header .run-review-kicker { display:none; }
+#content .admin-record-header .run-header-actions { grid-row:1; align-self:start; }
+#content .admin-record-header .run-banner-statuses { grid-row:2; }
+#content .run-review > .admin-record-header { margin-bottom:0; }
+#content .admin-record-header h1 + p { margin-top:6px; }
+#content .admin-record-header .object-tools a,
+#content .admin-record-header .run-header-actions a,
+#content .admin-record-header .run-header-actions button,
+#content .admin-list-heading .object-tools a,
+#content .admin-list-heading .object-tools button {
+  display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;
+  height:28px; min-height:28px; padding:4px 12px; border:0; border-radius:999px;
+  font-family:var(--font-family-primary); font-size:11px; font-weight:400; line-height:20px;
+  text-transform:uppercase; background-color:var(--object-tools-bg); color:var(--object-tools-fg);
+}
+#content .admin-record-header .run-header-actions .run-context-button { background-color:var(--object-tools-bg); color:var(--object-tools-fg); }
+#content .admin-record-header .run-header-actions button:hover,
+#content .admin-list-heading .object-tools a:hover,
+#content .admin-list-heading .object-tools button:hover { background-color:var(--object-tools-hover-bg); }
+@media(max-width:700px) {
+  #content .admin-list-heading { flex-wrap:wrap; }
+  #content .admin-record-header .run-header-actions { grid-row:auto; }
+}
+
+#content .admin-list-heading .object-tools a.addlink { padding-right:26px; }
+
+/* Status badges share the compact header-pill geometry. */
+#content .run-review-list-badge,
+#content .run-review-status {
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  height:28px;
+  min-height:28px;
+  padding:3px 12px;
+  border-radius:999px;
+  font-family:var(--font-family-primary);
+  font-size:11px;
+  font-weight:400;
+  line-height:20px;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+#content .run-record-strip {
+  box-sizing:border-box; display:flex; flex-wrap:wrap; align-items:center;
+  gap:10px 20px; min-height:46px; padding:8px 10px;
+  background:var(--darkened-bg);
+}
+#content .run-record-strip p { margin:0; }
+#content .run-record-strip .run-banner-statuses { margin:0; }
+#content .run-local-tabs {
+  gap:4px; margin:0; padding:8px 12px 0;
+  border-bottom:1px solid var(--hairline-color);
+}
+#content .run-local-tabs a {
+  display:inline-flex; align-items:center; padding:.9rem 1.1rem;
+  margin-bottom:-1px; border:1px solid var(--hairline-color);
+  border-radius:6px 6px 0 0; font-weight:600; line-height:1.4;
+}
+#content .run-local-tabs a[aria-current="page"] {
+  background:var(--darkened-bg); border-bottom-color:var(--darkened-bg);
+  color:var(--link-fg); box-shadow:inset 0 3px var(--link-fg);
+}
+
+/* Match the list heading-to-toolbar gap (20px). */
+#content .run-review > .admin-record-header { margin-bottom:4px; }
+
+.run-tab-menu { position:relative; align-self:center; flex:none; margin:0 0 8px; }
+.run-tab-menu > summary { cursor:pointer; list-style:none; padding:6px 10px; border:1px solid var(--hairline-color); border-radius:4px; background:var(--object-tools-bg); color:var(--object-tools-fg); font-size:12px; }
+.run-tab-menu > summary::-webkit-details-marker { display:none; }
+.run-tab-menu-options { position:absolute; top:calc(100% + 4px); left:0; z-index:30; min-width:140px; padding:6px; background:var(--body-bg); border:1px solid var(--hairline-color); border-radius:4px; box-shadow:0 6px 18px #0005; }
+.run-tab-menu-options button { display:block; width:100%; padding:8px 10px; text-align:left; border:0; border-radius:3px; background:transparent; color:var(--body-fg); cursor:pointer; white-space:nowrap; }
+.run-tab-menu-options button:hover { background:var(--darkened-bg); }
+
+/* The options trigger is the first tab in the same row. */
+#content .run-table-tabs { gap:4px; }
+#content .run-tab-menu { align-self:stretch; display:flex; margin:0 0 -1px; }
+#content .run-tab-menu > summary {
+  box-sizing:border-box; display:flex; align-items:center; justify-content:center;
+  width:40px; padding:0; border:1px solid var(--hairline-color);
+  border-radius:6px 6px 0 0; background:transparent; color:var(--body-fg);
+  font-size:18px; line-height:1;
+}
+#content .run-tab-menu[open] > summary,
+#content .run-tab-menu > summary:hover { background:var(--darkened-bg); color:var(--link-fg); }
+
+#content .run-tab-menu-options button { font:inherit; font-weight:600; line-height:1.4; }
+
+#create-run-view.run-workspace-panel { padding:0; width:min(560px, 92vw); overflow:auto; }
+#create-run-view > header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0; padding:14px 20px; background:var(--darkened-bg); border-bottom:1px solid var(--hairline-color); }
+#create-run-view > header h2 { margin:0; font-size:18px; }
+#create-run-view > header [data-close-panel] { width:30px; height:30px; padding:0; background:transparent; color:var(--body-fg); border:0; font-size:20px; }
+#create-run-view > p { margin:0; padding:20px 20px 0; color:var(--body-quiet-color); line-height:1.5; }
+#create-run-view .save-view-form { display:flex; flex-direction:column; gap:18px; margin:0; padding:20px; }
+#create-run-view .save-view-form > label { display:flex; align-items:center; gap:10px; }
+#create-run-view .save-view-form > label:has(input[name="name"]) { flex-direction:column; align-items:stretch; gap:8px; }
+#create-run-view input[name="name"] { box-sizing:border-box; width:100%; min-height:36px; }
+#create-run-view .save-view-actions { display:flex; justify-content:flex-end; gap:10px; margin:2px -20px -20px; padding:14px 20px; border-top:1px solid var(--hairline-color); background:var(--darkened-bg); }
+#create-run-view .save-view-actions button { min-height:36px; padding:8px 16px; font:inherit; border-radius:4px; border:1px solid transparent; }
+#create-run-view .save-view-update { background:var(--object-tools-bg); color:var(--object-tools-fg); border-color:var(--border-color); }
+#create-run-view .save-view-new { background:var(--button-bg); color:var(--button-fg); }
+
+#create-run-view .save-view-form { align-items:stretch; width:auto; }
+
+#create-run-view .save-view-actions button { cursor:pointer; }
+#create-run-view .save-view-update:hover { background:var(--object-tools-hover-bg); }
+#create-run-view .save-view-new:hover { background:var(--button-hover-bg); }
+#create-run-view .save-view-actions button:focus-visible {
+  outline:2px solid var(--link-fg);
+  outline-offset:3px;
+}
+
+.run-tab-menu-options .hidden-tabs-menu { border-top:1px solid var(--hairline-color); margin-top:4px; padding-top:4px; }
+.run-tab-menu-options .hidden-tabs-menu > summary { padding:8px 10px; cursor:pointer; font:inherit; font-weight:600; line-height:1.4; }
+.run-tab-menu-options .hidden-tabs-menu > summary:hover { background:var(--darkened-bg); }
+.run-tab-menu-options .hidden-tabs-menu:not(:has(button)) { display:none; }
+.live-tab-context button { font:inherit; font-weight:600; line-height:1.4; }
+
+.run-saved-tabs [draggable="true"] { cursor:grab; }
+.run-saved-tabs .is-dragging { opacity:.35; border-style:dashed; }

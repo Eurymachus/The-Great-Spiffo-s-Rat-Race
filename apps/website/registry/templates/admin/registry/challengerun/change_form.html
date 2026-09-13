@@ -16,21 +16,23 @@
   {% if original and run_overview %}
 
     <div class="run-review challenge-run-detail">
-      <section class="run-review-hero run-record-banner">
+      <section class="run-review-hero run-record-banner admin-record-header">
         <div>
           <p class="run-review-kicker">Challenge Run</p>
           <h1>{{ original.character_name|default:"Unnamed survivor" }}</h1>
-          <p>Run by <strong>{{ original.participant|default:"Former Rat Racer" }}</strong></p>
-        </div>
-        <div class="run-banner-statuses">
-          <span class="run-review-status status-{{ original.status }}">{{ original.get_status_display }}</span>
-          <span class="run-review-status lifecycle-{{ original.lifecycle_status }}">Lifecycle status: {{ original.get_lifecycle_status_display }}</span>
         </div>
         <div class="run-header-actions">
           {% if has_change_permission %}<button type="button" class="run-context-button" data-run-status-open>Set status</button>{% endif %}
           <a class="run-history-button" href="{% url 'admin:registry_challengerun_history' original.pk %}" title="Administrative changes to this run">History</a>
         </div>
       </section>
+      <div class="run-record-strip">
+          <p>Run by <strong>{% if can_view_strip_participant %}<a href="{% url 'admin:registry_participant_change' original.participant_id %}?return_to={{ request.get_full_path|urlencode }}">{{ original.participant|default:"Former Rat Racer" }}</a>{% else %}{{ original.participant|default:"Former Rat Racer" }}{% endif %}</strong></p>
+        <div class="run-banner-statuses">
+          <span class="run-review-status status-{{ original.status }}">{{ original.get_status_display }}</span>
+          <span class="run-review-status lifecycle-{{ original.lifecycle_status }}">Lifecycle status: {{ original.get_lifecycle_status_display }}</span>
+        </div>
+      </div>
 
       {% include "admin/registry/_run_local_navigation.html" with run=original active=run_tab %}
       {% if run_tab == 'overview' %}

@@ -181,3 +181,27 @@
 
 .admin-save-toast.is-info { --admin-save-accent: var(--link-fg); }
 .admin-save-toast.is-info::before { content: 'i'; }
+
+/* Identical search geometry, including lists without filter groups. */
+#content #changelist #toolbar,
+#content #changelist .shared-list-toolbar,
+#content .run-filter-toolbar {
+  box-sizing:border-box; border:0; border-radius:0; padding:8px 10px;
+  margin:0 0 20px; min-height:46px; background:var(--darkened-bg);
+  align-items:center; gap:10px;
+}
+#content #changelist .shared-list-toolbar #toolbar { padding:0; margin:0; border:0; min-height:0; background:transparent; }
+#content #changelist #toolbar form > div:first-child,
+#content .run-inline-search { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0; padding:0; }
+#content #changelist #toolbar label,
+#content .run-inline-search > label { display:flex; align-items:center; margin:0; padding:0; }
+#content #changelist #toolbar label img,
+#content .run-inline-search > label img { display:block; width:16px; height:16px; margin:0; vertical-align:middle; }
+#content #changelist .shared-list-toolbar > .shared-filter-toggle,
+#content #changelist .shared-list-toolbar > .shared-filter-reset,
+#content .run-filter-toolbar > #run-filter-toggle,
+#content .run-filter-toolbar > .run-reset-view,
+#content .run-filter-toolbar > .run-inline-search { margin-top:0; margin-bottom:0; }
+#content .selected-filter-panel { margin-top:0; margin-bottom:0; }
+#content #changelist #toolbar #searchbar,
+#content .run-filter-toolbar #run-searchbar { width:284px; height:30px; min-height:30px; box-sizing:border-box; margin:0; }

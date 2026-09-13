@@ -657,3 +657,27 @@ decompilation toolchain. `/health/live/` identifies the running release, while
 recent reference-worker heartbeat from that same release. The full audited
 contract and remaining host-specific work live in
 `docs/PRODUCTION_DEPLOYMENT.md`.
+
+## Admin consistency, first step (13 September 2026)
+
+- Rollback checkpoint: `c33e873` contains the shared list filters, Participant
+  saved views and UI audit before the record-header work.
+- Shared admin change-form header now leads with the record name and groups
+  History/View on site alongside it. Run and submission banners use the same
+  action sizing while retaining their metadata, statuses and local navigation.
+- Record headers now use the unboxed list-title layout, with 28px pill actions
+  on the right and metadata/statuses underneath. Footer actions remain 36px.
+- Search toolbars share 46px height, 284px by 30px search fields and consistent
+  positioning, including lists without filters.
+- Checked all 41 registered admin list entries locally (34 expose toolbars),
+  plus Participant, Page, Run and Submission detail headers. Browser screenshots
+  confirmed the run and participant layouts; 48 regression tests passed.
+- Workshop Mods now has shared/personal saved views, seeded by migration 0059.
+  All three tabbed lists persist selection, filters and live drag ordering.
+- Tab actions use an arrow menu and per-tab context menu; save dialogs have
+  title/footer bars, separate Update/Save New actions and backdrop dismissal.
+- Run metadata uses a toolbar-height strip with permission-aware participant
+  links that preserve the originating run for Back navigation.
+- Pre-commit verification: 51 relevant tests pass, migration drift and whitespace
+  checks pass. Browser checks covered layout and menu/dialog actions; animated
+  drag cursor behaviour still needs broader manual verification.

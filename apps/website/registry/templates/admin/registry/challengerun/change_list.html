@@ -96,7 +96,7 @@
 (() => {
   let opener;
   const open = (id, trigger) => {
-    opener = trigger;
+    opener = trigger.closest('.run-tab-menu')?.querySelector('summary') || trigger; trigger.closest('.run-tab-menu')?.removeAttribute('open');
     document.getElementById(id).showModal();
   };
 
@@ -207,10 +207,7 @@
     panel.addEventListener('click', event => { if (event.target === panel) { const r = panel.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) panel.close(); } });
     panel.addEventListener('close', () => opener?.focus());
   });
-  document.querySelector('[data-edit-current]').addEventListener('click', () => {
-    document.getElementById('manage-run-tabs').close();
-    open('create-run-view', document.querySelector('[data-run-panel="manage-run-tabs"]'));
-  });
+
 })();
 </script>
 {% endblock %}

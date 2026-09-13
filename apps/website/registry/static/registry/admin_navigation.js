@@ -22,19 +22,23 @@
         backLink.className = "admin-navigation-back";
     }
     const explicitReturn = document.querySelector("[data-admin-return-url]");
+    const requestedReturn = new URLSearchParams(window.location.search).get('return_to');
+    const returnUrl = requestedReturn ? new URL(requestedReturn, window.location.href) : null;
+    const fromRun = returnUrl && returnUrl.origin === window.location.origin &&
+        /^\/admin\/registry\/(challengerun|runsubmission)\/[^/]+\/change\/$/.test(returnUrl.pathname);
     const parentUrl = new URL(
-        explicitReturn?.dataset.adminReturnUrl || parentLink.href,
+        (fromRun ? returnUrl.href : null) || explicitReturn?.dataset.adminReturnUrl || parentLink.href,
         window.location.href
     );
     const preservedFilters = new URLSearchParams(window.location.search).get(
         "_changelist_filters"
     );
-    if (preservedFilters) {
+    if (preservedFilters && !fromRun) {
         parentUrl.search = preservedFilters;
     }
     backLink.href = parentUrl.href;
     backLink.textContent = "Back";
-    const parentName = parentLink.textContent.trim();
+    const parentName = fromRun ? "run" : parentLink.textContent.trim();
     if (parentName) {
         backLink.setAttribute("aria-label", `Back to ${parentName}`);
         backLink.title = `Back to ${parentName}`;

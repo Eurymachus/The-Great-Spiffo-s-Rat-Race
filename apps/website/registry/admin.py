@@ -669,12 +669,29 @@ class WorkshopModAdmin(admin.ModelAdmin):
         return queryset
 
     def changelist_view(self, request, extra_context=None):
-        context = dict(extra_context or {})
-        context["pending_mod_review_count"] = WorkshopMod.objects.filter(
-            ruling=WorkshopMod.Ruling.PENDING
-        ).count()
-        context["title"] = "Mod approval queue"
-        return super().changelist_view(request, extra_context=context)
+        from .workshop_mod_saved_views import manage_view, resolve_view
+        if not self.has_view_or_change_permission(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+        if request.method == "POST" and request.POST.get("saved_view_action"):
+            request.POST = request.POST.copy()
+            request.POST["action"] = request.POST["saved_view_action"]
+            return manage_view(request)
+        params, context = resolve_view(request)
+        request.GET = params
+        return super().changelist_view(request, {**(extra_context or {}), **context})
+
+    def get_changelist_instance(self, request):
+        original = request.GET
+        request.GET = original.copy()
+        request.GET.pop("view", None)
+        for key in list(request.GET):
+            if not request.GET[key]:
+                request.GET.pop(key)
+        try:
+            return super().get_changelist_instance(request)
+        finally:
+            request.GET = original
 
     def save_model(self, request, obj, form, change):
         previous_ruling = None
@@ -1455,6 +1472,11 @@ class ChallengeRunAdmin(RunModerationHistoryMixin, admin.ModelAdmin):
         run = self.get_object(request, object_id)
         if run:
             context["run_overview"] = build_challenge_run_overview(run)
+            participant_admin = self.admin_site._registry.get(Participant)
+            context["can_view_strip_participant"] = bool(
+                run.participant and participant_admin
+                and participant_admin.has_view_or_change_permission(request, run.participant)
+            )
             context["run_tab"] = request.GET.get("tab", "overview")
             if context["run_tab"] not in {"overview", "submissions", "audits"}:
                 context["run_tab"] = "overview"
@@ -1719,6 +1741,11 @@ class RunSubmissionAdmin(RunModerationHistoryMixin, admin.ModelAdmin):
                     self.message_user(request, "Review the earlier submission first. Later submissions will be reassessed after that decision.", level=messages.INFO)
                     return redirect(reverse("admin:registry_challengerun_change", args=(submission.run_id,)) + "?tab=submissions")
             context["run_review"] = build_run_review(submission)
+            participant_admin = self.admin_site._registry.get(Participant)
+            context["can_view_strip_participant"] = bool(
+                submission.submitter and participant_admin
+                and participant_admin.has_view_or_change_permission(request, submission.submitter)
+            )
             from .run_review import current_review_reasons
             context["current_review_reasons"] = current_review_reasons(submission, context["run_review"])
             from .vod_evidence import evidence_presentation

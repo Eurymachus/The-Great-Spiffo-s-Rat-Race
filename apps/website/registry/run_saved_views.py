@@ -97,6 +97,18 @@ def manage_view(request):
     url = reverse("admin:registry_challengerun_changelist")
     prefs = preferences(request.user)
     pref = next((p for p in prefs if view and p.view_id == view.pk), None)
+    if action == "reorder":
+        from django.http import JsonResponse
+        order = request.POST.getlist("order")
+        visible = {str(p.view_id): p for p in prefs if not p.hidden}
+        if len(order) != len(visible) or set(order) != set(visible):
+            return JsonResponse({"error": "The tabs changed. Refresh and try again."}, status=400)
+        ordered = [visible[key] for key in order] + [p for p in prefs if p.hidden]
+        for position, item in enumerate(ordered):
+            item.position = position
+            item.save(update_fields=("position",))
+        return JsonResponse({"saved": True})
+
     if action in {"create", "update"}:
         if action == "update" and not can_edit:
             raise Http404

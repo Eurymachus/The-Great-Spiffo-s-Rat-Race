@@ -1538,3 +1538,32 @@ class ParticipantViewPreference(models.Model):
 class ParticipantWorkspacePreference(models.Model):
     user = models.OneToOneField(Participant, on_delete=models.CASCADE)
     last_view = models.ForeignKey(ParticipantSavedView, null=True, blank=True, on_delete=models.SET_NULL)
+
+
+class WorkshopModSavedView(models.Model):
+    owner = models.ForeignKey(Participant, null=True, on_delete=models.SET_NULL, related_name="workshop_mod_saved_views")
+    name = models.CharField(max_length=80)
+    shared = models.BooleanField(default=False)
+    filters = models.JSONField(default=dict)
+    system_key = models.CharField(max_length=30, unique=True, null=True, blank=True)
+
+    class Meta:
+        permissions = [("manage_shared_workshop_mod_views", "Can manage shared Workshop Mod views")]
+        ordering = ("pk",)
+
+
+class WorkshopModViewPreference(models.Model):
+    user = models.ForeignKey(Participant, on_delete=models.CASCADE)
+    view = models.ForeignKey(WorkshopModSavedView, on_delete=models.CASCADE)
+    hidden = models.BooleanField(default=False)
+    position = models.PositiveIntegerField(default=0)
+    filters = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ("position", "pk")
+        constraints = [models.UniqueConstraint(fields=("user", "view"), name="unique_user_workshop_mod_view")]
+
+
+class WorkshopModWorkspacePreference(models.Model):
+    user = models.OneToOneField(Participant, on_delete=models.CASCADE)
+    last_view = models.ForeignKey(WorkshopModSavedView, null=True, blank=True, on_delete=models.SET_NULL)

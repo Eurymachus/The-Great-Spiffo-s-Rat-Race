@@ -6,7 +6,8 @@
 {% block extrastyle %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'registry/admin.css' %}?v=20260731-1">
-    <link rel="stylesheet" href="{% static 'registry/admin_list_toolbar.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'registry/admin_list_toolbar.css' %}?v=9">
+    <link rel="stylesheet" href="{% static 'registry/admin_record.css' %}?v=2">
     {% if staging_environment %}<style>.staging-admin-banner{background:#ffb12b;color:#171007;font-weight:800;padding:.7rem;text-align:center;letter-spacing:.06em}</style>{% endif %}
 {% endblock %}
 
@@ -18,10 +19,11 @@
       }
     </script>
     <script src="{% static 'registry/admin_list_toolbar.js' %}?v=7" defer></script>
+    <script src="{% static 'registry/admin_record.js' %}?v=5" defer></script>
     <script src="{% static 'registry/admin_prepaint.js' %}?v=20260830-3"></script>
     <script src="{% static 'registry/admin_close.js' %}?v=20260721-1" defer></script>
     <script src="{% static 'registry/admin_save.js' %}?v=20260810-3" defer></script>
-    <script src="{% static 'registry/admin_navigation.js' %}?v=20260831-1" defer></script>
+    <script src="{% static 'registry/admin_navigation.js' %}?v=20260913-return" defer></script>
     <script src="{% static 'registry/admin_run_submission_filters.js' %}?v=20260831-1" defer></script>
     <script src="{% static 'registry/admin_sidebar_sections.js' %}?v=20260830-1" defer></script>
     <script src="{% static 'operations/js/clickable-operation-rows.js' %}?v=20260730-1" defer></script>

@@ -13,12 +13,15 @@
   {% if original and run_review %}
     {% if return_to_run %}<span hidden data-admin-return-url="{{ run_queue_url }}"></span>{% endif %}
     <div class="run-review">
-      <section class="run-review-hero run-record-banner">
+      <section class="run-review-hero run-record-banner admin-record-header">
         <div>
           <p class="run-review-kicker">Run submission review</p>
           <h1>{{ original.run.character_name|default:"Unnamed survivor" }}</h1>
-          <p>Submitted by <strong>{{ original.submitter|default:"Former Rat Racer" }}</strong></p>
         </div>
+        <div class="run-header-actions"><a class="run-history-button" href="{% url 'admin:registry_runsubmission_history' original.pk %}">History</a></div>
+      </section>
+      <div class="run-record-strip">
+          <p>Submitted by <strong>{% if can_view_strip_participant %}<a href="{% url 'admin:registry_participant_change' original.submitter_id %}?return_to={{ request.get_full_path|urlencode }}">{{ original.submitter|default:"Former Rat Racer" }}</a>{% else %}{{ original.submitter|default:"Former Rat Racer" }}{% endif %}</strong></p>
         <div class="run-banner-statuses">
           <span class="run-review-status status-{{ original.status }}">{{ original.moderator_status }}</span>
           {% if review_unavailable %}<span class="run-review-status finding-warning">Review unavailable: run {{ original.run.get_lifecycle_status_display|lower }}</span>{% endif %}
@@ -26,8 +29,7 @@
             <span class="run-review-status finding-warning">{% if reason == "First approval for this run" %}First Approval{% else %}{{ reason }}{% endif %}</span>
           {% endfor %}
         </div>
-        <div class="run-header-actions"><a class="run-history-button" href="{% url 'admin:registry_runsubmission_history' original.pk %}">History</a></div>
-      </section>
+      </div>
       {% include "admin/registry/_run_local_navigation.html" with run=original.run active=run_tab|default:"submissions" %}
 
       <section class="run-review-summary" aria-label="Run summary">
