@@ -20,7 +20,7 @@ function Get-RatRaceDeploymentProcessRoots {
     )
 
     $installationPath = [IO.Path]::GetFullPath($InstallationRoot).TrimEnd('\')
-    $pathPattern = [regex]::Escape($installationPath)
+    $pathPattern = [regex]::Escape($installationPath + "\")
     $processPattern = if ($Process -eq "Any") {
         "-Process\s+(Web|Worker)(?:\s|$)"
     } else {
@@ -66,10 +66,11 @@ function Get-RatRaceProcessTreeIds {
     $selected = New-Object System.Collections.Generic.HashSet[int]
     function Add-Descendants {
         param([int]$ProcessId)
+        if ($ProcessId -le 0) { throw 'Refusing a non-positive process-tree root.' }
+        if (-not $selected.Add($ProcessId)) { return }
         foreach ($child in $Processes | Where-Object ParentProcessId -eq $ProcessId) {
             Add-Descendants -ProcessId ([int]$child.ProcessId)
         }
-        [void]$selected.Add($ProcessId)
     }
     foreach ($processId in $RootProcessIds) {
         Add-Descendants -ProcessId $processId

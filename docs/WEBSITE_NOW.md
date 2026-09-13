@@ -681,3 +681,17 @@ contract and remaining host-specific work live in
 - Pre-commit verification: 51 relevant tests pass, migration drift and whitespace
   checks pass. Browser checks covered layout and menu/dialog actions; animated
   drag cursor behaviour still needs broader manual verification.
+# Windows staging release switching (13 September 2026)
+
+- Current host staging root is `G:\RatRace\_Staging`; permanent task names remain
+  `RatRaceStagingWeb` and `RatRaceStagingWorker` (web 8002, PostgreSQL 5433).
+- Repository-controlled permanent launchers use a validated staging-owned active
+  pointer. One-time administrator installation uses a dedicated local
+  non-administrator task account, never an elevated mutable-code helper.
+- Routine switches prepare immutable Git-archive releases, atomically replace the
+  pointer, restart existing tasks and verify process identity, readiness and fresh
+  worker heartbeat; failed cutovers restore and verify the previous release.
+- See `docs/WINDOWS_STAGING_RELEASES.md` for commands, precise ACL assumptions,
+  initialization, database rollback limitations and host acceptance steps.
+- Implementation is tested with isolated fixtures. No host tasks were installed
+  or altered; actual host ACL/reboot/supervision acceptance remains outstanding.

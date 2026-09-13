@@ -207,3 +207,10 @@ regenerating the complete file.
 - Open staging email registration is enabled, allowing testers to complete the
   ordinary self-registration, verification and password-recovery journeys
   without administrators maintaining a recipient list.
+# Windows staging permanent-launcher workflow
+
+For `G:\RatRace\_Staging`, use [WINDOWS_STAGING_RELEASES.md](WINDOWS_STAGING_RELEASES.md).
+It supersedes release-bound staging task installation: administrator setup installs
+fixed limited-privilege launchers once; routine non-elevated switches prepare and
+validate immutable releases, replace the pointer atomically and verify or roll back.
+Production startup and PostgreSQL service management remain separate.
