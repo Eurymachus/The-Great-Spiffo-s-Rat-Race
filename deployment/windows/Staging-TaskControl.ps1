@@ -1,6 +1,6 @@
 param([Parameter(Mandatory=$true)][ValidateSet('Validate','Stop','Start','Verify')][string]$Operation)
 $ErrorActionPreference = 'Stop'
-$root = 'G:\RatRace\_Staging'
+$root = 'G:\RatRace_StagingSecured'
 $python = Join-Path $root 'venv\Scripts\python.exe'
 $launcher = Join-Path $root 'launchers\Start-RatRaceStagingProcess.ps1'
 $engine = Join-Path $root 'launchers\staging_release.py'

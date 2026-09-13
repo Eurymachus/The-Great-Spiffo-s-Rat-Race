@@ -1,176 +1,192 @@
-# Permanent Windows staging launchers
+# Windows staging deployment and migration
 
-This supersedes the release-bound staging installer. The current root is
-`G:\RatRace\_Staging`, not the older `G:\RatRace_Staging` path. These scripts
-have deliberately fixed scope: tasks `RatRaceStagingWeb` and
-`RatRaceStagingWorker`, loopback web port 8002 and PostgreSQL port 5433.
-They never register, restart or configure a PostgreSQL service, production task,
-GSA task, reverse proxy or firewall. PostgreSQL must already be supervised and
-running. The production installer remains unchanged.
+Implemented and regression-tested, **not installed on the host**. This replaces
+the workflow requiring the operator to open a shell as RatRaceStage.
 
-## Layout and trust
+The host handoff named `G:\RatRace\_Staging` as both existing and missing. This
+revision explicitly selects `G:\RatRace_StagingSecured` as the destination.
+Source: `G:\RatRace\_Staging`. Offline backup: `G:\RatRace_StagingBackup`.
+These are fixed reviewed paths, not deployment inputs. Selecting another root
+requires a reviewed code change before provisioning.
 
-| Location | Ownership and permissions |
+## Permanent control and request protocol
+
+All tasks run as local **RatRaceStage**, **RunLevel Limited**:
+
+| Task | Stable launcher |
 | --- | --- |
-| Staging root | Administrators/SYSTEM control; no non-administrator write, delete-child or ACL ownership rights. Installer checks this rather than changing existing PostgreSQL ACLs. |
-| `launchers` | Administrator-owned, explicit Administrators/SYSTEM Full Control and staging-account Read/Execute. Installer copies only the reviewed fixed launcher/control files here. Routine deployments cannot replace them. |
-| `releases\<12-character-commit>` | Trusted staging publisher creates Git archives and manifests. Runtime reads only; publisher may create releases but must never edit published releases. With one staging account acting as publisher/runtime, immutability is an operational contract reinforced by full hash validation, not a protection from that account itself. No unrelated users may write. |
-| `config\staging.env` | Protected secret file, Administrators Full Control, staging account Read only. Never copied from a release, overwritten by switching, printed or checked into Git. |
-| `venv` | Administrator provisioned and owned; staging account Read/Execute. Dependency upgrades are a separate reviewed operation and must remain compatible with rollback releases. |
-| `logs` | Administrators own the directory; staging account Modify. Only fixed `web.log` and `worker.log` launcher redirections. Arrange log rotation separately. |
-| `state` | Administrators own the directory; staging account Modify. Contains `active-release.json` and a byte-locked `switch.lock`. No executable code belongs here. |
-| `runtime\static\<full-commit>` | Staging account Modify, outside immutable code. Static output is prepared per release, so a failed preparation does not replace the active release's collected static files. The app uses this release-specific STATIC_ROOT. Any external static-file mapping must follow this same path/pointer contract. |
-| Media, private uploads, reference and decompiled output | Staging-only writable paths with explicit least-privilege ACLs. Preserve existing PostgreSQL service/data ACLs. Django deployment checks also validate the configured toolchain and storage. |
-| Worker runtime state | Staging database, not the production database or cache. Heartbeat contains release, PID and timestamp. |
+| RatRaceStagingWeb | Start-RatRaceStagingProcess.ps1 -Process Web |
+| RatRaceStagingWorker | Start-RatRaceStagingProcess.ps1 -Process Worker |
+| RatRaceStagingDeploy | Start-RatRaceStagingDeployment.ps1 |
 
-The two tasks run **Limited**, under a dedicated enabled **local non-administrator
-account**, with password logon for unattended startup. Never use SYSTEM, an
-administrator, or a domain account with indirect administrator membership.
-Protect the root's ancestors against untrusted rename/delete-child rights too;
-the installer must be run only after the administrator confirms those host ACLs.
-The deployment command runs as that same account, so it can clean up its own
-child processes without elevation. An operator can run a normal shell as this
-account using the host's approved account-access workflow. Merely granting task
-restart rights to a different user is insufficient for complete process cleanup.
+Actions reference administrator-controlled launchers, never immutable releases
+or request arguments. Web/worker retain restart supervision. Deploy is on demand,
+without automatic retry, so a crash cannot replay a partially completed migration.
 
-There is no privileged deployment helper. A user who can change the pointer or
-published application code can run code only with the staging account's existing
-permissions, not as administrator. Treat that account and the publisher as
-trusted deployment principals. Keep production/GSA secrets and files inaccessible
-to it. Secure the source checkout used for the one-time elevated installer against
-untrusted writes while reviewing/running it. Manifest hashes detect corruption;
-they are not signatures against a malicious trusted publisher.
+The operator writes the existing `control\inbox\request.json`, then starts the
+fixed task. Schema: `{"schema":1,"sequence":1,"commit":"<40 lowercase hex>"}`.
+The client obtains the next sequence from protected `control\result\status.json`.
+Paths, commands, environment overrides, duplicate/unknown fields, oversized data,
+noninteger sequences and abbreviated commits are rejected.
 
-## One-time administrator installation or repair
+The controller holds both the release-switch byte lock and an exclusive Windows
+request handle throughout deployment. The operator cannot create or replace inbox
+files. Sharing denies writes and rename/delete during processing. The protected
+result is atomically replaced, durably consuming the sequence before side effects.
+Replay is rejected. This is a single slot, not a queue: concurrent submitters may
+race before claim, but only the claimed snapshot executes; a losing client must
+inspect status and resubmit. No request can be replaced during processing.
 
-First provision the dedicated account, protected root, environment, venv and
-explicit writable storage/release subdirectories using the table above. Grant
-Log on as a batch job through the host's local security policy if required;
-domain policy must not deny it. The installer intentionally fails on a broadly
-writable staging root. Preserve explicit database subtree permissions before
-any administrator changes parent inheritance.
+Results contain status, consumed/next sequence, commit and verified release identity.
+Detailed errors stay in protected `logs\deployment.error.log` and output in
+`logs\deployment.log`. An interrupted request is
+marked failed by the next controller run without execution. The client can trigger
+that reconciliation, then stops for inspection before another deployment.
 
-From an elevated shell in the reviewed repository checkout:
+Publishing fetches only `Eurymachus/The-Great-Spiffo-s-Rat-Race` on GitHub and
+requires ancestry in `codex/rat-race-dev`. Git prompting is disabled. A private repo
+needs a read-only token provisioned once in protected `config\git-token`; expired
+credentials fail into the result/log, never an operator password prompt.
 
-```powershell
-$credential = Get-Credential "$env:COMPUTERNAME\RatRaceStage"
-.\deployment\windows\Install-RatRaceStagingStartup.ps1 -StagingCredential $credential
-```
+## Ownership and authorization
 
-This stops old staging trees, installs/repairs the two permanent tasks, and
-leaves them stopped. It does not prepare or execute release code as administrator.
-It does not touch PostgreSQL. On repair, the existing pointer remains intact.
-The fixed web action is:
+| Object | Required rights |
+| --- | --- |
+| Secured root/ancestors | Administrators/SYSTEM control; no untrusted rename/delete-child rights. Runtime traverses/reads root. |
+| launchers | Administrators control; runtime/operator Read/Execute only. |
+| config/staging.env and optional git-token | Administrators control; runtime Read; no added operator access. |
+| venv | Administrator-controlled, runtime Read/Execute. Keep dependencies compatible with rollback releases. |
+| releases and repository.git | Runtime Modify; no added operator access. Releases are operationally immutable, with inventory/hash validation. |
+| state, logs, runtime/static | Runtime Modify; no added operator access. |
+| control/inbox directory | Administrator-controlled; runtime/operator Read/Execute, no create/delete. |
+| existing request.json | Administrator-owned; runtime Read; operator Read, WriteData, Synchronize only. No Delete/ACL/owner rights. |
+| control/result | Runtime Modify; operator Read/Execute only. |
+| media/private/reference/decompiled trees | Scoped runtime write access; no external paths or reparse points. |
+| PostgreSQL cluster | Administrators and separately reviewed DB service identity only. Preserve original offline copy and original service ACLs for recovery. |
+| Web/worker task objects | Administrators/SYSTEM control; runtime GR/GX. No added operator access. |
+| Deploy task object | Administrators/SYSTEM control; runtime/operator GR/GX, no definition Write/Delete/owner/DACL grant. |
 
-```text
-powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "G:\RatRace\_Staging\launchers\Start-RatRaceStagingProcess.ps1" -Process Web
-```
+OSWALD\admin remains an administrator when deliberately elevated. These grants
+describe its **filtered, non-elevated** token, not an attempt to constrain a host
+administrator. No task runs elevated. No writable release/venv code is executed by
+an elevated deployment helper. Trusted branch code executes as RatRaceStage only.
 
-Worker uses the identical stable path with `-Process Worker`. The executable is
-the absolute System32 Windows PowerShell path. Neither action contains an
-immutable release path. Task Scheduler supervises each task with IgnoreNew,
-startup trigger, no execution time limit and up to 999 one-minute failure restarts.
+The installer conservatively checks all administrator-supplied production/GSA roots
+and descendants for runtime/general-user Allow access and reparse points. It fails
+closed and never changes those trees. Include every code, data and secret root.
+Review network service authentication separately: the staging DB role must not
+access production databases. Staging remains loopback PostgreSQL 5433 and web 8002.
 
-The installer gives only these two task objects a protected DACL:
-Administrators/SYSTEM Generic All; staging-account Generic Read + Generic Execute
-(`GRGX`). It grants no task-definition write, delete, ownership or DACL rights and
-does not weaken the Task Scheduler folder. If local policy blocks read/run/stop,
-the switch fails with an explicit ACL message. The narrow one-time repair is to
-have an administrator restore precisely that task-object ACE for the staging
-account SID on these two tasks, using Task Scheduler's COM
-`IRegisteredTask.SetSecurityDescriptor`. Do not grant Full Control or rights on
-the entire Tasks folder. Rerunning this installer repairs these exact ACLs.
-Verify run/stop with that account before scheduling unattended deployment.
+## One-time UAC procedure
 
-## Publish and initialize
+Run reviewed scripts from a checkout protected against concurrent changes. This
+is a host maintenance procedure, not something performed by this implementation.
 
-In a **non-elevated staging-account shell**, export an exact reviewed commit:
+1. Inventory existing staging tasks, DB service, storage and exact current commit.
+   Record the current release's relative directory. Reserve space for two complete
+   copies plus releases. Confirm destination/backup ancestors are owned by
+   Administrators/SYSTEM and cannot be replaced by untrusted users; provisioning
+   fails rather than broadly changing parent-volume permissions. Take logical DB
+   backups as appropriate. Stop **only** the
+   verified existing staging web/worker and its PostgreSQL service. Never delete
+   postmaster.pid to bypass the offline-copy check.
+2. Open one elevated PowerShell and run:
 
-```powershell
-& 'G:\RatRace\_Staging\venv\Scripts\python.exe' -E -B `
-  'G:\RatRace\_Staging\launchers\staging_release.py' publish `
-  'G:\path\to\reviewed-checkout' '<full-commit>'
-```
+   ```powershell
+   $commit = '<current-full-commit>'
+   $relative = 'releases\<current-release-directory>'
+   .\deployment\windows\Move-RatRaceStagingHost.ps1 -Mode Preflight -CurrentCommit $commit -CurrentReleaseRelative $relative
+   .\deployment\windows\Move-RatRaceStagingHost.ps1 -Mode DryRun -CurrentCommit $commit -CurrentReleaseRelative $relative
+   $credential = Get-Credential "$env:COMPUTERNAME\RatRaceStage"
+   .\deployment\windows\Move-RatRaceStagingHost.ps1 -Mode Provision -CurrentCommit $commit -CurrentReleaseRelative $relative -StagingCredential $credential
+   ```
 
-The publisher uses `git archive` of the verified commit, never dirty working
-files. It prints the short release ID. It writes `staging-release.json` with
-schema 1, full 40-character commit and SHA-256 hashes for every exported file.
-It rejects an existing destination, symlinks and a source-supplied manifest.
-Release validation rejects missing/extra files, changed hashes, malformed
-manifests, incorrect directory/commit identity, traversal and reparse points.
+   Preflight/dry run are read-only. Provision creates the non-admin account if
+   absent, copies the entire source twice, verifies SHA256 inventories, rechecks
+   source stability, exports task XML and protects destination/backup. It retains
+   source unchanged, rewrites only exact root prefixes in destination staging.env
+   and applies scoped runtime ACLs. No copied executable runs as administrator.
+   A manifest or clean Git checkout must prove the current commit; unidentified
+   archives need a verified manifest before migration. Existing destinations,
+   external storage, reparse points and live clusters fail closed.
+3. Review destination PostgreSQL absolute paths (data, WAL, logs, HBA, certificates)
+   and clean-shutdown state using matching PostgreSQL tools. Validate cluster/data
+   and service identity/ACLs. Configure only the staging service's supervised
+   destination and port 5433, retaining its original definition. The script does
+   not edit/start services. Never run both clusters or cross-reference their data.
+   Keep old data and service definition recoverable.
+4. Review the copied venv/base interpreter and dependencies. The Limited controller
+   checks sys.prefix; deployment checks validate dependencies. Rebuild only the
+   destination venv if relocation fails. Review reference-tool configuration,
+   persisted absolute DB paths and maintenance jobs. Provision a read-only Git
+   token if needed, protected like staging.env. Preserve backup venv/config.
+5. Install the three tasks. Substitute actual production/GSA roots, including
+   separate secrets/data paths, for the read-only isolation check:
 
-For the first conversion only, with no pointer present:
+   ```powershell
+   $isolationRoots = @('<production-root>', '<GSA-root>', '<additional-secret-root>')
+   .\deployment\windows\Install-RatRaceStagingStartup.ps1 -StagingCredential $credential -OperatorAccount 'OSWALD\admin' -IsolationRoots $isolationRoots
+   ```
 
-```powershell
-& 'G:\RatRace\_Staging\launchers\Switch-RatRaceStagingRelease.ps1' `
-  -Release '<short-commit>' -Initialize
-```
+   Confirm Log on as a batch job and no administrator membership for RatRaceStage.
+   Check task DACLs. If policy blocks the operator, grant Read/Execute only on the
+   **RatRaceStagingDeploy task object**, never Tasks-folder or definition Write
+   permissions. Installation leaves tasks stopped. Start the reviewed destination
+   database service separately, then close the elevated shell.
+6. From ordinary OSWALD\admin, submit the current known full commit first using
+   the command below. If no pointer exists the controller initializes one after
+   preparation. A copied existing pointer is validated and switched normally.
+   The current commit must remain reachable from the development branch.
 
-Initialize prepares, writes the first pointer, starts and verifies the tasks.
-On failure it stops the new trees and removes that first pointer. There is no
-previous permanent release to roll back to during initial conversion; retain
-the old host deployment evidence/backups before the one-time maintenance window.
-Do not use Initialize once a pointer exists.
-
-## Routine deployment and rollback
-
-After publishing the candidate, from the same non-elevated staging account:
-
-```powershell
-& 'G:\RatRace\_Staging\launchers\Switch-RatRaceStagingRelease.ps1' -Release '<short-commit>'
-```
-
-No UAC prompt and no task registration or definition change occurs. The command:
-
-1. Acquires a Windows byte-range lock and validates candidate and previous release.
-2. Checks permanent task actions, limited identity and fixed staging environment.
-3. Runs `migrate --noinput`, `bootstrap_roles`, `collectstatic --noinput`,
-   `check --deploy --fail-level WARNING`, and `check_production_deployment` with
-   staging settings and the candidate's full commit as `RELEASE_ID`.
-4. Revalidates immutable files, snapshots process descendants, stops only the
-   two staging tasks, kills surviving descendants with PID/creation-time checks,
-   and proves cleanup. It atomically replaces the pointer using a flushed
-   same-directory temporary file and `os.replace`.
-5. Starts the existing tasks and allows up to 180 seconds for exactly one logical
-   web runtime and worker runtime. Windows venv redirectors count as part of the
-   same logical process tree. Port 8002 must have exactly one owning PID, matching
-   the web runtime; legacy staging runtimes must be absent.
-6. Requires HTTP 200 from `/health/ready/`, matching full release ID and worker
-   check, plus a database heartbeat with the new worker PID, selected release ID
-   and timestamp after cutover. Proxy environment and HTTP redirects cannot send
-   this check to a different service.
-
-Preparation failure leaves the pointer and running processes unchanged. Cutover
-or verification failure stops the candidate, atomically restores the previous
-pointer, starts its tasks and verifies fresh readiness/heartbeat again. A failed
-rollback is reported explicitly as `ROLLBACK FAILED`, requiring operator action;
-success is never reported for an unverified rollback. Retry an intentional rollback
-with the same switch command and the previous short commit.
-
-**Database and shared-state changes are not reversed.** Use expand/contract
-migrations and compatible dependencies so the previous release remains runnable.
-Take and verify staging database backups before migrations. Destructive migrations
-or external side effects require a planned maintenance/restore procedure, not
-this automatic process rollback. `bootstrap_roles` also changes database state.
-Do not mutate a published release or the venv while a switch is in progress.
-
-## Verification and host acceptance
-
-Repository regression suite (no scheduled task mutation):
+## Normal prompt-free command
 
 ```powershell
-python -B -m unittest discover -s deployment/windows/tests -p test_staging_release.py -v
-powershell -NoProfile -ExecutionPolicy Bypass -File deployment/windows/tests/Test-RatRaceProcessHelpers.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File deployment/windows/tests/Test-StagingEmptyScope.ps1
+& 'G:\RatRace_StagingSecured\launchers\Submit-RatRaceStagingDeployment.ps1' -Commit '<40-character-commit>'
 ```
 
-Tests cover scope/path rejection, malformed manifests and hash inventory, atomic
-replacement, preparation isolation, successful cutover, readiness and heartbeat
-rollback, rollback failure reporting, fresh/PID-matched worker checks, command
-ordering, concurrency locking, archive publishing and fixed limited task actions.
-PowerShell syntax is also parsed without executing installer/task-control code.
+This publishes, prepares, switches and waits for verification. No UAC, account
+switch, password entry or task-definition change. Read status separately with:
 
-The real host still needs one-time administrator acceptance of task DACLs, batch
-logon, storage ACLs, restart supervision, reboot behaviour and the readiness
-cutover. These cannot be certified using mocks on the development machine.
-No host task installation or modification was performed while implementing this.
+```powershell
+Get-Content 'G:\RatRace_StagingSecured\control\result\status.json'
+```
+
+## Acceptance and rollback
+
+Before retiring source/backup, verify:
+
+- All three task actions/principals and actual filtered-token permissions. Operator
+  can submit/read/run but cannot modify definitions, launchers, result, pointer,
+  environment, venv or releases. Runtime cannot access production/GSA inventory.
+- No production/GSA task, service, process, ACL or listener changed. Staging DB
+  credentials cannot access production storage.
+- One logical web tree and one worker tree, HTTP 200 readiness for RELEASE_ID and
+  a fresh heartbeat matching release and PID. Deployment performs these checks.
+- DB counts/runtime state, media/private uploads and reference/decompiled data
+  reconcile with backup. Check upload privacy, static delivery and protected logs.
+- A second prompt-free deployment succeeds. Replay/concurrency do not execute
+  twice. Failed preparation leaves pointer/processes unchanged; readiness/heartbeat
+  failure restores previous release. Test supervision after reboot.
+
+Preparation: migrate --noinput, bootstrap_roles, collectstatic --noinput,
+check --deploy --fail-level WARNING, check_production_deployment. Only successful
+preparation permits atomic pointer cutover. Failed cutover stops candidate trees,
+restores the previous pointer and starts/verifies previous processes. Failed
+rollback is explicit in the protected log and public result reports failure.
+
+Migrations/role changes are **not reversed**. Require backward-compatible schema
+changes. First initialization has no previous secured runtime: on failure it
+removes the pointer and stops tasks. For failed host acceptance, stop secured tasks
+and its database, restore old task/service definitions and restart the unchanged
+source cluster/release. Reconcile writes made during acceptance first. The scripts
+never delete source/backup or automatically restore a database.
+
+## Regression checks
+
+Run Python discovery for test_staging*.py and Test-RatRaceProcessHelpers.ps1,
+Test-StagingEmptyScope.ps1, Test-StagingMigrationPreflight.ps1 and
+Test-StagingSubmit.ps1. These cover release
+validation/preparation/rollback, protocol/replay/exclusive Windows handles/status,
+ACL source contracts and actual preflight/dry-run execution on temporary fixtures.
+Host effective ACLs, PostgreSQL service migration and reboot remain acceptance
+checks, not claims made by fixture tests.

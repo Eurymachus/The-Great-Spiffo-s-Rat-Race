@@ -1,6 +1,6 @@
 param([Parameter(Mandatory=$true)][ValidateSet('Web','Worker')][string]$Process)
 $ErrorActionPreference = 'Stop'
-$root = 'G:\RatRace\_Staging'
+$root = 'G:\RatRace_StagingSecured'
 $python = Join-Path $root 'venv\Scripts\python.exe'
 $launcher = Join-Path $root 'launchers\staging_release.py'
 $log = Join-Path $root ('logs\' + $Process.ToLowerInvariant() + '.log')

@@ -1,15 +1,39 @@
-param([Parameter(Mandatory=$true)][PSCredential]$StagingCredential)
+param([Parameter(Mandatory=$true)][PSCredential]$StagingCredential,
+      [string]$OperatorAccount = 'OSWALD\admin',
+      [Parameter(Mandatory=$true)][string[]]$IsolationRoots)
 $ErrorActionPreference = 'Stop'
-$root = 'G:\RatRace\_Staging'
+$root = 'G:\RatRace_StagingSecured'
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal($identity)
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'One-time installation/repair requires an administrator.' }
+if ((Get-ScheduledTask -TaskName 'RatRaceStagingDeploy' -TaskPath '\' -ErrorAction SilentlyContinue).State -eq 'Running') { throw 'Wait for the active deployment before repairing permanent tasks.' }
 # Local accounts only: no domain nesting or SYSTEM identity can cross this boundary.
 $name = $StagingCredential.UserName
 if ($name -notmatch ('^(?:' + [regex]::Escape($env:COMPUTERNAME) + '|\.)\\([^\\]+)$')) { throw 'Supply a dedicated local account as COMPUTER\username.' }
 $user = Get-LocalUser -Name $Matches[1]
+$operatorSid = (New-Object Security.Principal.NTAccount($OperatorAccount)).Translate([Security.Principal.SecurityIdentifier]).Value
+if ($operatorSid -eq $user.SID.Value) { throw 'Operator and runtime account must differ.' }
 $admins = @(Get-LocalGroupMember -SID 'S-1-5-32-544')
 if ($admins.SID.Value -contains $user.SID.Value -or -not $user.Enabled) { throw 'Staging account must be enabled and must not belong to Administrators.' }
+# Conservative read-only gate. Never change production/GSA ACLs from this installer.
+# Include every production/GSA data, secret and code root in this one-time inventory.
+if ($IsolationRoots.Count -lt 2) { throw 'Inventory both production and GSA roots.' }
+$runtimeGroups = @('S-1-1-0','S-1-5-11','S-1-5-32-545',$user.SID.Value)
+foreach ($group in Get-LocalGroup) {
+    if (@(Get-LocalGroupMember -Group $group -ErrorAction Stop).SID.Value -contains $user.SID.Value) { $runtimeGroups += $group.SID.Value }
+}
+foreach ($isolated in $IsolationRoots) {
+    if (-not (Test-Path -LiteralPath $isolated -PathType Container)) { throw 'An isolation root is missing.' }
+    foreach ($entry in @((Get-Item -LiteralPath $isolated)) + @(Get-ChildItem -LiteralPath $isolated -Force -Recurse)) {
+        if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Resolve isolation-tree reparse points before installation.' }
+        foreach ($rule in (Get-Acl -LiteralPath $entry.FullName).Access) {
+            $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
+            if ($rule.AccessControlType -eq 'Allow' -and $sid -in $runtimeGroups -and ($rule.FileSystemRights -band [Security.AccessControl.FileSystemRights]'ReadData,WriteData,ExecuteFile,Delete,ChangePermissions,TakeOwnership')) {
+                throw 'Production/GSA isolation is not proven: runtime or a general user group has access. Review isolation separately; this installer will not change those trees.'
+            }
+        }
+    }
+}
 foreach ($path in @($root, "$root\launchers", "$root\state", "$root\logs")) {
     $cursor = [IO.DirectoryInfo]$path
     while ($cursor) {
@@ -31,6 +55,16 @@ function Set-ScopedAcl([string]$Path, [string]$Rights) {
 }
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 $rootAcl = Get-Acl -LiteralPath $root
+$ancestor = ([IO.DirectoryInfo]$root).Parent
+while ($ancestor) {
+    $ancestorAcl = Get-Acl -LiteralPath $ancestor.FullName
+    if ($ancestorAcl.GetOwner([Security.Principal.SecurityIdentifier]).Value -notin @('S-1-5-18','S-1-5-32-544')) { throw 'Staging ancestors require Administrators/SYSTEM ownership.' }
+    foreach ($rule in $ancestorAcl.Access) {
+        $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
+        if ($rule.AccessControlType -eq 'Allow' -and $sid -notin @('S-1-5-18','S-1-5-32-544') -and ($rule.FileSystemRights -band [Security.AccessControl.FileSystemRights]'Delete,DeleteSubdirectoriesAndFiles,ChangePermissions,TakeOwnership')) { throw 'An untrusted principal can replace staging ancestors. Repair that boundary separately.' }
+    }
+    $ancestor = $ancestor.Parent
+}
 $ownerSid = $rootAcl.GetOwner([Security.Principal.SecurityIdentifier]).Value
 if ($ownerSid -notin @('S-1-5-18','S-1-5-32-544')) { throw 'Staging root must be owned by Administrators or SYSTEM.' }
 $writeMask = [Security.AccessControl.FileSystemRights]'Write,Delete,DeleteSubdirectoriesAndFiles,ChangePermissions,TakeOwnership'
@@ -42,12 +76,35 @@ foreach ($rule in $rootAcl.Access) {
 }
 New-Item -ItemType Directory -Path $launchers -Force | Out-Null
 Set-ScopedAcl $launchers 'ReadAndExecute'
-foreach ($file in @('staging_release.py','Start-RatRaceStagingProcess.ps1','Switch-RatRaceStagingRelease.ps1','Staging-TaskControl.ps1','RatRaceProcessHelpers.ps1')) {
+foreach ($file in @('staging_release.py','Start-RatRaceStagingProcess.ps1','Switch-RatRaceStagingRelease.ps1','Staging-TaskControl.ps1','RatRaceProcessHelpers.ps1','staging_control.py','staging_control_entry.py','Start-RatRaceStagingDeployment.ps1','Submit-RatRaceStagingDeployment.ps1')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination (Join-Path $launchers $file) -Force
     # Remove any explicit ACL left by a previous installation.
     & icacls.exe (Join-Path $launchers $file) /reset | Out-Null
     if ($LASTEXITCODE) { throw 'Unable to protect permanent launcher file.' }
 }
+# Operator can read stable client scripts, but cannot change the launcher directory.
+$acl = Get-Acl -LiteralPath $launchers
+$acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule((New-Object Security.Principal.SecurityIdentifier($operatorSid)), 'ReadAndExecute', 'ContainerInherit,ObjectInherit', 'None', 'Allow')))
+Set-Acl -LiteralPath $launchers -AclObject $acl
+foreach ($directory in @('control','control\inbox','control\result')) {
+    $path = Join-Path $root $directory
+    New-Item -ItemType Directory -Path $path -Force | Out-Null
+    Set-ScopedAcl $path $(if ($directory -eq 'control\result') { 'Modify' } else { 'ReadAndExecute' })
+    $acl = Get-Acl -LiteralPath $path
+    $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule((New-Object Security.Principal.SecurityIdentifier($operatorSid)), 'ReadAndExecute', 'ContainerInherit,ObjectInherit', 'None', 'Allow')))
+    Set-Acl -LiteralPath $path -AclObject $acl
+}
+$request = "$root\control\inbox\request.json"
+if (-not (Test-Path -LiteralPath $request)) { [IO.File]::WriteAllText($request, '{}') }
+$acl = New-Object Security.AccessControl.FileSecurity
+$acl.SetAccessRuleProtection($true, $false)
+$acl.SetOwner((New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')))
+foreach ($entry in @(@('S-1-5-18','FullControl'), @('S-1-5-32-544','FullControl'), @($user.SID.Value,'Read'), @($operatorSid,'Read,WriteData,Synchronize'))) {
+    $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule((New-Object Security.Principal.SecurityIdentifier($entry[0])), $entry[1], 'Allow')))
+}
+Set-Acl -LiteralPath $request -AclObject $acl
+$status = "$root\control\result\status.json"
+if (-not (Test-Path -LiteralPath $status)) { [IO.File]::WriteAllText($status, '{"schema":1,"sequence":0,"next_sequence":1,"status":"idle"}') }
 foreach ($directory in @('state','logs')) {
     $path = Join-Path $root $directory
     New-Item -ItemType Directory -Path $path -Force | Out-Null
@@ -82,4 +139,9 @@ foreach ($role in @('Web','Worker')) {
     # Only task read/execute (run/stop), never write/delete/owner/DACL access.
     $task.SetSecurityDescriptor("O:BAG:BAD:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGX;;;$($user.SID.Value))", 0)
 }
-Write-Output 'Permanent staging tasks installed, not started. Run the staging switch as the dedicated account. PostgreSQL, production and GSA were not modified.'
+$action = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$launchers\Start-RatRaceStagingDeployment.ps1`""
+$settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName 'RatRaceStagingDeploy' -TaskPath '\' -Action $action -Settings $settings -User $name -Password ($StagingCredential.GetNetworkCredential().Password) -RunLevel Limited -Force | Out-Null
+$task = $service.GetFolder('\').GetTask('RatRaceStagingDeploy')
+$task.SetSecurityDescriptor("O:BAG:BAD:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGX;;;$operatorSid)(A;;GRGX;;;$($user.SID.Value))", 0)
+Write-Output 'Three Limited permanent staging tasks installed, not started. Operator submits through Submit-RatRaceStagingDeployment.ps1. Production and GSA were not modified.'

@@ -19,7 +19,7 @@ import tempfile
 import urllib.request
 from datetime import datetime, timezone
 
-ROOT = Path(r"G:\RatRace\_Staging")
+ROOT = Path(r"G:\RatRace_StagingSecured")
 TASKS = ("RatRaceStagingWeb", "RatRaceStagingWorker")
 MANIFEST = "staging-release.json"
 
@@ -262,6 +262,25 @@ def switch(root, name, host):
         except Exception as rollback:
             raise RuntimeError(f"Cutover failed ({failure}); ROLLBACK FAILED ({rollback}). Operator intervention required.") from rollback
         raise RuntimeError(f"Cutover failed; previous release restored: {failure}") from failure
+    return selected
+
+
+def initialize(root, name, host):
+    if (root / "state/active-release.json").exists():
+        raise RuntimeError("Existing pointer must be changed with switch")
+    selected, directory = release(root, name)
+    host.preflight()
+    host.prepare(selected, directory)
+    release(root, name)
+    host.stop()
+    atomic_pointer(root, selected)
+    try:
+        host.start()
+        host.verify(selected, directory, datetime.now(timezone.utc))
+    except Exception:
+        host.stop()
+        (root / "state/active-release.json").unlink()
+        raise
     return selected
 
 

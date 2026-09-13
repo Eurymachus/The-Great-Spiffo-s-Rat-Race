@@ -683,8 +683,19 @@ contract and remaining host-specific work live in
   drag cursor behaviour still needs broader manual verification.
 # Windows staging release switching (13 September 2026)
 
-- Current host staging root is `G:\RatRace\_Staging`; permanent task names remain
-  `RatRaceStagingWeb` and `RatRaceStagingWorker` (web 8002, PostgreSQL 5433).
+- Existing staging root is `G:\RatRace\_Staging`. The revised host migration
+  explicitly selects `G:\RatRace_StagingSecured`, retaining the old source plus
+  `G:\RatRace_StagingBackup`. Host wording named the same root as existing/missing;
+  do not infer another destination at installation time.
+- `RatRaceStagingDeploy` now accepts a data-only full commit request from the
+  existing OSWALD\admin account. It publishes/prepares/switches as Limited
+  RatRaceStage, without an interactive account switch or routine UAC prompt.
+- A fixed inbox, protected result sequence, exclusive request handle and switch
+  lock prevent executable input, replay and concurrent processing. The installer
+  grants operator read/execute on this task only and no definition write rights.
+- Offline migration preflight/dry run, full hash-checked copies and explicit host
+  acceptance preserve environment, DB, uploads, references, venv and runtime data.
+  Web/worker task names and ports remain unchanged (8002/5433).
 - Repository-controlled permanent launchers use a validated staging-owned active
   pointer. One-time administrator installation uses a dedicated local
   non-administrator task account, never an elevated mutable-code helper.
