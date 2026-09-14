@@ -71,6 +71,29 @@ public static class StagingIsolationNative {
         }
         return findings;
     }
+    public static List<string> EvaluateReportBoundary(Descriptor descriptor, string role) {
+        if (role != "File" && role != "Directory" && role != "Ancestor") throw new ArgumentException("Unknown report boundary role");
+        var findings = new List<string>();
+        var raw = new RawSecurityDescriptor(descriptor.Sddl);
+        if (raw.Owner == null || (raw.Owner.Value != "S-1-5-18" && raw.Owner.Value != "S-1-5-32-544")) findings.Add("Unsafe report path owner: " + descriptor.Path);
+        if (raw.DiscretionaryAcl == null) { findings.Add("Null report DACL: " + descriptor.Path); return findings; }
+        // DELETE on each child and FILE_DELETE_CHILD on its parent are independent
+        // ways to remove the protected path. Check both at every path segment.
+        int mask = 0x100D0040; // GENERIC_ALL, DELETE, WRITE_DAC, WRITE_OWNER, DELETE_CHILD
+        if (role != "Ancestor") mask |= 0x40000116; // GENERIC_WRITE, data/append, EA/attribute writes
+        foreach (GenericAce entry in raw.DiscretionaryAcl) {
+            // Inherit-only ACEs do not grant access to this object. Any effective
+            // inherited grant on the actual child is checked at that child.
+            if ((entry.AceFlags & AceFlags.InheritOnly) != 0) continue;
+            var ace = entry as CommonAce;
+            if (ace == null || ace.IsCallback) { findings.Add("Unsupported report ACE: " + descriptor.Path); continue; }
+            if (ace.AceQualifier != AceQualifier.AccessAllowed) continue;
+            string sid = ace.SecurityIdentifier.Value;
+            if (sid != "S-1-5-18" && sid != "S-1-5-32-544" && (ace.AccessMask & mask) != 0)
+                findings.Add("Unsafe " + role + " report rights: " + descriptor.Path + " (" + sid + ")");
+        }
+        return findings;
+    }
     public static ScanResult Scan(string[] roots, string[] sids) {
         var result = new ScanResult(); var seen = new HashSet<string>();
         var pending = new Stack<string>(roots);

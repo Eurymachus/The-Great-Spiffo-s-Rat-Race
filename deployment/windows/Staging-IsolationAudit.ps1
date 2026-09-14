@@ -30,16 +30,15 @@ function Get-StagingIsolationBoundaries([string[]]$Roots) {
 }
 function Assert-StagingAuditProtection([string]$Path) {
     $cursor = Get-Item -LiteralPath $Path
+    # The audit producer passes its existing output directory; the installer
+    # passes the report file. Both must identify the same immediate boundary.
+    $role = if ($cursor -is [IO.FileInfo]) { 'File' } else { 'Directory' }
     while ($cursor) {
         $descriptor = [StagingIsolationNative]::Read($cursor.FullName,$true)
-        $issues = [StagingIsolationNative]::Evaluate($descriptor,@(),$true)
-        # Report and its parent must also reject arbitrary content writes.
-        $acl = New-Object Security.AccessControl.RawSecurityDescriptor($descriptor.Sddl)
-        foreach ($ace in $acl.DiscretionaryAcl) {
-            if ($ace -is [Security.AccessControl.CommonAce] -and $ace.AceQualifier -eq 'AccessAllowed' -and $ace.SecurityIdentifier.Value -notin @('S-1-5-18','S-1-5-32-544') -and ($ace.AccessMask -band 0x40000006)) { throw 'Audit report ancestry permits non-administrator writes.' }
-        }
+        $issues = [StagingIsolationNative]::EvaluateReportBoundary($descriptor,$role)
         if ($issues.Count) { throw ($issues -join '; ') }
         $cursor = if ($cursor -is [IO.FileInfo]) { $cursor.Directory } else { $cursor.Parent }
+        $role = if ($role -eq 'File') { 'Directory' } else { 'Ancestor' }
     }
 }
 function Assert-StagingIsolationReport([string]$Report, [string[]]$Roots, [string]$Account) {
