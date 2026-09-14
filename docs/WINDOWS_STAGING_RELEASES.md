@@ -3,9 +3,9 @@
 Implemented and regression-tested, **not installed on the host**. This replaces
 the workflow requiring the operator to open a shell as RatRaceStage.
 
-The host confirmed `G:\RatRace_Staging` as the existing source. The secured
-destination is `G:\RatRace_StagingSecured`.
-Source: `G:\RatRace_Staging`. Offline backup: `G:\RatRace_StagingBackup`.
+The host handoff named `G:\RatRace\_Staging` as both existing and missing. This
+revision explicitly selects `G:\RatRace_StagingSecured` as the destination.
+Source: `G:\RatRace\_Staging`. Offline backup: `G:\RatRace_StagingBackup`.
 These are fixed reviewed paths, not deployment inputs. Selecting another root
 requires a reviewed code change before provisioning.
 
@@ -24,7 +24,7 @@ or request arguments. Web/worker retain restart supervision. Deploy is on demand
 without automatic retry, so a crash cannot replay a partially completed migration.
 
 The operator writes the existing `control\inbox\request.json`, then starts the
-fixed task. Schema: `{"schema":1,"sequence":1,"commit":"<40 lowercase hex>","request_id":"<32 lowercase hex>"}`.
+fixed task. Schema: `{"schema":1,"sequence":1,"commit":"<40 lowercase hex>"}`.
 The client obtains the next sequence from protected `control\result\status.json`.
 Paths, commands, environment overrides, duplicate/unknown fields, oversized data,
 noninteger sequences and abbreviated commits are rejected.
@@ -35,10 +35,7 @@ files. Sharing denies writes and rename/delete during processing. The protected
 result is atomically replaced, durably consuming the sequence before side effects.
 Replay is rejected. This is a single slot, not a queue: concurrent submitters may
 race before claim, but only the claimed snapshot executes; a losing client must
-inspect status and resubmit. The client generates a cryptographically random
-128-bit request ID and requires sequence, request ID and full commit to match.
-A mismatching result is explicitly reported as superseded, never success for
-another caller's commit. No request can be replaced during processing.
+inspect status and resubmit. No request can be replaced during processing.
 
 Results contain status, consumed/next sequence, commit and verified release identity.
 Detailed errors stay in protected `logs\deployment.error.log` and output in
@@ -96,14 +93,12 @@ is a host maintenance procedure, not something performed by this implementation.
 2. Open one elevated PowerShell and run:
 
    ```powershell
-   $commit = '199e2d6a4cf53ab29c66c889959f21b6a79f6a28'
-   $relative = 'releases\199e2d6'
-   $reviewed = (Get-Location).Path
-   git fetch origin codex/rat-race-dev
-   .\deployment\windows\Move-RatRaceStagingHost.ps1 -Mode Preflight -CurrentCommit $commit -CurrentReleaseRelative $relative -ReviewedCheckout $reviewed
-   .\deployment\windows\Move-RatRaceStagingHost.ps1 -Mode DryRun -CurrentCommit $commit -CurrentReleaseRelative $relative -ReviewedCheckout $reviewed
+   $commit = '<current-full-commit>'
+   $relative = 'releases\<current-release-directory>'
+   .\deployment\windows\Move-RatRaceStagingHost.ps1 -Mode Preflight -CurrentCommit $commit -CurrentReleaseRelative $relative
+   .\deployment\windows\Move-RatRaceStagingHost.ps1 -Mode DryRun -CurrentCommit $commit -CurrentReleaseRelative $relative
    $credential = Get-Credential "$env:COMPUTERNAME\RatRaceStage"
-   .\deployment\windows\Move-RatRaceStagingHost.ps1 -Mode Provision -CurrentCommit $commit -CurrentReleaseRelative $relative -ReviewedCheckout $reviewed -StagingCredential $credential
+   .\deployment\windows\Move-RatRaceStagingHost.ps1 -Mode Provision -CurrentCommit $commit -CurrentReleaseRelative $relative -StagingCredential $credential
    ```
 
    Preflight/dry run are read-only. Provision creates the non-admin account if
@@ -111,12 +106,8 @@ is a host maintenance procedure, not something performed by this implementation.
    source stability, exports task XML and protects destination/backup. It retains
    source unchanged, rewrites only exact root prefixes in destination staging.env
    and applies scoped runtime ACLs. No copied executable runs as administrator.
-   The source release needs neither .git nor a manifest. A separate reviewed clean
-   checkout provides git archive output for the exact full commit, which must be
-   an ancestor of origin/codex/rat-race-dev. Complete inventory and SHA256 comparison
-   reject missing, extra or modified files. Only the secured copy receives a new
-   staging-release.json after copy verification; source/backup are unchanged.
-   Existing destinations,
+   A manifest or clean Git checkout must prove the current commit; unidentified
+   archives need a verified manifest before migration. Existing destinations,
    external storage, reparse points and live clusters fail closed.
 3. Review destination PostgreSQL absolute paths (data, WAL, logs, HBA, certificates)
    and clean-shutdown state using matching PostgreSQL tools. Validate cluster/data
