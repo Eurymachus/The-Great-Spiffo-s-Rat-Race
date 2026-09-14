@@ -124,17 +124,6 @@ roots/account/groups, timestamp, and all root/ancestor descriptors and file IDs.
 It does not traverse descendants. A stale, failed or mismatched report fails
 before the installer stops staging tasks. Complete the outage within the window.
 
-Report-path protection distinguishes three boundaries. The file must be owned by
-Administrators/SYSTEM and reject other principals' writes, deletion and ACL/owner
-changes. Its immediate directory additionally rejects creation and delete-child
-rights. Higher ancestors reject deletion/replacement and ACL/owner changes, but
-may permit creation of unrelated siblings. DELETE on each child and
-FILE_DELETE_CHILD on its parent are independently checked, so a protected child
-DACL alone cannot conceal a replaceable path. Inherit-only ACEs do not apply to
-the current object; effective inherited grants are checked on the actual child.
-Read/traverse grants are allowed. Unsafe Allow grants remain conservatively
-rejected even when a Deny might override them; unsupported ACEs require review.
-
 ### During the maintenance window
 
 1. Inventory existing staging tasks, DB service, storage and exact current commit.
@@ -246,10 +235,7 @@ never delete source/backup or automatically restore a database.
 
 Run Python discovery for test_staging*.py and Test-RatRaceProcessHelpers.ps1,
 Test-StagingEmptyScope.ps1, Test-StagingMigrationPreflight.ps1 and
-Test-StagingSubmit.ps1, Test-StagingIsolationAudit.ps1 and
-Test-StagingReportProtection.ps1. The report fixtures distinguish safe ancestor
-sibling creation from child DELETE, parent FILE_DELETE_CHILD and ACL/owner writes.
-The isolation fixture
+Test-StagingSubmit.ps1 and Test-StagingIsolationAudit.ps1. The isolation fixture
 uses 2,021 inherited entries, verifies descriptor caching with zero Get-Acl calls,
 detects a protected explicit exception and exercises report rejection gates.
 These cover release

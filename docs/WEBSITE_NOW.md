@@ -683,11 +683,6 @@ contract and remaining host-specific work live in
   drag cursor behaviour still needs broader manual verification.
 # Windows staging release switching (13 September 2026)
 
-- Report protection now distinguishes file, immediate directory and higher
-  ancestors. Safe ancestor sibling creation is allowed; child DELETE, parent
-  FILE_DELETE_CHILD and ACL/ownership changes still fail. Fixture coverage checks
-  both descriptor decisions and the actual boundary-walk role assignment.
-
 - Isolation auditing now runs read-only while staging is online. Native descriptor
   reads and cached evaluations replace per-file PowerShell Get-Acl calls. The
   installer requires an administrator-protected passing report no older than
