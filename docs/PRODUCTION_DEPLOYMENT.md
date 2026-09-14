@@ -137,7 +137,7 @@ switching, destructive data changes, or approval of public policy wording.
 ## Windows staging deployment
 
 The persistent acceptance environment mirrors the production layout beneath a
-separate installation root, `G:\RatRace_Staging`. Production defaults remain
+separate installation root, `G:\RatRace\_Staging`. Production defaults remain
 `G:\RatRace`; staging must pass explicit identity and port values:
 
 - deployment name `RatRaceStaging`;
@@ -156,7 +156,8 @@ requires both requested task trees to run the selected release and waits for the
 readiness endpoint, including the matching worker heartbeat, before succeeding.
 Use `Install-RatRaceStagingStartup.ps1 -ReleaseRoot <release>` for the standard
 staging identity, paths and ports; this keeps the elevated invocation short and
-repeatable.
+repeatable. Routine deployment requires one UAC confirmation and continues to
+replace the two staging tasks for the selected immutable release.
 The standard staging installer invokes `Prepare-RatRaceRelease.ps1` with the
 release, protected staging environment file, and staging Python executable. The
 preparation command applies migrations, reconciles all standard roles, and
@@ -173,14 +174,14 @@ regenerating the complete file.
 
 ### Current deployed staging state (2026-08-14)
 
-- Release `1676dba` is deployed beneath `G:\RatRace_Staging\releases`.
+- Release `1676dba` is deployed beneath `G:\RatRace\_Staging\releases`.
 - The isolated PostgreSQL cluster is registered as `RatRaceStagingPostgres` and
   listens only on `127.0.0.1:5433`.
 - `RatRaceStagingWeb` serves `127.0.0.1:8002`; `RatRaceStagingWorker` runs the
   reference-update worker. Release `1676dba` is currently running, but updating
   the scheduled-task actions to this release still requires an actual elevated
   Windows PowerShell session. No reboot was performed during installation.
-- The protected environment is `G:\RatRace_Staging\config\staging.env`. It has
+- The protected environment is `G:\RatRace\_Staging\config\staging.env`. It has
   staging-only Django and encryption secrets, filesystem roots, callback URLs,
   database credentials and Turnstile test keys. Staging defaults
   `STAGING_EMAIL_ALLOW_ALL` to `true`, permitting invited testers to

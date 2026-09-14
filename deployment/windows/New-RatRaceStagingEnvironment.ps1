@@ -5,11 +5,11 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$ReleaseId,
 
-    [string]$InstallationRoot = "G:\RatRace_Staging",
+    [string]$InstallationRoot = "G:\RatRace\_Staging",
     [string]$Hostname = "dev.tgsrr.com",
-    [string]$PostgresFragment = "G:\RatRace_Staging\config\postgres.generated.env",
+    [string]$PostgresFragment = "G:\RatRace\_Staging\config\postgres.generated.env",
     [string]$SourceEnvironmentFile = "G:\RatRace\config\acceptance.env",
-    [string]$EnvironmentFile = "G:\RatRace_Staging\config\staging.env"
+    [string]$EnvironmentFile = "G:\RatRace\_Staging\config\staging.env"
 )
 
 $ErrorActionPreference = "Stop"

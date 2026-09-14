@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$ReleaseRoot,
 
-    [string]$InstallationRoot = "G:\RatRace_Staging"
+    [string]$InstallationRoot = "G:\RatRace\_Staging"
 )
 
 $ErrorActionPreference = "Stop"

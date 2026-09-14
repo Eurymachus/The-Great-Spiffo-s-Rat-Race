@@ -879,7 +879,7 @@ a normal run-moderation bulk action.
 # 2026-08-14 - Keep acceptance staging persistent and operationally isolated
 
 - `dev.tgsrr.com` is the persistent acceptance environment. It follows the
-  Windows production deployment shape beneath `G:\RatRace_Staging`, but uses
+  Windows production deployment shape beneath `G:\RatRace\_Staging`, but uses
   separate database, ports, services, scheduled tasks, secrets, storage, logs,
   releases and callback URLs.
 - Staging may be publicly reachable for team testing because application account

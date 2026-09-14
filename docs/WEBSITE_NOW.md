@@ -1,5 +1,14 @@
 # Website: Current Focus
 
+## Staging deployment decision (14 September 2026)
+
+- Keep `G:\RatRace\_Staging` as the sole staging root, with immutable releases.
+- Routine deployment uses `Install-RatRaceStagingStartup.ps1` with one UAC
+  confirmation. Preparation automatically runs migrations, role bootstrap and
+  static collection before replacing the staging web/worker tasks.
+- Retain existing release/process-tree, readiness and worker-heartbeat checks
+  and production/GSA isolation. This repository change performs no host actions.
+
 ## Branch and worktree
 
 - Canonical development branch: `codex/rat-race-dev`
@@ -137,7 +146,7 @@ remain outstanding. Earlier manual-only descriptions below describe prior behavi
   kill-source rows resolve to zero for presentation, while partial baselines and
   raw Project Zomboid source IDs remain stored evidence.
 - A persistent production-shaped staging environment is live at
-  `https://dev.tgsrr.com` from the isolated `G:\RatRace_Staging` root. It uses
+  `https://dev.tgsrr.com` from the isolated `G:\RatRace\_Staging` root. It uses
   its own PostgreSQL cluster, protected configuration, filesystem state, empty
   application data and repository-controlled
   presentation. `[DEV]` titles, a persistent development/test banner,
