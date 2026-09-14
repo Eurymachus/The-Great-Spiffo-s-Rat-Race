@@ -153,7 +153,7 @@ class StagingReleaseTests(unittest.TestCase):
         self.assertIn("CreationDate -eq", control)
 
     def test_production_and_gsa_isolation(self):
-        self.assertEqual(str(staging.ROOT), r"G:\RatRace_StagingSecured")
+        self.assertEqual(str(staging.ROOT), r"G:\RatRace\_Staging")
         self.assertEqual(staging.TASKS, ("RatRaceStagingWeb", "RatRaceStagingWorker"))
         for file in ("Staging-TaskControl.ps1", "Install-RatRaceStagingStartup.ps1"):
             code = SCRIPT.with_name(file).read_text()
