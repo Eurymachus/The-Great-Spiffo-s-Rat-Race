@@ -74,10 +74,9 @@ describe its **filtered, non-elevated** token, not an attempt to constrain a hos
 administrator. No task runs elevated. No writable release/venv code is executed by
 an elevated deployment helper. Trusted branch code executes as RatRaceStage only.
 
-An online read-only audit conservatively checks administrator-supplied production/GSA
-roots for runtime/general-user Allow access, unsafe ownership and reparse points.
-The installer requires its protected passing report, rather than repeating the
-recursive scan. Include every code, data and secret root.
+The installer conservatively checks all administrator-supplied production/GSA roots
+and descendants for runtime/general-user Allow access and reparse points. It fails
+closed and never changes those trees. Include every code, data and secret root.
 Review network service authentication separately: the staging DB role must not
 access production databases. Staging remains loopback PostgreSQL 5433 and web 8002.
 
@@ -85,46 +84,6 @@ access production databases. Staging remains loopback PostgreSQL 5433 and web 80
 
 Run reviewed scripts from a checkout protected against concurrent changes. This
 is a host maintenance procedure, not something performed by this implementation.
-
-### Before the outage: online isolation audit
-
-RatRaceStage must exist before auditing its SID/group memberships. If it is absent,
-an administrator provisions that local non-administrator identity while the old
-staging environment remains online. This is separate from the read-only audit;
-the audit never creates accounts or changes production/GSA permissions.
-
-From a reviewed checkout, in elevated PowerShell, supply a **new** JSON filename
-inside an existing administrator-controlled directory with protected ancestors:
-
-```powershell
-$isolationRoots = @('G:\RatRace', 'G:\GameServerApp', 'G:\Services')
-$auditReport = '<administrator-controlled-directory>\staging-isolation-20260914.json'
-.\deployment\windows\Audit-RatRaceStagingIsolation.ps1 -IsolationRoots $isolationRoots -StagingAccount "$env:COMPUTERNAME\RatRaceStage" -ReportPath $auditReport
-```
-
-Do this while staging is online. The command only reads the isolation trees and
-writes the new administrator/SYSTEM-only report. It never stops tasks or services.
-Missing/inaccessible entries, reparse points and unsupported ACEs are findings,
-never implicit passes. Resolve findings through explicit separate review.
-
-Native descriptor reads replace PowerShell Get-Acl per file. Each unique
-owner/group/DACL descriptor is evaluated once, including protected and explicit
-exceptions; inherited descriptors reuse the cached evaluation. Every entry still
-needs a native read to discover exceptions, so this remains a complete online
-scan, not an O(1) audit. The JSON records canonical roots, volume/file IDs for
-root/ancestor boundaries, account/group SIDs, descriptor hashes and SDDL,
-exceptional paths, findings, timestamp, pass/fail and performance counters.
-
-The report expires after **four hours**. Keep security configuration stable from
-audit through installation. Rerun after known descendant ACL changes, tree moves,
-or identity/group changes. This is a bounded-age audit, not continuous monitoring;
-the quick installer gate cannot detect an intervening arbitrary descendant ACL
-edit. It revalidates report ownership/ACL and ancestor replacement rights, exact
-roots/account/groups, timestamp, and all root/ancestor descriptors and file IDs.
-It does not traverse descendants. A stale, failed or mismatched report fails
-before the installer stops staging tasks. Complete the outage within the window.
-
-### During the maintenance window
 
 1. Inventory existing staging tasks, DB service, storage and exact current commit.
    Record the current release's relative directory. Reserve space for two complete
@@ -174,8 +133,8 @@ before the installer stops staging tasks. Complete the outage within the window.
    separate secrets/data paths, for the read-only isolation check:
 
    ```powershell
-   # Reuse the exact $isolationRoots and $auditReport from the online audit.
-   .\deployment\windows\Install-RatRaceStagingStartup.ps1 -StagingCredential $credential -OperatorAccount 'OSWALD\admin' -IsolationRoots $isolationRoots -IsolationAuditReport $auditReport
+   $isolationRoots = @('<production-root>', '<GSA-root>', '<additional-secret-root>')
+   .\deployment\windows\Install-RatRaceStagingStartup.ps1 -StagingCredential $credential -OperatorAccount 'OSWALD\admin' -IsolationRoots $isolationRoots
    ```
 
    Confirm Log on as a batch job and no administrator membership for RatRaceStage.
@@ -235,10 +194,7 @@ never delete source/backup or automatically restore a database.
 
 Run Python discovery for test_staging*.py and Test-RatRaceProcessHelpers.ps1,
 Test-StagingEmptyScope.ps1, Test-StagingMigrationPreflight.ps1 and
-Test-StagingSubmit.ps1 and Test-StagingIsolationAudit.ps1. The isolation fixture
-uses 2,021 inherited entries, verifies descriptor caching with zero Get-Acl calls,
-detects a protected explicit exception and exercises report rejection gates.
-These cover release
+Test-StagingSubmit.ps1. These cover release
 validation/preparation/rollback, protocol/replay/exclusive Windows handles/status,
 ACL source contracts and actual preflight/dry-run execution on temporary fixtures.
 Host effective ACLs, PostgreSQL service migration and reboot remain acceptance

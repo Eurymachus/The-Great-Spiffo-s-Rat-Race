@@ -1,7 +1,6 @@
 param([Parameter(Mandatory=$true)][PSCredential]$StagingCredential,
       [string]$OperatorAccount = 'OSWALD\admin',
-      [Parameter(Mandatory=$true)][string[]]$IsolationRoots,
-      [Parameter(Mandatory=$true)][string]$IsolationAuditReport)
+      [Parameter(Mandatory=$true)][string[]]$IsolationRoots)
 $ErrorActionPreference = 'Stop'
 $root = 'G:\RatRace_StagingSecured'
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -16,8 +15,25 @@ $operatorSid = (New-Object Security.Principal.NTAccount($OperatorAccount)).Trans
 if ($operatorSid -eq $user.SID.Value) { throw 'Operator and runtime account must differ.' }
 $admins = @(Get-LocalGroupMember -SID 'S-1-5-32-544')
 if ($admins.SID.Value -contains $user.SID.Value -or -not $user.Enabled) { throw 'Staging account must be enabled and must not belong to Administrators.' }
-. (Join-Path $PSScriptRoot 'Staging-IsolationAudit.ps1')
-Assert-StagingIsolationReport -Report $IsolationAuditReport -Roots $IsolationRoots -Account $name
+# Conservative read-only gate. Never change production/GSA ACLs from this installer.
+# Include every production/GSA data, secret and code root in this one-time inventory.
+if ($IsolationRoots.Count -lt 2) { throw 'Inventory both production and GSA roots.' }
+$runtimeGroups = @('S-1-1-0','S-1-5-11','S-1-5-32-545',$user.SID.Value)
+foreach ($group in Get-LocalGroup) {
+    if (@(Get-LocalGroupMember -Group $group -ErrorAction Stop).SID.Value -contains $user.SID.Value) { $runtimeGroups += $group.SID.Value }
+}
+foreach ($isolated in $IsolationRoots) {
+    if (-not (Test-Path -LiteralPath $isolated -PathType Container)) { throw 'An isolation root is missing.' }
+    foreach ($entry in @((Get-Item -LiteralPath $isolated)) + @(Get-ChildItem -LiteralPath $isolated -Force -Recurse)) {
+        if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Resolve isolation-tree reparse points before installation.' }
+        foreach ($rule in (Get-Acl -LiteralPath $entry.FullName).Access) {
+            $sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
+            if ($rule.AccessControlType -eq 'Allow' -and $sid -in $runtimeGroups -and ($rule.FileSystemRights -band [Security.AccessControl.FileSystemRights]'ReadData,WriteData,ExecuteFile,Delete,ChangePermissions,TakeOwnership')) {
+                throw 'Production/GSA isolation is not proven: runtime or a general user group has access. Review isolation separately; this installer will not change those trees.'
+            }
+        }
+    }
+}
 foreach ($path in @($root, "$root\launchers", "$root\state", "$root\logs")) {
     $cursor = [IO.DirectoryInfo]$path
     while ($cursor) {
