@@ -683,6 +683,13 @@ contract and remaining host-specific work live in
   drag cursor behaviour still needs broader manual verification.
 # Windows staging release switching (13 September 2026)
 
+- Isolation auditing now runs read-only while staging is online. Native descriptor
+  reads and cached evaluations replace per-file PowerShell Get-Acl calls. The
+  installer requires an administrator-protected passing report no older than
+  four hours and rechecks only root/ancestor identities/descriptors plus account
+  groups. No recursive outage-time ACL scan. Known security changes require a
+  new audit; this report is not continuous descendant-change monitoring.
+
 - Existing staging root is `G:\RatRace_Staging`. The revised host migration
   explicitly selects `G:\RatRace_StagingSecured`, retaining the old source plus
   `G:\RatRace_StagingBackup`. The host confirmed these exact paths on 14 September.
