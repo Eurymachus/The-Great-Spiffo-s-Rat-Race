@@ -208,3 +208,19 @@
 #content .selected-filter-panel { margin-top:0; margin-bottom:0; }
 #content #changelist #toolbar #searchbar,
 #content .run-filter-toolbar #run-searchbar { width:284px; height:30px; min-height:30px; box-sizing:border-box; margin:0; }
+
+/* Never paint selected chips before mounting or while their disclosure is closed. */
+#run-filter-chips[hidden],
+.shared-filter-chips[hidden],
+.selected-filter-panel:not([open]) > #run-filter-chips,
+.selected-filter-panel:not([open]) > .shared-filter-chips { display: none !important; }
+
+/* Django's source sidebar is replaced by the shared toolbar during startup. */
+.admin-toolbar-pending #changelist-filter { display: none !important; }
+.admin-toolbar-pending #changelist.filtered { display: block; }
+.admin-toolbar-pending #changelist.filtered .changelist-form-container { width: 100%; }
+
+/* Reserve the toolbar strip, but reveal its controls only after assembly. */
+.admin-toolbar-pending #changelist #toolbar > *,
+.admin-toolbar-pending .shared-list-toolbar > *,
+.admin-toolbar-pending .run-filter-toolbar > * { visibility: hidden; }

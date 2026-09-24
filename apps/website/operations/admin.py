@@ -37,6 +37,7 @@ from .models import (
 from .pzwiki_artwork import enqueue_pzwiki_artwork_sync
 from .queue import enqueue_reference_update
 from .reference_paths import resolved_reference_paths
+from .job_output import PROGRESS, steam_console_progress
 from .run_moderation_reset import reset_run_moderation
 from .steam_auth import (
     begin_authentication,
@@ -63,6 +64,13 @@ class SteamGuardForm(forms.Form):
         if not code.isalnum():
             raise forms.ValidationError("Enter the Steam Guard code exactly as shown.")
         return code
+
+
+class ReferenceUpdateForm(forms.Form):
+    steam_branch = forms.ChoiceField(
+        label="Branch", choices=ReferenceUpdateJob.Branch.choices,
+        help_text="Installs the selected branch into the configured reference installation. Close Project Zomboid first.",
+    )
 
 
 class CatalogueDryRunForm(forms.Form):
@@ -423,21 +431,26 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
         if not request.user.is_superuser:
             return HttpResponseForbidden()
         source = get_object_or_404(ReferenceSource, pk=object_id)
-        if request.method == "POST":
+        form = ReferenceUpdateForm(
+            request.POST if request.method == "POST" else None,
+            initial={"steam_branch": settings.STEAMCMD_BRANCH},
+        )
+        if request.method == "POST" and form.is_valid():
             job, created = enqueue_reference_update(
                 source,
                 trigger=ReferenceUpdateJob.Trigger.MANUAL,
                 requested_by=request.user,
+                steam_branch=form.cleaned_data["steam_branch"],
             )
             if created:
                 messages.success(
                     request,
-                    f"Project Zomboid reference update #{job.pk} was queued.",
+                    f"Project Zomboid {job.get_steam_branch_display()} update #{job.pk} was queued.",
                 )
             else:
                 messages.warning(
                     request,
-                    f"Update #{job.pk} is already {job.get_status_display().lower()}.",
+                    f"{job.get_steam_branch_display()} update #{job.pk} is already {job.get_status_display().lower()}.",
                 )
             return redirect("admin:operations_referenceupdatejob_change", job.pk)
         return TemplateResponse(
@@ -446,6 +459,7 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
             {
                 **self.admin_site.each_context(request),
                 "title": "Check Project Zomboid for updates",
+                "form": form,
                 "source": source,
                 "opts": self.model._meta,
             },
@@ -704,15 +718,48 @@ class ReferenceSourceAdmin(admin.ModelAdmin):
 
 @admin.register(ReferenceUpdateJob)
 class ReferenceUpdateJobAdmin(admin.ModelAdmin):
+    change_form_template = "admin/operations/referenceupdatejob/change_form.html"
     change_list_template = "admin/operations/change_list.html"
     list_display = (
-        "source", "operation", "status", "trigger", "requested_by", "requested_at",
+        "source", "operation", "steam_branch", "status", "trigger", "requested_by", "requested_at",
         "started_at", "finished_at",
     )
     readonly_fields = (
-        "source", "operation", "status", "trigger", "requested_by", "previous_build_id",
+        "source", "operation", "steam_branch", "status", "trigger", "requested_by", "previous_build_id",
         "installed_build_id", "requested_at", "started_at", "finished_at", "summary",
     )
+    fields = readonly_fields
+
+    def get_urls(self):
+        return [path(
+            "<int:object_id>/live/", self.admin_site.admin_view(self.live_view),
+            name="operations_referenceupdatejob_live",
+        )] + super().get_urls()
+
+    def live_view(self, request, object_id):
+        job = get_object_or_404(self.get_queryset(request), pk=object_id)
+        if not self.has_view_permission(request, job):
+            return HttpResponseForbidden()
+        active = job.status in (job.Status.QUEUED, job.Status.RUNNING)
+        log, message, percent = job.log_output, job.progress_message, job.progress_percent
+        if job.status == job.Status.RUNNING and job.operation == job.Operation.UPDATE:
+            progress = steam_console_progress(
+                resolved_reference_paths().steamcmd_executable, job.started_at,
+            )
+            if progress:
+                log = (log + "\nSteamCMD progress:\n" + progress)[-65536:]
+                message = progress.splitlines()[-1]
+                match = PROGRESS.search(message)
+                percent = min(100, max(0, float(match[1]))) if match else None
+        return JsonResponse({
+            "title": str(job), "status": job.get_status_display(), "active": active,
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+            "previous_build_id": job.previous_build_id,
+            "installed_build_id": job.installed_build_id,
+            "summary": job.summary, "log": log,
+            "message": message, "percent": percent,
+        })
 
     def has_add_permission(self, request):
         return False

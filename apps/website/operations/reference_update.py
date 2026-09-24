@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from registry.models import Notification, Participant
 
+from .job_output import run_logged_process
 from .models import ReferenceSource, ReferenceUpdateJob
 from .reference_paths import resolved_reference_paths
 
@@ -92,7 +93,7 @@ def run_reference_update(job):
     job.previous_build_id = previous
     job.save(update_fields=("previous_build_id",))
     try:
-        completed = subprocess.run(
+        completed = run_logged_process(
             [
                 str(executable),
                 "+force_install_dir",
@@ -101,13 +102,15 @@ def run_reference_update(job):
                 username,
                 "+app_update",
                 "108600",
+                "-beta",
+                job.steam_branch,
                 "validate",
                 "+quit",
             ],
-            capture_output=True,
-            text=True,
+            job=job,
+            label="Starting SteamCMD",
+            redact=(username,),
             timeout=settings.STEAMCMD_UPDATE_TIMEOUT_SECONDS,
-            check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         _finish_failure(

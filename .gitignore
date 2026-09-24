@@ -28,3 +28,6 @@ tempwiki.html
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Local test scratch files
+/tmp/

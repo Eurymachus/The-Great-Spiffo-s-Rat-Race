@@ -475,7 +475,7 @@ class ReferenceUpdateTests(TestCase):
             with self.settings(
                 STEAMCMD_EXECUTABLE=executable,
                 PZ_REFERENCE_ROOT=Path(root) / "pz",
-            ), patch("subprocess.run") as run:
+            ), patch("operations.reference_update.run_logged_process") as run:
                 run.return_value.returncode = 5
                 run.return_value.stdout = "Account Login Denied Failed"
                 run.return_value.stderr = ""
@@ -497,7 +497,7 @@ class ReferenceUpdateTests(TestCase):
             ).exists()
         )
 
-    @override_settings(STEAMCMD_UPDATE_TIMEOUT_SECONDS=30)
+    @override_settings(STEAMCMD_UPDATE_TIMEOUT_SECONDS=30, STEAMCMD_BRANCH="unstable")
     def test_update_uses_protected_settings_not_legacy_source_paths(self):
         with TemporaryDirectory() as root:
             executable = Path(root) / "steamcmd.exe"
@@ -511,7 +511,7 @@ class ReferenceUpdateTests(TestCase):
             with self.settings(
                 STEAMCMD_EXECUTABLE=executable,
                 PZ_REFERENCE_ROOT=install_root,
-            ), patch("subprocess.run") as run:
+            ), patch("operations.reference_update.run_logged_process") as run:
                 run.return_value.returncode = 0
                 run.return_value.stdout = "Success"
                 run.return_value.stderr = ""
@@ -520,6 +520,7 @@ class ReferenceUpdateTests(TestCase):
         arguments = run.call_args.args[0]
         self.assertEqual(arguments[0], str(executable))
         self.assertIn("reference-account", arguments)
+        self.assertEqual(arguments[arguments.index("-beta") + 1], "unstable")
 
     @override_settings(PZ_DECOMPILATION_TIMEOUT_SECONDS=30)
     def test_decompilation_replaces_reference_only_after_validation(self):
@@ -568,7 +569,7 @@ class ReferenceUpdateTests(TestCase):
                 JAVA_EXECUTABLE=java,
                 VINEFLOWER_JAR=decompiler,
             ), patch(
-                "operations.decompilation.subprocess.run",
+                "operations.decompilation.run_logged_process",
                 side_effect=write_decompiled_output,
             ):
                 run_decompilation(job)
@@ -618,7 +619,7 @@ class ReferenceUpdateTests(TestCase):
                 JAVA_EXECUTABLE=java,
                 VINEFLOWER_JAR=decompiler,
             ), patch(
-                "operations.decompilation.subprocess.run"
+                "operations.decompilation.run_logged_process"
             ) as run:
                 run.return_value.returncode = 0
                 run_decompilation(job)
@@ -655,11 +656,13 @@ class SteamAuthenticationTests(TestCase):
             reverse(
                 "admin:operations_referencesource_check_updates",
                 args=(self.source.pk,),
-            )
+            ),
+            {"steam_branch": "unstable"},
         )
         self.assertEqual(response.status_code, 302)
         job = ReferenceUpdateJob.objects.get()
         self.assertEqual(job.status, ReferenceUpdateJob.Status.QUEUED)
+        self.assertEqual(job.steam_branch, "unstable")
         self.assertEqual(job.trigger, ReferenceUpdateJob.Trigger.MANUAL)
         self.assertEqual(job.requested_by, self.superuser)
 
@@ -669,8 +672,8 @@ class SteamAuthenticationTests(TestCase):
             "admin:operations_referencesource_check_updates",
             args=(self.source.pk,),
         )
-        self.client.post(url)
-        self.client.post(url)
+        self.client.post(url, {"steam_branch": "unstable"})
+        self.client.post(url, {"steam_branch": "unstable"})
         self.assertEqual(ReferenceUpdateJob.objects.count(), 1)
 
     def test_decompile_action_queues_an_audited_manual_job(self):

@@ -52,6 +52,9 @@ assert(Spawner.ranchSpawnChance(5) == 55)
 assert(Spawner.ranchSpawnChance(6) == 85)
 assert(Spawner.ranchSpawnChance(7) == 120)
 
+rolls = {}
+assert(Spawner.shouldPopulate(1) == false)
+
 rolls = { 5 }
 assert(Spawner.shouldPopulate(3) == true)
 rolls = { 6 }

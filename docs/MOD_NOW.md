@@ -10,6 +10,14 @@
   longer authoring workspaces.
 - The modular tracker baseline is committed at `737331b`.
 
+## Build 42.21 baseline (24 September 2026)
+
+- Created from the current 42.20 implementation, preserving 42.20 as a prior version.
+- Steam Unstable build: `25485521`.
+- The logged `ExteriorEnvelope.lua` door lookup failure remains pending API
+  investigation and an in-game regression check. This baseline does not claim
+  full 42.21 compatibility.
+
 ## Current deliverable
 
 Build a modular, player-facing Rat Race Challenge Tracker with:
@@ -22,7 +30,7 @@ Build a modular, player-facing Rat Race Challenge Tracker with:
 See [MOD_CHALLENGE.md](MOD_CHALLENGE.md), [MOD_TRACKER.md](MOD_TRACKER.md), [MOD_OUTPOSTS.md](MOD_OUTPOSTS.md), [MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md](MOD_DECISION_014_CHALLENGE_EVENTS_AND_MILESTONES.md), and [MOD_DECISION_015_SOURCE_LAYOUT.md](MOD_DECISION_015_SOURCE_LAYOUT.md).
 
 The active implementation and all current tracker work target Project Zomboid
-Build 42.20 under `Contents/mods/Great Spiffo's Rat Race/42.20`. Earlier
+Build 42.21 under `Contents/mods/Great Spiffo's Rat Race/42.21`. Earlier
 version directories are retained only as historical mod versions.
 
 Run-history and TGSRR-owned collection design is documented in [MOD_RUN_DATA.md](MOD_RUN_DATA.md), with implementation status maintained in [MOD_EXPORT_CHECKLIST.md](MOD_EXPORT_CHECKLIST.md). Techniques audited from unrelated mods are retained strictly as implementation research in [MOD_REFERENCE_DATA_COLLECTORS.md](MOD_REFERENCE_DATA_COLLECTORS.md).
@@ -36,9 +44,12 @@ the export contract; their policy and test surfaces are documented in
 - Persistent, sandbox-configurable custom helicopter scheduling across nine
   challenge years, retaining the vanilla helicopter event while replacing its
   recurrence and exposing a debug schedule/jump window.
-- Server-authoritative ranch-zone interception and one-time population with
-  configurable vanilla-shaped sex-specific mortality, adjacent-zone grouping,
-  persistent spawn results, and clean vanilla fallback.
+- Server-authoritative, sandbox-controlled ranch-zone interception and one-time
+  population with configurable vanilla-shaped sex-specific mortality,
+  adjacent-zone grouping, persistent spawn results, and clean vanilla fallback.
+  Existing and connected livestock designations are adopted without duplicate
+  population, TGSRR-owned designations use a visible `[TGSRR]` prefix, and the
+  standalone Better Ranch Spawns mod is declared incompatible.
 - Generic `TGSRR.ChallengeTracker.registerModule()` registry.
 - Overview, Kills, Skills, Outposts, and Landmarks modules in a fixed-size
   `800x650` tabbed window.

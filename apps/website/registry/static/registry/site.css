@@ -2070,7 +2070,9 @@ main { min-width: 0; }
 .field input[type="email"],
 .field input[type="password"],
 .field input[type="date"],
-.field input[type="search"] {
+.field input[type="search"],
+.signup-form .field select,
+.country-settings-form .field select {
     width: 100%;
     padding: .8rem .9rem;
     border: 1px solid var(--theme-border);
@@ -2090,7 +2092,9 @@ main { min-width: 0; }
     color: var(--theme-text);
     font: inherit;
 }
-.field input:focus { outline: 3px solid var(--theme-accent); border-color: var(--theme-accent); }
+.field input:focus,
+.signup-form .field select:focus,
+.country-settings-form .field select:focus { outline: 3px solid var(--theme-accent); border-color: var(--theme-accent); }
 .field textarea:focus { outline: 3px solid var(--theme-accent); border-color: var(--theme-accent); }
 :focus-visible { outline: 3px solid var(--theme-accent); outline-offset: 3px; }
 .checkbox { display: flex; align-items: start; gap: .65rem; }
@@ -3654,3 +3658,16 @@ button:hover { background: var(--theme-accent-hover); }
 .submission-additional-broadcasts textarea { width:100%; box-sizing:border-box; }
 
 small.participant-evidence-warning { color:var(--theme-accent, #f5a630); display:block; margin-top:.35rem; }
+
+.managed-ranking-participant .participant-country-flag { width: 1.5rem; height: 1rem; object-fit: contain; flex: 0 0 auto; }
+
+.settings-country { align-self: stretch; display: flex; flex-direction: column; }
+.country-settings-form { padding: 1rem 1.1rem; flex: 1; }
+.country-settings-form > .field { width: 100%; min-width: 0; }
+.country-settings-form .field { margin: 0; }
+.country-settings-controls { display: flex; align-items: stretch; gap: .65rem; }
+.country-settings-controls select { flex: 1 1 auto; min-width: 0; }
+.country-settings-controls button { flex: 0 0 auto; width: auto; margin: 0; padding: .6rem 1.1rem; }
+.country-settings-form .help { margin-top: .75rem; }
+
+.country-settings-form .field select, .country-settings-controls button { height: 2.75rem; min-height: 2.75rem; padding-block: .55rem; }

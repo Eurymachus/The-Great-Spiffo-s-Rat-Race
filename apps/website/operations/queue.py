@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.conf import settings
 from django.utils import timezone
 
 from .models import ReferenceSource, ReferenceUpdateJob
@@ -17,7 +18,11 @@ def enqueue_reference_update(
     operation=ReferenceUpdateJob.Operation.UPDATE,
     trigger=ReferenceUpdateJob.Trigger.MANUAL,
     requested_by=None,
+    steam_branch=None,
 ):
+    steam_branch = steam_branch or settings.STEAMCMD_BRANCH
+    if steam_branch not in ReferenceUpdateJob.Branch.values:
+        raise ValueError("Choose Stable or Unstable for the reference update.")
     ReferenceSource.objects.select_for_update().get(pk=source.pk)
     active = (
         ReferenceUpdateJob.objects.filter(
@@ -35,6 +40,7 @@ def enqueue_reference_update(
             status=ReferenceUpdateJob.Status.QUEUED,
             trigger=trigger,
             requested_by=requested_by,
+            steam_branch=steam_branch,
         ),
         True,
     )

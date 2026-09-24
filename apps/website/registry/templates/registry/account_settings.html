@@ -20,6 +20,7 @@
   </header>
 
   <div class="settings-hub-grid">
+
     <section class="dashboard-panel settings-group">
       <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Security</p><h3>Sign-in and password</h3></div></div>
       <a class="settings-row" href="{% url 'registry:password_change' %}">
@@ -95,6 +96,22 @@
       <a class="settings-row" href="{% url 'registry:privacy' %}">
         <span><strong>Privacy notice</strong><small>Read how participant information is collected and used.</small></span><span aria-hidden="true">›</span>
       </a>
+    </section>
+
+    <section class="dashboard-panel settings-group settings-country">
+      <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Profile</p><h3>Country / territory</h3></div></div>
+      <form method="post" action="{% url 'registry:account_settings' %}" class="country-settings-form">
+        {% csrf_token %}
+        <div class="field">
+          <label class="visually-hidden" for="{{ country_form.nationality.id_for_label }}">{{ country_form.nationality.label }}</label>
+          <div class="country-settings-controls">
+            {{ country_form.nationality }}
+            <button type="submit" class="dashboard-header-action">Save</button>
+          </div>
+          <p class="help">{{ country_form.nationality.help_text }}</p>
+          {% for error in country_form.nationality.errors %}<p class="error" role="alert">{{ error }}</p>{% endfor %}
+        </div>
+      </form>
     </section>
 
     <section class="dashboard-panel settings-group settings-danger-zone">

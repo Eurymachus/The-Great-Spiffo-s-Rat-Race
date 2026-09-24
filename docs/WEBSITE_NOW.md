@@ -1,5 +1,35 @@
 # Website: Current Focus
 
+## Live reference-job progress (24 September 2026)
+
+- The update form offers Stable / Unstable and records the chosen branch on
+  each job. SteamCMD receives that saved branch explicitly. `STEAMCMD_BRANCH`
+  sets the default (public unless configured; local development uses unstable).
+  Migration `operations.0013` is applied locally.
+- Running Steam updates also read timestamp-filtered progress lines from the
+  SteamCMD console log because redirected Windows output may remain buffered
+  until exit. Login/session lines are excluded. Branch and progress regression
+  coverage passes (25 focused tests).
+
+- Steam update and decompilation job pages poll permission-checked status every
+  two seconds, showing elapsed time, current activity, completion details, and
+  an optional auto-scrolling output tail capped at 64 KB.
+- Workers capture merged tool output while processes run. SteamCMD percentages
+  describe the current stage; Vineflower INFO output reports activity without
+  an estimated overall percentage. Steam account names are redacted from the
+  stored update output. Existing jobs have no retrospective output capture.
+- Local migration `operations.0012` is applied. Focused worker, authentication,
+  permission, output-capture, and timeout tests pass (22 tests).
+
+## Optional signup country / territory (20 September 2026)
+
+- Signup includes an optional country/territory dropdown labelled Country / territory,
+  defaulting to Prefer not to say. Existing participant records remain blank.
+- `django-countries==9.1.0` supplies the choices; migration `0060` adds the field.
+  The country / territory is editable by participants in account settings (including clearing it) and in participant administration and included in the
+  participant's own data export. Rankings display its flag after the participant name, with the country name as accessible text and a tooltip. Blank selections show no flag.
+- The privacy notice records this optional information, version `2026-09-20`.
+
 ## Staging deployment decision (14 September 2026)
 
 - Keep `G:\RatRace_Staging` as the sole staging root, with immutable releases.

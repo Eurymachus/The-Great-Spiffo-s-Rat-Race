@@ -1,4 +1,4 @@
-local sourceRoot = "Contents/mods/Great Spiffo's Rat Race/42.20/media/lua/"
+local sourceRoot = "Contents/mods/Great Spiffo's Rat Race/42.21/media/lua/"
 package.path = sourceRoot .. "client/?.lua;" .. package.path
 
 local NEVER_SPOILS = 1000000000

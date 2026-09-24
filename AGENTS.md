@@ -54,9 +54,9 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
 - Select a directory whose `.tgsrr-build-id` matches the currently installed
   Steam build ID. When multiple successful directories exist for that build,
   use the one with the greatest numeric job ID.
-- For the currently installed Build 42.20 / Steam build `24449119`, the
-  authoritative reference is:
-  `C:\Games\Steam\steamapps\common\ProjectZomboid\tgsrr_decompiled\build-24449119-job-5`
+- The active mod targets Build 42.21 / Steam build `25485521`. Select a
+  matching completed decompilation using the rules above; older build
+  directories are historical references.
 - Continue to use `C:\Games\Steam\steamapps\common\PZJava` only when legacy
   behavior or API mapping is useful.
 
@@ -106,7 +106,13 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
 - Project Zomboid's restricted Kahlua environment does **not** expose the
   standard Lua `next()` global. Never use `next(table)` in shipped mod Lua.
   Test table emptiness with a `pairs()` loop instead.
+- Do not use `pcall()` or `xpcall()` in shipped mod Lua. Compatibility and API
+  failures must propagate immediately so Project Zomboid reports the original
+  error and traceback. Do not replace exceptions with fallback values or
+  silently disable tracking.
 - Desktop Lua tests do not reproduce every missing Kahlua global. Before
   handing off Lua changes, run:
+  `rg -n "\b(pcall|xpcall)\s*\(" "Contents/mods/Great Spiffo's Rat Race/42.21" --glob "*.lua"`
+  and require zero matches, then run:
   `rg -n "\bnext\s*\(" "Contents/mods/Great Spiffo's Rat Race" --glob "*.lua"`
   and require zero matches.

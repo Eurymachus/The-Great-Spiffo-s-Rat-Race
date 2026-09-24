@@ -7,6 +7,7 @@
 
     let dirty = false;
     const markDirty = (event) => {
+        if (event.target.closest("#reference-job")) return;
         if (event.target.name !== "csrfmiddlewaretoken") dirty = true;
     };
     form.addEventListener("input", markDirty);
@@ -19,15 +20,16 @@
     form.addEventListener("rat-race:admin-save-success", () => { dirty = false; });
     form.addEventListener("rat-race:admin-editor-ready", () => { dirty = false; });
 
-    const closeButton = document.createElement("button");
-    closeButton.type = "button";
-    closeButton.className = "admin-close-button";
+    const existingClose = submitRow.querySelector("a.closelink");
+    const closeButton = existingClose || document.createElement("button");
+    if (!existingClose) closeButton.type = "button";
+    closeButton.classList.add("admin-close-button");
     closeButton.textContent = "Close";
     const breadcrumbLinks = [...document.querySelectorAll(".breadcrumbs a")];
     const isBrandingSingleton = document.body.classList.contains("model-sitebranding");
     const closeTarget = isBrandingSingleton
         ? "/admin/"
-        : breadcrumbLinks.at(-1)?.href || "/admin/";
+        : existingClose?.href || breadcrumbLinks.at(-1)?.href || "/admin/";
     let navigationTarget = closeTarget;
 
     const leavePage = () => {
@@ -63,7 +65,8 @@
 
     window.ratRaceAdminNavigation = {navigate};
 
-    closeButton.addEventListener("click", () => {
+    closeButton.addEventListener("click", (event) => {
+        event.preventDefault();
         navigate(closeTarget);
     });
     submitRow.prepend(closeButton);

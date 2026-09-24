@@ -1,5 +1,5 @@
 package.path = package.path
-    .. ";Contents/mods/Great Spiffo's Rat Race/42.20/media/lua/shared/?.lua"
+    .. ";Contents/mods/Great Spiffo's Rat Race/42.21/media/lua/shared/?.lua"
 
 local StartingLocation = require "TGSRR/Run/StartingLocation"
 

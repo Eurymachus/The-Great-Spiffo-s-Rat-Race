@@ -1,0 +1,7 @@
+name=TGSRR - Error Debug
+id=TGSRRErrorDebug
+author=Eurymachus
+description=Minimal loader baseline for diagnosing Project Zomboid mod error attribution.
+modversion=0.1
+versionMin=42.20
+incompatible=BetterRanchSpawns

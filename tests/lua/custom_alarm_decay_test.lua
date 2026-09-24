@@ -49,7 +49,7 @@ Events = {
     OnTick = { Add = function(handler) tickHandler = handler end },
 }
 
-local runtimePath = "Contents/mods/Great Spiffo's Rat Race/42.20/media/lua/"
+local runtimePath = "Contents/mods/Great Spiffo's Rat Race/42.21/media/lua/"
     .. "shared/TGSRR/Alarms/CustomDecayRuntime.lua"
 local Runtime = dofile(runtimePath)
 

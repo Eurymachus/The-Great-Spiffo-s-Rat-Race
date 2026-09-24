@@ -54,7 +54,8 @@ local metaGrid = {
     end,
 }
 
-local ranches = RanchControl.intercept(metaGrid)
+local ranches, discoveredCount = RanchControl.intercept(metaGrid)
+assert(discoveredCount == 2)
 
 local minX, minY, width, height = RanchControl.worldBounds(metaGrid)
 assert(minX == -512)

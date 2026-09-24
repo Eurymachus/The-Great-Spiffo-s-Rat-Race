@@ -1,4 +1,5 @@
 Django>=5.2,<5.3
+django-countries==9.1.0
 Pillow>=11,<13
 cryptography>=45,<47
 psycopg[binary]>=3.2,<4

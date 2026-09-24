@@ -45,7 +45,7 @@ SITE_REGISTERED_OFFICE = os.environ.get(
 SITE_PRIVACY_EMAIL = os.environ.get(
     "SITE_PRIVACY_EMAIL", "support@tgsrr.com"
 )
-PRIVACY_NOTICE_VERSION = "2026-08-14"
+PRIVACY_NOTICE_VERSION = "2026-09-20"
 SITE_PUBLIC_URL = os.environ.get("SITE_PUBLIC_URL", "http://127.0.0.1:8000")
 SITE_MAINTENANCE_MODE = os.environ.get(
     "SITE_MAINTENANCE_MODE", "false"
@@ -138,6 +138,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_countries',
     'administration',
     'branding',
     'pages',
@@ -303,6 +304,7 @@ REFERENCE_WORKER_HEARTBEAT_TTL_SECONDS = 60
 # host-level command. Steam's cached session remains in SteamCMD's protected
 # config directory and is never stored by Django.
 STEAMCMD_EXECUTABLE = os.environ.get("STEAMCMD_EXECUTABLE", "")
+STEAMCMD_BRANCH = os.environ.get("STEAMCMD_BRANCH", "public").strip() or "public"
 STEAMCMD_USERNAME = os.environ.get("STEAMCMD_USERNAME", "")
 STEAM_WEB_API_KEY = os.environ.get("STEAM_WEB_API_KEY", "")
 PZ_REFERENCE_ROOT = os.environ.get("PZ_REFERENCE_ROOT", "")

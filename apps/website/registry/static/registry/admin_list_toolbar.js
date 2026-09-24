@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   picker.append(title);
   const chips = document.createElement('div');
   chips.className = 'shared-filter-chips';
+  chips.hidden = true;
   const groups = [];
   let timer;
   const pickerStateKey = 'admin-filter-picker:' + location.pathname;
@@ -141,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
   panel.append(summary);
   chips.before(panel);
   panel.append(chips);
+  chips.hidden = false;
   const update = () => {
     const count = chips.querySelectorAll('button').length;
     summary.textContent = 'Selected filters (' + count + ')';
@@ -153,4 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
   panel.addEventListener('keydown', event => {
     if (event.key === 'Escape') { panel.open = false; summary.focus(); }
   });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.documentElement.classList.remove('admin-toolbar-pending');
 });

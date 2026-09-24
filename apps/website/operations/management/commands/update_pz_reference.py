@@ -8,6 +8,7 @@ class Command(BaseCommand):
     help = "Queue a Project Zomboid reference update for the background worker."
 
     def add_arguments(self, parser):
+        parser.add_argument("--branch", choices=ReferenceUpdateJob.Branch.values)
         parser.add_argument(
             "--trigger",
             choices=[choice.value for choice in ReferenceUpdateJob.Trigger],
@@ -17,7 +18,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         source, _ = ReferenceSource.objects.get_or_create(app_id=108600)
         job, created = enqueue_reference_update(
-            source, trigger=options["trigger"]
+            source, trigger=options["trigger"], steam_branch=options["branch"],
         )
         if created:
             self.stdout.write(self.style.SUCCESS(f"Queued reference update #{job.pk}."))

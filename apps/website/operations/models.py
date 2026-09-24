@@ -69,6 +69,14 @@ class RunDataDangerZone(ReferenceSource):
 
 
 class ReferenceUpdateJob(models.Model):
+    class Branch(models.TextChoices):
+        PUBLIC = "public", "Stable"
+        UNSTABLE = "unstable", "Unstable"
+
+    steam_branch = models.CharField(
+        max_length=16, choices=Branch.choices, default=Branch.PUBLIC, editable=False,
+    )
+
     class Operation(models.TextChoices):
         UPDATE = "update", "Steam update"
         DECOMPILE = "decompile", "Decompile"
@@ -109,6 +117,9 @@ class ReferenceUpdateJob(models.Model):
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     summary = models.TextField(blank=True)
+    log_output = models.TextField(blank=True, editable=False)
+    progress_message = models.CharField(max_length=300, blank=True, editable=False)
+    progress_percent = models.FloatField(null=True, blank=True, editable=False)
 
     class Meta:
         ordering = ("-requested_at", "-pk")

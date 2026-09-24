@@ -1010,7 +1010,7 @@ class ParticipantAdmin(UserAdmin):
     ordering = ("email",)
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("Participant", {"fields": ("nickname", "status", "verified_at", "admin_notes")}),
+        ("Participant", {"fields": ("nickname", "nationality", "status", "verified_at", "admin_notes")}),
         ("Avatar", {"fields": ("avatar", "avatar_status", "avatar_submitted_at", "avatar_review_preview", "avatar_review_path", "avatar_moderation_note")}),
         ("Account closure request", {"fields": ("deletion_requested_at", "deletion_request_note")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),

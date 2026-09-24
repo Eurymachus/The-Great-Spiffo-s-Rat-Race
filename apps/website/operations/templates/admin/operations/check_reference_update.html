@@ -15,6 +15,7 @@
   </fieldset>
   <form method="post">
     {% csrf_token %}
+    {{ form.as_p }}
     <div class="submit-row">
       <input type="submit" value="Queue update check" class="default">
       <a href="{% url 'admin:operations_referencesource_change' source.pk %}" class="closelink">Cancel</a>

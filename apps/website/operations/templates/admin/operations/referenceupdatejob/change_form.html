@@ -1,0 +1,26 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'operations/reference_job.js' %}" defer></script>
+<link rel="stylesheet" href="{% static 'operations/reference_job.css' %}">
+{% endblock %}
+{% block after_field_sets %}
+{{ block.super }}
+{% if original %}
+<section class="module reference-job" id="reference-job" data-url="{% url 'admin:operations_referenceupdatejob_live' original.pk %}">
+  <h2>Live progress</h2>
+  <div class="reference-job-body">
+    <p id="job-connection" role="status">Connecting to job updates...</p>
+    <p>Elapsed: <strong id="job-elapsed">Waiting to start</strong></p>
+    <p id="job-stage">{{ original.progress_message }}</p>
+    <progress id="job-progress" max="100" aria-label="Current stage progress"></progress>
+    <p id="job-progress-label">Waiting for progress information.</p>
+    <label><input type="checkbox" id="job-follow" checked> Follow new output</label>
+    <p>Latest output (up to 64 KB). Percentages apply to the current stage.</p>
+    <pre id="job-log" tabindex="0" aria-label="Job output">{{ original.log_output }}</pre>
+    <noscript>Enable JavaScript for live updates, or refresh this page to see the latest output.</noscript>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

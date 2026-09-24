@@ -110,6 +110,10 @@ class RegistrationForm(forms.Form):
         help_text=f"This will be your public {settings.SITE_SHORT_TITLE} name.",
         widget=forms.TextInput(attrs={"autocomplete": "nickname"}),
     )
+    nationality = Participant._meta.get_field("nationality").formfield(
+        label="Country / territory (optional)",
+        help_text="Where are you representing? Your flag will appear beside your name in rankings.",
+    )
     email = forms.EmailField(
         label="Email address",
         help_text="Your email will not be displayed publicly.",
@@ -443,3 +447,11 @@ class LegacyRunSubmissionForm(RunSubmissionForm):
                 "Choose a recent broadcast or enter the VOD URL.",
             )
         return cleaned
+
+
+class CountrySettingsForm(forms.ModelForm):
+    class Meta:
+        model = Participant
+        fields = ("nationality",)
+        labels = {"nationality": "Country / territory (optional)"}
+        help_texts = {"nationality": "Optional. Shows a flag beside your name in rankings."}

@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django_countries.fields import CountryField
 
 
 class ParticipantManager(BaseUserManager):
@@ -48,6 +49,7 @@ class Participant(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = None
     nickname = models.CharField(max_length=40)
+    nationality = CountryField("country / territory", blank=True, blank_label="Prefer not to say")
     normalized_nickname = models.CharField(max_length=40, unique=True, editable=False)
     email = models.EmailField(unique=True)
     normalized_email = models.EmailField(unique=True, editable=False)

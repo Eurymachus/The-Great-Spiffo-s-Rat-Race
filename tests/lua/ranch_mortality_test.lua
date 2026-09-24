@@ -31,6 +31,17 @@ assert(randomCalls[#randomCalls] == 129)
 assert(Mortality.shouldSpawnDead("male", 61, vanilla) == true)
 assert(randomCalls[#randomCalls] == 189)
 
+local immediate = {
+    Enabled = true,
+    RollStartDay = 0,
+    FemaleDeathDay = 0,
+    MaleDeathDay = 0,
+}
+local callsBeforeImmediate = #randomCalls
+assert(Mortality.shouldSpawnDead("female", 0, immediate) == true)
+assert(Mortality.shouldSpawnDead("male", 0, immediate) == true)
+assert(#randomCalls == callsBeforeImmediate)
+
 local callsBeforeDeadline = #randomCalls
 assert(Mortality.shouldSpawnDead("female", 189, vanilla) == true)
 assert(Mortality.shouldSpawnDead("female", 190, vanilla) == true)

@@ -33,6 +33,7 @@ from pages.models import Page, PageSection
 
 from .forms import (
     AccountClosureRequestForm,
+    CountrySettingsForm,
     AgeEligibilityForm,
     AvatarUploadForm,
     PasswordResetRequestForm,
@@ -379,6 +380,7 @@ def register(request):
             )
         participant = Participant.objects.create_user(
             nickname=form.cleaned_data["nickname"],
+            nationality=form.cleaned_data["nationality"],
             email=form.cleaned_data["email"],
             password=form.cleaned_data["password"],
             is_active=False,
@@ -1518,7 +1520,15 @@ def deactivate_run(request, run_id):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def account_settings(request):
+    country_form = CountrySettingsForm(
+        request.POST if request.method == "POST" else None, instance=request.user
+    )
+    if request.method == "POST" and country_form.is_valid():
+        country_form.save()
+        messages.success(request, "Your country / territory has been updated.")
+        return redirect("registry:account_settings")
     accounts = {
         account.provider: account
         for account in request.user.streaming_accounts.all()
@@ -1571,6 +1581,7 @@ def account_settings(request):
         "registry/account_settings.html",
         {
             "streaming_accounts": streaming_accounts,
+            "country_form": country_form,
             "journey_items": (
                 {"label": "Dashboard", "url": reverse("registry:account")},
                 {"label": "Settings", "url": ""},
@@ -2223,6 +2234,7 @@ def download_my_data(request):
         "participant": {
             "id": str(participant.id),
             "nickname": participant.nickname,
+            "nationality": participant.nationality.code,
             "email": participant.email,
             "status": participant.status,
             "registered_at": participant.registered_at.isoformat(),

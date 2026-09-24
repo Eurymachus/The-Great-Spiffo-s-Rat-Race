@@ -6,6 +6,7 @@ from pathlib import Path
 from django.conf import settings
 from django.utils import timezone
 
+from .job_output import run_logged_process
 from .models import ReferenceSource, ReferenceUpdateJob
 from .reference_paths import resolved_reference_paths
 from .reference_update import installed_build_id, notify_superusers
@@ -68,20 +69,19 @@ def run_decompilation(job):
         tempfile.mkdtemp(prefix=".staging-", dir=output_parent)
     )
     try:
-        completed = subprocess.run(
+        completed = run_logged_process(
             [
                 java,
                 "-jar",
                 str(decompiler),
                 "--folder",
-                "--log-level=WARN",
+                "--log-level=INFO",
                 str(input_jar),
                 str(staging),
             ],
-            capture_output=True,
-            text=True,
+            job=job,
+            label="Starting decompilation",
             timeout=getattr(settings, "PZ_DECOMPILATION_TIMEOUT_SECONDS", 3600),
-            check=False,
         )
         if completed.returncode:
             return _finish(

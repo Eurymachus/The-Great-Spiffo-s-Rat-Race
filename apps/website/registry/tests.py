@@ -903,7 +903,7 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Participant privacy notice")
         self.assertNotContains(response, "Draft for development review")
-        self.assertContains(response, "Version:</strong> 2026-08-14")
+        self.assertContains(response, f"Version:</strong> {settings.PRIVACY_NOTICE_VERSION}")
         self.assertContains(response, "Sentinel Tech Ltd")
         self.assertContains(response, "support@tgsrr.com")
         self.assertContains(response, "Unverified registrations are kept for no more than 30 days")
@@ -990,6 +990,7 @@ class RegistrationTests(TestCase):
         participant = Participant.objects.create_user(
             email="export@example.com",
             nickname="Export Test",
+            nationality="CA",
             password="Local-test-password-482!",
             is_active=True,
             status=Participant.Status.VERIFIED,
@@ -1016,6 +1017,7 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("attachment", response["Content-Disposition"])
         self.assertEqual(payload["participant"]["nickname"], "Export Test")
+        self.assertEqual(payload["participant"]["nationality"], "CA")
         self.assertEqual(payload["participant"]["email"], "export@example.com")
         self.assertNotContains(response, participant.password)
         self.assertNotIn("admin_notes", payload["participant"])
@@ -1122,6 +1124,7 @@ class RegistrationTests(TestCase):
         participant = Participant.objects.get()
         self.assertRedirects(response, reverse("registry:thanks"))
         self.assertEqual(participant.nickname, "Spiffo Fan")
+        self.assertEqual(participant.nationality.code, "")
         self.assertEqual(participant.status, Participant.Status.PENDING)
         self.assertIsNotNone(participant.privacy_notice_acknowledged_at)
         self.assertEqual(
@@ -1133,6 +1136,28 @@ class RegistrationTests(TestCase):
         self.assertIn(participant.email, mail.outbox[0].to)
         self.assertTrue(participant.check_password("Local-test-password-482!"))
         self.assertFalse(participant.is_active)
+
+    def test_registration_saves_optional_nationality(self):
+        response = self.client.post(
+            reverse("registry:register"), self.registration_data(nationality="GB")
+        )
+        self.assertRedirects(response, reverse("registry:thanks"))
+        self.assertEqual(Participant.objects.get().nationality.code, "GB")
+
+    def test_registration_rejects_unknown_nationality(self):
+        response = self.client.post(
+            reverse("registry:register"), self.registration_data(nationality="XX")
+        )
+        self.assertFormError(response.context["form"], "nationality", "Select a valid choice. XX is not one of the available choices.")
+        self.assertFalse(Participant.objects.exists())
+
+    def test_registration_shows_optional_nationality_dropdown(self):
+        self.registration_data()
+        response = self.client.get(reverse("registry:register"))
+        self.assertContains(response, '<select name="nationality"')
+        self.assertContains(response, "Prefer not to say")
+        self.assertContains(response, 'value="GB"')
+        self.assertFalse(response.context["form"].fields["nationality"].required)
 
     def test_verification_link_marks_participant_verified(self):
         self.client.post(reverse("registry:register"), self.registration_data())
@@ -1216,6 +1241,29 @@ class RegistrationTests(TestCase):
         self.assertContains(response, ">Admin Dashboard</a>")
         self.assertContains(response, 'target="_blank"')
         self.assertContains(response, 'rel="noopener"')
+
+    def test_account_country_settings_validate_save_and_clear_only_own_country(self):
+        participant = Participant.objects.create_user(email="country@example.com", nickname="Country Racer", password="Local-test-password-482!")
+        other = Participant.objects.create_user(email="other-country@example.com", nickname="Other Racer", nationality="CA")
+        url = reverse("registry:account_settings")
+        self.assertEqual(self.client.post(url, {"nationality": "GB"}).status_code, 302)
+        participant.refresh_from_db()
+        self.assertEqual(participant.nationality.code, "")
+        self.client.force_login(participant)
+        response = self.client.post(url, {"nationality": "GB", "id": str(other.pk)})
+        self.assertRedirects(response, url)
+        participant.refresh_from_db()
+        other.refresh_from_db()
+        self.assertEqual(participant.nationality.code, "GB")
+        self.assertEqual(other.nationality.code, "CA")
+        response = self.client.post(url, {"nationality": "XX"})
+        self.assertTrue(response.context["country_form"].errors)
+        participant.refresh_from_db()
+        self.assertEqual(participant.nationality.code, "GB")
+        self.assertContains(self.client.get(url), 'value="GB" selected')
+        self.assertRedirects(self.client.post(url, {"nationality": ""}), url)
+        participant.refresh_from_db()
+        self.assertEqual(participant.nationality.code, "")
 
     def test_account_settings_hub_contains_security_privacy_and_closure_actions(self):
         self.client.post(reverse("registry:register"), self.registration_data())
