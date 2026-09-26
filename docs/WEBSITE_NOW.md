@@ -1,5 +1,23 @@
 # Website: Current Focus
 
+## Staging navigation fallback fix (26 September 2026)
+
+- Cloudflare injects its email decoder into HTML and removes the script node after
+  execution. The fetched response still contains it, so the previous unknown-script
+  guard rejected every page on staging. Local development has no Cloudflare injection.
+- The guard now exempts only the same-origin, known Cloudflare decoder outside main.
+  Other unknown scripts, account changes and admin/auth destinations still fall back.
+  Protected email links in swapped content are decoded without executing fetched scripts.
+- Fallbacks emit a console warning and `page:navigation-fallback` event containing a
+  reason and pathname, without query strings, response bodies or account identifiers.
+- Regression command: `node tests/javascript/page_navigation.test.cjs` (12 checks).
+  Browser fixture: `python tests/javascript/navigation_fixture_server.py`, port 8766.
+  Old code reproduced two GETs and a changed header token; fixed code made one GET
+  per navigation and retained the header. Email text and mailto links were verified.
+- DEBUG=False plus WhiteNoise CompressedManifestStaticFilesStorage collectstatic
+  succeeded locally (444 assets). Django system checks pass. Standard release
+  collectstatic is required; no migrations or environment changes. Not deployed here.
+
 ## Persistent participant navigation (26 September 2026)
 
 - Participant browsing now replaces main content across home, rankings, rules,

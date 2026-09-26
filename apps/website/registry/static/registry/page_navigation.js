@@ -4,6 +4,37 @@
         !/^\/(admin|static|media|signup|login|logout|password[^/]*)(\/|$)/.test(url.pathname) &&
         !/^\/account\/(data|streaming|connections|dashboard\/fragment)(\/|$)/.test(url.pathname) &&
         !/^\/account\/notifications\/(summary|stream|read)\/$/.test(url.pathname);
+    // Cloudflare's email decoder removes itself after the initial document load.
+    // It is infrastructure outside main, not a new application dependency.
+    const isEmailDecoder = (script, base) => {
+        const url = new URL(script.getAttribute("src"), base);
+        return url.origin === location.origin && !url.search &&
+            /^\/cdn-cgi\/scripts\/[a-f0-9]+\/cloudflare-static\/email-decode\.min\.js$/.test(url.pathname) &&
+            script.getAttribute("data-cfasync") === "false" && !script.closest("#main-content");
+    };
+    const decodeProtectedEmails = (root) => {
+        const decode = (hex) => {
+            if (!/^(?:[a-f0-9]{2}){2,}$/i.test(hex)) throw new Error("Invalid protected email encoding");
+            const key = parseInt(hex.slice(0, 2), 16);
+            return new TextDecoder("utf-8", {fatal: true}).decode(Uint8Array.from(
+                hex.slice(2).match(/../g), (byte) => parseInt(byte, 16) ^ key
+            ));
+        };
+        root.querySelectorAll('a[href^="/cdn-cgi/l/email-protection#"]').forEach((link) => {
+            link.setAttribute("href", "mailto:" + decode(link.getAttribute("href").split("#")[1]));
+        });
+        root.querySelectorAll("[data-cfemail]").forEach((span) => {
+            span.replaceWith(document.createTextNode(decode(span.dataset.cfemail)));
+        });
+    };
+    const fallback = (url, reason, error = null) => {
+        // Do not log query strings, response bodies, or account identifiers.
+        const detail = {reason, path: new URL(url, location.href).pathname};
+        if (error) detail.errorName = error.name;
+        console.warn("[page-navigation] Full navigation fallback", detail);
+        document.dispatchEvent(new CustomEvent("page:navigation-fallback", {detail}));
+        location.assign(url);
+    };
     let pending = null;
     let dirty = false;
     const main = () => document.getElementById("main-content");
@@ -35,14 +66,24 @@
             const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
             if (controller.signal.aborted) return;
             const replacement = parsed.getElementById("main-content");
-            if (!response.ok || (response.redirected && !supported(new URL(response.url))) || replacement?.dataset.softNavigation !== "on" ||
-                replacement.dataset.navigationUser !== current.dataset.navigationUser ||
-                replacement.querySelector('script:not([type="application/json"])') ||
-                [...parsed.querySelectorAll("script[src]")].some((script) =>
-                    ![...document.querySelectorAll("script[src]")].some((loaded) => loaded.src === script.src))) {
-                location.assign(response.redirected ? response.url : url);
+            const loadedScripts = new Set([...document.querySelectorAll("script[src]")].map(
+                (script) => new URL(script.getAttribute("src"), document.baseURI).href
+            ));
+            const unknownScript = [...parsed.querySelectorAll("script[src]")].find((script) =>
+                !isEmailDecoder(script, url) &&
+                !loadedScripts.has(new URL(script.getAttribute("src"), url).href)
+            );
+            const reason = !response.ok ? "http-status" :
+                !supported(new URL(url)) ? "unsupported-destination" :
+                replacement?.dataset.softNavigation !== "on" ? "ineligible-page" :
+                replacement.dataset.navigationUser !== current.dataset.navigationUser ? "account-changed" :
+                replacement.querySelector('script:not([type="application/json"])') ? "executable-content" :
+                unknownScript ? "unknown-script" : null;
+            if (reason) {
+                fallback(url, reason);
                 return;
             }
+            decodeProtectedEmails(replacement);
             if (controller.signal.aborted) return;
             document.dispatchEvent(new CustomEvent("page:before-change"));
             document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
@@ -68,7 +109,7 @@
             } else window.scrollTo(0, 0);
             window.dispatchEvent(new Event("resize"));
         } catch (error) {
-            if (error.name !== "AbortError") location.assign(url);
+            if (error.name !== "AbortError" && !controller.signal.aborted) fallback(url, "navigation-exception", error);
         } finally {
             if (pending === controller) {
                 pending = null;
