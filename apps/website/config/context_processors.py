@@ -191,6 +191,8 @@ def site_identity(request):
         "site_disclaimer": brand.disclaimer if brand else settings.SITE_DISCLAIMER,
         "site_header_logo_url": header_logo.url if header_logo else "",
         "site_header_logo_alt": brand.header_logo_alt if header_logo else "",
+        "site_header_logo_width": header_logo.width if header_logo else None,
+        "site_header_logo_height": header_logo.height if header_logo else None,
         "site_favicon_url": favicon.url if favicon else "",
         "site_social_image_url": (
             request.build_absolute_uri(social_image.url) if social_image else ""

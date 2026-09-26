@@ -23,13 +23,12 @@
     };
 
     let trigger = null;
-    document.querySelectorAll("[data-avatar-open]").forEach((button) => {
-        button.addEventListener("click", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            trigger = button;
-            dialog.showModal();
-        });
+    document.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-avatar-open]");
+        if (!button) return;
+        event.preventDefault();
+        trigger = button;
+        dialog.showModal();
     });
     dialog.querySelector("[data-avatar-close]").addEventListener("click", () => dialog.close());
     input?.addEventListener("change", () => {

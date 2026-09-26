@@ -1,5 +1,22 @@
 # Website: Current Focus
 
+## Persistent participant navigation (26 September 2026)
+
+- Participant browsing now replaces main content across home, rankings, rules,
+  mods, exploits, dashboard, profiles, runs and settings. GET filters and query
+  links also use this navigation; titles, focus and history follow the destination.
+- Page lifecycle callbacks initialise controls on arrival and release gallery
+  timers and document/window listeners on departure. Notification history shares
+  the same navigation rather than maintaining a second history handler.
+- Notification links follow participant redirects with smooth navigation and refresh
+  the unread badge. Admin destinations continue with a full page load.
+- Authentication, provider connections, downloads and POST submissions retain
+  normal navigation. Changed identity, unknown scripts and failed loads fall back.
+- Browser checks covered home, leaderboard build dialogs, rules tabs, mod search
+  and information dialogs. JavaScript syntax and Django system checks pass.
+  No deployment has been performed.
+
+
 ## Live reference-job progress (24 September 2026)
 
 - The update form offers Stable / Unstable and records the chosen branch on

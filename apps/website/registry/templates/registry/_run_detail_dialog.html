@@ -33,20 +33,27 @@
       <div class="run-detail-table-wrap">
         <table class="run-detail-table">
           <thead>
-            <tr><th>Received by website</th><th>Challenge mode</th><th>Status</th><th>Kills</th><th>Reviewed</th><th></th></tr>
+            <tr><th>Received by website</th><th>Challenge mode</th><th>Status</th><th>Kills</th><th>Reviewed</th></tr>
           </thead>
           <tbody>
             {% for submission in run.submissions.all %}
               <tr{% if run.approved_submission_id == submission.pk %} class="is-current"{% endif %}>
                 <td><time datetime="{{ submission.submitted_at|date:'c' }}" data-local-datetime data-local-seconds>{{ submission.submitted_at|date:"j M Y, H:i:s" }}</time></td>
                 <td>{{ submission.challenge_mode_display }}</td>
-                <td>{{ submission.get_status_display }}{% if run.challenge_mode.evidence_required and not submission.evidence_url and submission.status != "approved" and submission.status != "declined" %}<small class="participant-evidence-warning"><span aria-hidden="true">△</span> Evidence missing, needed for approval</small>{% endif %}{% if run.approved_submission_id == submission.pk %} <small>Current</small>{% endif %}</td>
+                <td><div class="run-detail-status"><div class="run-detail-status-text">{{ submission.get_status_display }}{% if run.challenge_mode.evidence_required and not submission.evidence_url and submission.status != "approved" and submission.status != "declined" %}<small class="participant-evidence-warning"><span aria-hidden="true">△</span> Evidence missing, needed for approval</small>{% endif %}{% if run.approved_submission_id == submission.pk %} <small>Current</small>{% endif %}
+                  </div>
+                  {% if submission.status == "received" or submission.status == "awaiting_evidence" %}
+                    <a class="run-detail-evidence-button" href="{% url 'registry:update_run_submission_evidence' submission.pk %}" aria-label="{% if submission.evidence_url %}Update Evidence{% else %}Submit Evidence{% endif %}">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{% if submission.evidence_url %}<path d="m16 3 5 5-12 12-6 1 1-6Z M14 5l5 5"/>{% else %}<path d="M12 5v14M5 12h14"/>{% endif %}</svg>
+                      <span class="run-detail-evidence-tooltip" aria-hidden="true">{% if submission.evidence_url %}Update Evidence{% else %}Submit Evidence{% endif %}</span>
+                    </a>
+                  {% endif %}
+                </div></td>
                 <td>{{ submission.current_kills }}</td>
                 <td>{% if submission.reviewed_at %}<time datetime="{{ submission.reviewed_at|date:'c' }}" data-local-datetime data-local-seconds>{{ submission.reviewed_at|date:"j M Y, H:i:s" }}</time>{% else %}Awaiting review{% endif %}</td>
-                <td>{% if submission.status == "received" or submission.status == "awaiting_evidence" %}<a class="dashboard-header-action" href="{% url 'registry:update_run_submission_evidence' submission.pk %}">{% if submission.evidence_url %}Update evidence{% else %}Add evidence{% endif %}</a>{% endif %}</td>
               </tr>
             {% empty %}
-              <tr><td colspan="6">No submissions recorded.</td></tr>
+              <tr><td colspan="5">No submissions recorded.</td></tr>
             {% endfor %}
           </tbody>
         </table>

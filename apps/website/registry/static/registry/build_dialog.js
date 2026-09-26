@@ -1,4 +1,5 @@
 (() => {
+    const initialise = () => {
     "use strict";
 
     const activateTab = (container, tab) => {
@@ -17,6 +18,8 @@
     };
 
     document.querySelectorAll("[data-build-tabs]").forEach((container) => {
+        if (container.dataset.buildTabsReady) return;
+        container.dataset.buildTabsReady = "true";
         const tabs = [...container.querySelectorAll("[data-build-tab]")];
         tabs.forEach((tab, index) => {
             tab.addEventListener("click", () => activateTab(container, tab));
@@ -32,4 +35,7 @@
             });
         });
     });
+    };
+    document.addEventListener("page:loaded", initialise);
+    initialise();
 })();

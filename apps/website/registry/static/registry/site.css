@@ -272,12 +272,12 @@
     text-decoration: none;
 }
 .run-detail-public-link:hover { background: var(--theme-accent); color: var(--theme-accent-text); }
-.run-detail-close { width: auto; padding: .55rem .85rem; }
+.run-detail-close { width: auto; padding: .55rem .85rem; border: 1px solid var(--theme-accent); }
 .run-detail-deactivate,
 .run-deactivate-confirm {
     width: auto;
     padding: .55rem .85rem;
-    border-color: var(--theme-error);
+    border: 1px solid var(--theme-error);
     color: var(--theme-error);
     background: transparent;
 }
@@ -347,7 +347,7 @@
 .run-detail-summary > div:nth-child(n + 4) { border-top: 1px solid var(--theme-border); }
 .run-detail-summary > div:not(:nth-child(3n + 1)) { border-left: 1px solid var(--theme-border); }
 .run-detail-summary small, .run-detail-table small { color: var(--theme-muted); }
-.run-detail-section { display: grid; gap: .75rem; }
+.run-detail-section { display: grid; min-width: 0; gap: .75rem; }
 .run-detail-section h3 { margin: 0; }
 .run-detail-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--theme-border); }
 .run-detail-fields > div { min-width: 0; padding: .7rem 0; border-bottom: 1px solid var(--theme-border); }
@@ -355,7 +355,9 @@
 .run-detail-fields dt { color: var(--theme-muted); }
 .run-detail-fields dd { margin: .2rem 0 0; overflow-wrap: anywhere; }
 .run-detail-table-wrap { overflow-x: auto; border: 1px solid var(--theme-border); border-radius: var(--theme-radius-small); }
-.run-detail-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+.run-detail-table { width: 100%; border-collapse: collapse; }
+.run-detail-table th { white-space: nowrap; }
+.run-detail-table td { overflow-wrap: anywhere; }
 .run-detail-table th, .run-detail-table td { padding: .7rem .8rem; border-right: 1px solid var(--theme-border); border-bottom: 1px solid var(--theme-border); text-align: left; }
 .run-detail-table th:last-child, .run-detail-table td:last-child { border-right: 0; }
 .run-detail-table th { background: var(--theme-surface-alt); color: var(--theme-muted); }
@@ -376,7 +378,7 @@
     border-radius: var(--theme-radius);
     background: var(--theme-surface);
 }
-.run-public-hero {
+.account-dashboard-header.run-public-hero {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "identity actions";
@@ -448,7 +450,7 @@
     align-items: end;
     justify-items: end;
 }
-.run-public-hero-actions .journey-back-link { grid-row: 1; }
+.run-public-hero-actions .journey-back-link { grid-row: 1; align-self: start; }
 .run-public-hero-actions .run-public-challenge { grid-row: 2; align-self: end; }
 .run-public-hero-meta { display: flex; align-items: center; justify-content: flex-start; gap: .6rem; flex-wrap: wrap; }
 .run-public-challenge { margin: 0; color: var(--theme-text); }
@@ -1675,7 +1677,9 @@ body {
 }
 .site-header-logo {
     display: block;
-    width: auto;
+    width: min(100%, 18rem, var(--header-logo-width, 18rem), calc(8rem * var(--header-logo-ratio, 1)));
+    height: auto;
+    aspect-ratio: var(--header-logo-ratio, auto);
     max-width: min(100%, 18rem);
     max-height: 8rem;
     margin: 0 auto 1rem;
@@ -3330,7 +3334,7 @@ button:hover { background: var(--theme-accent-hover); }
     .run-detail-fields > div:nth-child(even) { padding-left: 0; }
     .run-detail-header { align-items: flex-start; flex-direction: column; }
     .run-detail-header-actions { width: 100%; justify-content: space-between; }
-    .run-public-hero {
+    .account-dashboard-header.run-public-hero {
         grid-template-columns: 1fr;
         grid-template-areas:
             "identity"
@@ -3671,3 +3675,23 @@ small.participant-evidence-warning { color:var(--theme-accent, #f5a630); display
 .country-settings-form .help { margin-top: .75rem; }
 
 .country-settings-form .field select, .country-settings-controls button { height: 2.75rem; min-height: 2.75rem; padding-block: .55rem; }
+
+.run-detail-status { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.run-detail-status-text { min-width: 0; }
+.run-detail-evidence-button { position: relative; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border: 1px solid var(--theme-accent); border-radius: var(--theme-radius-small); color: var(--theme-accent); text-decoration: none; }
+.run-detail-evidence-button:hover, .run-detail-evidence-button:focus-visible { background: var(--theme-accent); color: var(--theme-accent-text); }
+.run-detail-evidence-button:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 3px; }
+.run-detail-evidence-tooltip { position: absolute; right: 0; bottom: calc(100% + .4rem); z-index: 3; width: max-content; padding: .35rem .5rem; border: 1px solid var(--theme-border); border-radius: var(--theme-radius-small); background: var(--theme-surface-alt); color: var(--theme-text); font-size: .8rem; white-space: nowrap; pointer-events: none; visibility: hidden; }
+.run-detail-evidence-button:hover .run-detail-evidence-tooltip, .run-detail-evidence-button:focus-visible .run-detail-evidence-tooltip { visibility: visible; }
+
+.run-evidence-hint { position: fixed; z-index: 10; display: flex; align-items: center; gap: .75rem; padding: .5rem .65rem; background: var(--theme-accent); color: var(--theme-accent-text); border-radius: var(--theme-radius-small); box-shadow: 0 3px 12px #0006; font-weight: 700; }
+.run-evidence-hint[hidden] { display: none; }
+.run-evidence-hint::after { content: ""; position: absolute; top: 100%; left: var(--hint-arrow); transform: translateX(-50%); border: 7px solid transparent; border-top-color: var(--theme-accent); }
+.run-evidence-hint button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 1.5rem; width: 1.5rem; height: 1.5rem; padding: 0; margin: 0; border: 0; border-radius: var(--theme-radius-small); background: transparent; color: inherit; font-size: 1.2rem; line-height: 1; cursor: pointer; }
+.run-evidence-hint button:hover, .run-evidence-hint button:focus-visible { background: var(--theme-accent-text); color: var(--theme-accent); }
+.run-evidence-hint button:focus-visible { outline: 2px solid var(--theme-accent-text); outline-offset: 2px; }
+
+.run-detail-close:hover, .run-detail-close:focus-visible { background: var(--theme-accent-text); color: var(--theme-accent); border-color: var(--theme-accent); }
+.run-detail-close:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 2px; }
+
+.run-detail-evidence-button.has-evidence-helper .run-detail-evidence-tooltip { visibility: hidden; }

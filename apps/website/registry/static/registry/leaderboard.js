@@ -1,4 +1,4 @@
-(() => {
+window.RatRacePages.register((pageSignal) => {
     "use strict";
 
     let activeTrigger = null;
@@ -134,4 +134,4 @@
             button.addEventListener("click", () => prepareAccessDialog(button));
         });
     }
-})();
+});

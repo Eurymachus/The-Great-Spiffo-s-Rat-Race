@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+window.RatRacePages.register((pageSignal) => {
     const mobileLayout = window.matchMedia("(max-width: 700px)");
     const disclosures = document.querySelectorAll(".community-stats-disclosure");
 
@@ -9,5 +9,5 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     syncDisclosureLayout();
-    mobileLayout.addEventListener("change", syncDisclosureLayout);
+    mobileLayout.addEventListener("change", syncDisclosureLayout, {signal: pageSignal});
 });

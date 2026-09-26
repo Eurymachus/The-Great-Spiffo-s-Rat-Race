@@ -1,5 +1,6 @@
 {% extends "registry/base.html" %}
 {% block title_suffix %} | {{ profile_participant.nickname }}{% endblock %}
+{% block soft_navigation %}on{% endblock %}
 {% block content %}
 <section class="card card-wide account-dashboard participant-profile">
   {% include "registry/includes/journey_navigation.html" %}
@@ -17,7 +18,7 @@
     </div>
     {% if request.user.pk == profile_participant.pk %}
     <div class="dashboard-header-actions">
-      <a class="dashboard-header-action dashboard-header-action-subtle" href="{% url 'registry:account' %}">Return to dashboard</a>
+      <a class="dashboard-header-action journey-back-link" href="{% url 'registry:account' %}">&lsaquo; Return to dashboard</a>
     </div>
     {% endif %}
   </header>

@@ -11,9 +11,7 @@
     const notificationList = notificationItem?.querySelector(".notification-preview-list");
     const notificationPopupReadForm = notificationItem?.querySelector("[data-notifications-read-form]");
     const notificationFilterButtons = [...(notificationItem?.querySelectorAll("[data-notification-preview-filter]") || [])];
-    const notificationsReadForms = [...document.querySelectorAll("[data-notifications-read-form]")];
-    const notificationsPage = document.querySelector(".notifications-page");
-    const notificationActionMenus = [...document.querySelectorAll(".notifications-page-menu, .notification-popup-menu")];
+    const notificationActionMenus = () => document.querySelectorAll(".notifications-page-menu, .notification-popup-menu");
     const knownNotificationIds = new Set(
         [...(notificationList?.querySelectorAll("[data-notification-id]") || [])]
             .map((notification) => notification.dataset.notificationId)
@@ -160,53 +158,15 @@
         });
     });
 
-    const loadNotificationsPage = async (url, updateHistory = true) => {
-        if (!notificationsPage) return;
-        notificationsPage.setAttribute("aria-busy", "true");
-        try {
-            const response = await fetch(url, {
-                credentials: "same-origin",
-                headers: {"Accept": "text/html", "X-Requested-With": "XMLHttpRequest"},
-            });
-            if (!response.ok) throw new Error("Unable to load notifications.");
-            const nextDocument = new DOMParser().parseFromString(await response.text(), "text/html");
-            const nextPage = nextDocument.querySelector(".notifications-page");
-            if (!nextPage) throw new Error("Notification page content was not returned.");
-            [".notification-filters", ".notification-history", ".notification-pagination"].forEach((selector) => {
-                const currentElement = notificationsPage.querySelector(selector);
-                const nextElement = nextPage.querySelector(selector);
-                if (currentElement && nextElement) currentElement.replaceWith(nextElement);
-                else if (currentElement) currentElement.remove();
-                else if (nextElement) notificationsPage.append(nextElement);
-            });
-            if (updateHistory) window.history.pushState({}, "", url);
-        } catch (error) {
-            window.location.assign(url);
-        } finally {
-            notificationsPage.removeAttribute("aria-busy");
-        }
-    };
-
-    notificationsPage?.addEventListener("click", (event) => {
-        const link = event.target.closest(".notification-filters a, .notification-pagination a");
-        if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        event.preventDefault();
-        loadNotificationsPage(link.href);
-    });
-
-    if (notificationsPage) {
-        window.addEventListener("popstate", () => loadNotificationsPage(window.location.href, false));
-    }
-
     document.addEventListener("click", (event) => {
-        notificationActionMenus.forEach((actionMenu) => {
+        notificationActionMenus().forEach((actionMenu) => {
             if (actionMenu.open && !actionMenu.contains(event.target)) actionMenu.open = false;
         });
     });
 
     document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape") return;
-        notificationActionMenus.forEach((actionMenu) => {
+        notificationActionMenus().forEach((actionMenu) => {
             if (!actionMenu.open) return;
             actionMenu.open = false;
             actionMenu.querySelector("summary")?.focus();
@@ -319,41 +279,42 @@
         });
     });
 
-    notificationsReadForms.forEach((notificationsReadForm) => {
-        notificationsReadForm.addEventListener("submit", async (event) => {
-            event.preventDefault();
-            const submitButton = notificationsReadForm.querySelector("button[type='submit']");
-            submitButton.disabled = true;
-            try {
-                const response = await fetch(notificationsReadForm.action, {
-                    method: "POST",
-                    body: new FormData(notificationsReadForm),
-                    credentials: "same-origin",
-                    headers: {"X-Requested-With": "XMLHttpRequest"},
-                });
-                if (!response.ok) throw new Error("Unable to mark notifications as read.");
-                await response.json();
-                headerControls.querySelectorAll(".notification-preview.is-unread").forEach((notification) => {
-                    notification.classList.remove("is-unread");
-                });
-                document.querySelectorAll(".notification-history-item.is-unread").forEach((notification) => {
-                    notification.classList.remove("is-unread");
-                });
-                headerControls.querySelector(".notification-count")?.remove();
-                notificationToggle?.setAttribute("aria-label", "Notifications");
-                notificationsReadForms.forEach((form) => { form.hidden = true; });
-                const unreadHistory = document.querySelector(".notification-history[data-notification-filter='unread']");
-                if (unreadHistory) {
-                    unreadHistory.innerHTML = '<div class="notifications-empty"><h3>You have no notifications</h3><p>Important account and participation updates will appear here.</p></div>';
-                }
-                await refreshNotificationSummary(false);
-            } catch (error) {
-                submitButton.disabled = false;
-                submitButton.textContent = "Try again";
+    document.addEventListener("submit", async (event) => {
+        const notificationsReadForm = event.target.closest("[data-notifications-read-form]");
+        if (!notificationsReadForm) return;
+        event.preventDefault();
+        const submitButton = notificationsReadForm.querySelector("button[type='submit']");
+        submitButton.disabled = true;
+        try {
+            const response = await fetch(notificationsReadForm.action, {
+                method: "POST",
+                body: new FormData(notificationsReadForm),
+                credentials: "same-origin",
+                headers: {"X-Requested-With": "XMLHttpRequest"},
+            });
+            if (!response.ok) throw new Error("Unable to mark notifications as read.");
+            await response.json();
+            headerControls.querySelectorAll(".notification-preview.is-unread").forEach((notification) => {
+                notification.classList.remove("is-unread");
+            });
+            document.querySelectorAll(".notification-history-item.is-unread").forEach((notification) => {
+                notification.classList.remove("is-unread");
+            });
+            headerControls.querySelector(".notification-count")?.remove();
+            notificationToggle?.setAttribute("aria-label", "Notifications");
+            document.querySelectorAll("[data-notifications-read-form]").forEach((form) => { form.hidden = true; });
+            const unreadHistory = document.querySelector(".notification-history[data-notification-filter='unread']");
+            if (unreadHistory) {
+                unreadHistory.innerHTML = '<div class="notifications-empty"><h3>You have no notifications</h3><p>Important account and participation updates will appear here.</p></div>';
             }
-        });
+            await refreshNotificationSummary(false);
+        } catch (error) {
+            submitButton.disabled = false;
+            submitButton.textContent = "Try again";
+        }
     });
 
+    document.addEventListener("notification:opened", () => refreshNotificationSummary(false));
     if (notificationItem) {
         refreshNotificationSummary(false);
         if ("EventSource" in window) {
@@ -413,6 +374,7 @@
             closeMenu(true);
         }
     });
+    document.addEventListener("page:loaded", () => { closeMenu(); closeSubmenus(); updateDockPoint(); updateHeaderControlsForScroll(); });
     updateDockPoint();
     updateHeaderControlsForScroll();
 })();

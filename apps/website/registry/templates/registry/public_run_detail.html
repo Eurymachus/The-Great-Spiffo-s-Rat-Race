@@ -2,8 +2,9 @@
 {% load static %}
 {% block title_suffix %} | {{ run.character_name|default:"Rat Race run" }}{% endblock %}
 {% block extra_head %}
-<script src="{% static 'registry/run_details.js' %}?v=20260816-4" defer></script>
+
 {% endblock %}
+{% block soft_navigation %}on{% endblock %}
 {% block content %}
 <article class="card card-wide account-dashboard run-public-page">
   {% include "registry/includes/journey_navigation.html" %}
@@ -32,7 +33,11 @@
       </dl>
     </div>
     <div class="run-public-hero-actions">
-      <a class="dashboard-header-action journey-back-link" href="{{ participant_profile_url }}">&lsaquo; Back to {{ rat_racer }}</a>
+      {% if return_to_dashboard %}
+      <a class="dashboard-header-action journey-back-link" href="{% url 'registry:account' %}">&lsaquo; Return to dashboard</a>
+      {% else %}
+      <a class="dashboard-header-action journey-back-link" href="{{ participant_profile_url }}">&lsaquo; Return to {{ rat_racer }}</a>
+      {% endif %}
       <p class="run-public-challenge">{{ run.challenge_mode_display }}.</p>
     </div>
   </header>

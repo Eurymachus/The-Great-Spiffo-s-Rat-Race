@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+window.RatRacePages.register((pageSignal) => {
     const connectDialog = (dialogSelector, openSelector, closeSelector) => {
         const dialog = document.querySelector(dialogSelector);
         if (!dialog) return;
@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const status = form.querySelector("[data-workshop-status]");
     const submit = form.querySelector("[data-mod-review-submit]");
     let timer;
+    pageSignal.addEventListener("abort", () => clearTimeout(timer), {once: true});
     let requestNumber = 0;
 
     const setStatus = (message = "", error = false) => {

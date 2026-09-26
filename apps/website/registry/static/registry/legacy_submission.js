@@ -1,4 +1,4 @@
-(() => {
+window.RatRacePages.register((pageSignal) => {
     "use strict";
     const input = document.querySelector("[data-survival-time]");
     const preview = document.querySelector("[data-survival-preview]");
@@ -39,4 +39,4 @@
     };
     input.addEventListener("input", update);
     update();
-})();
+});

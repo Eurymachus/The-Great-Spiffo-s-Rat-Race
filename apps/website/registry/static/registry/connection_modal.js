@@ -1,8 +1,11 @@
 (() => {
+    const initialise = () => {
     "use strict";
     const dialog = document.querySelector("[data-connection-dialog]");
     if (!dialog || typeof dialog.showModal !== "function") return;
 
+    if (dialog.dataset.connectionReady) return;
+    dialog.dataset.connectionReady = "true";
     const title = dialog.querySelector("[data-connection-title]");
     const kicker = dialog.querySelector("[data-connection-kicker]");
     const copy = dialog.querySelector("[data-connection-copy]");
@@ -76,4 +79,7 @@
         pendingTarget = null;
         trigger?.focus();
     });
+    };
+    document.addEventListener("page:loaded", initialise);
+    initialise();
 })();

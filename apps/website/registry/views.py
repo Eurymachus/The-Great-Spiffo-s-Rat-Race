@@ -753,6 +753,17 @@ def public_run_detail(request, run_id):
             {"label": run.character_name or "Rat Race survivor", "url": ""},
         ),
     })
+    if (
+        request.META.get("HTTP_REFERER", "").split("?", 1)[0].split("#", 1)[0]
+        == request.build_absolute_uri(reverse("registry:account"))
+        and request.user.is_authenticated
+        and request.user.pk == run.participant_id
+    ):
+        context["return_to_dashboard"] = True
+        context["journey_items"] = (
+            {"label": "Dashboard", "url": reverse("registry:account")},
+            {"label": run.character_name or "Rat Race survivor", "url": ""},
+        )
     return render(request, "registry/public_run_detail.html", context)
 
 

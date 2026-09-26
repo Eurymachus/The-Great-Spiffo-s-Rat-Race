@@ -1,4 +1,4 @@
-(() => {
+window.RatRacePages.register((pageSignal) => {
     "use strict";
 
     const exportTextarea = document.querySelector("#id_run_export");
@@ -55,6 +55,7 @@
     });
     exportPathChoose?.addEventListener("click", () => exportFileInput?.click());
     document.addEventListener("paste", (event) => {
+        if (!exportTextarea) return;
         const target = event.target;
         const isUnrelatedField =
             (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) &&
@@ -68,7 +69,7 @@
             false,
             true
         );
-    });
+    }, {signal: pageSignal});
     ["dragenter", "dragover"].forEach((eventName) => {
         exportDropzone?.addEventListener(eventName, (event) => {
             event.preventDefault();
@@ -226,8 +227,8 @@
         );
     };
 
-    document.addEventListener("pointerover", prepareTitlePan);
-    document.addEventListener("focusin", prepareTitlePan);
+    document.addEventListener("pointerover", prepareTitlePan, {signal: pageSignal});
+    document.addEventListener("focusin", prepareTitlePan, {signal: pageSignal});
 
     const replaceVideos = (videos) => {
         if (!videoSelect) return;
@@ -362,4 +363,4 @@
             refreshMedia();
         });
     });
-})();
+});

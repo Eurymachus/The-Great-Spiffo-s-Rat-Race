@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+window.RatRacePages.register((pageSignal) => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     document.querySelectorAll("[data-managed-tabs]").forEach((group) => {
@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const panelFor = (tab) => panels.find((panel) => panel.id === tab.getAttribute("aria-controls"));
         let activeTab = tabs.find((tab) => tab.classList.contains("is-active")) || tabs[0];
         let transitionTimer = null;
+        pageSignal.addEventListener("abort", () => clearTimeout(transitionTimer), {once: true});
 
         const finishTransition = () => {
             window.clearTimeout(transitionTimer);
@@ -50,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (updateHash) {
                 const url = new URL(window.location.href);
                 url.hash = nextTab.dataset.tabSlug;
-                history.replaceState(null, "", url);
+                history.replaceState(history.state, "", url);
             }
 
             if (!animate || reducedMotion || !previousPanel || previousPanel === nextPanel) {
@@ -99,6 +100,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const slug = decodeURIComponent(window.location.hash.slice(1));
             const matchingTab = tabs.find((tab) => tab.dataset.tabSlug === slug);
             if (matchingTab) activate(matchingTab, {updateHash: false});
-        });
+        }, {signal: pageSignal});
     });
 });

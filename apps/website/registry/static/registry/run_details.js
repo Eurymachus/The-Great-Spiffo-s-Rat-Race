@@ -24,6 +24,55 @@
         });
     };
 
+    const evidenceHintsDismissed = new Set();
+    const showEvidenceHint = (dialog) => {
+        const action = dialog.querySelector(".run-detail-evidence-button");
+        if (!action) return;
+        const key = `run-evidence-hint-dismissed:${dialog.id}`;
+        if (evidenceHintsDismissed.has(key)) return;
+        try { if (sessionStorage.getItem(key)) return; } catch (_) { /* Use in-memory state when storage is unavailable. */ }
+        const hint = document.createElement("div");
+        hint.className = "run-evidence-hint";
+        hint.setAttribute("role", "status");
+        const label = document.createElement("span");
+        label.textContent = action.getAttribute("aria-label");
+        const dismiss = document.createElement("button");
+        dismiss.type = "button";
+        dismiss.textContent = "\u00d7";
+        dismiss.setAttribute("aria-label", "Dismiss evidence helper");
+        hint.append(label, dismiss);
+        dialog.append(hint);
+        const position = () => {
+            const target = action.getBoundingClientRect();
+            const bounds = dialog.getBoundingClientRect();
+            const left = Math.max(bounds.left + 8, Math.min(target.right - hint.offsetWidth, bounds.right - hint.offsetWidth - 8));
+            hint.style.left = `${left}px`;
+            hint.style.top = `${target.top - hint.offsetHeight - 10}px`;
+            hint.style.setProperty("--hint-arrow", `${target.left + target.width / 2 - left}px`);
+            hint.hidden = target.top < bounds.top + 50 || target.bottom > bounds.bottom;
+            action.classList.toggle("has-evidence-helper", !hint.hidden);
+        };
+        const remove = () => {
+            action.classList.remove("has-evidence-helper");
+            hint.remove();
+            dialog.removeEventListener("scroll", position, true);
+            window.removeEventListener("resize", position);
+            dialog.removeEventListener("close", remove);
+        };
+        dismiss.addEventListener("click", () => {
+            evidenceHintsDismissed.add(key);
+            try { sessionStorage.setItem(key, "1"); } catch (_) { /* Keep dismissal in memory when storage is unavailable. */ }
+            remove();
+            action.focus();
+        });
+        action.addEventListener("click", remove, {once: true});
+        dialog.addEventListener("close", remove, {once: true});
+        dialog.addEventListener("scroll", position, true);
+        window.addEventListener("resize", position);
+        action.scrollIntoView({block: "nearest", inline: "nearest"});
+        position();
+    };
+
     const initialiseRunDialogs = (root = document) => {
         localiseDateTimes(root);
         root.querySelectorAll("[data-run-build-open]").forEach((trigger) => {
@@ -80,6 +129,7 @@
                 trigger.addEventListener("click", () => {
                     activeTrigger = trigger;
                     dialog.showModal();
+                    showEvidenceHint(dialog);
                 });
             });
             close?.addEventListener("click", () => dialog.close());
@@ -194,6 +244,7 @@
         return dashboardRequest;
     };
 
+    document.addEventListener("page:loaded", () => initialiseRunDialogs());
     initialiseRunDialogs();
     document.addEventListener("notifications:changed", refreshDashboard);
 })();

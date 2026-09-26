@@ -74,17 +74,18 @@
         })();
     </script>
   <link rel="stylesheet" href="{% static 'registry/site.css' %}?v=20260920-07">
-    <script src="{% static 'registry/leaderboard.js' %}?v=20260803-3" defer></script>
-    <script src="{% static 'registry/build_dialog.js' %}?v=20260816-1" defer></script>
+    <script src="{% static 'registry/page_lifecycle.js' %}?v=20260926-1" defer></script>
+    <script src="{% static 'registry/leaderboard.js' %}?v=20260926-2" defer></script>
+    <script src="{% static 'registry/build_dialog.js' %}?v=20260926-1" defer></script>
     <script src="{% static 'registry/privacy_modal.js' %}?v=20260715-1" defer></script>
     <script src="{% static 'registry/development_modal.js' %}?v=20260830-1" defer></script>
-    <script src="{% static 'registry/site_menu.js' %}?v=20260815-12" defer></script>
+    <script src="{% static 'registry/site_menu.js' %}?v=20260926-3" defer></script>
     <script src="{% static 'registry/account_menu.js' %}?v=20260722-1" defer></script>
-    <script src="{% static 'registry/avatar_modal.js' %}?v=20260723-2" defer></script>
-    <script src="{% static 'registry/connection_modal.js' %}?v=20260725-1" defer></script>
-    <script src="{% static 'registry/gallery.js' %}?v=20260725-1" defer></script>
-    <script src="{% static 'registry/community_stats.js' %}?v=20260806-1" defer></script>
-    <script src="{% static 'registry/managed_tabs.js' %}?v=20260809-1" defer></script>
+    <script src="{% static 'registry/avatar_modal.js' %}?v=20260926-1" defer></script>
+    <script src="{% static 'registry/connection_modal.js' %}?v=20260926-1" defer></script>
+    <script src="{% static 'registry/gallery.js' %}?v=20260926-2" defer></script>
+    <script src="{% static 'registry/community_stats.js' %}?v=20260926-2" defer></script>
+    <script src="{% static 'registry/managed_tabs.js' %}?v=20260926-2" defer></script>
     {% if site_theme %}
     <style>
         :root {
@@ -131,6 +132,11 @@
             {% endif %}
         }
     </style>
+    <script src="{% static 'registry/run_details.js' %}?v=20260926-4" defer></script>
+    <script src="{% static 'registry/page_navigation.js' %}?v=20260926-3" defer></script>
+    <script src="{% static 'registry/mods.js' %}?v=20260926-2" defer></script>
+    <script src="{% static 'registry/submit_run.js' %}?v=20260926-2" defer></script>
+    <script src="{% static 'registry/legacy_submission.js' %}?v=20260926-2" defer></script>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="theme-background-{{ site_theme.background_style|default:'radial' }}{% if site_background_image_url %} has-brand-background{% endif %}">
@@ -247,12 +253,12 @@
         </div>
         <header class="site-header">
             {% if site_header_logo_url %}
-            <img class="site-header-logo" src="{{ site_header_logo_url }}" alt="{{ site_header_logo_alt }}">
+            <img class="site-header-logo" src="{{ site_header_logo_url }}" alt="{{ site_header_logo_alt }}"{% if site_header_logo_width and site_header_logo_height %} width="{{ site_header_logo_width }}" height="{{ site_header_logo_height }}" style="--header-logo-width: {{ site_header_logo_width }}px; --header-logo-ratio: {{ site_header_logo_width }} / {{ site_header_logo_height }};"{% endif %} loading="eager">
             {% endif %}
             <p class="eyebrow">{{ site_tagline }}</p>
             <h1>{{ site_full_title }}</h1>
         </header>
-        <main id="main-content">
+        <main id="main-content" data-soft-navigation="{% block soft_navigation %}on{% endblock %}" data-navigation-user="{{ request.user.pk|default:'anonymous' }}">
             {% block content %}{% endblock %}
         </main>
         <footer class="site-footer">

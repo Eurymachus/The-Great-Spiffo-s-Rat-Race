@@ -1,8 +1,9 @@
 {% extends "registry/base.html" %}
 {% load static %}
 {% block title_suffix %} | Your account{% endblock %}
+{% block soft_navigation %}on{% endblock %}
 {% block content %}
-<script src="{% static 'registry/run_details.js' %}?v=20260803-2" defer></script>
+
 <section class="card card-wide account-dashboard">
   {% include "registry/includes/journey_navigation.html" %}
   <header class="account-dashboard-header">

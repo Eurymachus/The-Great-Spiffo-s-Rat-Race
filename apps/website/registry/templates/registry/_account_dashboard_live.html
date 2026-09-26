@@ -12,7 +12,7 @@
       <span class="dashboard-coming-soon">{% if personal_best %}Verified{% else %}No result yet{% endif %}</span>
     </div>
     {% if personal_best %}
-    {% include "registry/includes/profile_run_card.html" with run=personal_best show_progress=True %}
+    {% include "registry/includes/profile_run_card.html" with run=personal_best private_view=True show_progress=True %}
     {% else %}
     <div class="dashboard-empty-state dashboard-challenge-state">
       <span class="dashboard-state-icon" aria-hidden="true">-</span>

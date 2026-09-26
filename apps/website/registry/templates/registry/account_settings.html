@@ -1,5 +1,6 @@
 {% extends "registry/base.html" %}
 {% block title_suffix %} | Account settings{% endblock %}
+{% block soft_navigation %}on{% endblock %}
 {% block content %}
 <section class="card card-wide settings-hub">
   {% include "registry/includes/journey_navigation.html" %}
@@ -16,7 +17,7 @@
       <h2>Signed in as {{ request.user.email }}</h2>
       <p>Manage your security, notifications, privacy and participant data.</p>
     </div>
-    <a class="dashboard-header-action" href="{% url 'registry:account' %}">Dashboard</a>
+    <div class="dashboard-header-actions"><a class="dashboard-header-action journey-back-link" href="{% url 'registry:account' %}">&lsaquo; Return to dashboard</a></div>
   </header>
 
   <div class="settings-hub-grid">

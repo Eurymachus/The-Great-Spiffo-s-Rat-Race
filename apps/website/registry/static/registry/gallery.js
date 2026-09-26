@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+window.RatRacePages.register((pageSignal) => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     document.querySelectorAll("[data-image-expand]").forEach((expandButton) => {
         expandButton.addEventListener("click", () => {
@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 requestAnimationFrame(() => expandButton.focus());
             });
             document.body.append(dialog);
+            pageSignal.addEventListener("abort", () => dialog.remove(), {once: true});
             dialog.showModal();
         });
     });
@@ -50,8 +51,9 @@ document.addEventListener("DOMContentLoaded", () => {
             if (timer) window.clearTimeout(timer);
             timer = null;
         };
+        pageSignal.addEventListener("abort", stop, {once: true});
         const start = () => {
-            if (timer || expanded || reducedMotion || gallery.dataset.autoScroll !== "true" || slides.length < 2) return;
+            if (pageSignal.aborted || !gallery.isConnected || timer || expanded || reducedMotion || gallery.dataset.autoScroll !== "true" || slides.length < 2) return;
             if (!loop && index === slides.length - 1) return;
             timer = window.setTimeout(() => {
                 timer = null;
@@ -125,6 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 requestAnimationFrame(() => expandButton.blur());
             });
             document.body.append(dialog);
+            pageSignal.addEventListener("abort", () => dialog.remove(), {once: true});
             showExpanded(expandedIndex);
             dialog.showModal();
         });
