@@ -1,9 +1,11 @@
 // Shared floating helpers. Keep dialog helpers inside their modal's top layer.
 window.RatRaceHint = {
-    create({anchor, element, placement = "top", container = anchor.closest("dialog") || document.body,
+    create({anchor, element, placement = "top", type = "info", container = anchor.closest("dialog") || document.body,
         signal, onDismiss = () => {}, onVisibility = () => {}}) {
         if (!["top", "bottom", "left", "right"].includes(placement)) throw new Error("Invalid hint placement");
+        if (!["info", "error", "success", "warning"].includes(type)) throw new Error("Invalid hint type");
         element.classList.add("anchored-hint");
+        element.dataset.type = type;
         container.append(element);
         const controller = new AbortController();
         let active = false;

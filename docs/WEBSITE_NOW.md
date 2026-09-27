@@ -11,6 +11,10 @@
   and `destroy`. Helpers follow scroll/resize, flip when the opposite side has
   more room, and clean up on page departure or modal close. Modal helpers mount
   inside the dialog so they remain in its top layer.
+- Helpers support `type: "info" | "error" | "warning" | "success"` (default
+  information). They use a tinted surface with consistent text weight and a
+  semantic border, pointer and icon instead of the filled button appearance. Submission field errors use
+  the error variant and matching error-colour field outlines.
 - Invalid submissions show a toast and focus/scroll to the first invalid field,
   revealing collapsed export inputs when needed. Server-returned field errors
   receive the same feedback; active-run blocks retain their existing dialog.

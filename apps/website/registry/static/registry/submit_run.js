@@ -36,7 +36,7 @@ window.RatRacePages.register((pageSignal) => {
         const serverError = submissionForm.querySelector(".errorlist");
         const serverErrorField = serverError?.closest(".field, .submission-export-input")?.querySelector("textarea, input:not([type=hidden]):not([type=file]), select");
         const popup = window.RatRaceHint.create({
-            anchor: vodInput, element: vodHelper, placement: "bottom", signal: pageSignal,
+            anchor: vodInput, element: vodHelper, placement: "bottom", type: "error", signal: pageSignal,
         });
         const describedBy = vodInput.getAttribute("aria-describedby") || "";
         vodInput.setAttribute("aria-describedby", `${describedBy} vod-validation-helper`.trim());
@@ -66,7 +66,7 @@ window.RatRacePages.register((pageSignal) => {
                 helper.append(label, close);
                 field.setAttribute("aria-describedby", `${field.getAttribute("aria-describedby") || ""} ${helper.id}`.trim());
                 entry = {label, popup: window.RatRaceHint.create({
-                    anchor: field, element: helper, placement: "bottom", signal: pageSignal,
+                    anchor: field, element: helper, placement: "bottom", type: "error", signal: pageSignal,
                 })};
                 fieldHints.set(field, entry);
             }

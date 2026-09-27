@@ -1538,7 +1538,7 @@
 .submission-validation-helper[hidden] { display: none; }
 .submission-validation-helper strong::before { content: "! "; }
 .submission-validation-helper .errorlist { margin: .25rem 0 0; padding-left: 1.2rem; }
-[data-run-submission-form] [aria-invalid="true"] { outline: 2px solid var(--theme-accent); outline-offset: 2px; }
+[data-run-submission-form] [aria-invalid="true"] { outline: 2px solid var(--theme-error); outline-offset: 2px; }
 /* Action feedback is independent of the bottom-right live notification stream. */
 .feedback-toast-region { position: fixed; z-index: 2400; top: max(1.25rem, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(32rem, calc(100vw - 2rem)); pointer-events: none; }
 .feedback-toast { --feedback-tone: var(--theme-accent); display: flex; align-items: center; gap: .85rem; padding: 1rem 1.1rem; border: 1px solid var(--feedback-tone); border-top: 4px solid var(--feedback-tone); border-radius: var(--theme-radius); background: var(--theme-surface); color: var(--theme-text); box-shadow: 0 8px 32px #0006; pointer-events: auto; }
@@ -3709,17 +3709,24 @@ small.participant-evidence-warning { color:var(--theme-accent, #f5a630); display
 .run-detail-evidence-tooltip { position: absolute; right: 0; bottom: calc(100% + .4rem); z-index: 3; width: max-content; padding: .35rem .5rem; border: 1px solid var(--theme-border); border-radius: var(--theme-radius-small); background: var(--theme-surface-alt); color: var(--theme-text); font-size: .8rem; white-space: nowrap; pointer-events: none; visibility: hidden; }
 .run-detail-evidence-button:hover .run-detail-evidence-tooltip, .run-detail-evidence-button:focus-visible .run-detail-evidence-tooltip { visibility: visible; }
 
-.anchored-hint { position: fixed; z-index: 2300; display: flex; align-items: center; gap: .75rem; width: max-content; box-sizing: border-box; padding: .5rem .65rem; background: var(--theme-accent); color: var(--theme-accent-text); border-radius: var(--theme-radius-small); box-shadow: 0 3px 12px #0006; font-weight: 700; overflow-wrap: anywhere; }
+.anchored-hint { --hint-tone: var(--theme-accent); --hint-background: color-mix(in srgb, var(--hint-tone) 22%, var(--theme-surface)); position: fixed; z-index: 2300; display: flex; align-items: center; gap: .75rem; width: max-content; box-sizing: border-box; padding: .65rem .75rem .65rem 2.8rem; border: 1px solid var(--hint-tone); border-radius: var(--theme-radius-small); background: var(--hint-background); color: var(--theme-text); box-shadow: 0 6px 20px #0009; font-weight: 600; overflow-wrap: anywhere; cursor: default; }
+.anchored-hint[data-type="error"] { --hint-tone: var(--theme-error); }
+.anchored-hint[data-type="success"] { --hint-tone: var(--theme-success); }
+.anchored-hint[data-type="warning"] { --hint-tone: var(--theme-accent); }
 .anchored-hint[hidden] { display: none; }
-.anchored-hint::before { content: ""; position: absolute; border: 7px solid transparent; }
-.anchored-hint[data-placement="top"]::before { top: 100%; left: var(--hint-arrow-x); transform: translateX(-50%); border-top-color: var(--theme-accent); }
-.anchored-hint[data-placement="bottom"]::before { bottom: 100%; left: var(--hint-arrow-x); transform: translateX(-50%); border-bottom-color: var(--theme-accent); }
-.anchored-hint[data-placement="left"]::before { left: 100%; top: var(--hint-arrow-y); transform: translateY(-50%); border-left-color: var(--theme-accent); }
-.anchored-hint[data-placement="right"]::before { right: 100%; top: var(--hint-arrow-y); transform: translateY(-50%); border-right-color: var(--theme-accent); }
+.anchored-hint strong { font-weight: inherit; }
+.anchored-hint::after { content: "i"; position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); display: grid; place-items: center; box-sizing: border-box; width: 1.35rem; height: 1.35rem; border: 1.5px solid var(--hint-tone); border-radius: 50%; color: var(--hint-tone); font-size: .85rem; font-weight: 800; line-height: 1; }
+.anchored-hint[data-type="error"]::after, .anchored-hint[data-type="warning"]::after { content: "!"; }
+.anchored-hint[data-type="success"]::after { content: "\2713"; }
+.anchored-hint::before { content: ""; position: absolute; width: 10px; height: 10px; background: var(--hint-background); border: solid var(--hint-tone); border-width: 1px 0 0 1px; }
+.anchored-hint[data-placement="top"]::before { top: calc(100% - 4px); left: var(--hint-arrow-x); transform: translateX(-50%) rotate(225deg); }
+.anchored-hint[data-placement="bottom"]::before { bottom: calc(100% - 4px); left: var(--hint-arrow-x); transform: translateX(-50%) rotate(45deg); }
+.anchored-hint[data-placement="left"]::before { left: calc(100% - 4px); top: var(--hint-arrow-y); transform: translateY(-50%) rotate(135deg); }
+.anchored-hint[data-placement="right"]::before { right: calc(100% - 4px); top: var(--hint-arrow-y); transform: translateY(-50%) rotate(-45deg); }
 .anchored-hint .errorlist { margin: .25rem 0 0; padding-left: 1.2rem; font-weight: 400; }
-.anchored-hint button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 1.5rem; width: 1.5rem; min-height: 0; height: 1.5rem; padding: 0; margin: 0; border: 0; border-radius: var(--theme-radius-small); background: transparent; color: inherit; font-size: 1.2rem; line-height: 1; cursor: pointer; }
-.anchored-hint button:hover, .anchored-hint button:focus-visible { background: var(--theme-accent-text); color: var(--theme-accent); }
-.anchored-hint button:focus-visible { outline: 2px solid var(--theme-accent-text); outline-offset: 2px; }
+.anchored-hint button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 1.5rem; width: 1.5rem; min-height: 0; height: 1.5rem; padding: 0; margin: 0; border: 0; border-radius: var(--theme-radius-small); background: transparent; color: var(--theme-muted); font-size: 1.2rem; line-height: 1; cursor: pointer; }
+.anchored-hint button:hover, .anchored-hint button:focus-visible { background: var(--theme-surface-alt); color: var(--theme-text); }
+.anchored-hint button:focus-visible { outline: 2px solid var(--hint-tone); outline-offset: 2px; }
 
 .run-detail-close:hover, .run-detail-close:focus-visible { background: var(--theme-accent-text); color: var(--theme-accent); border-color: var(--theme-accent); }
 .run-detail-close:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 2px; }
