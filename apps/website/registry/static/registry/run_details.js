@@ -32,45 +32,27 @@
         if (evidenceHintsDismissed.has(key)) return;
         try { if (sessionStorage.getItem(key)) return; } catch (_) { /* Use in-memory state when storage is unavailable. */ }
         const hint = document.createElement("div");
-        hint.className = "run-evidence-hint";
         hint.setAttribute("role", "status");
         const label = document.createElement("span");
         label.textContent = action.getAttribute("aria-label");
         const dismiss = document.createElement("button");
         dismiss.type = "button";
         dismiss.textContent = "\u00d7";
+        dismiss.dataset.hintClose = "";
         dismiss.setAttribute("aria-label", "Dismiss evidence helper");
         hint.append(label, dismiss);
-        dialog.append(hint);
-        const position = () => {
-            const target = action.getBoundingClientRect();
-            const bounds = dialog.getBoundingClientRect();
-            const left = Math.max(bounds.left + 8, Math.min(target.right - hint.offsetWidth, bounds.right - hint.offsetWidth - 8));
-            hint.style.left = `${left}px`;
-            hint.style.top = `${target.top - hint.offsetHeight - 10}px`;
-            hint.style.setProperty("--hint-arrow", `${target.left + target.width / 2 - left}px`);
-            hint.hidden = target.top < bounds.top + 50 || target.bottom > bounds.bottom;
-            action.classList.toggle("has-evidence-helper", !hint.hidden);
-        };
-        const remove = () => {
-            action.classList.remove("has-evidence-helper");
-            hint.remove();
-            dialog.removeEventListener("scroll", position, true);
-            window.removeEventListener("resize", position);
-            dialog.removeEventListener("close", remove);
-        };
-        dismiss.addEventListener("click", () => {
-            evidenceHintsDismissed.add(key);
-            try { sessionStorage.setItem(key, "1"); } catch (_) { /* Keep dismissal in memory when storage is unavailable. */ }
-            remove();
-            action.focus();
+        const popup = window.RatRaceHint.create({
+            anchor: action, element: hint, placement: "top", container: dialog,
+            onVisibility: (visible) => action.classList.toggle("has-evidence-helper", visible),
+            onDismiss: () => {
+                evidenceHintsDismissed.add(key);
+                try { sessionStorage.setItem(key, "1"); } catch (_) { /* Keep dismissal in memory when storage is unavailable. */ }
+                popup.destroy();
+            },
         });
-        action.addEventListener("click", remove, {once: true});
-        dialog.addEventListener("close", remove, {once: true});
-        dialog.addEventListener("scroll", position, true);
-        window.addEventListener("resize", position);
+        action.addEventListener("click", popup.destroy, {once: true});
         action.scrollIntoView({block: "nearest", inline: "nearest"});
-        position();
+        popup.show();
     };
 
     const initialiseRunDialogs = (root = document) => {

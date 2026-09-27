@@ -10,7 +10,157 @@ window.RatRacePages.register((pageSignal) => {
     const exportPaste = document.querySelector("[data-export-paste]");
     const maximumExportBytes = 24 * 1024 * 1024;
 
+    const submissionForm = document.querySelector("[data-run-submission-form]");
+    const vodInput = submissionForm?.querySelector("#id_manual_evidence_url");
+    const vodHelper = submissionForm?.querySelector("[data-vod-helper]");
+    let showSubmissionFieldError;
+    let clearSubmissionFieldError;
+    if (vodInput && vodHelper) {
+        // Match the supported formats in vod_evidence.parse_vod_url.
+        const isVodUrl = (value) => {
+            try {
+                if (/\\/.test(value)) return false;
+                const url = new URL(value.trim());
+                if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
+                if (["twitch.tv", "www.twitch.tv", "m.twitch.tv"].includes(url.hostname)) {
+                    return /^\/videos\/[0-9]+\/?$/.test(url.pathname);
+                }
+                let id = "";
+                if (["youtube.com", "www.youtube.com", "m.youtube.com"].includes(url.hostname)) {
+                    const ids = url.pathname === "/watch" ? url.searchParams.getAll("v").filter(Boolean) : [];
+                    id = ids.length === 1 ? ids[0] : (url.pathname.match(/^\/live\/([A-Za-z0-9_-]{11})\/?$/)?.[1] || "");
+                } else if (url.hostname === "youtu.be") id = url.pathname.replace(/^\/+|\/+$/g, "");
+                return /^[A-Za-z0-9_-]{11}$/.test(id);
+            } catch { return false; }
+        };
+        const serverError = submissionForm.querySelector(".errorlist");
+        const serverErrorField = serverError?.closest(".field, .submission-export-input")?.querySelector("textarea, input:not([type=hidden]):not([type=file]), select");
+        const popup = window.RatRaceHint.create({
+            anchor: vodInput, element: vodHelper, placement: "bottom", signal: pageSignal,
+        });
+        const describedBy = vodInput.getAttribute("aria-describedby") || "";
+        vodInput.setAttribute("aria-describedby", `${describedBy} vod-validation-helper`.trim());
+        let typingTimer;
+        const revealError = (field) => {
+            if (!field) return;
+            const details = field.closest("details");
+            if (details) details.open = true;
+            field.focus({preventScroll: true});
+            field.scrollIntoView({block: "center", behavior: "auto"});
+        };
+        const fieldHints = new Map();
+        const showFieldError = (field, message = field.validationMessage) => {
+            if (!field || field === vodInput) return;
+            if (!field.matches("input, textarea, select, button")) field.tabIndex = -1;
+            let entry = fieldHints.get(field);
+            if (!entry) {
+                const helper = document.createElement("div");
+                helper.id = `${field.id || "submission"}-validation`;
+                helper.setAttribute("role", "status");
+                const label = document.createElement("span");
+                const close = document.createElement("button");
+                close.type = "button";
+                close.dataset.hintClose = "";
+                close.textContent = "\u00d7";
+                close.setAttribute("aria-label", "Dismiss validation hint");
+                helper.append(label, close);
+                field.setAttribute("aria-describedby", `${field.getAttribute("aria-describedby") || ""} ${helper.id}`.trim());
+                entry = {label, popup: window.RatRaceHint.create({
+                    anchor: field, element: helper, placement: "bottom", signal: pageSignal,
+                })};
+                fieldHints.set(field, entry);
+            }
+            entry.label.textContent = message;
+            field.setAttribute("aria-invalid", "true");
+            entry.popup.show();
+        };
+        const clearFieldError = (field) => {
+            fieldHints.get(field)?.popup.hide();
+            field?.removeAttribute("aria-invalid");
+        };
+        showSubmissionFieldError = showFieldError;
+        clearSubmissionFieldError = clearFieldError;
+        // Keep server messages as a no-JavaScript fallback, then float them by
+        // their visible control (media selects themselves are visually hidden).
+        const serverFields = [];
+        submissionForm.querySelectorAll("[data-field-errors]").forEach((errors) => {
+            if (!errors.textContent.trim()) return;
+            const name = errors.dataset.fieldErrors;
+            const selector = {
+                evidence_video: "[data-video-picker]",
+                evidence_provider: ".submission-provider-selector",
+                evidence_clips: "[data-clips-open]",
+            }[name] || `#id_${name}`;
+            const field = submissionForm.querySelector(selector) || vodInput;
+            if (!field.matches("input, textarea, select, button")) field.tabIndex = -1;
+            const message = errors.textContent.trim();
+            errors.hidden = true;
+            serverFields.push({field, message});
+            let unresolved = true;
+            field.addEventListener("focus", () => { if (unresolved) showFieldError(field, message); });
+            field.addEventListener("input", () => { unresolved = false; clearFieldError(field); });
+            field.addEventListener("change", () => { unresolved = false; clearFieldError(field); });
+        });
+        const notifyErrors = (field) => {
+            revealError(field);
+            window.RatRaceToast.show({
+                type: "error", title: "Check your submission",
+                message: "Please correct the highlighted errors.", signal: pageSignal,
+            });
+        };
+        const validateVod = () => {
+            clearTimeout(typingTimer);
+            const invalid = Boolean(vodInput.value.trim()) && !isVodUrl(vodInput.value);
+            const serverErrors = vodHelper.querySelector("[data-vod-server-errors]");
+            const hasServerError = Boolean(serverErrors?.textContent.trim());
+            if (invalid || hasServerError) popup.show(); else popup.hide();
+            vodInput.setAttribute("aria-invalid", String(invalid || hasServerError));
+            vodInput.setCustomValidity(invalid ? "Enter a valid Twitch or YouTube VOD link." : "");
+            return !invalid;
+        };
+        vodInput.addEventListener("input", () => {
+            vodHelper.querySelector("[data-vod-server-errors]")?.replaceChildren();
+            vodInput.setCustomValidity("");
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(validateVod, 500);
+        });
+        vodInput.addEventListener("blur", validateVod);
+        // Handle native constraints ourselves so hidden export fields can be revealed.
+        submissionForm.noValidate = true;
+        submissionForm.addEventListener("submit", (event) => {
+            validateVod();
+            const invalid = [...submissionForm.elements].find((field) => field.willValidate && !field.validity.valid);
+            if (invalid) {
+                event.preventDefault();
+                invalid.setAttribute("aria-invalid", "true");
+                notifyErrors(invalid);
+                showFieldError(invalid);
+            }
+        });
+        submissionForm.addEventListener("input", (event) => {
+            if (event.target !== vodInput && event.target.validity?.valid) {
+                clearFieldError(event.target);
+            }
+        });
+        if (serverError && !document.querySelector("[data-submission-blocked-dialog]")) {
+            const field = serverFields[0]?.field || serverErrorField;
+            if (field) field.setAttribute("aria-invalid", "true");
+            notifyErrors(field || vodInput);
+            if (serverFields.length) showFieldError(serverFields[0].field, serverFields[0].message);
+            validateVod();
+        }
+        pageSignal.addEventListener("abort", () => {
+            clearTimeout(typingTimer);
+        }, {once: true});
+    }
+
     const showExportStatus = (message, failed = false, showPathAction = false) => {
+        if (failed && showSubmissionFieldError && exportFileInput) {
+            exportStatus.hidden = true;
+            showSubmissionFieldError(document.querySelector(".submission-export-choose") || exportFileInput, message);
+            return;
+        }
+        if (exportFileInput) clearSubmissionFieldError?.(document.querySelector(".submission-export-choose") || exportFileInput);
         if (!exportStatus) return;
         if (exportStatusMessage) exportStatusMessage.textContent = message;
         exportStatus.hidden = false;

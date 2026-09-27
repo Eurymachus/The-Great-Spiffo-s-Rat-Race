@@ -1,5 +1,35 @@
 # Website: Current Focus
 
+## Submission validation feedback (27 September 2026)
+
+- The submission form checks supplied VOD URL formats after a 500 ms typing
+  pause, on blur and on submit. A floating dismissible amber helper beneath the
+  URL field requests a valid Twitch or YouTube VOD without moving page content.
+- Both the VOD helper and Submit Evidence helper use `RatRaceHint.create` in
+  `anchored_hint.js`. Supply `anchor`, `element` and `placement` (`top`, `bottom`,
+  `left` or `right`); the returned control exposes `show`, `hide`, `position`
+  and `destroy`. Helpers follow scroll/resize, flip when the opposite side has
+  more room, and clean up on page departure or modal close. Modal helpers mount
+  inside the dialog so they remain in its top layer.
+- Invalid submissions show a toast and focus/scroll to the first invalid field,
+  revealing collapsed export inputs when needed. Server-returned field errors
+  receive the same feedback; active-run blocks retain their existing dialog.
+- Empty evidence remains a server-side challenge-policy decision. URL format
+  checks do not establish video availability or ownership.
+- Other submission field errors (including required export, timestamps, extra
+  broadcasts and server validation) and export-file errors use the same floating
+  control. Error lists remain available as a no-JavaScript fallback.
+- Submission feedback uses the dedicated top-centre `RatRaceToast.show` control
+  (`message`, `type: "info" | "error"`, optional `title`, `signal`, `duration`).
+  It has a severity icon/accent, dismiss action, accessible announcements and
+  hover/focus timeout pausing. Live site notifications retain their separate
+  bottom-right toast. Field hints remain anchored beside the relevant control.
+- Floating hints hide when their anchor is inside collapsed details, and
+  reposition on reopening. Toggle events explicitly refresh their visibility.
+- Fifteen focused JavaScript checks, syntax validation and Django system checks
+  pass. The owner accepted the local browser presentation after testing.
+  Deployment remains outstanding.
+
 ## Staging navigation fallback fix (26 September 2026)
 
 - Cloudflare injects its email decoder into HTML and removes the script node after
