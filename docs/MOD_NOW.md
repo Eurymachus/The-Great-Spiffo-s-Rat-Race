@@ -14,9 +14,13 @@
 
 - Created from the current 42.20 implementation, preserving 42.20 as a prior version.
 - Steam Unstable build: `25485521`.
-- The logged `ExteriorEnvelope.lua` door lookup failure remains pending API
-  investigation and an in-game regression check. This baseline does not claim
-  full 42.21 compatibility.
+- Fixed the logged `ExteriorEnvelope.lua` door lookup failure using the exposed
+  `GridSquareEdgeFacingDirection` enum, verified against build `25485521`,
+  decompile job 13, and vanilla `Tutorial1.lua`. North maps to `NORTH_SOUTH`,
+  west to `EAST_WEST`; the wall lookup still accepts a Boolean.
+- Desktop regression coverage verifies both door orientations, open/closed
+  states, walls, gaps, missing squares, and shared scan reuse. An in-game church
+  regression check remains necessary; full 42.21 compatibility is not yet claimed.
 
 ## Current deliverable
 

@@ -141,7 +141,9 @@ function Envelope.inspect(outpost, context)
                 if isDoorFrame(object, segment.north) then doorFrame = true end
             end
 
-            local door = square:getDoor(segment.north)
+            local facing = segment.north and GridSquareEdgeFacingDirection.NORTH_SOUTH
+                or GridSquareEdgeFacingDirection.EAST_WEST
+            local door = square:getDoor(facing)
             local wall = square:getWall(segment.north)
             local solidWall = wall ~= nil and not isWallFrame(wall)
                 and not isDoorFrame(wall, segment.north)
