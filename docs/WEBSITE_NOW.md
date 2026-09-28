@@ -1,5 +1,13 @@
 # Website: Current Focus
 
+## Embedded VOD referrer policy (28 September 2026)
+
+- The submission evidence iframe explicitly uses `strict-origin-when-cross-origin`
+  so YouTube receives the site origin required to avoid player Error 153.
+  The site-wide `same-origin` policy remains unchanged, and cross-origin embeds
+  do not receive moderation-page paths or query strings.
+- Playback verification on DEV remains necessary after deployment.
+
 ## Submission validation feedback (27 September 2026)
 
 - The submission form checks supplied VOD URL formats after a 500 ms typing
