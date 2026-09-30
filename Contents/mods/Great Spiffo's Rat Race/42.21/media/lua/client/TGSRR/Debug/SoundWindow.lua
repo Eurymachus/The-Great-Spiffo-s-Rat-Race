@@ -114,16 +114,6 @@ local SOUND_BATCH_MS = 180
 local RESOLVE_TIMEOUT_MS = 250
 local DISPLAY_TIMEOUT_MS = 4000
 
-local function safeCall(object, methodName, ...)
-    local args = { ... }
-    local method = object[methodName]
-    return method(object, unpack(args))
-end
-
-local function safeField(object, fieldName)
-    return object[fieldName]
-end
-
 local function round(value)
     return math.floor((value or 0) + 0.5)
 end
@@ -347,17 +337,15 @@ end
 
 local function findVehicleNearSound(x, y, z, maxDistance)
     local cell = getCell and getCell() or nil
-    local vehicles = safeCall(cell, "getVehicles")
-    local vehicleCount = safeCall(vehicles, "size") or 0
+    local vehicles = cell:getVehicles()
     local maximumDistanceSquared = maxDistance * maxDistance
 
-    for i = 0, vehicleCount - 1 do
-        local vehicle = safeCall(vehicles, "get", i)
-
+    -- Build 42.21 returns a Set, which has no indexed get method.
+    for _, vehicle in ipairs(vehicles:toArray()) do
         if vehicle then
-            local vehicleX = safeCall(vehicle, "getX")
-            local vehicleY = safeCall(vehicle, "getY")
-            local vehicleZ = safeCall(vehicle, "getZ")
+            local vehicleX = vehicle:getX()
+            local vehicleY = vehicle:getY()
+            local vehicleZ = vehicle:getZ()
 
             if vehicleX and vehicleY and vehicleZ then
                 local sameFloor =
@@ -429,7 +417,7 @@ end
 local function getVehicleForPlayer(player)
     if not player then return nil end
 
-    local vehicle = safeCall(player, "getVehicle")
+    local vehicle = player:getVehicle()
 
     if vehicle then
         TGSRR_SoundDebug.lastVehicle = vehicle
@@ -448,56 +436,58 @@ end
 local function classifySource(player, source, x, y, z)
     local simpleClass = getSimpleJavaClassName(source)
 
-    if simpleClass == "IsoPlayer"
-    or isInstanceOf(source, "IsoPlayer") then
-        return "player"
-    end
-
+    -- IsoAnimal extends IsoPlayer, so test the narrower type first.
     if simpleClass == "IsoAnimal"
     or isInstanceOf(source, "IsoAnimal") then
         return "animal"
     end
 
+    if simpleClass == "IsoPlayer"
+    or isInstanceOf(source, "IsoPlayer") then
+        return "player"
+    end
+
     return "world"
 end
 
-local function getItemShoutType(item)
-    if not item then return nil end
+local function getShoutItem(player)
+    local primary = player:getPrimaryHandItem()
+    if primary and primary:getShoutType() then return primary end
 
-    return safeCall(item, "getShoutType")
+    local secondary = player:getSecondaryHandItem()
+    if secondary and secondary:getShoutType() then return secondary end
+
+    local wornItems = player:getWornItems()
+    for i = 0, wornItems:size() - 1 do
+        local item = wornItems:getItemByIndex(i)
+        if item and item:getShoutType() then return item end
+    end
 end
 
-local function getShoutItem(player)
-    if not player then return nil end
+local function getCalloutLabel(player, radius, volume)
+    if radius ~= volume then return nil end
 
-    local primary = safeCall(player, "getPrimaryHandItem")
-    if getItemShoutType(primary) then
-        return primary
-    end
+    -- Mirrors Build 42.21 IsoGameCharacter.Callout(), but a matching
+    -- event signature is evidence only, not a unique sound identifier.
+    local primary = player:getPrimaryHandItem()
+    local megaphone = primary and primary:hasTag(ItemTag.MEGAPHONE)
+    local expectedRadius = megaphone and 90 or 30
+    local label = megaphone and "Megaphone shout" or "Shout"
 
-    local secondary = safeCall(player, "getSecondaryHandItem")
-    if getItemShoutType(secondary) then
-        return secondary
-    end
-
-    local wornItems = safeCall(player, "getWornItems")
-    local size = safeCall(wornItems, "size") or 0
-
-    for i = 0, size - 1 do
-        local item = safeCall(wornItems, "getItemByIndex", i)
-
-        if getItemShoutType(item) then
-            return item
+    if player:isSneaking() then
+        expectedRadius = megaphone and 18 or 6
+        label = megaphone and "Megaphone whisper" or "Whisper"
+    else
+        local item = getShoutItem(player)
+        if item then
+            expectedRadius = math.floor(expectedRadius * item:getShoutMultiplier())
+            label = item:getDisplayName()
         end
     end
 
-    return nil
-end
-
-local function hasItemTag(item, tag)
-    if not item or not tag then return false end
-
-    return safeCall(item, "hasTag", tag) == true
+    if radius == expectedRadius then
+        return "Likely: " .. label
+    end
 end
 
 local function getPlayerSoundLabel(player, radius, volume)
@@ -505,62 +495,21 @@ local function getPlayerSoundLabel(player, radius, volume)
         return "Player sound"
     end
 
-    local callOut = safeField(player, "callOut") == true
-    local primary = safeCall(player, "getPrimaryHandItem")
-    local secondary = safeCall(player, "getSecondaryHandItem")
+    local calloutLabel = getCalloutLabel(player, radius, volume)
+    if calloutLabel then return calloutLabel end
 
-    local megaphoneTag = ItemTag and ItemTag.MEGAPHONE or nil
-
-    local hasMegaphone =
-        hasItemTag(primary, megaphoneTag)
-        or hasItemTag(secondary, megaphoneTag)
-
-    local shoutItem = getShoutItem(player)
-
-    if callOut then
-        if shoutItem then
-            return safeCall(shoutItem, "getDisplayName") or "Shout item"
-        end
-
-        if hasMegaphone then
-            if safeCall(player, "isSneaking") then
-                return "Megaphone whisper"
-            end
-
-            return "Megaphone shout"
-        end
-
-        if safeCall(player, "isSneaking") then
-            return "Whisper"
-        end
-
-        return "Shout"
-    end
-
-    if radius == 6 then
-        return "Whisper"
-    end
-
-    if radius == 18 then
-        return "Megaphone whisper"
-    end
-
-    if radius == 90 then
-        return "Megaphone shout"
-    end
-
-    if safeCall(player, "isPlayerMoving")
+    if player:isPlayerMoving()
     and radius == volume
     and radius <= 40 then
-        if safeCall(player, "isSprinting") then
+        if player:isSprinting() then
             return "Sprint footsteps"
         end
 
-        if safeCall(player, "isRunning") then
+        if player:isRunning() then
             return "Run footsteps"
         end
 
-        if safeCall(player, "isSneaking") then
+        if player:isSneaking() then
             return "Sneak footsteps"
         end
 
@@ -586,11 +535,7 @@ local function getServerVehicleAttractionMultiplier()
     local options = getServerOptions()
 
     local value = tonumber(
-        safeCall(
-            options,
-            "getDouble",
-            "CarEngineAttractionModifier"
-        )
+        options:getDouble("CarEngineAttractionModifier")
     )
 
     if value == nil then
@@ -606,35 +551,23 @@ local function getVehicleEngineData(vehicle)
     end
 
     local vehicleLoudness = tonumber(
-        safeCall(
-            vehicle,
-            "getEngineLoudness"
-        )
+        vehicle:getEngineLoudness()
     )
 
     if vehicleLoudness == nil then
         return nil
     end
 
-    local script = safeCall(
-        vehicle,
-        "getScript"
-    )
+    local script = vehicle:getScript()
 
     local scriptLoudness = tonumber(
-        safeCall(
-            script,
-            "getEngineLoudness"
-        )
+        script:getEngineLoudness()
     ) or 0
 
     local engineSpeed = math.max(
         0,
         tonumber(
-            safeCall(
-                vehicle,
-                "getEngineSpeed"
-            )
+            vehicle:getEngineSpeed()
         ) or 0
     )
 
@@ -813,10 +746,10 @@ local function getAnimalSoundLabel(source)
         return "Animal sound"
     end
 
-    local name = safeCall(source, "getFullName")
+    local name = source:getFullName()
 
     if not name or name == "" then
-        name = safeCall(source, "getAnimalType")
+        name = source:getAnimalType()
     end
 
     if name and name ~= "" then
@@ -1020,8 +953,8 @@ local function getWeatherHearingMultiplier()
         return 1.0
     end
 
-    local rain = safeCall(climate, "getRainIntensity") or 0
-    local fog = safeCall(climate, "getFogIntensity") or 0
+    local rain = climate:getRainIntensity() or 0
+    local fog = climate:getFogIntensity() or 0
 
     return math.max(
         0,
@@ -1078,102 +1011,16 @@ local function getZombieRangeText(radius)
     return tostring(minimum) .. "-" .. tostring(maximum) .. " tiles"
 end
 
-local function sourceMatches(candidate, soundSource)
-    if candidate.source == soundSource then
-        return true
-    end
-
-    return candidate.source == nil and soundSource == nil
-end
-
-local function soundMatchesCandidate(candidate, sound)
-    if not sound then return false end
-
-    return safeField(sound, "x") == candidate.x
-        and safeField(sound, "y") == candidate.y
-        and safeField(sound, "z") == candidate.z
-        and safeField(sound, "radius") == candidate.radius
-        and safeField(sound, "volume") == candidate.volume
-        and sourceMatches(
-            candidate,
-            safeField(sound, "source")
-        )
-end
-
-local function makeResolvedRecord(candidate, sound)
+local function makeResolvedRecord(candidate)
     local source = candidate.source
-
-    if sound then
-        source =
-            safeField(sound, "source")
-            or source
-    end
-
-    local stressZombies =
-        sound
-        and safeField(
-            sound,
-            "stressZombies"
-        )
-
-    local stressAnimals =
-        sound
-        and safeField(
-            sound,
-            "stressAnimals"
-        )
-
-    local stressHumans =
-        sound
-        and safeField(
-            sound,
-            "stresshumans"
-        )
-
-    local repeating =
-        sound
-        and safeField(
-            sound,
-            "repeating"
-        )
-
-    local sourceIsZombie =
-        sound
-        and safeField(
-            sound,
-            "sourceIsZombie"
-        )
-
-    local sourceIsPlayerBase =
-        sound
-        and safeField(
-            sound,
-            "sourceIsPlayerBase"
-        )
-
-    if stressZombies == nil then
-        stressZombies = true
-    end
-
-    if stressAnimals == nil then
-        stressAnimals = false
-    end
-
-    if stressHumans == nil then
-        stressHumans = false
-    end
-
-    if repeating == nil then
-        repeating = false
-    end
-
-    if sourceIsZombie == nil then
-        sourceIsZombie = false
-    end
-
-    if sourceIsPlayerBase == nil then
-        sourceIsPlayerBase = false
-    end
+    -- OnWorldSound supplies no WorldSound object or stress/repeating flags.
+    -- These are display defaults, not observed properties of the event.
+    local stressZombies = true
+    local stressAnimals = false
+    local stressHumans = false
+    local repeating = false
+    local sourceIsZombie = isInstanceOf(source, "IsoZombie")
+    local sourceIsPlayerBase = false
 
     local kind = candidate.kind
     local label
@@ -1182,7 +1029,7 @@ local function makeResolvedRecord(candidate, sound)
     local engineData = nil
 
     if kind == "player" then
-        label = getPlayerSoundLabel(
+        label = candidate.playerLabel or getPlayerSoundLabel(
             source or getTrackedPlayer(),
             candidate.radius,
             candidate.volume
@@ -1391,7 +1238,7 @@ local function resolvePendingSounds()
         if now - candidate.time >= RESOLVE_TIMEOUT_MS then
             table.insert(
                 resolvedNewestFirst,
-                makeResolvedRecord(candidate, nil)
+                makeResolvedRecord(candidate)
             )
         else
             table.insert(keep, 1, candidate)
@@ -2160,6 +2007,9 @@ function TGSRR_SoundDebug.onWorldSound(
     table.insert(TGSRR_SoundDebug.pending, {
         kind = kind,
         source = source,
+        -- Capture equipment and stance before the deferred resolver runs.
+        playerLabel = kind == "player"
+            and getPlayerSoundLabel(source, radius, volume) or nil,
 
         x = x,
         y = y,
