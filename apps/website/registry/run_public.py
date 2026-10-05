@@ -480,6 +480,7 @@ def build_public_run_context(run):
                 "target": target,
                 "current_display": f"{current:,}",
                 "target_display": f"{target:,}",
+                "ratio": ratio,
                 "percent": round(ratio * 100, 1),
                 "status": "Complete" if ratio >= 1 else "In Progress",
             }

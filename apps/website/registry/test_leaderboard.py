@@ -74,7 +74,7 @@ class LeaderboardTests(TestCase):
             lifecycle_status=lifecycle,
             export_format=3,
             generated_at=recorded,
-            current_kills=100 + int(suffix),
+            current_kills=int(completion["kills"] * 1_000_000),
             event_sequence=int(suffix),
             event_hash=str(suffix) * 64,
             character_name=f"Survivor {suffix}",
@@ -89,7 +89,7 @@ class LeaderboardTests(TestCase):
             raw_export=f"export-{suffix}",
             export_format=3,
             generated_at=recorded,
-            current_kills=100 + int(suffix),
+            current_kills=int(completion["kills"] * 1_000_000),
             event_sequence=int(suffix),
             event_hash=str(suffix) * 64,
             projection=projection,
@@ -102,18 +102,40 @@ class LeaderboardTests(TestCase):
             raw_skill_id="Aiming",
             raw_category_id="Firearm",
             catalogue_entry=self.aiming_skill,
-            level=10,
+            level=int(completion["skills"] * 10),
             xp=0,
         )
         return run
 
     def test_weighted_completion_gives_kills_half_of_the_score(self):
-        projection = {"challengeProgress": {"categories": {
-            "kills": {"available": True, "progress": 1},
-            "outposts": {"available": True, "progress": 0},
-            "skills": {"available": True, "progress": 0},
-        }}}
-        self.assertEqual(weighted_completion(projection), 50.0)
+        progress = [
+            {"id": "kills", "ratio": 1},
+            {"id": "outposts", "ratio": 0},
+            {"id": "skills", "ratio": 0},
+            {"id": "landmarks", "ratio": 1},
+        ]
+        self.assertEqual(weighted_completion(progress), 50.0)
+
+    def test_sparse_export_uses_approved_progress_and_ignores_old_summary(self):
+        run = self.create_run("1", {"kills": 0.2, "outposts": 0, "skills": 0.5})
+        submission = run.approved_submission
+        submission.projection.pop("challengeProgress")
+        submission.save(update_fields=("projection",))
+        self.assertEqual(build_current_leaderboard()[0]["completion"], round(10 + 12.5 + 25 / 13, 2))
+        submission.projection["challengeProgress"] = {"categories": {
+            key: {"available": True, "progress": 1}
+            for key in ("kills", "outposts", "skills")
+        }}
+        submission.save(update_fields=("projection",))
+        self.assertEqual(build_current_leaderboard()[0]["completion"], round(10 + 12.5 + 25 / 13, 2))
+
+    def test_weighted_completion_preserves_precision_and_missing_categories(self):
+        self.assertEqual(weighted_completion([]), 0.0)
+        self.assertEqual(weighted_completion([
+            {"id": "kills", "ratio": 0.056222},
+            {"id": "skills", "ratio": 0.3},
+            {"id": "outposts", "ratio": 0},
+        ]), 10.31)
 
     def test_leaderboard_uses_active_personal_best_from_approved_snapshot(self):
         self.create_run("1", {"kills": 0.2, "outposts": 0.2, "skills": 0.2})
@@ -125,9 +147,9 @@ class LeaderboardTests(TestCase):
 
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0]["run"], best)
-        self.assertEqual(entries[0]["completion"], 80.0)
+        self.assertEqual(entries[0]["completion"], round(40 + 20 + 25 / 13, 2))
         self.assertEqual(entries[0]["outposts_completed"], 1)
-        self.assertEqual(entries[0]["maxed_skills"], 1)
+        self.assertEqual(entries[0]["maxed_skills"], 0)
 
     def test_public_page_prompts_guests_and_shows_build_to_participants(self):
         run = self.create_run("5", {"kills": 0.5, "outposts": 0.5, "skills": 0.5})

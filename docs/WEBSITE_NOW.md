@@ -1,5 +1,17 @@
 # Website: Current Focus
 
+## Leaderboard progress authority (5 October 2026)
+
+- Verified-run rankings now calculate weighted completion from the same approved
+  category ratios as the public run page, rather than the obsolete exported
+  `challengeProgress` field. Sparse exports no longer receive a zero score.
+- Preserve the 50% kills, 25% outposts, 25% skills weighting and existing
+  renormalisation when a category is unavailable. Use unrounded ratios before
+  rounding the final score to two decimal places. Landmarks do not affect rank.
+- Eleven focused leaderboard and partial-skill checks pass. A broader run-page
+  check has a pre-existing Back to / Return to wording mismatch, reproduced
+  with the unchanged run presentation code. Deployment remains outstanding.
+
 ## Collapsible submission video (4 October 2026)
 
 - Submission review embeds use a keyboard-accessible Embedded video disclosure.

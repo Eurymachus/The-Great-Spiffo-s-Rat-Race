@@ -15,15 +15,15 @@ def _ratio(value):
     return max(0.0, min(1.0, value if isinstance(value, (int, float)) else 0.0))
 
 
-def weighted_completion(projection):
-    categories = projection.get("challengeProgress", {}).get("categories", {})
+def weighted_completion(progress):
+    categories = {category["id"]: category for category in progress}
     weighted_total = 0.0
     applied_weight = 0.0
     for key, weight in LEADERBOARD_CATEGORY_WEIGHTS.items():
-        category = categories.get(key, {}) if isinstance(categories, dict) else {}
-        if not isinstance(category, dict) or not category.get("available"):
+        category = categories.get(key)
+        if category is None:
             continue
-        weighted_total += _ratio(category.get("progress")) * weight
+        weighted_total += _ratio(category.get("ratio")) * weight
         applied_weight += weight
     return round(weighted_total / applied_weight * 100, 2) if applied_weight else 0.0
 
@@ -100,7 +100,7 @@ def build_ranking_table(raw_config=None):
         presented = build_public_run_context(run)
         outposts = presented["outposts"]
         selected_traits = presented["selected_traits"]
-        score = weighted_completion(projection)
+        score = weighted_completion(presented["progress"])
         verified_at = (
             run.approved_submission.reviewed_at
             or run.approved_submission.generated_at
