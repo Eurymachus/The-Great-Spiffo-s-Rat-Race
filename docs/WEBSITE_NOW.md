@@ -1,5 +1,15 @@
 # Website: Current Focus
 
+## Collapsible submission video (4 October 2026)
+
+- Submission review embeds use a keyboard-accessible Embedded video disclosure.
+  Only the player collapses; evidence status, audit window, provider, broadcast
+  link, timestamps and clip links remain visible.
+- Expanded is the first-visit default. Each moderator's choice is remembered
+  across submissions in this browser using account-scoped local storage.
+  The disclosure remains usable when storage is unavailable or JavaScript is off.
+- No migration is required. Deployment remains outstanding.
+
 ## Embedded VOD referrer policy (28 September 2026)
 
 - The submission evidence iframe explicitly uses `strict-origin-when-cross-origin`

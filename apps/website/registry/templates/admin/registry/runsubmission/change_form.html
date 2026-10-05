@@ -105,7 +105,13 @@
         {% if vod.deadline %}<p>VOD audit window: {{ vod.deadline|date:"j M Y, H:i" }}{% if vod.expired %} (elapsed; later disputes require team discussion){% endif %}</p>{% else %}<p>Broadcast date unknown. Check footage availability promptly.</p>{% endif %}
         </div></div>
         {% endif %}
-        {% if vod.embed %}<iframe class="submission-vod" src="{{ vod.embed }}" title="Submission VOD evidence" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="fullscreen" allowfullscreen></iframe>{% endif %}
+        {% if vod.embed %}
+        <details class="run-review-evidence" data-submission-video data-preference-user="{{ request.user.pk }}" open>
+          <summary>Embedded video</summary>
+          <iframe class="submission-vod" src="{{ vod.embed }}" title="Submission VOD evidence" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="fullscreen" allowfullscreen></iframe>
+        </details>
+        <script src="{% static 'registry/admin_submission_video.js' %}"></script>
+        {% endif %}
         {% with evidence=original %}
           {% if evidence and evidence.evidence_url %}
             <dl class="run-review-comparison">
