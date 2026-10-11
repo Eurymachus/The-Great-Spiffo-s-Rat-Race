@@ -107,7 +107,7 @@ def parse_legacy_csv(text, label):
     if errors:
         raise ValidationError(errors)
     if not parsed:
-        raise ValidationError(f"{label} does not contain any legacy records.")
+        raise ValidationError(f"{label} does not contain any Rat Race 1.0 records.")
     return parsed
 
 
@@ -140,8 +140,8 @@ def _same_result(left, right):
 
 
 def build_legacy_import_preview(leaderboard_text, hall_of_fame_text):
-    leaderboard_rows = parse_legacy_csv(leaderboard_text, "Legacy Leaderboard")
-    hall_rows = parse_legacy_csv(hall_of_fame_text, "Legacy Hall of Fame")
+    leaderboard_rows = parse_legacy_csv(leaderboard_text, "Rat Race 1.0 Leaderboard")
+    hall_rows = parse_legacy_csv(hall_of_fame_text, "Rat Race 1.0 Hall of Fame")
     leaderboard_groups = {}
     hall_groups = {}
     for row in leaderboard_rows:
@@ -195,9 +195,9 @@ def build_legacy_import_preview(leaderboard_text, hall_of_fame_text):
         "records": records,
         "warnings": [
             message for message in (
-                f"{duplicate_leaderboard} repeated Legacy Leaderboard row(s) were reduced to the strongest record."
+                f"{duplicate_leaderboard} repeated Rat Race 1.0 Leaderboard row(s) were reduced to the strongest record."
                 if duplicate_leaderboard else "",
-                f"{duplicate_hall} repeated Legacy Hall of Fame row(s) were reduced to the strongest record."
+                f"{duplicate_hall} repeated Rat Race 1.0 Hall of Fame row(s) were reduced to the strongest record."
                 if duplicate_hall else "",
             ) if message
         ],
@@ -234,7 +234,7 @@ def _create_submission(run, record, source, review, reviewer):
         import_review=review,
         reviewed_by=reviewer,
         reviewed_at=timezone.now(),
-        review_note="Approved by the confirmed legacy data import.",
+        review_note="Approved by the confirmed Rat Race 1.0 data import.",
     )
 
 
@@ -242,10 +242,10 @@ def _create_submission(run, record, source, review, reviewer):
 def apply_legacy_import(review, reviewer):
     review = LegacyDataImport.objects.select_for_update().get(pk=review.pk)
     if review.status != LegacyDataImport.Status.PREVIEW:
-        raise ValidationError("This legacy data import has already been resolved.")
+        raise ValidationError("This Rat Race 1.0 data import has already been resolved.")
     preview = build_legacy_import_preview(review.leaderboard_csv, review.hall_of_fame_csv)
     if preview != review.preview:
-        raise ValidationError("The stored legacy import no longer matches its validated preview.")
+        raise ValidationError("The stored Rat Race 1.0 import no longer matches its validated preview.")
     if LegacyRunClaim.objects.exists() or LegacyRunSubmission.objects.filter(
         source=LegacyRunSubmission.Source.PARTICIPANT
     ).exists():

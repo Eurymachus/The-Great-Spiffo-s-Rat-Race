@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-10-11 - Adopt numbered challenge editions
+
+- The Great Spiffo's Rat Race remains the overall brand. Rat Race 1.0 and
+  Rat Race 2.0 are official edition names; a future edition may be Rat Race 3.0.
+- Rat Race 1.0 is still running. Rat Race 2.0 is in development. Each edition
+  has separate standings. A new edition means a deliberate new challenge
+  ruleset and competition, not a routine fix, game build or channel change.
+- Replace public Legacy/Unstable challenge labels with Rat Race 1.0, and
+  Stable-era challenge labels with Rat Race 2.0. Technical game-channel names
+  and internal legacy identifiers retain their existing meanings.
+- Spreadsheet handover is not challenge closure. Active 1.0 runs can continue
+  through the existing claim, evidence submission and moderation journey.
+- This supersedes earlier affectionate-era naming and archive/final wording.
+
+
 This file records settled project decisions so they do not need to be repeatedly
 reconstructed. Add new entries briefly, with the date and reason.
 
@@ -663,20 +678,20 @@ a normal run-moderation bulk action.
   `Approver` role is retired and receives no permissions after role bootstrap;
   its members must be deliberately assigned to the appropriate scoped role.
 
-## 2026-08-04 - Import the final Unstable legacy datasets after deployment
+## 2026-08-04 - Import the Rat Race 1.0 handover datasets after deployment
 
-- The Legacy Leaderboard and Legacy Hall of Fame are separate public views of
+- The Rat Race 1.0 Leaderboard and Rat Race 1.0 Hall of Fame are separate public views of
   one legacy run per historical participant. The Leaderboard shows the current
   approved submission for active runs. The Hall of Fame shows the best approved
   submission across all legacy runs.
-- The final cutoff date has not yet been selected. Production may therefore be
+- The spreadsheet handover date has not yet been selected. Production may therefore be
   deployed with an empty legacy dataset and populated later through a protected
   super-admin import screen.
 - The importer accepts two CSV exports, validates both without changing public
   data, presents row counts, merged-run counts and warnings, then requires an
   explicit confirmation before replacing the imported dataset.
 - Rows are merged by a normalized historical participant name. A participant
-  present in the Legacy Leaderboard begins Active. A Hall-of-Fame-only record
+  present in the Rat Race 1.0 Leaderboard begins Active. A Hall-of-Fame-only record
   begins Inactive. Team-controlled lifecycle changes remain separate from the
   imported results.
 - Imported streaming-channel or source-link columns are ignored and never
@@ -689,8 +704,8 @@ a normal run-moderation bulk action.
 - Historical Unstable data remains separate from verified website
   `ChallengeRun` and `RunSubmission` records. Missing exports, character names,
   event ledgers and review timestamps must not be invented.
-- The future claim and participant legacy-submission journeys remain approved
-  design work separate from the importer implementation.
+- The claim and participant legacy-submission journeys are implemented alongside
+  the importer; active Rat Race 1.0 runs can continue after handover.
 - An authenticated participant may submit one legacy run claim for team review.
   Claim details are immutable in administration and reviewed through explicit
   Approve or Decline actions rather than a generic edit form. Decline requires a
@@ -698,8 +713,8 @@ a normal run-moderation bulk action.
   participant. Approval links the historical run to the current participant,
   after collision checks prevent either side from being linked elsewhere.
 - Participants with a pending or declined claim see that state on their
-  dashboard. An approved claimant instead sees a dedicated Legacy Rat Race
-  panel below a clear archive divider. It shows one result: the current
+  dashboard. An approved claimant instead sees a dedicated Rat Race 1.0
+  panel below a clear edition divider. It shows one result: the current
   Leaderboard submission when the legacy run is Active, or the Hall of Fame
   best when it is Inactive or Deceased. A lifecycle tag identifies that state.
   These Unstable results remain visually and logically separate from verified
@@ -806,7 +821,7 @@ a normal run-moderation bulk action.
 
 - Managed Pages may include a reusable `Ranking Table` block backed by canonical
   run and challenge data. It is not limited to hard-coded Current Leaderboard,
-  Hall of Fame or Legacy Hall of Fame presets.
+  Hall of Fame or Rat Race 1.0 Hall of Fame presets.
 - The block exposes a bounded, validated query configuration. Administrators may
   filter by challenge mode, game or challenge build, run lifecycle and selected
   participants. Appropriate filters support multiple selected values through an
@@ -827,7 +842,7 @@ a normal run-moderation bulk action.
   detail restrictions.
 - The intended initial configurations are: Current Leaderboard for active runs,
   Hall of Fame for each participant's strongest eligible Stable terminal run,
-  and Legacy Hall of Fame for imported Unstable-build personal bests. Legacy
+  and Rat Race 1.0 Hall of Fame for imported Unstable-build personal bests. Legacy
   results remain visibly and logically separate from Stable rankings.
 
 ## 2026-08-05 - Treat participant history as a focused signed-in profile
@@ -835,7 +850,7 @@ a normal run-moderation bulk action.
 - A signed-in Rat Racer may open another participant's profile by selecting
   their linked name in a Stable or claimed Legacy ranking table.
 - The profile shows the participant's nickname, approved avatar, join date,
-  Personal Best, Active Runs, Past Runs and claimed Legacy Rat Race record when
+  Personal Best, Active Runs, Past Runs and claimed Rat Race 1.0 record when
   available. Individual Stable runs link to their approved detail pages.
 - The profile does not expose submission history, pending or declined
   submissions, evidence review, or moderation details.

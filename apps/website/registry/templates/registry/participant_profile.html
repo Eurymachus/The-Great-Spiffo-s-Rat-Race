@@ -14,7 +14,7 @@
     <div class="account-dashboard-welcome">
       <p class="account-dashboard-kicker">Rat Racer profile</p>
       <h2>{{ profile_participant.nickname }}</h2>
-      <p>Approved Stable and Legacy Rat Race records.</p>
+      <p>Approved Rat Race 2.0 and Rat Race 1.0 records.</p>
     </div>
     {% if request.user.pk == profile_participant.pk %}
     <div class="dashboard-header-actions">
@@ -33,7 +33,7 @@
         {% if personal_best %}
         {% include "registry/includes/profile_run_card.html" with run=personal_best show_progress=True %}
         {% else %}
-        <div class="dashboard-empty-state compact"><strong>No verified result yet</strong><p>This participant has no approved Stable runs.</p></div>
+        <div class="dashboard-empty-state compact"><strong>No verified result yet</strong><p>This participant has no approved Rat Race 2.0 runs.</p></div>
         {% endif %}
       </section>
 
@@ -53,15 +53,15 @@
 
       {% if legacy_run and legacy_submission %}
       <div class="legacy-dashboard-section">
-        <div class="legacy-dashboard-divider" role="separator"><span>Unstable archive</span></div>
+        <div class="legacy-dashboard-divider" role="separator"><span>Rat Race 1.0</span></div>
         <section class="dashboard-panel legacy-dashboard-panel">
-          <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Historical challenge record</p><h3>Legacy Rat Race</h3></div></div>
-          <div class="legacy-dashboard-identity"><span>Historical racer</span><strong>{{ legacy_run.legacy_participant_name }}</strong><div class="legacy-era-status"><small>Unstable Rat Race</small><span class="dashboard-coming-soon legacy-lifecycle-tag status-{{ legacy_run.lifecycle }}">{{ legacy_run.get_lifecycle_display }}</span></div></div>
+          <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Original challenge, still running</p><h3>Rat Race 1.0</h3></div></div>
+          <div class="legacy-dashboard-identity"><span>Historical racer</span><strong>{{ legacy_run.legacy_participant_name }}</strong><div class="legacy-era-status"><small>Rat Race 1.0</small><span class="dashboard-coming-soon legacy-lifecycle-tag status-{{ legacy_run.lifecycle }}">{{ legacy_run.get_lifecycle_display }}</span></div></div>
           <div class="legacy-dashboard-results legacy-dashboard-single-result"><article>
-            <header><span>{% if legacy_run.lifecycle == "active" %}Legacy Leaderboard{% else %}Legacy Hall of Fame{% endif %}</span><strong>{{ legacy_submission.character_name|default:"Historical result" }}</strong></header>
+            <header><span>{% if legacy_run.lifecycle == "active" %}Rat Race 1.0 Leaderboard{% else %}Rat Race 1.0 Hall of Fame{% endif %}</span><strong>{{ legacy_submission.character_name|default:"Historical result" }}</strong></header>
             <dl><div><dt>Zombie kills</dt><dd>{{ legacy_submission.zombie_kills }}</dd></div><div><dt>Survival days</dt><dd>{{ legacy_submission.survival_days|floatformat:"-2" }}</dd></div><div><dt>Outposts</dt><dd>{{ legacy_submission.outposts_cleared }} / 13</dd></div><div><dt>Maxed skills</dt><dd>{{ legacy_submission.maxed_skills }} / 35</dd></div><div><dt>Progress</dt><dd>{{ legacy_submission.challenge_progress|floatformat:2 }}%</dd></div></dl>
           </article></div>
-          <p class="legacy-dashboard-note">This imported result belongs to the Unstable Rat Race archive and remains separate from verified Stable runs.</p>
+          <p class="legacy-dashboard-note">Rat Race 1.0 is still running. Its standings remain separate from Rat Race 2.0.</p>
         </section>
       </div>
       {% endif %}

@@ -1,18 +1,18 @@
 {% extends "registry/base.html" %}
 {% load static %}
-{% block title_suffix %} | Submit a legacy update{% endblock %}
+{% block title_suffix %} | Submit a Rat Race 1.0 update{% endblock %}
 {% block extra_head %}{% endblock %}
 {% block content %}
 <section class="card account-form-card run-submission-card">
   <header class="run-submission-header">
-    <div><p class="account-dashboard-kicker">Unstable archive</p><h2>Submit a legacy update</h2><p>Update the historical record for {{ legacy_run.legacy_participant_name }}.</p></div>
+    <div><p class="account-dashboard-kicker">Rat Race 1.0</p><h2>Submit a Rat Race 1.0 update</h2><p>Update the Rat Race 1.0 record for {{ legacy_run.legacy_participant_name }}.</p></div>
     <a class="dashboard-header-action" href="{% url 'registry:account' %}">Dashboard</a>
   </header>
   <form method="post" class="stacked-form">
     {% csrf_token %}
     {{ form.non_field_errors }}
     <section class="submission-step">
-      <header class="submission-step-heading"><span class="submission-step-number" aria-hidden="true">1</span><div><h3>Legacy result</h3><p>Enter the values shown in Project Zomboid for this survivor.</p></div></header>
+      <header class="submission-step-heading"><span class="submission-step-number" aria-hidden="true">1</span><div><h3>Rat Race 1.0 result</h3><p>Enter the values shown in Project Zomboid for this survivor.</p></div></header>
       <div class="submission-step-body legacy-submission-fields">
         <div class="field">{{ form.character_name.label_tag }}{{ form.character_name }}{{ form.character_name.errors }}</div>
         <div class="legacy-submission-number-grid">
@@ -60,7 +60,7 @@
         <div class="submission-manual-evidence"><span class="submission-divider-label">{% if streaming_accounts %}VOD not listed?{% else %}VOD link{% endif %}</span><div class="field">{{ form.manual_evidence_url.label_tag }}{{ form.manual_evidence_url }}<small>{{ form.manual_evidence_url.help_text }}</small>{{ form.manual_evidence_url.errors }}</div></div>
       </div>
     </section>
-    <div class="submission-actions"><p>The update remains private until a moderator approves it.</p><button type="submit">Submit legacy update</button></div>
+    <div class="submission-actions"><p>The update remains private until a moderator approves it.</p><button type="submit">Submit Rat Race 1.0 update</button></div>
   </form>
   {% if streaming_accounts %}<form id="refresh-streaming-media-form" method="post" action="{% url 'registry:refresh_streaming_media' %}">{% csrf_token %}<input type="hidden" name="provider" value="{{ selected_provider }}"></form>{% endif %}
 </section>

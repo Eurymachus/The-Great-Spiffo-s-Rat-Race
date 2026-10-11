@@ -51,8 +51,8 @@
   {% endfor %}{% endif %}
   {% if show_legacy_claims %}{% for entry in entries %}{% if entry.claim_state == "available" %}
   <dialog class="leaderboard-build-modal leaderboard-claim-modal" id="legacy-claim-{{ block.pk }}-{{ entry.legacy_run.pk }}" aria-labelledby="legacy-claim-title-{{ block.pk }}-{{ entry.legacy_run.pk }}">
-    <header><div><p class="account-dashboard-kicker">Legacy run claim</p><strong id="legacy-claim-title-{{ block.pk }}-{{ entry.legacy_run.pk }}">{{ entry.racer }}</strong></div><button type="button" data-legacy-claim-close>Close</button></header>
-    <div class="leaderboard-build-content"><p>Claim this legacy record as your own?</p><p>This request will be reviewed by the team. Once approved, the legacy run will be linked to your participant account.</p><form method="post" action="{% url 'registry:claim_legacy_run' entry.legacy_run.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="dashboard-header-action" type="submit">Submit claim</button></form></div>
+    <header><div><p class="account-dashboard-kicker">Rat Race 1.0 run claim</p><strong id="legacy-claim-title-{{ block.pk }}-{{ entry.legacy_run.pk }}">{{ entry.racer }}</strong></div><button type="button" data-legacy-claim-close>Close</button></header>
+    <div class="leaderboard-build-content"><p>Claim this Rat Race 1.0 record as your own?</p><p>This request will be reviewed by the team. Once approved, the Rat Race 1.0 run will be linked to your participant account.</p><form method="post" action="{% url 'registry:claim_legacy_run' entry.legacy_run.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="dashboard-header-action" type="submit">Submit claim</button></form></div>
   </dialog>
   {% endif %}{% endfor %}{% endif %}
   {% if not request.user.is_authenticated and config.show_details or not request.user.is_authenticated and config.show_build %}

@@ -8,21 +8,29 @@
   **The Great Spiffo**
 - Informal and social name: **Rat Race**
 - Participant/community name: **Rat Racers**
-- Upcoming B42 Stable era: affectionately **Rat Race 2.0**
+- Original challenge edition: **Rat Race 1.0**, still running.
+- Next challenge edition: **Rat Race 2.0**, in development.
 
-Use the official title for page titles, formal challenge references, and the mod.
-Use “The Rat Race” as the formal shortened name. Use “Rat Race” conversationally,
-adjectivally, and where space is limited. “Rat Race 2.0” is an affectionate era
-name, not a replacement for the official title.
+Use the official title for the overall brand, formal challenge references, and
+mod. Rat Race 1.0 and Rat Race 2.0 are official challenge edition names.
+A future substantial new ruleset and competition may become Rat Race 3.0.
+Routine fixes do not create a new edition. Each edition has its own standings
+and can independently be upcoming, active, or concluded.
 
-## Current Era
+## Current Editions
 
-- The currently live Rat Race challenge targets Project Zomboid's B42 Unstable
-  game release channel. This does not refer to a Git or repository branch.
-- The website/platform being prepared is associated with B42 Stable and is known
-  informally as Rat Race 2.0.
-- The Discord contains B42 Unstable and B42 Stable category structures; only the
-  Unstable category is currently visible to participants.
+- Rat Race 1.0 is the original, still-running challenge associated with B42
+  Unstable. Use Rat Race 1.0 Leaderboard and Rat Race 1.0 Hall of Fame.
+  Do not describe the whole edition as concluded, final, or an archive.
+- Rat Race 2.0 is the next challenge edition being developed, previously
+  described as the upcoming B42 Stable era.
+- Edition, Project Zomboid game build, release channel, and mod version are
+  separate concepts. A game update or channel change does not rename an edition.
+- A spreadsheet handover date determines the imported snapshot, not the end of
+  Rat Race 1.0. Approved claimants can continue updating Active 1.0 runs.
+- The Discord currently has B42 Unstable and B42 Stable category structures;
+  only the Unstable category is visible to participants. These existing names
+  describe the current Discord structure, not the preferred edition names.
 
 ## Meaning of “Official”
 

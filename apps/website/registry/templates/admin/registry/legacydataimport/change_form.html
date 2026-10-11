@@ -38,7 +38,7 @@
     <fieldset class="module aligned">
       <h2>Validated preview</h2>
       <div class="legacy-preview-summary">
-        <div class="legacy-preview-stat"><strong>{{ original.preview.counts.merged_runs }}</strong><span>Merged legacy runs</span></div>
+        <div class="legacy-preview-stat"><strong>{{ original.preview.counts.merged_runs }}</strong><span>Merged Rat Race 1.0 runs</span></div>
         <div class="legacy-preview-stat"><strong>{{ original.preview.counts.active_runs }}</strong><span>Active runs</span></div>
         <div class="legacy-preview-stat"><strong>{{ original.preview.counts.inactive_runs }}</strong><span>Inactive runs</span></div>
         <div class="legacy-preview-stat"><strong>{{ original.preview.counts.matched_names }}</strong><span>Names matched across files</span></div>
@@ -53,10 +53,10 @@
       {% endif %}
 
       <details class="legacy-preview-details" open>
-        <summary>Legacy Leaderboard <span>({{ original.preview.counts.active_runs }} active runs)</span></summary>
+        <summary>Rat Race 1.0 Leaderboard <span>({{ original.preview.counts.active_runs }} active runs)</span></summary>
         <div class="legacy-preview-table-wrap">
           <table class="legacy-preview-table">
-            <thead><tr><th>Position</th><th>Legacy participant</th><th class="numeric">Kills</th><th class="numeric">Outposts</th><th class="numeric">Maxed skills</th><th class="numeric">Day</th><th class="numeric">Progress</th></tr></thead>
+            <thead><tr><th>Position</th><th>Rat Race 1.0 participant</th><th class="numeric">Kills</th><th class="numeric">Outposts</th><th class="numeric">Maxed skills</th><th class="numeric">Day</th><th class="numeric">Progress</th></tr></thead>
             <tbody>
               {% for record in legacy_leaderboard_preview %}
                 <tr>
@@ -75,10 +75,10 @@
       </details>
 
       <details class="legacy-preview-details">
-        <summary>Legacy Hall of Fame <span>({{ original.preview.counts.merged_runs }} merged runs)</span></summary>
+        <summary>Rat Race 1.0 Hall of Fame <span>({{ original.preview.counts.merged_runs }} merged runs)</span></summary>
         <div class="legacy-preview-table-wrap">
           <table class="legacy-preview-table">
-            <thead><tr><th>Position</th><th>Legacy participant</th><th class="numeric">Kills</th><th class="numeric">Outposts</th><th class="numeric">Maxed skills</th><th class="numeric">Day</th><th class="numeric">Progress</th></tr></thead>
+            <thead><tr><th>Position</th><th>Rat Race 1.0 participant</th><th class="numeric">Kills</th><th class="numeric">Outposts</th><th class="numeric">Maxed skills</th><th class="numeric">Day</th><th class="numeric">Progress</th></tr></thead>
             <tbody>
               {% for record in legacy_hall_of_fame_preview %}
                 <tr>
@@ -102,7 +102,7 @@
 {% block submit_buttons_bottom %}
   {% if original.status == "preview" %}
     <div class="submit-row">
-      <input type="submit" value="Confirm and replace legacy data" class="default"
+      <input type="submit" value="Confirm and replace Rat Race 1.0 data" class="default"
              formmethod="post" formaction="{% url 'admin:registry_legacydataimport_confirm' original.pk %}">
     </div>
   {% endif %}

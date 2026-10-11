@@ -78,13 +78,13 @@
   {% if legacy_run or legacy_claim %}
   <div class="legacy-dashboard-section">
     <div class="legacy-dashboard-divider" role="separator">
-      <span>Unstable archive</span>
+      <span>Rat Race 1.0</span>
     </div>
     <section class="dashboard-panel legacy-dashboard-panel">
       <div class="dashboard-panel-heading">
         <div>
-          <p class="dashboard-panel-kicker">Historical challenge record</p>
-          <h3>Legacy Rat Race</h3>
+          <p class="dashboard-panel-kicker">Original challenge, still running</p>
+          <h3>Rat Race 1.0</h3>
         </div>
         <div class="legacy-dashboard-heading-actions">
           {% if legacy_run and legacy_run.lifecycle == "active" and not pending_legacy_submission %}<a class="dashboard-header-action" href="{% url 'registry:submit_legacy_run' %}">Submit update</a>{% endif %}
@@ -95,12 +95,12 @@
         <div class="legacy-dashboard-identity">
           <span>Historical racer</span>
           <strong>{{ legacy_run.legacy_participant_name }}</strong>
-          <div class="legacy-era-status"><small>Unstable Rat Race</small><span class="dashboard-coming-soon legacy-lifecycle-tag status-{{ legacy_run.lifecycle }}">{{ legacy_run.get_lifecycle_display }}</span></div>
+          <div class="legacy-era-status"><small>Rat Race 1.0</small><span class="dashboard-coming-soon legacy-lifecycle-tag status-{{ legacy_run.lifecycle }}">{{ legacy_run.get_lifecycle_display }}</span></div>
         </div>
         {% if legacy_dashboard_submission %}
         <div class="legacy-dashboard-results legacy-dashboard-single-result">
           <article>
-            <header><span>{% if legacy_run.lifecycle == "active" %}Legacy Leaderboard{% else %}Legacy Hall of Fame{% endif %}</span><strong>Historical result</strong></header>
+            <header><span>{% if legacy_run.lifecycle == "active" %}Rat Race 1.0 Leaderboard{% else %}Rat Race 1.0 Hall of Fame{% endif %}</span><strong>Historical result</strong></header>
             <dl>
               <div><dt>Zombie kills</dt><dd>{{ legacy_dashboard_submission.zombie_kills }}</dd></div>
               <div><dt>Survival days</dt><dd>{{ legacy_dashboard_submission.survival_days|floatformat:"-2" }}</dd></div>
@@ -112,9 +112,9 @@
         </div>
         {% endif %}
         {% if pending_legacy_submission %}
-        <div class="legacy-update-pending"><div><strong>{{ pending_legacy_submission.character_name }}</strong><small>Legacy update awaiting moderation</small></div><div><strong>{{ pending_legacy_submission.zombie_kills }} kills</strong><small>{{ pending_legacy_submission.survival_time_full }}</small></div></div>
+        <div class="legacy-update-pending"><div><strong>{{ pending_legacy_submission.character_name }}</strong><small>Rat Race 1.0 update awaiting moderation</small></div><div><strong>{{ pending_legacy_submission.zombie_kills }} kills</strong><small>{{ pending_legacy_submission.survival_time_full }}</small></div></div>
         {% endif %}
-        <p class="legacy-dashboard-note">These imported results belong to the Unstable Rat Race archive and remain separate from verified Stable runs.</p>
+        <p class="legacy-dashboard-note">Rat Race 1.0 is still running. Its standings remain separate from Rat Race 2.0; approved claimants can continue updating Active runs.</p>
       {% elif legacy_claim.status == "pending" %}
         <div class="dashboard-empty-state compact">
           <strong>Claim awaiting review</strong>

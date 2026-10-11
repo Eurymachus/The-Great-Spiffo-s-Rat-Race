@@ -143,7 +143,7 @@ class LegacyRunSubmissionAdmin(admin.ModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
         context = dict(extra_context or {})
-        context["title"] = "Legacy run submission reviews"
+        context["title"] = "Rat Race 1.0 run submission reviews"
         return super().changelist_view(request, extra_context=context)
 
     def get_urls(self):
@@ -166,7 +166,7 @@ class LegacyRunSubmissionAdmin(admin.ModelAdmin):
             submission = LegacyRunSubmission.objects.select_for_update().select_related("run", "submitted_by").get(pk=submission.pk)
             run = LegacyRun.objects.select_for_update().select_related("best_submission").get(pk=submission.run_id)
             if submission.source != LegacyRunSubmission.Source.PARTICIPANT or submission.status != LegacyRunSubmission.Status.RECEIVED:
-                self.message_user(request, "This legacy submission is not awaiting review.", level=messages.WARNING)
+                self.message_user(request, "This Rat Race 1.0 submission is not awaiting review.", level=messages.WARNING)
                 return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
             if run.claimed_participant_id != submission.submitted_by_id:
                 self.message_user(request, "The submission no longer belongs to the participant linked to this run.", level=messages.ERROR)
@@ -188,11 +188,11 @@ class LegacyRunSubmissionAdmin(admin.ModelAdmin):
         notify(
             submission.submitted_by,
             category=Notification.Category.SUBMISSION,
-            title="Legacy update approved",
-            message="Your legacy Rat Race update has been approved.",
+            title="Rat Race 1.0 update approved",
+            message="Your Rat Race 1.0 update has been approved.",
             destination=reverse("registry:account"),
         )
-        self.message_user(request, "The legacy run update was approved.", level=messages.SUCCESS)
+        self.message_user(request, "The Rat Race 1.0 run update was approved.", level=messages.SUCCESS)
         return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
 
     def decline_submission_view(self, request, object_id):
@@ -201,12 +201,12 @@ class LegacyRunSubmissionAdmin(admin.ModelAdmin):
         submission = self.review_submission(request, object_id)
         reason = request.POST.get("reason", "").strip()
         if not reason:
-            self.message_user(request, "A reason is required when declining a legacy update.", level=messages.ERROR)
+            self.message_user(request, "A reason is required when declining a Rat Race 1.0 update.", level=messages.ERROR)
             return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
         with transaction.atomic():
             submission = LegacyRunSubmission.objects.select_for_update().select_related("submitted_by").get(pk=submission.pk)
             if submission.source != LegacyRunSubmission.Source.PARTICIPANT or submission.status != LegacyRunSubmission.Status.RECEIVED:
-                self.message_user(request, "This legacy submission is not awaiting review.", level=messages.WARNING)
+                self.message_user(request, "This Rat Race 1.0 submission is not awaiting review.", level=messages.WARNING)
                 return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
             submission.status = LegacyRunSubmission.Status.DECLINED
             submission.reviewed_by = request.user
@@ -216,11 +216,11 @@ class LegacyRunSubmissionAdmin(admin.ModelAdmin):
         notify(
             submission.submitted_by,
             category=Notification.Category.SUBMISSION,
-            title="Legacy update declined",
-            message=f"Your legacy Rat Race update was not approved: {reason}",
+            title="Rat Race 1.0 update declined",
+            message=f"Your Rat Race 1.0 update was not approved: {reason}",
             destination=reverse("registry:account"),
         )
-        self.message_user(request, "The legacy run update was declined.", level=messages.SUCCESS)
+        self.message_user(request, "The Rat Race 1.0 run update was declined.", level=messages.SUCCESS)
         return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
 
     def has_add_permission(self, request):
@@ -250,12 +250,12 @@ class LegacyRunClaimAdmin(admin.ModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
         context = dict(extra_context or {})
-        context["title"] = "Legacy run claim reviews"
+        context["title"] = "Rat Race 1.0 run claim reviews"
         return super().changelist_view(request, extra_context=context)
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         context = dict(extra_context or {})
-        context["title"] = "Review legacy run claim"
+        context["title"] = "Review Rat Race 1.0 run claim"
         return super().change_view(request, object_id, form_url, context)
 
     def get_urls(self):
@@ -291,12 +291,12 @@ class LegacyRunClaimAdmin(admin.ModelAdmin):
                 self.message_user(request, "This claim has already been reviewed.", level=messages.WARNING)
                 return redirect("admin:registry_legacyrunclaim_change", claim.pk)
             if run.claimed_participant_id and run.claimed_participant_id != claim.participant_id:
-                self.message_user(request, "This legacy run is already linked to another participant.", level=messages.ERROR)
+                self.message_user(request, "This Rat Race 1.0 run is already linked to another participant.", level=messages.ERROR)
                 return redirect("admin:registry_legacyrunclaim_change", claim.pk)
             if LegacyRun.objects.select_for_update().filter(
                 claimed_participant=claim.participant
             ).exclude(pk=run.pk).exists():
-                self.message_user(request, "This participant is already linked to another legacy run.", level=messages.ERROR)
+                self.message_user(request, "This participant is already linked to another Rat Race 1.0 run.", level=messages.ERROR)
                 return redirect("admin:registry_legacyrunclaim_change", claim.pk)
 
             reviewed_at = timezone.now()
@@ -308,11 +308,11 @@ class LegacyRunClaimAdmin(admin.ModelAdmin):
             claim.review_note = request.POST.get("review_note", "").strip()
             claim.save(update_fields=("status", "reviewed_by", "reviewed_at", "review_note"))
 
-        self.message_user(request, "The legacy run claim was approved.", level=messages.SUCCESS)
+        self.message_user(request, "The Rat Race 1.0 run claim was approved.", level=messages.SUCCESS)
         notify(
             claim.participant,
             category=Notification.Category.ACCOUNT,
-            title="Legacy run claim approved",
+            title="Rat Race 1.0 run claim approved",
             message=f"Your historical Rat Race record for {run.legacy_participant_name} is now linked to your account.",
             destination=reverse("registry:account"),
         )
@@ -337,11 +337,11 @@ class LegacyRunClaimAdmin(admin.ModelAdmin):
             claim.review_note = reason
             claim.save(update_fields=("status", "reviewed_by", "reviewed_at", "review_note"))
 
-        self.message_user(request, "The legacy run claim was declined.", level=messages.SUCCESS)
+        self.message_user(request, "The Rat Race 1.0 run claim was declined.", level=messages.SUCCESS)
         notify(
             claim.participant,
             category=Notification.Category.ACCOUNT,
-            title="Legacy run claim declined",
+            title="Rat Race 1.0 run claim declined",
             message=f"Your claim for {claim.run.legacy_participant_name} was not approved: {reason}",
             destination=reverse("registry:account"),
         )
@@ -356,10 +356,10 @@ class LegacyRunClaimAdmin(admin.ModelAdmin):
 
 class LegacyDataImportUploadForm(forms.Form):
     legacy_leaderboard = forms.FileField(
-        help_text="Upload the final Legacy Leaderboard CSV exported from Google Sheets."
+        help_text="Upload the handover Rat Race 1.0 Leaderboard CSV exported from Google Sheets."
     )
     legacy_hall_of_fame = forms.FileField(
-        help_text="Upload the final Legacy Hall of Fame CSV exported from Google Sheets."
+        help_text="Upload the handover Rat Race 1.0 Hall of Fame CSV exported from Google Sheets."
     )
 
 
@@ -445,7 +445,7 @@ class LegacyDataImportAdmin(admin.ModelAdmin):
         context = {
             **self.admin_site.each_context(request),
             "opts": self.model._meta,
-            "title": "Upload legacy data",
+            "title": "Upload Rat Race 1.0 data",
             "form": form,
         }
         return TemplateResponse(request, "admin/registry/legacydataimport/upload.html", context)
@@ -461,7 +461,7 @@ class LegacyDataImportAdmin(admin.ModelAdmin):
         except ValidationError as exc:
             messages.error(request, " ".join(exc.messages))
         else:
-            messages.success(request, "Legacy Leaderboard and Hall of Fame data imported successfully.")
+            messages.success(request, "Rat Race 1.0 Leaderboard and Hall of Fame data imported successfully.")
         return redirect("admin:registry_legacydataimport_change", object_id)
 from .tokens import create_verification_token
 from .verification_email import send_verification_email

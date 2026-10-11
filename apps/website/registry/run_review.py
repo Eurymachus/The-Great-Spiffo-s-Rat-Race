@@ -1,4 +1,5 @@
 import json
+import re
 from collections import Counter
 from datetime import datetime, timezone
 
@@ -125,6 +126,12 @@ def _event_rows(events, baseline_events=(), accepted=False):
         rows.append(
             {
                 "sequence": event.get("sequence"),
+                "evidence_fields": [
+                    {"label": re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", key).replace("_", " ").capitalize(),
+                     "value": (json.dumps(value, indent=2, ensure_ascii=False) if isinstance(value, (dict, list)) else "Not recorded" if value is None else "Yes" if value is True else "No" if value is False else str(value))}
+                    for key, value in payload.items()
+                ] if reason else [],
+                "event_json": json.dumps(event, indent=2, ensure_ascii=False) if reason else "",
                 "review_level": level,
                 "review_reason": reason,
                 "label": EVENT_LABELS.get(
@@ -374,7 +381,9 @@ def build_run_review(current_submission):
         findings.append({
             "level": level,
             "title": reason,
-            "message": "Recorded in event(s) " + ", ".join(sequences) + ". See the event ledger below.",
+            "message": "Recorded in event(s) " + ", ".join(sequences) + ". Open the event details to inspect the evidence.",
+            "event_sequences": ",".join(sequences),
+            "first_sequence": sequences[0],
         })
 
     first_time = _event_time(events[0]) if events else None

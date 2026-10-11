@@ -3,7 +3,7 @@
 
 {% block extrastyle %}
   {{ block.super }}
-  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20260912-8">
+  <link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}?v=20261011-2">
 {% endblock %}
 
 {% block content_title %}{% if not original or not run_review %}{{ block.super }}{% endif %}{% endblock %}
@@ -47,7 +47,7 @@
             {% for finding in run_review.findings %}
               <article class="run-review-finding finding-{{ finding.level }}">
                 <span class="finding-icon" aria-hidden="true">{% if finding.level == "pass" %}✓{% elif finding.level == "danger" %}!{% elif finding.level == "warning" %}△{% else %}i{% endif %}</span>
-                <div><strong>{{ finding.title }}</strong><p>{{ finding.message }}</p></div>
+                <div>{% if finding.event_sequences %}<a class="run-event-review-link" href="#ledger-event-{{ finding.first_sequence }}" data-event-review="{{ finding.event_sequences }}" aria-haspopup="dialog"><strong>{{ finding.title }}</strong></a>{% else %}<strong>{{ finding.title }}</strong>{% endif %}<p>{{ finding.message }}</p></div>
               </article>
             {% endfor %}
           </div>
@@ -134,7 +134,7 @@
             <div class="run-section-finding finding-warning"><span class="finding-icon" aria-hidden="true">△</span><div><strong>Evidence requested</strong><p>{{ original.evidence_request_note }}</p></div></div>
           {% endif %}
           {% if original.evidence_revisions.count > 1 %}
-      <details class="run-review-evidence">
+            <details class="run-review-evidence">
               <summary>Evidence revision history</summary>
               <dl>
                 {% for revision in original.evidence_revisions.all %}
@@ -182,8 +182,17 @@
                 <tr id="ledger-event-{{ event.sequence }}" class="ledger-row-{{ event.review_level }}">
                   <td>{{ event.sequence }}</td>
                   <td>{% if event.day %}{{ event.day }}{% else %}Not recorded{% endif %}</td>
-                  <td><strong>{{ event.label }}</strong><small>{{ event.event_type }}</small>{% if event.review_reason %}<span class="ledger-finding finding-{{ event.review_level }}"><span aria-hidden="true">{% if event.review_level == "danger" %}!{% elif event.review_level == "warning" %}△{% else %}✓{% endif %}</span> {{ event.review_reason }}</span>{% endif %}</td>
-                  <td>{{ event.summary }}{% if event.identifiers %}<small>{{ event.identifiers }}</small>{% endif %}</td>
+                  <td><strong>{{ event.label }}</strong><small>{{ event.event_type }}</small>{% if event.review_reason %}<span class="ledger-finding finding-{{ event.review_level }}"><span aria-hidden="true">{% if event.review_level == "danger" %}!{% elif event.review_level == "warning" %}△{% else %}✓{% endif %}</span> <a class="run-event-review-link" href="#event-evidence-{{ event.sequence }}" data-event-review="{{ event.sequence }}" aria-haspopup="dialog">{{ event.review_reason }}</a></span>{% endif %}</td>
+                  <td>{{ event.summary }}{% if event.identifiers %}<small>{{ event.identifiers }}</small>{% endif %}
+                    {% if event.review_reason %}<details id="event-evidence-{{ event.sequence }}" class="run-event-evidence">
+                      <summary>View event evidence</summary>
+                      <div data-event-evidence-content>
+                        <div class="event-evidence-heading"><p class="run-review-kicker">Event {{ event.sequence }}</p><h3>{{ event.label }}</h3><p class="event-evidence-status finding-{{ event.review_level }}">{{ event.review_reason }}</p></div>
+                        <dl class="event-evidence-meta"><div><dt>In-game day</dt><dd>{{ event.day|default_if_none:"Not recorded" }}</dd></div><div><dt>Recorded</dt><dd>{{ event.occurred_at|date:"j M Y, H:i:s T"|default:"Time not recorded" }}</dd></div></dl>
+                        <dl>{% for field in event.evidence_fields %}<div><dt>{{ field.label }}</dt><dd><pre>{{ field.value }}</pre></dd></div>{% empty %}<p>No payload fields were recorded.</p>{% endfor %}</dl>
+                        <details><summary>Raw event JSON</summary><pre>{{ event.event_json }}</pre></details>
+                      </div>
+                    </details>{% endif %}</td>
                   <td>{% if event.occurred_at %}{{ event.occurred_at|date:"j M Y, H:i:s" }}{% else %}Not recorded{% endif %}</td>
                 </tr>
               {% empty %}
@@ -193,6 +202,12 @@
           </table>
         </div>
       </section>
+
+      <dialog class="run-event-review-dialog" data-event-review-dialog aria-labelledby="event-review-title">
+        <header class="event-review-header"><div><p class="run-review-kicker">Submission review</p><h2 id="event-review-title">Event evidence</h2></div><button type="button" class="event-review-close" data-event-review-close autofocus aria-label="Close event evidence">&times;</button></header>
+        <div class="event-review-body" data-event-review-content></div>
+        <footer class="event-review-footer"><nav aria-label="Related events"><button type="button" data-event-review-previous>Previous</button><span data-event-review-position aria-live="polite"></span><button type="button" data-event-review-next>Next</button></nav><button type="button" data-event-review-close>Close</button></footer>
+      </dialog>
 
       <details class="run-review-evidence">
         <summary>Raw evidence and identifiers</summary>
@@ -298,6 +313,7 @@
 
 {% block admin_change_form_document_ready %}
   {{ block.super }}
+  <script src="{% static 'registry/admin_event_review.js' %}?v=20261011-2" defer></script>
   <script>
     (() => {
       const auditDialog = document.querySelector("[data-audit-dialog]");

@@ -696,20 +696,20 @@ def claim_legacy_run(request, run_id):
         )
         if legacy_run.claimed_participant_id:
             if legacy_run.claimed_participant_id == request.user.pk:
-                messages.info(request, "This legacy run is already linked to your account.")
+                messages.info(request, "This Rat Race 1.0 run is already linked to your account.")
             else:
-                messages.error(request, "This legacy run has already been claimed.")
+                messages.error(request, "This Rat Race 1.0 run has already been claimed.")
             return redirect(next_url)
 
         if LegacyRun.objects.filter(claimed_participant=request.user).exclude(pk=run_id).exists():
-            messages.error(request, "Your account is already linked to a legacy run.")
+            messages.error(request, "Your account is already linked to a Rat Race 1.0 run.")
             return redirect(next_url)
 
         if LegacyRunClaim.objects.filter(
             participant=request.user,
             status__in=(LegacyRunClaim.Status.PENDING, LegacyRunClaim.Status.APPROVED),
         ).exclude(run=legacy_run).exists():
-            messages.error(request, "You already have a legacy run claim awaiting review.")
+            messages.error(request, "You already have a Rat Race 1.0 run claim awaiting review.")
             return redirect(next_url)
 
         claim, created = LegacyRunClaim.objects.get_or_create(
@@ -718,15 +718,15 @@ def claim_legacy_run(request, run_id):
             defaults={"status": LegacyRunClaim.Status.PENDING},
         )
         if created:
-            messages.success(request, "Your legacy run claim has been submitted for review.")
+            messages.success(request, "Your Rat Race 1.0 run claim has been submitted for review.")
         elif claim.status == LegacyRunClaim.Status.PENDING:
-            messages.info(request, "Your claim for this legacy run is already awaiting review.")
+            messages.info(request, "Your claim for this Rat Race 1.0 run is already awaiting review.")
         elif claim.status == LegacyRunClaim.Status.APPROVED:
-            messages.info(request, "This legacy run is already linked to your account.")
+            messages.info(request, "This Rat Race 1.0 run is already linked to your account.")
         else:
             messages.error(
                 request,
-                "This legacy run claim was declined. Contact the team if it should be reconsidered.",
+                "This Rat Race 1.0 run claim was declined. Contact the team if it should be reconsidered.",
             )
 
     return redirect(next_url)
@@ -1216,17 +1216,17 @@ def submit_legacy_run(request):
         "current_submission", "best_submission"
     ).first()
     if legacy_run is None:
-        messages.error(request, "An approved legacy run claim is required before submitting an update.")
+        messages.error(request, "An approved Rat Race 1.0 run claim is required before submitting an update.")
         return redirect("registry:account")
     if legacy_run.lifecycle != LegacyRun.Lifecycle.ACTIVE:
-        messages.error(request, "Only an Active legacy run can receive participant updates.")
+        messages.error(request, "Only an Active Rat Race 1.0 run can receive participant updates.")
         return redirect("registry:account")
     if LegacyRunSubmission.objects.filter(
         run=legacy_run,
         source=LegacyRunSubmission.Source.PARTICIPANT,
         status=LegacyRunSubmission.Status.RECEIVED,
     ).exists():
-        messages.info(request, "Your legacy run already has an update awaiting review.")
+        messages.info(request, "Your Rat Race 1.0 run already has an update awaiting review.")
         return redirect("registry:account")
 
     connected_streaming_accounts = list(
@@ -1252,13 +1252,13 @@ def submit_legacy_run(request):
             if locked_run.claimed_participant_id != request.user.pk:
                 raise Http404
             if locked_run.lifecycle != LegacyRun.Lifecycle.ACTIVE:
-                form.add_error(None, "This legacy run is no longer Active.")
+                form.add_error(None, "This Rat Race 1.0 run is no longer Active.")
             elif LegacyRunSubmission.objects.filter(
                 run=locked_run,
                 source=LegacyRunSubmission.Source.PARTICIPANT,
                 status=LegacyRunSubmission.Status.RECEIVED,
             ).exists():
-                form.add_error(None, "An update for this legacy run is already awaiting review.")
+                form.add_error(None, "An update for this Rat Race 1.0 run is already awaiting review.")
             else:
                 selected_media = form.media_by_id.get(form.cleaned_data.get("evidence_video"))
                 LegacyRunSubmission.objects.create(
@@ -1290,11 +1290,11 @@ def submit_legacy_run(request):
                 notify(
                     request.user,
                     category=Notification.Category.SUBMISSION,
-                    title="Legacy update received",
-                    message="Your legacy Rat Race update is awaiting moderator review.",
+                    title="Rat Race 1.0 update received",
+                    message="Your Rat Race 1.0 update is awaiting moderator review.",
                     destination=reverse("registry:account"),
                 )
-                messages.success(request, "Your legacy run update has been submitted for review.")
+                messages.success(request, "Your Rat Race 1.0 run update has been submitted for review.")
                 return redirect("registry:account")
 
     return render(request, "registry/submit_legacy_run.html", {

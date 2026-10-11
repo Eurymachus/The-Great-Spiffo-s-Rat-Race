@@ -139,17 +139,19 @@ sent more than seven days ago. Production will run this command on a schedule.
 This administrator is suitable only for local development. Do not expose it to
 the internet or enter real participant data until the production security and
 operations checklist is complete.
-# Legacy data import
+# Rat Race 1.0 data import
 
-The Legacy Leaderboard and Legacy Hall of Fame use one merged legacy dataset,
-stored separately from verified Rat Race runs. The final cutoff date may occur
+The Rat Race 1.0 Leaderboard and Rat Race 1.0 Hall of Fame use one merged legacy dataset,
+stored separately from verified Rat Race runs. The spreadsheet handover date may occur
 after production deployment, so the import is an explicit super-admin operation
-and is never performed automatically by a migration.
+and is never performed automatically by a migration. Rat Race 1.0 is still
+running: this handover date does not close the challenge, and approved claimants
+can continue submitting updates to Active runs.
 
-1. Export the final Legacy Leaderboard and Legacy Hall of Fame worksheets as
+1. Export the handover Rat Race 1.0 Leaderboard and Rat Race 1.0 Hall of Fame worksheets as
    separate CSV files.
-2. Open `Participant Registry > Legacy data imports` in administration.
-3. Select `Upload legacy data`, then upload both CSV files.
+2. Open `Participant Registry > Rat Race 1.0 data imports` in administration.
+3. Select `Upload Rat Race 1.0 data`, then upload both CSV files.
 4. Review detected rows, merged runs, Active and Inactive totals, and warnings.
 5. Confirm only when the preview is correct. Confirmation replaces the current
    imported legacy runs in one database transaction.

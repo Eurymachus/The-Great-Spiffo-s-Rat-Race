@@ -261,7 +261,7 @@ class LeaderboardTests(TestCase):
             reverse("registry:participant_profile", args=(self.racer.pk,))
         )
 
-        self.assertContains(response, "Legacy Rat Race")
+        self.assertContains(response, "Rat Race 1.0")
         self.assertContains(response, "Historic Leader")
         self.assertContains(response, "Legacy Survivor")
         self.assertContains(response, "40927")

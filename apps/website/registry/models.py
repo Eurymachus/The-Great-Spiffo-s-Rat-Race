@@ -1131,8 +1131,8 @@ class LegacyRun(models.Model):
 
     class Meta:
         ordering = ("legacy_participant_name",)
-        verbose_name = "legacy run"
-        verbose_name_plural = "legacy runs"
+        verbose_name = "Rat Race 1.0 run"
+        verbose_name_plural = "Rat Race 1.0 runs"
 
     def __str__(self):
         return self.claimed_participant.nickname if self.claimed_participant_id else self.legacy_participant_name
@@ -1145,8 +1145,8 @@ class LegacyRunSubmission(models.Model):
         DECLINED = "declined", "Declined"
 
     class Source(models.TextChoices):
-        IMPORT_LEADERBOARD = "import_leaderboard", "Imported Legacy Leaderboard"
-        IMPORT_HALL_OF_FAME = "import_hall_of_fame", "Imported Legacy Hall of Fame"
+        IMPORT_LEADERBOARD = "import_leaderboard", "Imported Rat Race 1.0 Leaderboard"
+        IMPORT_HALL_OF_FAME = "import_hall_of_fame", "Imported Rat Race 1.0 Hall of Fame"
         PARTICIPANT = "participant", "Participant submission"
 
     run = models.ForeignKey(LegacyRun, on_delete=models.CASCADE, related_name="submissions")
@@ -1186,6 +1186,8 @@ class LegacyRunSubmission(models.Model):
     evidence_end_seconds = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
+        verbose_name = "Rat Race 1.0 run submission"
+        verbose_name_plural = "Rat Race 1.0 run submissions"
         ordering = ("-submitted_at",)
 
     def __str__(self):
@@ -1216,11 +1218,11 @@ class LegacyDataImport(models.Model):
 
     class Meta:
         ordering = ("-uploaded_at",)
-        verbose_name = "legacy data import"
-        verbose_name_plural = "legacy data imports"
+        verbose_name = "Rat Race 1.0 data import"
+        verbose_name_plural = "Rat Race 1.0 data imports"
 
     def __str__(self):
-        return f"Legacy import {self.uploaded_at:%Y-%m-%d %H:%M}"
+        return f"Rat Race 1.0 import {self.uploaded_at:%Y-%m-%d %H:%M}"
 
 
 class LegacyRunClaim(models.Model):
@@ -1249,6 +1251,8 @@ class LegacyRunClaim(models.Model):
     review_note = models.TextField(blank=True)
 
     class Meta:
+        verbose_name = "Rat Race 1.0 run claim"
+        verbose_name_plural = "Rat Race 1.0 run claims"
         ordering = ("-submitted_at",)
         constraints = [
             models.UniqueConstraint(

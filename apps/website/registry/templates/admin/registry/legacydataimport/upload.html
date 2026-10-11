@@ -3,16 +3,16 @@
 {% block breadcrumbs %}
 <div class="breadcrumbs">
   <a href="{% url 'admin:index' %}">Home</a>
-  &rsaquo; <a href="{% url 'admin:registry_legacydataimport_changelist' %}">Legacy data imports</a>
+  &rsaquo; <a href="{% url 'admin:registry_legacydataimport_changelist' %}">Rat Race 1.0 data imports</a>
   &rsaquo; Upload
 </div>
 {% endblock %}
 
 {% block content %}
 <div id="content-main">
-  <h1>Upload legacy data</h1>
+  <h1>Upload Rat Race 1.0 data</h1>
   <p>Upload both final CSV exports. Nothing is imported until the validated preview is confirmed.</p>
-  <p>Existing legacy records will be replaced. Stream channel values in the files are ignored.</p>
+  <p>Existing Rat Race 1.0 records will be replaced. Stream channel values in the files are ignored.</p>
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.non_field_errors }}

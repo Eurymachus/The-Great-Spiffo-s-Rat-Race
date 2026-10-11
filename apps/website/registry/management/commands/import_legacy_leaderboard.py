@@ -9,14 +9,14 @@ from registry.models import LegacyDataImport
 
 
 class Command(BaseCommand):
-    help = "Validate and optionally import final Legacy Leaderboard and Hall of Fame CSV files."
+    help = "Validate and optionally import handover Rat Race 1.0 Leaderboard and Hall of Fame CSV files."
 
     def add_arguments(self, parser):
         parser.add_argument("--leaderboard", required=True)
         parser.add_argument("--hall-of-fame", required=True)
         parser.add_argument(
             "--confirm", action="store_true",
-            help="Replace the current imported legacy dataset after validation.",
+            help="Replace the current imported Rat Race 1.0 dataset after validation.",
         )
 
     def handle(self, *args, **options):
@@ -34,7 +34,7 @@ class Command(BaseCommand):
         self.stdout.write(
             f"Validated {counts['leaderboard_rows']} leaderboard rows and "
             f"{counts['hall_of_fame_rows']} Hall of Fame rows, producing "
-            f"{counts['merged_runs']} merged legacy runs."
+            f"{counts['merged_runs']} merged Rat Race 1.0 runs."
         )
         if not options["confirm"]:
             self.stdout.write(self.style.WARNING("Preview only. Re-run with --confirm to import."))
@@ -51,4 +51,4 @@ class Command(BaseCommand):
             preview=preview,
         )
         apply_legacy_import(review, None)
-        self.stdout.write(self.style.SUCCESS(f"Imported {counts['merged_runs']} legacy runs."))
+        self.stdout.write(self.style.SUCCESS(f"Imported {counts['merged_runs']} Rat Race 1.0 runs."))

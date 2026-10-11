@@ -1,17 +1,17 @@
 {% extends "registry/base.html" %}
 {% load static %}
-{% block title_suffix %} | Current leaderboard{% endblock %}
+{% block title_suffix %} | Rat Race 2.0 Leaderboard{% endblock %}
 {% block content %}
 <section class="leaderboard-page" data-leaderboard-page>
   <header class="leaderboard-hero">
-    <p class="account-dashboard-kicker">Current challenge</p>
-    <h2>Rat Race leaderboard</h2>
+    <p class="account-dashboard-kicker">Rat Race 2.0</p>
+    <h2>Rat Race 2.0 Leaderboard</h2>
     <p>Each Rat Racer's highest-ranked active survivor, calculated from the latest approved run update.</p>
     <p class="leaderboard-weighting"><strong>Score weighting:</strong> zombie kills 50%, outposts 25%, skills 25%.</p>
   </header>
 
   {% if leaderboard %}
-  <section class="leaderboard-panel" aria-label="Current challenge rankings" tabindex="0">
+  <section class="leaderboard-panel" aria-label="Rat Race 2.0 rankings" tabindex="0">
     <div class="leaderboard-columns" aria-hidden="true">
       <strong class="leaderboard-flag-heading" title="Rank">⚑</strong>
       <strong>Participant</strong>

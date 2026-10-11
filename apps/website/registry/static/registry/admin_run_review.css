@@ -662,3 +662,34 @@ a.run-context-button:hover { background: var(--button-hover-bg); }
 .run-event-field-details { margin-top: 12px; }
 .run-event-field-details[open] > summary { margin-bottom: 12px; }
 @media (max-width: 600px) { .run-event-change-pair { grid-template-columns: 1fr; } }
+
+.run-event-review-link { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.run-event-review-link:focus-visible { outline: 2px solid var(--link-fg); outline-offset: 4px; }
+.run-event-review-dialog { box-sizing: border-box; width: min(760px, 94vw); max-height: 88vh; padding: 0; overflow: hidden; color: var(--body-fg); background: var(--body-bg); border: 1px solid var(--hairline-color); border-radius: 8px; box-shadow: 0 16px 64px #0006; }
+.run-event-review-dialog[open] { display: flex; flex-direction: column; }
+.run-event-review-dialog::backdrop { background: #000a; }
+.event-review-header, .event-review-footer { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; background: var(--darkened-bg); }
+.event-review-header { border-bottom: 1px solid var(--hairline-color); }
+.event-review-footer { border-top: 1px solid var(--hairline-color); }
+.event-review-header h2 { margin: 4px 0 0; padding: 0; background: none; color: var(--body-fg); font-size: 20px; font-weight: 400; }
+.event-review-header .run-review-kicker, .event-evidence-heading .run-review-kicker { margin: 0; }
+.event-review-body { min-height: 0; overflow: auto; padding: 24px; }
+.event-review-footer nav { display: flex; align-items: center; gap: 16px; }
+.run-event-review-dialog button { box-sizing: border-box; min-height: 44px; padding: 10px 16px; border: 1px solid var(--hairline-color); border-radius: 4px; background: var(--body-bg); color: var(--body-fg); font: inherit; cursor: pointer; }
+.run-event-review-dialog button:hover:not(:disabled) { background: var(--selected-bg); }
+.run-event-review-dialog button:focus-visible, .run-event-review-dialog summary:focus-visible { outline: 2px solid var(--link-fg); outline-offset: 2px; }
+.run-event-review-dialog button.event-review-close { width: 44px; padding: 0; font-size: 24px; background: transparent; border-color: transparent; }
+.run-event-review-dialog button:disabled { opacity: .4; cursor: default; }
+.event-evidence-heading h3 { font-size: 18px; margin: 6px 0 10px; }
+.event-evidence-status { margin: 0 0 20px; }
+.run-event-review-dialog dl { margin: 0 0 20px; }
+.run-event-review-dialog dl > div { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--hairline-color); }
+.run-event-review-dialog dt { color: var(--body-quiet-color); font-weight: 400; }
+.run-event-review-dialog dd, .run-event-evidence dd { margin: 0; }
+.run-event-review-dialog pre, .run-event-evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+.run-event-review-dialog dd pre { font: inherit; }
+.run-event-review-dialog details { border: 1px solid var(--hairline-color); border-radius: 4px; padding: 12px 16px; }
+.run-event-review-dialog summary { color: var(--link-fg); cursor: pointer; }
+.run-event-review-dialog details[open] summary { margin-bottom: 16px; }
+.run-event-evidence { margin-top: 8px; }
+@media (max-width: 520px) { .event-review-header, .event-review-footer, .event-review-body { padding: 16px; } .event-review-footer { flex-wrap: wrap; } .event-review-footer nav { gap: 8px; } .run-event-review-dialog dl > div { grid-template-columns: 1fr; gap: 6px; } }

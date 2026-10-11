@@ -48,7 +48,7 @@ class LegacyDataImportTests(TestCase):
     )
 
     def upload(self, name, rows):
-        content = "Legacy results\nGenerated export\n\n" + self.HEADER + "\n".join(rows) + "\n"
+        content = "Rat Race 1.0 results\nGenerated export\n\n" + self.HEADER + "\n".join(rows) + "\n"
         return SimpleUploadedFile(name, content.encode("utf-8"), content_type="text/csv")
 
     def create_review(self):
@@ -153,7 +153,7 @@ class LegacyDataImportTests(TestCase):
 
         response = self.client.get(reverse("admin:registry_legacydataimport_changelist"))
 
-        self.assertContains(response, "Import legacy data")
+        self.assertContains(response, "Import Rat Race 1.0 data")
         self.assertContains(response, reverse("admin:registry_legacydataimport_upload"))
 
     def test_non_superuser_cannot_open_import_upload(self):
@@ -220,7 +220,7 @@ class LegacyDataImportTests(TestCase):
             block_type=PageBlock.BlockType.RANKING_TABLE,
         )
         leaderboard_page = Page.objects.create(
-            title="Legacy Leaderboard",
+            title="Rat Race 1.0 Leaderboard",
             public_path="legacyleaderboard",
             is_published=True,
         )
@@ -323,7 +323,7 @@ class LegacyDataImportTests(TestCase):
         self.assertEqual(claim.reviewed_by, reviewer)
         self.assertIsNotNone(claim.reviewed_at)
         self.assertEqual(legacy_run.claimed_participant, participant)
-        notification = participant.notifications.get(title="Legacy run claim approved")
+        notification = participant.notifications.get(title="Rat Race 1.0 run claim approved")
         self.assertEqual(notification.destination, reverse("registry:account"))
 
     def test_admin_declines_legacy_claim_with_required_reason(self):
@@ -359,7 +359,7 @@ class LegacyDataImportTests(TestCase):
         self.assertEqual(claim.reviewed_by, reviewer)
         self.assertEqual(claim.review_note, "The supplied identity could not be verified.")
         self.assertIsNone(legacy_run.claimed_participant)
-        notification = participant.notifications.get(title="Legacy run claim declined")
+        notification = participant.notifications.get(title="Rat Race 1.0 run claim declined")
         self.assertIn("could not be verified", notification.message)
 
     def test_dashboard_shows_legacy_claim_state_and_linked_results(self):
@@ -375,7 +375,7 @@ class LegacyDataImportTests(TestCase):
         self.client.force_login(participant)
 
         response = self.client.get(reverse("registry:account"))
-        self.assertContains(response, "Legacy Rat Race")
+        self.assertContains(response, "Rat Race 1.0")
         self.assertContains(response, "Claim awaiting review")
         self.assertContains(response, "Active Racer")
 
@@ -390,23 +390,23 @@ class LegacyDataImportTests(TestCase):
         legacy_run.save(update_fields=("claimed_participant", "updated_at"))
         response = self.client.get(reverse("registry:account"))
         self.assertContains(response, "Historical racer")
-        self.assertContains(response, "Legacy Leaderboard")
+        self.assertContains(response, "Rat Race 1.0 Leaderboard")
         self.assertContains(response, "100")
         self.assertContains(response, "Active")
-        self.assertNotContains(response, "Legacy Hall of Fame")
-        self.assertContains(response, "separate from verified Stable runs")
+        self.assertNotContains(response, "Rat Race 1.0 Hall of Fame")
+        self.assertContains(response, "standings remain separate from Rat Race 2.0")
         self.assertLess(
             response.content.index(b"Awaiting Review"),
-            response.content.index(b"Unstable archive"),
+            response.content.index(b"Rat Race 1.0"),
         )
 
         legacy_run.lifecycle = LegacyRun.Lifecycle.INACTIVE
         legacy_run.save(update_fields=("lifecycle", "updated_at"))
         response = self.client.get(reverse("registry:account"))
-        self.assertContains(response, "Legacy Hall of Fame")
+        self.assertContains(response, "Rat Race 1.0 Hall of Fame")
         self.assertContains(response, "250")
         self.assertContains(response, "Inactive")
-        self.assertNotContains(response, "Legacy Leaderboard")
+        self.assertNotContains(response, "Rat Race 1.0 Leaderboard")
 
     def test_survival_time_accepts_full_and_word_formats(self):
         original, full, days = parse_survival_time("09:10:27:01")
@@ -435,7 +435,7 @@ class LegacyDataImportTests(TestCase):
 
         response = self.client.get(reverse("registry:submit_legacy_run"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Submit a legacy update")
+        self.assertContains(response, "Submit a Rat Race 1.0 update")
         self.assertContains(response, "YY:MM:DD:HH")
 
         response = self.client.post(reverse("registry:submit_legacy_run"), {
@@ -460,7 +460,7 @@ class LegacyDataImportTests(TestCase):
         self.assertEqual(str(submission.challenge_progress), "75.00000")
         self.assertTrue(submission.reports_death)
         self.assertEqual(submission.evidence_start_seconds, 60)
-        self.assertTrue(participant.notifications.filter(title="Legacy update received").exists())
+        self.assertTrue(participant.notifications.filter(title="Rat Race 1.0 update received").exists())
 
         response = self.client.get(reverse("registry:submit_legacy_run"))
         self.assertRedirects(response, reverse("registry:account"))
@@ -546,7 +546,7 @@ class LegacyDataImportTests(TestCase):
         self.assertEqual(legacy_run.best_submission, submission)
         self.assertEqual(legacy_run.lifecycle, LegacyRun.Lifecycle.DECEASED)
         self.assertEqual(legacy_run.character_name, "Final Survivor")
-        self.assertTrue(participant.notifications.filter(title="Legacy update approved").exists())
+        self.assertTrue(participant.notifications.filter(title="Rat Race 1.0 update approved").exists())
 
     def test_admin_declines_legacy_update_without_changing_run(self):
         review, reviewer = self.create_review()
@@ -582,7 +582,7 @@ class LegacyDataImportTests(TestCase):
         self.assertEqual(submission.status, LegacyRunSubmission.Status.DECLINED)
         self.assertEqual(submission.review_note, "The values did not match the VOD.")
         self.assertEqual(legacy_run.current_submission, original_current)
-        self.assertTrue(participant.notifications.filter(title="Legacy update declined").exists())
+        self.assertTrue(participant.notifications.filter(title="Rat Race 1.0 update declined").exists())
 
 
 class RegistrationTests(TestCase):

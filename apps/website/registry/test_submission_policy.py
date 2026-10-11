@@ -23,6 +23,25 @@ class SubmissionPolicyTests(TestCase):
         self.valid.start()
         self.addCleanup(self.valid.stop)
 
+    def test_event_evidence_links_group_events_and_escape_payload(self):
+        payload = {"addedMods": [{"modId": "<script>alert(1)</script>", "version": "2"}]}
+        sub = self.submission(events=self.events + [("session.started", payload), ("session.started", payload)])
+        review = build_run_review(sub)
+        finding = next(item for item in review["findings"] if item["title"] == "Mods changed (human review required)")
+        self.assertEqual(finding["event_sequences"], "3,4")
+        self.assertEqual(review["event_rows"][2]["evidence_fields"][0]["label"], "Added mods")
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse("admin:registry_runsubmission_change", args=(sub.pk,)))
+        self.assertLessEqual(sub.evidence_revisions.count(), 1)
+        self.assertContains(response, '<dialog class="run-event-review-dialog"', count=1)
+        self.assertContains(response, 'registry/admin_event_review.js')
+        self.assertContains(response, 'data-event-review="3,4"')
+        self.assertContains(response, 'id="event-evidence-3"')
+        self.assertContains(response, '&lt;script&gt;alert(1)&lt;/script&gt;')
+        self.assertNotContains(response, '<script>alert(1)</script>')
+        sub.refresh_from_db()
+        self.assertEqual(sub.status, RunSubmission.Status.RECEIVED)
+
     def submission(self, *, events=None, projection=None, generated=1784800100, url="https://www.twitch.tv/videos/123456"):
         raw = make_export(event_specs=events or self.events, projection=projection, generated_at=generated)
         decoded = decode_run_export(raw)

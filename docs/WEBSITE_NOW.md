@@ -1,5 +1,28 @@
 # Website: Current Focus
 
+## Event evidence review (11 October 2026)
+
+- Integrity findings linked to events and chronology review markers open an
+  evidence dialog with payload fields, event time, day and raw event JSON.
+- Grouped findings offer Previous/Next navigation through their related events.
+  Covered-by-approval events remain inspectable. Opening details never records
+  approval; existing submission decisions and audit workflows remain authoritative.
+- Native dialog keyboard handling, explicit Close, backdrop dismissal and focus
+  restoration are supported. Inline evidence disclosures remain usable without
+  JavaScript. No migration is required; deployment remains outstanding.
+
+## Challenge edition names (11 October 2026)
+
+- Rat Race 1.0 is the original challenge and is still running. Rat Race 2.0 is
+  the next edition in development; standings remain separate.
+- Public profiles, dashboards, claims, update forms and moderation copy use
+  numbered editions. Stored page/navigation copy receives a wording migration.
+- The import cutoff is a spreadsheet handover date, not challenge closure.
+  Existing approved claimants can continue submitting Active 1.0 run updates.
+- Internal legacy identifiers and existing URLs remain compatible.
+- Deployment remains outstanding.
+
+
 ## Leaderboard progress authority (5 October 2026)
 
 - Verified-run rankings now calculate weighted completion from the same approved
@@ -167,8 +190,8 @@ records, while aliases and assets remain shared catalogue relationships.
 - Registration, account, submission, moderation, ranking, Rules, Mods, and
   Exploits journeys pass a representative production-shaped acceptance test.
 - Retention automation and the final pre-launch privacy review are complete.
-- The final Unstable legacy dataset is imported only after the team selects its
-  cutoff date.
+- The Rat Race 1.0 handover dataset is imported only after the team selects its
+  spreadsheet handover date.
 
 ## Submission review journey: implemented locally
 
@@ -504,17 +527,17 @@ remain outstanding. Earlier manual-only descriptions below describe prior behavi
   choose a status and provide a reason; the previous status, new status, acting
   moderator, timestamp, and reason are retained in the run's administration
   history.
-- The protected two-file Legacy Leaderboard and Legacy Hall of Fame importer,
+- The protected two-file Rat Race 1.0 Leaderboard and Rat Race 1.0 Hall of Fame importer,
   merged Unstable run records, public legacy ranking sources and participant
   claim journey are implemented. Signed-in participants can claim one legacy
   run for team review. A focused approval screen records the reviewer and
   decision, links approved historical identity to the participant and sends an
   account notification. The participant dashboard shows pending and declined
-  claim states or, after approval, a dedicated Legacy Rat Race panel containing
+  claim states or, after approval, a dedicated Rat Race 1.0 panel containing
   one imported historical result. Active legacy runs use their current
   Leaderboard result; Inactive and Deceased runs use their Hall of Fame best.
-  A separate archive divider and lifecycle tag keep legacy results explicitly
-  separate from verified Stable runs.
+  A separate edition divider and lifecycle tag keep legacy results explicitly
+  separate from verified Rat Race 2.0 runs.
 - Approved claimants with an Active legacy run can submit participant-authored
   updates containing character name, kills, Time Survived, Level 10 skill count,
   completed outposts, Alive or Dead state and Twitch or YouTube VOD evidence.
@@ -531,7 +554,7 @@ remain outstanding. Earlier manual-only descriptions below describe prior behavi
 - Signed-in Rat Racers can open another participant's profile from their linked
   name in Stable or claimed Legacy ranking tables. The profile presents only
   approved participant-facing records: Personal Best, Active Runs, Past Runs
-  and the claimed Legacy Rat Race result when available. It does not expose
+  and the claimed Rat Race 1.0 result when available. It does not expose
   submission history, pending or declined submissions, or moderation details.
 - Signed-in verified-run page presentation at UUID-based addresses. Challenge
   progress is the first section and uses four short, responsive cards for
@@ -751,7 +774,7 @@ runs, submissions, credentials, notifications, or operational state.
   submission, moderation, rankings, Rules, Mods, and Exploits.
 - Test the full legacy import, claim, and participant-update journey with a
   representative export. Keep production legacy data empty until the team
-  chooses its final cutoff date.
+  chooses its spreadsheet handover date.
 - Replace any remaining development-only navigation or gallery records before
   launch.
 
