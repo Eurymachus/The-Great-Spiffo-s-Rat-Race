@@ -182,17 +182,17 @@
                 <tr id="ledger-event-{{ event.sequence }}" class="ledger-row-{{ event.review_level }}">
                   <td>{{ event.sequence }}</td>
                   <td>{% if event.day %}{{ event.day }}{% else %}Not recorded{% endif %}</td>
-                  <td><strong>{{ event.label }}</strong><small>{{ event.event_type }}</small>{% if event.review_reason %}<span class="ledger-finding finding-{{ event.review_level }}"><span aria-hidden="true">{% if event.review_level == "danger" %}!{% elif event.review_level == "warning" %}△{% else %}✓{% endif %}</span> <a class="run-event-review-link" href="#event-evidence-{{ event.sequence }}" data-event-review="{{ event.sequence }}" aria-haspopup="dialog">{{ event.review_reason }}</a></span>{% endif %}</td>
+                  <td><a class="run-event-review-link" href="#event-evidence-{{ event.sequence }}" data-event-review="{{ event.sequence }}" aria-haspopup="dialog"><strong>{{ event.label }}</strong></a><small>{{ event.event_type }}</small>{% if event.review_reason %}<span class="ledger-finding finding-{{ event.review_level }}"><span aria-hidden="true">{% if event.review_level == "danger" %}!{% elif event.review_level == "warning" %}△{% else %}✓{% endif %}</span> <a class="run-event-review-link" href="#event-evidence-{{ event.sequence }}" data-event-review="{{ event.sequence }}" aria-haspopup="dialog">{{ event.review_reason }}</a></span>{% endif %}</td>
                   <td>{{ event.summary }}{% if event.identifiers %}<small>{{ event.identifiers }}</small>{% endif %}
-                    {% if event.review_reason %}<details id="event-evidence-{{ event.sequence }}" class="run-event-evidence">
+                    <details id="event-evidence-{{ event.sequence }}" class="run-event-evidence">
                       <summary>View event evidence</summary>
                       <div data-event-evidence-content>
-                        <div class="event-evidence-heading"><p class="run-review-kicker">Event {{ event.sequence }}</p><h3>{{ event.label }}</h3><p class="event-evidence-status finding-{{ event.review_level }}">{{ event.review_reason }}</p></div>
+                        <div class="event-evidence-heading"><p class="run-review-kicker">Event {{ event.sequence }}</p><h3>{{ event.label }}</h3>{% if event.review_reason %}<p class="event-evidence-status finding-{{ event.review_level }}">{{ event.review_reason }}</p>{% endif %}</div>
                         <dl class="event-evidence-meta"><div><dt>In-game day</dt><dd>{{ event.day|default_if_none:"Not recorded" }}</dd></div><div><dt>Recorded</dt><dd>{{ event.occurred_at|date:"j M Y, H:i:s T"|default:"Time not recorded" }}</dd></div></dl>
-                        <dl>{% for field in event.evidence_fields %}<div><dt>{{ field.label }}</dt><dd><pre>{{ field.value }}</pre></dd></div>{% empty %}<p>No payload fields were recorded.</p>{% endfor %}</dl>
+                        <dl>{% for field in event.evidence_fields %}<div><dt>{{ field.label }}</dt><dd class="event-evidence-value">{{ field.value }}</dd></div>{% empty %}<p>No payload fields were recorded.</p>{% endfor %}</dl>
                         <details><summary>Raw event JSON</summary><pre>{{ event.event_json }}</pre></details>
                       </div>
-                    </details>{% endif %}</td>
+                    </details></td>
                   <td>{% if event.occurred_at %}{{ event.occurred_at|date:"j M Y, H:i:s" }}{% else %}Not recorded{% endif %}</td>
                 </tr>
               {% empty %}

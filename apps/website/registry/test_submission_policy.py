@@ -23,13 +23,30 @@ class SubmissionPolicyTests(TestCase):
         self.valid.start()
         self.addCleanup(self.valid.stop)
 
+    def test_clock_evidence_uses_readable_values_and_keeps_raw_details(self):
+        from .run_review import _event_rows
+        event = {"sequence": 1, "event_type": "run.clock.repaired", "payload": {
+            "reason": "game_clock_regression", "decider": {"id": "local_player", "type": "player"},
+            "observed": {"timeOfDay": 11.2519, "worldAgeHours": 1444.2519},
+            "restored": {"timeOfDay": 9.575}, "checkpoint": {"checksum": "original-hash"},
+        }}
+        row = _event_rows([event])[0]
+        fields = {field["label"]: field["value"] for field in row["evidence_fields"]}
+        self.assertEqual(fields["Reason"], "The game clock moved backwards")
+        self.assertEqual(fields["Decision made by / ID"], "Local player")
+        self.assertEqual(fields["Before correction / Time of day"], "11:15")
+        self.assertEqual(fields["After correction / Time of day"], "09:34")
+        self.assertEqual(fields["Before correction / World age"], "60 days, 4 hours, 15 minutes")
+        self.assertNotIn("original-hash", str(fields))
+        self.assertIn("original-hash", row["event_json"])
+
     def test_event_evidence_links_group_events_and_escape_payload(self):
         payload = {"addedMods": [{"modId": "<script>alert(1)</script>", "version": "2"}]}
         sub = self.submission(events=self.events + [("session.started", payload), ("session.started", payload)])
         review = build_run_review(sub)
         finding = next(item for item in review["findings"] if item["title"] == "Mods changed (human review required)")
         self.assertEqual(finding["event_sequences"], "3,4")
-        self.assertEqual(review["event_rows"][2]["evidence_fields"][0]["label"], "Added mods")
+        self.assertEqual(review["event_rows"][2]["evidence_fields"][0]["label"], "Mods added (1) / Mod ID")
         self.client.force_login(self.staff)
         response = self.client.get(reverse("admin:registry_runsubmission_change", args=(sub.pk,)))
         self.assertLessEqual(sub.evidence_revisions.count(), 1)

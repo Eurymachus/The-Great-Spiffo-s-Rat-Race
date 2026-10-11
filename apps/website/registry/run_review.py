@@ -13,6 +13,18 @@ from zomboid_catalogue.resolver import resolve_identifier
 
 
 EVENT_LABELS = {
+    "outpost.completed": "Outpost completed",
+    "kills.milestone.reached": "Kill milestone reached",
+    "skill.milestone.reached": "Skill milestone reached",
+    "location.visited": "Location discovered",
+    "town.visited": "Town visited",
+    "literature.baseline": "Reading history recorded",
+    "literature.read": "Reading completed",
+    "knowledge.generator.first_observed": "Generator knowledge first recorded",
+    "run.recovery.decided": "Run recovery decision",
+    "run.clock.repaired": "Game clock corrected",
+    "run.debug.enabled": "Debug mode detected",
+    "run.ended": "Run ended",
     "session.started": "Session started",
     "day.started": "New in-game day",
     "skill.level.reached": "Skill level reached",
@@ -106,8 +118,128 @@ def _event_identifiers(event):
     return ""
 
 
+def _evidence_label(key):
+    labels = {
+        "skillId": "Skill", "outpostId": "Outpost", "deliverableId": "Requirement",
+        "townId": "Town", "locationId": "Location", "itemId": "Reading material",
+        "itemIds": "Previously read items", "recipeId": "Recipe",
+        "learnedRecipeIds": "Recipes learned", "partial": "Tracking started partway through",
+        "knownAtTrackingStart": "Already known when tracking began",
+        "selectedAction": "Recovery action", "authorizationStatus": "Authorization",
+        "epoch": "Recovery version", "previousEpoch": "Previous recovery version",
+        "dayIndex": "In-game day", "passedRequirements": "Requirements completed",
+        "totalRequirements": "Total requirements", "percent": "Completion",
+        "discoveryMethod": "How discovered", "sessionSequence": "Session number",
+        "completedDay": "Previous day", "addedMods": "Mods added",
+        "removedMods": "Mods removed", "changedMods": "Mods changed",
+        "decider": "Decision made by", "observed": "Before correction",
+        "restored": "After correction", "timeOfDay": "Time of day",
+        "worldAgeHours": "World age", "playerHoursSurvived": "Time survived",
+        "elapsedHours": "Elapsed time", "modId": "Mod ID", "workshopId": "Workshop ID",
+        "id": "ID", "type": "Type", "utc": "Recorded time (UTC)",
+    }
+    return labels.get(key, re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", key).replace("_", " ").capitalize())
+
+
+def _evidence_value(key, value):
+    if value is None:
+        return "Not recorded"
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+    if isinstance(value, (int, float)):
+        if key == "utc" or key.endswith("Utc"):
+            try:
+                return datetime.fromtimestamp(value, tz=timezone.utc).strftime("%d %b %Y, %H:%M:%S UTC")
+            except (ValueError, OverflowError, OSError):
+                return f"Unrecognised timestamp: {value}"
+        if key == "percent":
+            return f"{value:,.2f}%"
+        if key.endswith("Days"):
+            return f"{value:,.2f} days"
+        if key == "timeOfDay":
+            minutes = round(value * 60) % (24 * 60)
+            return f"{minutes // 60:02d}:{minutes % 60:02d}"
+        if key.endswith("Hours") or key in {"playerHoursSurvived", "elapsedHours"}:
+            minutes = round(abs(value) * 60)
+            days, minutes = divmod(minutes, 1440)
+            hours, minutes = divmod(minutes, 60)
+            return ("-" if value < 0 else "") + f"{days:,} days, {hours} hours, {minutes} minutes"
+        return f"{value:,}" if isinstance(value, int) else f"{value:,.2f}"
+    if key in {"reason", "observation", "type", "classification", "state", "selectedAction", "authorizationStatus", "discoveryMethod", "modState"} or value == "local_player":
+        return {
+            "interrupted_session_commit": "The previous session was interrupted before saving finished",
+            "save_rollback": "An older save was loaded",
+            "deceased": "The survivor died",
+            "building": "Entered the building",
+            "point": "Reached a discovery point",
+            "resume": "Resume tracking",
+            "game_clock_regression": "The game clock moved backwards",
+            "session_start": "At the start of the session",
+            "local_player": "Local player",
+        }.get(value, str(value).replace("_", " ").capitalize())
+    return str(value)
+
+
+def _evidence_fields(payload, event_type="", names=None):
+    """Present nested evidence as labelled facts, keeping technical hashes in raw JSON."""
+    fields = []
+    names = {} if names is None else names
+    kinds = {"skillId": "skill", "outpostId": "outpost", "deliverableId": "deliverable",
+             "townId": "town", "locationId": "location", "itemId": "item", "itemIds": "item",
+             "recipeId": "recipe", "learnedRecipeIds": "recipe", "modId": "mod"}
+    specific_labels = {
+        "kills.milestone.reached": {"threshold": "Kill milestone", "previous": "Previous kills", "current": "Current kills"},
+        "skill.milestone.reached": {"threshold": "Skill milestone", "previous": "Previous total", "current": "Current total"},
+        "outpost.deliverable.completed": {"value": "Progress", "current": "Amount completed", "required": "Amount required"},
+    }.get(event_type, {})
+
+    def display(key, value):
+        if key in kinds and isinstance(value, str) and value:
+            lookup = (kinds[key], value)
+            if lookup not in names:
+                names[lookup] = _catalogue_name(*lookup)
+            return names[lookup] or f"{value} (name unavailable)"
+        return _evidence_value(key, value)
+
+    def visit(key, value, path=""):
+        label = " / ".join(filter(None, (path, specific_labels.get(key, _evidence_label(key)))))
+        if key.lower().endswith(("hash", "checksum")):
+            return
+        if isinstance(value, dict):
+            if key == "calendar" and set(value) == {"year", "month", "day"}:
+                try:
+                    date = datetime(int(value["year"]), int(value["month"]), int(value["day"]))
+                except (ValueError, TypeError, OverflowError):
+                    pass
+                else:
+                    fields.append({"label": label, "value": date.strftime("%d %B %Y")})
+                    return
+            if not value:
+                fields.append({"label": label, "value": "None recorded"})
+            for child, item in value.items():
+                visit(child, item, label)
+        elif isinstance(value, list):
+            if not value:
+                fields.append({"label": label, "value": "None recorded"})
+            for index, item in enumerate(value, 1):
+                if isinstance(item, dict):
+                    for child, detail in item.items():
+                        visit(child, detail, f"{label} ({index})")
+                elif isinstance(item, list):
+                    visit(str(index), item, label)
+                else:
+                    fields.append({"label": f"{label} ({index})", "value": display(key, item)})
+        else:
+            fields.append({"label": label, "value": display(key, value)})
+
+    for key, value in payload.items():
+        visit(key, value)
+    return fields
+
+
 def _event_rows(events, baseline_events=(), accepted=False):
     rows = []
+    names = {}
     for index, event in enumerate(events):
         event_type = str(event.get("event_type") or "unknown")
         payload = event.get("payload") or {}
@@ -126,12 +258,8 @@ def _event_rows(events, baseline_events=(), accepted=False):
         rows.append(
             {
                 "sequence": event.get("sequence"),
-                "evidence_fields": [
-                    {"label": re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", key).replace("_", " ").capitalize(),
-                     "value": (json.dumps(value, indent=2, ensure_ascii=False) if isinstance(value, (dict, list)) else "Not recorded" if value is None else "Yes" if value is True else "No" if value is False else str(value))}
-                    for key, value in payload.items()
-                ] if reason else [],
-                "event_json": json.dumps(event, indent=2, ensure_ascii=False) if reason else "",
+                "evidence_fields": _evidence_fields(payload, event_type, names),
+                "event_json": json.dumps(event, indent=2, ensure_ascii=False),
                 "review_level": level,
                 "review_reason": reason,
                 "label": EVENT_LABELS.get(

@@ -693,3 +693,5 @@ a.run-context-button:hover { background: var(--button-hover-bg); }
 .run-event-review-dialog details[open] summary { margin-bottom: 16px; }
 .run-event-evidence { margin-top: 8px; }
 @media (max-width: 520px) { .event-review-header, .event-review-footer, .event-review-body { padding: 16px; } .event-review-footer { flex-wrap: wrap; } .event-review-footer nav { gap: 8px; } .run-event-review-dialog dl > div { grid-template-columns: 1fr; gap: 6px; } }
+
+.event-evidence-value { overflow-wrap: anywhere; white-space: pre-wrap; }

@@ -4,6 +4,14 @@
 
 - Integrity findings linked to events and chronology review markers open an
   evidence dialog with payload fields, event time, day and raw event JSON.
+- Every chronology event opens the evidence dialog, including events without
+  review warnings. All 16 registered event types have readable titles. Catalogue
+  names resolve skills, outposts, requirements, towns, locations, items, recipes
+  and mods where available; unknown identifiers remain explicit. Kill milestones
+  and outpost requirements have contextual labels. Extension fields remain visible.
+- Nested payloads display as labelled facts rather than JSON excerpts. Review
+  reasons use readable descriptions, clock values use hours/minutes, and elapsed
+  hours use days/hours/minutes. Technical hashes remain in raw JSON.
 - Grouped findings offer Previous/Next navigation through their related events.
   Covered-by-approval events remain inspectable. Opening details never records
   approval; existing submission decisions and audit workflows remain authoritative.
