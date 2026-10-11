@@ -1,5 +1,13 @@
 # Website: Current Focus
 
+## Partial outpost progress (12 October 2026)
+
+- The public outpost bar and weighted leaderboard score now average individual
+  outpost progress over the catalogue target, including partial progress. The
+  completed count remains separate. Unrounded ratios are used for scoring.
+- Approved authority and older projection paths both follow the agreed
+  aggregate formula in MOD Decision 002. Deployment remains outstanding.
+
 ## Event evidence review (11 October 2026)
 
 - Integrity findings linked to events and chronology review markers open an

@@ -107,6 +107,27 @@ class LeaderboardTests(TestCase):
         )
         return run
 
+    def test_partial_outposts_contribute_without_counting_as_completed(self):
+        run = self.create_run("1", {"kills": 0, "skills": 0, "outposts": 0})
+        submission = run.approved_submission
+        submission.projection["outposts"] = [
+            {"id": str(i), "complete": False, "progress": 0.5, "discovered": True}
+            for i in range(3)
+        ]
+        submission.save(update_fields=("projection",))
+        entry = build_current_leaderboard()[0]
+        self.assertEqual(entry["outposts_completed"], 0)
+        self.assertEqual(entry["completion"], round(25 * 1.5 / 13, 2))
+        from .run_public import build_public_run_context
+        from .models import RunOutpost
+        progress = next(item for item in build_public_run_context(run)["progress"] if item["id"] == "outposts")
+        self.assertEqual(progress["percent"], 11.5)
+        RunOutpost.objects.create(run=run, raw_outpost_id="partial", discovered=True, progress=0.333333)
+        progress = next(item for item in build_public_run_context(run)["progress"] if item["id"] == "outposts")
+        self.assertEqual(progress["current"], 0)
+        self.assertAlmostEqual(progress["ratio"], 0.333333 / 13)
+
+
     def test_weighted_completion_gives_kills_half_of_the_score(self):
         progress = [
             {"id": "kills", "ratio": 1},

@@ -368,6 +368,7 @@ def build_public_run_context(run):
                     else _name(outpost.raw_outpost_id)
                 ),
                 "stage": _name(outpost.stage),
+                "ratio": max(0, min(1, outpost.progress)),
                 "percent": round(max(0, min(1, outpost.progress)) * 100, 1),
                 "complete": outpost.complete,
                 "passed": outpost.passed_requirements,
@@ -397,6 +398,7 @@ def build_public_run_context(run):
                     "id": str(outpost.get("id") or ""),
                     "name": _name(outpost.get("id")),
                     "stage": _name(outpost.get("stage")),
+                    "ratio": max(0, min(1, ratio)),
                     "percent": round(max(0, min(1, ratio)) * 100, 1),
                     "complete": bool(outpost.get("complete")),
                     "passed": outpost.get("passedRequirements", 0),
@@ -421,6 +423,7 @@ def build_public_run_context(run):
                 "id": entry.stable_id,
                 "name": entry.display_name,
                 "stage": "Undiscovered",
+                "ratio": 0,
                 "percent": 0,
                 "complete": False,
                 "passed": 0,
@@ -461,7 +464,11 @@ def build_public_run_context(run):
             if overall_skill_target
             else 0,
         ),
-        ("outposts", completed_outposts, len(latest_outpost_entries), None),
+        (
+            "outposts", completed_outposts, len(latest_outpost_entries),
+            sum(outpost["ratio"] for outpost in outposts) / len(latest_outpost_entries)
+            if latest_outpost_entries else 0,
+        ),
         ("landmarks", visited_landmarks, len(landmark_catalogue), None),
     )
     progress = []
