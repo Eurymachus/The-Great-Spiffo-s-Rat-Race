@@ -60,6 +60,17 @@
   </section>
   {% endif %}
 
+  {% if broken_weapons %}
+  <dialog class="leaderboard-build-modal run-broken-weapons-dialog" id="run-broken-weapons-dialog" aria-labelledby="run-broken-weapons-title">
+    <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-broken-weapons-title">Broken weapons</strong></div><button type="button" data-outpost-dialog-close aria-label="Close broken weapons">Close</button></header>
+    <div class="leaderboard-build-content">
+      <p class="broken-weapons-summary">{{ broken_weapons_total|floatformat:"0g" }} recorded breaks, highest counts first.</p>
+      {% if broken_weapons_partial %}<p>Tracking began partway through this run. Earlier breaks may be missing.</p>{% endif %}
+      {% if broken_weapons %}<ul class="broken-weapon-bars" aria-label="Broken weapons by share of total">{% for weapon in broken_weapons %}<li><span class="broken-weapon-bar-fill" style="width: {{ weapon.percent }}%" aria-hidden="true"></span><span class="broken-weapon-name">{% if weapon.icon_url %}<img src="{{ weapon.icon_url }}" alt="" loading="lazy">{% endif %}<span>{{ weapon.name }}</span></span><span class="broken-weapon-amount"><strong>{{ weapon.count|floatformat:"0g" }}</strong></span></li>{% endfor %}</ul>{% else %}<p>{% if broken_weapons_total %}This approved record contains a total but no weapon breakdown.{% else %}No broken weapons recorded.{% endif %}</p>{% endif %}
+    </div>
+  </dialog>
+  {% endif %}
+
   {% if skills %}
   <dialog class="run-outpost-dialog run-skills-dialog" id="run-skills-dialog" aria-labelledby="run-skills-dialog-title">
     <header><div><p class="dashboard-panel-kicker">Challenge progress</p><h2 id="run-skills-dialog-title">Skill details</h2><p>Current levels from the latest approved export.</p></div><button type="button" class="run-outpost-dialog-close" data-skills-dialog-close aria-label="Close skill details">Close</button></header>
@@ -139,7 +150,7 @@
   <section class="run-public-section">
     <header><p class="dashboard-panel-kicker">Activity</p><h3>Recorded totals</h3></header>
     <dl class="run-activity-grid">
-      {% for item in activity %}<div><dt>{{ item.label }}</dt><dd>{{ item.value|default_if_none:"Not recorded" }}</dd></div>{% endfor %}
+      {% for item in activity %}<div><dt>{% if item.dialog %}<a href="#{{ item.dialog }}" class="run-activity-detail-action" data-outpost-dialog-open="{{ item.dialog }}" aria-haspopup="dialog">{{ item.label }}</a>{% else %}{{ item.label }}{% endif %}</dt><dd>{{ item.value|default_if_none:"Not recorded" }}</dd></div>{% endfor %}
     </dl>
   </section>
 

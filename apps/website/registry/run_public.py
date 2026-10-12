@@ -511,6 +511,38 @@ def build_public_run_context(run):
         ]
 
     distance_metres = distance.get("travelledMeters") if isinstance(distance, dict) else None
+    broken_source = projection.get("brokenWeapons") or {}
+    broken_summary = run.statistic_summaries.filter(kind="broken_weapons").first()
+    broken_weapons = []
+    if broken_summary is not None:
+        broken_total = broken_summary.value
+        broken_partial = broken_summary.partial
+        for metric in broken_summary.metrics.filter(dimension="item").select_related("primary_catalogue_entry"):
+            if metric.value > 0:
+                broken_weapons.append({"id": metric.raw_primary_id, "name": metric.primary_catalogue_entry.display_name if metric.primary_catalogue_entry_id else _name(metric.raw_primary_id), "count": metric.value, "catalogue_entry": metric.primary_catalogue_entry})
+    else:
+        broken_total = broken_source.get("total", 0)
+        broken_partial = bool(broken_source.get("partial"))
+        weapon_ids = [row.get("id") for row in broken_source.get("weapons", []) if isinstance(row, dict)]
+        entries = {}
+        for entry in CatalogueEntry.objects.filter(kind=CatalogueEntry.Kind.ITEM, is_active=True, stable_id__in=weapon_ids):
+            previous = entries.get(entry.stable_id)
+            if previous is None or version_key(entry.introduced_in) > version_key(previous.introduced_in):
+                entries[entry.stable_id] = entry
+        for weapon in broken_source.get("weapons", []):
+            if not isinstance(weapon, dict) or not isinstance(weapon.get("breaks"), (int, float)) or weapon["breaks"] <= 0:
+                continue
+            identifier = str(weapon.get("id") or "Unknown weapon")
+            entry = entries.get(identifier)
+            broken_weapons.append({"id": identifier, "name": entry.display_name if entry else _name(identifier), "count": weapon["breaks"], "catalogue_entry": entry})
+    broken_weapons.sort(key=lambda weapon: (-weapon["count"], weapon["name"].casefold(), weapon["id"]))
+    broken_icons = _catalogue_icon_map(weapon["catalogue_entry"] for weapon in broken_weapons)
+    for weapon in broken_weapons:
+        entry = weapon.pop("catalogue_entry")
+        weapon["icon_url"] = broken_icons.get(entry.pk, "") if entry else ""
+        weapon["percent"] = round(min(100, weapon["count"] / broken_total * 100), 1) if broken_total > 0 else 0
+
+
     activity = [
         {
             "label": "Distance travelled",
@@ -546,7 +578,7 @@ def build_public_run_context(run):
             "value": _total(projection, "animalsSlaughtered"),
         },
         {"label": "Animal births", "value": _total(projection, "animalBirths")},
-        {"label": "Broken weapons", "value": _total(projection, "brokenWeapons")},
+        {"label": "Broken weapons", "value": broken_total, "dialog": "run-broken-weapons-dialog" if broken_weapons else ""},
         {
             "label": "Milk collected",
             "value": f"{_total(projection, 'milkCollected') or 0:,.1f} L",
@@ -785,4 +817,7 @@ def build_public_run_context(run):
         "towns": towns,
         "visited_town_count": sum(town["visited"] for town in towns),
         "activity": activity,
+        "broken_weapons": broken_weapons,
+        "broken_weapons_total": broken_total,
+        "broken_weapons_partial": broken_partial,
     }

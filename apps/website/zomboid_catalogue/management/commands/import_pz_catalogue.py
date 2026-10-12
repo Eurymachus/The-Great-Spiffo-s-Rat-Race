@@ -16,6 +16,7 @@ from zomboid_catalogue.models import (
     TraitDetails,
 )
 from zomboid_catalogue.pz_import import PZCatalogueSource
+from zomboid_catalogue.item_artwork import item_icon_key
 
 
 DEFAULT_GAME_ROOT = Path(
@@ -159,7 +160,7 @@ class Command(BaseCommand):
 
         for item in source.items():
             fields = item.fields
-            icon_key = fields.get("Icon", "")
+            icon_key = item_icon_key(fields)
             entry = self._entry(
                 counters,
                 kind=CatalogueEntry.Kind.ITEM,

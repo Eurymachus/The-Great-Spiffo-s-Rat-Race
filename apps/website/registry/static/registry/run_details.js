@@ -69,12 +69,13 @@
             });
             dialog.addEventListener("close", () => trigger.focus());
         });
-        root.querySelectorAll(".run-outpost-dialog").forEach((dialog) => {
+        root.querySelectorAll(".run-outpost-dialog, .run-broken-weapons-dialog").forEach((dialog) => {
             if (dialog.dataset.outpostDialogReady || typeof dialog.showModal !== "function") return;
             dialog.dataset.outpostDialogReady = "true";
             const triggers = root.querySelectorAll(`[data-outpost-dialog-open="${dialog.id}"]`);
             let activeTrigger = null;
-            triggers.forEach((trigger) => trigger.addEventListener("click", () => {
+            triggers.forEach((trigger) => trigger.addEventListener("click", (event) => {
+                event.preventDefault();
                 activeTrigger = trigger;
                 dialog.showModal();
             }));
@@ -89,7 +90,8 @@
             dialog.dataset.skillsDialogReady = "true";
             const triggers = root.querySelectorAll(`[data-skills-dialog-open="${dialog.id}"]`);
             let activeTrigger = null;
-            triggers.forEach((trigger) => trigger.addEventListener("click", () => {
+            triggers.forEach((trigger) => trigger.addEventListener("click", (event) => {
+                event.preventDefault();
                 activeTrigger = trigger;
                 dialog.showModal();
             }));

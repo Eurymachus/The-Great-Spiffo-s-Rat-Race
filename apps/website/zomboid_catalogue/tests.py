@@ -304,6 +304,23 @@ class CatalogueResolverTests(TestCase):
         self.assertEqual(item_details.raw_properties["Icon"], "Hammer")
         self.assertIn("6 created", output.getvalue())
 
+    def test_item_artwork_uses_declared_variants_when_icon_is_missing(self):
+        from .item_artwork import item_icon_key
+        from .management.commands.import_pzwiki_icons import wiki_filename
+        self.assertEqual(item_icon_key({"Icon": "Explicit", "IconsForTexture": "First;Second"}), "Explicit")
+        self.assertEqual(item_icon_key({"IconsForTexture": " ; Crowbar ; Crowbar_Forged"}), "Crowbar")
+        self.assertEqual(item_icon_key({}), "")
+        placeholder = CatalogueEntry(kind="item", stable_id="Base.Mov_Test", icon_key="default")
+        self.assertEqual(wiki_filename(placeholder), "")
+        for stable_id, variants, expected in (
+            ("Base.Crowbar", "Crowbar;Crowbar_Forged", "Crowbar.png"),
+            ("Base.HuntingKnife", "HuntingKnife;HuntingKnife_Forged", "HuntingKnife.png"),
+            ("Base.Bag_Test", "Bag_Blue;Bag_Red", "Bag_Blue.png"),
+        ):
+            entry = CatalogueEntry.objects.create(kind="item", stable_id=stable_id, introduced_in="42.test", display_name=stable_id)
+            ItemDetails.objects.create(entry=entry, raw_properties={"IconsForTexture": variants})
+            self.assertEqual(wiki_filename(entry), expected)
+
     def test_pzwiki_icon_import_uses_catalogue_texture_keys(self):
         trait = CatalogueEntry.objects.create(
             kind=CatalogueEntry.Kind.TRAIT,

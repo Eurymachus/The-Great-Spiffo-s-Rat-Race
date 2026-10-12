@@ -25,6 +25,40 @@ from .models import (
 
 
 class PublicRunDetailTests(TestCase):
+    def test_broken_weapons_without_breakdown_has_no_modal_or_link(self):
+        from .run_public import build_public_run_context
+        from django.template.loader import render_to_string
+        for total in (0, 5):
+            with self.subTest(total=total):
+                self.submission.projection["brokenWeapons"] = {"total": total, "weapons": []}
+                self.submission.save(update_fields=("projection",))
+                context = build_public_run_context(self.run)
+                activity = next(item for item in context["activity"] if item["label"] == "Broken weapons")
+                self.assertFalse(activity["dialog"])
+                html = render_to_string("registry/public_run_detail.html", context)
+                self.assertNotIn('id="run-broken-weapons-dialog"', html)
+                self.assertNotIn('data-outpost-dialog-open="run-broken-weapons-dialog"', html)
+
+    def test_broken_weapons_sorted_and_authority_preferred(self):
+        from .run_public import build_public_run_context
+        from .models import RunStatisticSummary, RunStatisticMetric
+        self.submission.projection["brokenWeapons"] = {"total": 9, "weapons": [
+            {"id": "Base.Axe", "breaks": 2}, {"id": "Base.Crowbar", "breaks": 7}]}
+        self.submission.save(update_fields=("projection",))
+        context = build_public_run_context(self.run)
+        self.assertEqual([w["count"] for w in context["broken_weapons"]], [7, 2])
+        self.assertEqual([w["percent"] for w in context["broken_weapons"]], [77.8, 22.2])
+        summary = RunStatisticSummary.objects.create(run=self.run, kind="broken_weapons", value=3, partial=True)
+        RunStatisticMetric.objects.create(summary=summary, dimension="item", raw_primary_id="Base.Axe", value=3)
+        context = build_public_run_context(self.run)
+        self.assertEqual(context["broken_weapons_total"], 3)
+        self.assertEqual(len(context["broken_weapons"]), 1)
+        self.assertTrue(context["broken_weapons_partial"])
+        from django.template.loader import render_to_string
+        html = render_to_string("registry/public_run_detail.html", context)
+        self.assertIn('id="run-broken-weapons-dialog"', html)
+        self.assertIn('data-outpost-dialog-open="run-broken-weapons-dialog"', html)
+
     def setUp(self):
         self.participant = Participant.objects.create_user(
             email="racer@example.com",

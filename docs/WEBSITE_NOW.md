@@ -1,5 +1,36 @@
 # Website: Current Focus
 
+## Missing catalogue artwork audit (12 October 2026)
+
+- Item artwork now uses explicit Icon first, then the first non-empty
+  IconsForTexture variant as the representative image. The catalogue importer
+  and PZwiki reconciliation both support this, including existing blank-key
+  records via their retained raw properties. Manual icons remain protected.
+- Local missing-only reconciliation imported 469 assets across catalogue
+  versions, retained 8,926 existing assets and protected 35 manual assets.
+  All five demo weapons now resolve icons, including Crowbar and Hunting Knife.
+- The remaining 532 distinct records were audited: 327 moveable/default-icon
+  entries need world artwork rather than default.png; 198 clothing records are
+  wound, bandage, makeup or stubble overlays; six are mounted animal skulls;
+  one is Custom Occupation, whose public presentation already has a local icon.
+  These are not missing IconsForTexture mappings. Do not substitute unrelated
+  inventory images or claim complete artwork coverage.
+- Placeholder default icons are explicitly reported as requiring world artwork,
+  rather than repeatedly requesting default.png. The missing-only command
+  retries unresolved entries without downloading existing PZwiki/manual images.
+- Eight catalogue regression tests pass. Code deployment remains outstanding;
+  run import_pzwiki_icons --missing-only on each deployment to reconcile assets.
+
+## Broken weapons details (12 October 2026)
+
+- The Broken weapons activity label opens the shared public detail modal with
+  weapon counts sorted descending, then alphabetically for ties. Rows share
+  trait styling and show catalogue icons and counts, with proportional fills
+  representing their share of total breaks. No percentage text is shown. Approved
+  normalized statistics take priority over older export projections. Partial
+  tracking is labelled explicitly. Without a breakdown the label is plain text
+  and no modal is rendered. Deployment pending.
+
 ## Partial outpost progress (12 October 2026)
 
 - The public outpost bar and weighted leaderboard score now average individual

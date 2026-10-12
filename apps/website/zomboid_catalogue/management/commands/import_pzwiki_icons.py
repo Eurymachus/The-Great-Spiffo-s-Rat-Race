@@ -10,7 +10,8 @@ from urllib.request import Request, urlopen
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 
-from zomboid_catalogue.models import CatalogueAsset, CatalogueEntry
+from zomboid_catalogue.models import CatalogueAsset, CatalogueEntry, ItemDetails
+from zomboid_catalogue.item_artwork import item_icon_key
 
 
 PZWIKI_FILE_REDIRECT = "https://pzwiki.net/wiki/Special:Redirect/file/{filename}"
@@ -111,6 +112,9 @@ def wiki_filename(entry):
     if entry.stable_id in PZWIKI_FILENAME_OVERRIDES:
         return PZWIKI_FILENAME_OVERRIDES[entry.stable_id]
     key = str(entry.icon_key or "").strip()
+    if not key and entry.kind == CatalogueEntry.Kind.ITEM:
+        details = ItemDetails.objects.filter(entry=entry).first()
+        key = item_icon_key(details.raw_properties) if details else ""
     if not key:
         return ""
     if entry.kind == CatalogueEntry.Kind.TRAIT and key.casefold().startswith("trait_"):
@@ -121,7 +125,7 @@ def wiki_filename(entry):
     ):
         return f"Profession_{key[11:]}.png"
     if entry.kind == CatalogueEntry.Kind.ITEM:
-        return f"{key}.png"
+        return "" if key.casefold() == "default" else f"{key}.png"
     return ""
 
 
@@ -131,6 +135,7 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
+        parser.add_argument("--missing-only", action="store_true", help="Retry missing artwork without downloading existing imported icons.")
         parser.add_argument(
             "--game-version",
             help="Limit the import to catalogue entries introduced in this version.",
@@ -173,6 +178,13 @@ class Command(BaseCommand):
         download_errors = {}
         skill_filenames = {}
         for entry in entries.iterator():
+            existing = CatalogueAsset.objects.filter(entry=entry, role=CatalogueAsset.Role.ICON, availability=CatalogueAsset.Availability.IMPORTED).exclude(file="")
+            if existing.filter(source_type=CatalogueAsset.SourceType.MANUAL).exists():
+                protected += 1
+                continue
+            if options.get("missing_only") and existing.filter(source_type=CatalogueAsset.SourceType.PZWIKI).exists():
+                unchanged += 1
+                continue
             if entry.kind == CatalogueEntry.Kind.SKILL:
                 page_title = skill_wiki_page_title(entry)
                 if page_title not in skill_filenames:
@@ -200,6 +212,8 @@ class Command(BaseCommand):
                 unavailable_reason = (
                     "no_infobox_artwork_on_pzwiki"
                     if entry.kind == CatalogueEntry.Kind.SKILL
+                    else "placeholder_icon_requires_world_artwork"
+                    if entry.kind == CatalogueEntry.Kind.ITEM and entry.icon_key.casefold() == "default"
                     else "no_supported_icon_key"
                 )
                 missing += 1
