@@ -178,29 +178,42 @@ def _catalogue_map(kind, identifiers):
 def _catalogue_icon_map(entries):
     entries = [entry for entry in entries if entry]
     entry_ids = {entry.pk for entry in entries}
-    icon_keys = {entry.pk: entry.icon_key for entry in entries}
     if not entry_ids:
         return {}
     assets = CatalogueAsset.objects.filter(
-        entry_id__in=entry_ids,
+        entry__kind__in={entry.kind for entry in entries},
+        entry__stable_id__in={entry.stable_id for entry in entries},
         role=CatalogueAsset.Role.ICON,
         availability=CatalogueAsset.Availability.IMPORTED,
         source_type__in=(
             CatalogueAsset.SourceType.PZWIKI,
             CatalogueAsset.SourceType.MANUAL,
         ),
-    ).exclude(file="")
+    ).exclude(file="").select_related("entry")
     source_priority = {
         CatalogueAsset.SourceType.PZWIKI: 1,
         CatalogueAsset.SourceType.MANUAL: 2,
     }
     resolved = {}
     priorities = {}
+    by_identity = {}
     for asset in assets:
-        priority = (source_priority[asset.source_type], asset.source_key == icon_keys[asset.entry_id])
-        if priority >= priorities.get(asset.entry_id, (0, False)):
-            resolved[asset.entry_id] = asset.file.url
-            priorities[asset.entry_id] = priority
+        by_identity.setdefault((asset.entry.kind, asset.entry.stable_id), []).append(asset)
+    for entry in entries:
+        for asset in by_identity.get((entry.kind, entry.stable_id), []):
+            # Never borrow from a newer version or a different catalogue identity.
+            if version_key(asset.entry.introduced_in) > version_key(entry.introduced_in):
+                continue
+            priority = (
+                asset.entry_id == entry.pk,
+                version_key(asset.entry.introduced_in),
+                source_priority[asset.source_type],
+                asset.source_key == asset.entry.icon_key,
+                asset.pk,
+            )
+            if entry.pk not in priorities or priority > priorities[entry.pk]:
+                resolved[entry.pk] = asset.file.url
+                priorities[entry.pk] = priority
     return resolved
 
 

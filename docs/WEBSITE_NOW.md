@@ -1,5 +1,14 @@
 # Website: Current Focus
 
+## Catalogue artwork continuity (15 October 2026)
+
+- Public run/build artwork prefers the selected catalogue entry's imported
+  Wiki/manual icon. While new-version artwork is pending, use the latest older
+  imported icon with exactly the same kind and stable identifier. Never borrow
+  from a different identity or a newer version, or change approved run evidence.
+- Regression coverage checks fallback, replacement, version/kind/identifier
+  boundaries and manual-artwork priority. No migration is required.
+
 ## Interactive injury body (14 October 2026)
 
 - Injury modal uses original male/female game silhouettes, outlines and red
