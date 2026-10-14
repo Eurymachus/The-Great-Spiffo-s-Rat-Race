@@ -28,6 +28,39 @@ Use [MOD_EXPORT_CHECKLIST.md](MOD_EXPORT_CHECKLIST.md) as the live implementatio
 
 Kills, current skill state, and outpost deliverables remain existing normalized challenge capabilities and are not duplicated into every history event.
 
+## Outdoor weather temperature observations
+
+- Source: `getClimateManager():getTemperature()` in Build 42.21 / Steam build
+  25485521, decompile job 13. `LuaManager.Exposer` admits `ClimateManager`,
+  the global is registered by `LuaManager.GlobalObject`, and the public
+  method is not hidden from Lua. This is global outdoor weather, regardless
+  of player location. Room, vehicle, local heat-source and wind-chill effects
+  from `getAirTemperatureForCharacter` are deliberately excluded.
+- Sample once on collector initialization and on `EveryOneMinute`. These are
+  observed extrema, not reconstructed continuous weather or daily averages.
+  No samples are invented for skipped simulation intervals or earlier history.
+- Persist independent run-wide extremes in `run.outdoorTemperature` and
+  current-day extremes in `run.dailyState.outdoorTemperature`. Daily rollover
+  seals the previous observations before the minute callback samples the new
+  day. Values are not deltas. Equal values keep the first observed timestamp.
+- Export `projection.outdoorTemperature`, `projection.activeDay.outdoorTemperature`
+  and `day.started.payload.completedDay.outdoorTemperature`, when available.
+  Each contains `schema = 1`, `unit = "celsius"`,
+  `source = "outdoor_weather"`, `sampleIntervalGameMinutes = 1`, and
+  `minimum`/`maximum` observations. Each observation contains `celsius`, `utc`,
+  `worldAgeHours`, `timeOfDay` (fractional hours), and `calendar` with one-based
+  `month` and `day` plus `year`. This nested schema is additive to projection 2
+  and export format 4; no run reset or rewrite is required.
+- A newly introduced collector on an existing save marks its run summary and
+  first observed day `partial = true`. Bootstrapped runs are also partial.
+  Subsequent days start fresh. Missing observations mean unknown, never zero.
+- Export snapshots are copies, and export itself does not sample or mutate
+  the saved observations. Individual temperature records do not append ledger
+  events. Collection ignores inactive recording and terminal run lifecycles.
+- Website approval retains daily values on `RunDailyRecord` and independent
+  run-wide values on `RunTemperatureSummary`, preserving observation metadata.
+  The character thermometer opens daily/weekly/monthly extrema graphs.
+
 ## Identifier policy
 
 Persist stable identifiers, not localized display values:

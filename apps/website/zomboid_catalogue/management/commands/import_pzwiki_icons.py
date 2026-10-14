@@ -124,6 +124,8 @@ def wiki_filename(entry):
         and key.casefold().startswith("profession_")
     ):
         return f"Profession_{key[11:]}.png"
+    if entry.kind in (CatalogueEntry.Kind.ANIMAL, CatalogueEntry.Kind.FLUID):
+        return f"{key.removeprefix('Item_')}.png"
     if entry.kind == CatalogueEntry.Kind.ITEM:
         return "" if key.casefold() == "default" else f"{key}.png"
     return ""
@@ -135,6 +137,8 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
+        parser.add_argument("--kind", choices=("trait", "occupation", "skill", "item", "animal", "fluid"),
+                            help="Limit the import to one catalogue kind.")
         parser.add_argument("--missing-only", action="store_true", help="Retry missing artwork without downloading existing imported icons.")
         parser.add_argument(
             "--game-version",
@@ -165,9 +169,13 @@ class Command(BaseCommand):
                 CatalogueEntry.Kind.OCCUPATION,
                 CatalogueEntry.Kind.SKILL,
                 CatalogueEntry.Kind.ITEM,
+                CatalogueEntry.Kind.ANIMAL,
+                CatalogueEntry.Kind.FLUID,
             ),
             is_active=True,
         )
+        if options.get("kind"):
+            entries = entries.filter(kind=options["kind"])
         if options.get("game_version"):
             entries = entries.filter(introduced_in=options["game_version"])
 
@@ -182,7 +190,7 @@ class Command(BaseCommand):
             if existing.filter(source_type=CatalogueAsset.SourceType.MANUAL).exists():
                 protected += 1
                 continue
-            if options.get("missing_only") and existing.filter(source_type=CatalogueAsset.SourceType.PZWIKI).exists():
+            if options.get("missing_only") and existing.filter(source_type=CatalogueAsset.SourceType.PZWIKI, source_key=entry.icon_key).exists():
                 unchanged += 1
                 continue
             if entry.kind == CatalogueEntry.Kind.SKILL:

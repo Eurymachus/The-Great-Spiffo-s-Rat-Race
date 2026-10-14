@@ -57,6 +57,7 @@ end
 function CharacterSnapshot.identity(player)
     local result = CharacterSnapshot.name(player)
     result.professionId = CharacterSnapshot.professionId(player)
+    result.sex = player:isFemale() and "female" or "male"
     return result
 end
 

@@ -12,6 +12,8 @@ class CatalogueEntry(models.Model):
         TOWN = "town", "Town"
         LOCATION = "location", "Location"
         ANIMAL = "animal", "Animal"
+        FLUID = "fluid", "Fluid"
+        BODY_PART = "body_part", "Body part"
         OUTPOST = "outpost", "Outpost"
         DELIVERABLE = "deliverable", "Deliverable"
         MOD = "mod", "Mod"
@@ -65,6 +67,16 @@ class CatalogueEntry(models.Model):
 
     def __str__(self):
         return f"{self.display_name} ({self.stable_id})"
+
+
+class FluidDetails(models.Model):
+    entry = models.OneToOneField(
+        CatalogueEntry, on_delete=models.CASCADE, related_name="fluid_details"
+    )
+    color_reference = models.CharField(max_length=120, blank=True)
+
+    def __str__(self):
+        return self.entry.display_name
 
 
 class TraitDetails(models.Model):

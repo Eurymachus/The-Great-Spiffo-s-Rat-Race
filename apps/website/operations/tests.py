@@ -910,6 +910,41 @@ class CatalogueImportReviewTests(TestCase):
             job.trigger, PZWikiArtworkSyncJob.Trigger.CATALOGUE_APPROVAL
         )
 
+    def test_old_review_does_not_retire_animals_outside_its_scope(self):
+        entry = CatalogueEntry.objects.create(kind="animal", stable_id="chick",
+            display_name="Chick", introduced_in="42.19")
+        self.assertEqual(catalogue_diff(self.snapshot, "42.19")["removed"], [])
+        approve_catalogue_review(self.review(), self.admin)
+        entry.refresh_from_db()
+        self.assertTrue(entry.is_active)
+
+    def test_approval_installs_fluid_metadata_and_artwork_reference(self):
+        from .catalogue_review import _asset_snapshot
+        self.snapshot.append({
+            "kind": "fluid", "stable_id": "SheepMilk", "display_name": "Sheep's Milk",
+            "icon_key": "Item_Waterdrop_Grey", "details": {"color_reference": "White"},
+            "asset": _asset_snapshot("Item_Waterdrop_Grey", None, False),
+        })
+        approve_catalogue_review(self.review(), self.admin)
+        entry = CatalogueEntry.objects.get(kind="fluid", stable_id="SheepMilk")
+        self.assertEqual(entry.fluid_details.color_reference, "White")
+        self.assertEqual(entry.assets.get().source_key, "Item_Waterdrop_Grey")
+
+    def test_approval_installs_animal_metadata_and_queues_wiki_artwork(self):
+        from .catalogue_review import _asset_snapshot
+        self.snapshot.append({
+            "kind": "animal", "stable_id": "cowcalf", "display_name": "Calf",
+            "icon_key": "Item_CowBlack_Calf",
+            "details": {"species_id": "cow", "species_name": "Cow", "life_stage": "baby"},
+            "asset": _asset_snapshot("Item_CowBlack_Calf", None, False),
+        })
+        review = approve_catalogue_review(self.review(), self.admin)
+        entry = CatalogueEntry.objects.get(kind="animal", stable_id="cowcalf")
+        self.assertEqual(entry.animal_details.life_stage, "baby")
+        self.assertEqual(entry.assets.get().source_key, "Item_CowBlack_Calf")
+        self.assertEqual(PZWikiArtworkSyncJob.objects.get(catalogue_review=review).status,
+                         PZWikiArtworkSyncJob.Status.QUEUED)
+
     def test_approval_resolves_item_category_and_weapon_skill_relationships(self):
         self.snapshot.extend([
             {

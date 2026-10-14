@@ -193,3 +193,27 @@ deactivated,
 not deleted, so existing run evidence and relationships remain valid. Notes,
 aliases, captions, and other website-owned editorial data are not replaced by
 the automated source snapshot.
+
+## Animal catalogue artwork
+
+Animal definitions now participate in the normal catalogue review and approval
+workflow. The source reader retains exact raw animal IDs and resolves their
+breed inventory texture references. Approval queues PZwiki reconciliation,
+which downloads those images into persistent catalogue media. Manual overrides
+remain protected. No separate animal icon pack is required.
+
+For a targeted command-line refresh, use `--kind animal` with
+`import_pz_catalogue` (plus the selected game and decompiled roots/version),
+then `import_pzwiki_icons --kind animal --game-version <version>`.
+
+Fluid definitions also participate in catalogue review and artwork reconciliation.
+Their translated names come from `Fluids.json`, and the shared fluid icon is read
+from the vanilla crafting tooltip UI. Use `--kind fluid` with the same import
+commands for a targeted refresh. Apply catalogue migration 0010 before importing.
+
+Health body artwork is extracted from the installed `UI2.pack` into body-part
+catalogue assets, preserving native offsets and transparency. Apply migration
+0011, then run the normal `import_pz_catalogue` without `--no-assets`, or use
+`import_health_body_artwork --game-root <path> --game-version <version>`.
+Persistent media must be retained on deployment. If artwork is unavailable,
+the injury modal retains its text breakdown.

@@ -609,6 +609,9 @@ class RunContractState(models.Model):
 
 
 class RunCharacter(models.Model):
+    SEX_CHOICES = (("male", "Male"), ("female", "Female"))
+    starting_sex = models.CharField(max_length=6, blank=True, choices=SEX_CHOICES)
+    current_sex = models.CharField(max_length=6, blank=True, choices=SEX_CHOICES)
     run = models.OneToOneField(
         ChallengeRun, on_delete=models.CASCADE, related_name="character_record"
     )
@@ -898,7 +901,24 @@ class RunWeaponKill(models.Model):
         ]
 
 
-class RunDailyRecord(models.Model):
+class OutdoorTemperatureFields(models.Model):
+    temperature_minimum = models.FloatField(null=True, blank=True)
+    temperature_maximum = models.FloatField(null=True, blank=True)
+    temperature_minimum_observation = models.JSONField(default=dict, blank=True)
+    temperature_maximum_observation = models.JSONField(default=dict, blank=True)
+    temperature_partial = models.BooleanField(default=False)
+
+    class Meta:
+        abstract = True
+
+
+class RunTemperatureSummary(OutdoorTemperatureFields):
+    run = models.OneToOneField(
+        ChallengeRun, on_delete=models.CASCADE, related_name="temperature_summary"
+    )
+
+
+class RunDailyRecord(OutdoorTemperatureFields):
     class State(models.TextChoices):
         SEALED = "sealed", "Sealed"
         ACTIVE = "active", "Active"

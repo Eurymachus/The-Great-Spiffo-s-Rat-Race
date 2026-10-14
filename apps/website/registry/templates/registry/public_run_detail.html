@@ -23,6 +23,9 @@
         <button type="button" class="run-character-snapshot-action" data-outpost-dialog-open="run-weight-dialog" aria-haspopup="dialog" title="Current weight: {{ weight }}. View weight history" aria-label="Current weight: {{ weight }}" aria-describedby="run-weight-title">
           <span class="run-snapshot-symbol run-weight-symbol" aria-hidden="true">kg</span>
         </button>
+        <button type="button" class="run-character-snapshot-action run-temperature-action" data-outpost-dialog-open="run-temperature-dialog" aria-haspopup="dialog" aria-label="View outdoor temperature history" title="Outdoor temperature: {% if temperature_summary and temperature_summary.temperature_minimum is not None %}Low {{ temperature_summary.temperature_minimum|floatformat:1 }} °C, high {{ temperature_summary.temperature_maximum|floatformat:1 }} °C{% else %}Not recorded{% endif %}">
+          <svg viewBox="0 0 24 36" width="24" height="36" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 23V7a4 4 0 0 1 8 0v16a7 7 0 1 1-8 0Z"/><path d="M12 12v16M18 9h4M18 15h3M18 21h4"/><circle cx="12" cy="28" r="3" fill="currentColor" stroke="none"/></svg>
+        </button>
         <button type="button" class="run-character-snapshot-action" data-outpost-dialog-open="run-weapon-kills-dialog" aria-haspopup="dialog" title="Favourite weapon: {{ favourite_weapon.name }}{% if favourite_weapon.kills is not None %}, {{ favourite_weapon.kills }} kills{% endif %}" aria-label="Favourite weapon: {{ favourite_weapon.name }}{% if favourite_weapon.kills is not None %}, {{ favourite_weapon.kills }} kills{% endif %}">
           {% if favourite_weapon.icon_url %}<img src="{{ favourite_weapon.icon_url }}" alt="">{% else %}<span class="run-snapshot-symbol run-weapon-symbol" aria-hidden="true">W</span>{% endif %}
         </button>
@@ -60,6 +63,30 @@
   </section>
   {% endif %}
 
+  <dialog class="leaderboard-build-modal run-weight-dialog" id="run-temperature-dialog" aria-labelledby="run-temperature-title">
+    <header><div><p class="dashboard-panel-kicker">Weather during the run</p><strong id="run-temperature-title">Outdoor temperature</strong></div><button type="button" data-outpost-dialog-close aria-label="Close temperature chart">Close</button></header>
+    <div class="leaderboard-build-content">
+      {% if temperature_summary and temperature_summary.temperature_minimum is not None %}<p class="temperature-summary">Lowest <strong class="temperature-low">{{ temperature_summary.temperature_minimum|floatformat:1 }} °C</strong> · Highest <strong class="temperature-high">{{ temperature_summary.temperature_maximum|floatformat:1 }} °C</strong></p>{% endif %}
+      {% if temperature_summary.temperature_partial %}<p class="run-weight-help">Tracking began partway through this run. Earlier temperatures are unknown.</p>{% endif %}
+      {% if temperature_chart_data %}
+      {{ temperature_chart_data|json_script:"run-temperature-data" }}
+      <div data-temperature-chart="run-temperature-data">
+        <div class="run-weight-controls">
+          <label><span class="visually-hidden">Group temperature history</span><select data-temperature-group><option value="day">By Day</option><option value="week">By Week</option><option value="month">By Month</option></select></label>
+          <label><span class="visually-hidden">Temperature history range</span><select data-temperature-range><option value="7">Last 7</option><option value="28">Last 28</option><option value="0">All Time</option></select></label>
+        </div>
+        <div class="temperature-toggles"><label class="temperature-high"><input type="checkbox" data-temperature-series="maximum" checked> Highest</label><label class="temperature-low"><input type="checkbox" data-temperature-series="minimum" checked> Lowest</label></div>
+        <div class="run-weight-plot" data-temperature-plot tabindex="0" role="slider" aria-label="Temperature history, use left and right arrows to inspect points" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+          <svg class="run-weight-chart" aria-hidden="true"></svg><div class="run-weight-tooltip" data-temperature-tooltip hidden></div>
+        </div>
+        <div class="run-weight-caption"><span data-temperature-description>Daily extremes (°C)</span><span data-temperature-progress hidden>* In Progress</span></div>
+      </div>
+      <p class="run-weight-help">Outdoor weather, wherever the survivor was. Weekly and monthly views show each period's lowest and highest recorded temperatures. Missing days stay unknown.</p>
+      <noscript><p>Enable JavaScript to explore temperature history.</p></noscript>
+      {% else %}<p>No approved daily temperature history recorded yet.</p>{% endif %}
+    </div>
+  </dialog>
+
   <dialog class="leaderboard-build-modal run-weight-dialog" id="run-weight-dialog" aria-labelledby="run-weight-title">
     <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-weight-title">Weight</strong></div><button type="button" data-outpost-dialog-close aria-label="Close weight chart">Close</button></header>
     <div class="leaderboard-build-content">
@@ -87,9 +114,9 @@
     <div class="leaderboard-build-content">
       {% if weapon_kills %}<p class="broken-weapons-summary">{{ weapon_kills_total|floatformat:"0g" }} recorded kills, highest counts first.</p>{% endif %}
       {% if weapon_kills_partial %}<p>Tracking began partway through this run. Earlier weapon kills may be missing.</p>{% endif %}
-      <ul class="broken-weapon-bars" aria-label="Kills by weapon by share of recorded kills">
-        {% for weapon in weapon_kills %}<li><span class="broken-weapon-bar-fill" style="width: {{ weapon.percent }}%" aria-hidden="true"></span><span class="broken-weapon-name">{% if weapon.icon_url %}<img src="{{ weapon.icon_url }}" alt="" loading="lazy">{% endif %}<span>{{ weapon.name }}</span></span><span class="broken-weapon-amount"><strong>{{ weapon.count|floatformat:"0g" }}</strong></span></li>{% empty %}<li>No kills by weapon recorded.</li>{% endfor %}
-      </ul>
+      {% if weapon_kills %}<ul class="broken-weapon-bars" aria-label="Kills by weapon by share of recorded kills">
+        {% for weapon in weapon_kills %}<li><span class="broken-weapon-bar-fill" style="width: {{ weapon.percent }}%" aria-hidden="true"></span><span class="broken-weapon-name">{% if weapon.icon_url %}<img src="{{ weapon.icon_url }}" alt="" loading="lazy">{% endif %}<span>{{ weapon.name }}</span></span><span class="broken-weapon-amount"><strong>{{ weapon.count|floatformat:"0g" }}</strong></span></li>{% endfor %}
+      </ul>{% else %}<p>No kills by weapon recorded.</p>{% endif %}
     </div>
   </dialog>
 
@@ -103,6 +130,44 @@
     </div>
   </dialog>
   {% endif %}
+
+  {% for detail in activity_breakdowns %}
+  <dialog class="leaderboard-build-modal run-broken-weapons-dialog" id="{{ detail.id }}" aria-labelledby="{{ detail.id }}-title">
+    <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="{{ detail.id }}-title">{{ detail.label }}</strong></div><button type="button" data-outpost-dialog-close aria-label="Close {{ detail.label|lower }}">Close</button></header>
+    <div class="leaderboard-build-content">
+      {% if not detail.body %}
+      {% if detail.total is not None %}<p class="broken-weapons-summary">{% if detail.litres %}{{ detail.total|floatformat:"2g" }} L{% else %}{{ detail.total|floatformat:"0g" }}{% endif %} recorded{% if not detail.body %}, highest amounts first{% endif %}.</p>{% endif %}
+      {% if detail.partial %}<p class="run-weight-help">{% if detail.body %}Earlier injuries may be missing.{% else %}Tracking began partway through this run. Earlier records may be missing.{% endif %}</p>{% endif %}
+      {% endif %}
+      {% if detail.body %}
+      <section class="injury-body-view" data-injury-body>
+        <div class="injury-body-stage" data-body-stage>
+          <canvas data-body-canvas width="180" height="440" tabindex="0" role="group" aria-label="Injury history. Use arrow keys to explore body parts, Escape to dismiss details."></canvas>
+          <div class="injury-body-tooltip" data-body-info role="status" aria-live="polite" hidden></div>
+        </div>
+        <p class="injury-body-hint">Hover or tap an injury to view details.</p>
+        {% if not detail.body.sex %}<button type="button" class="injury-body-switch" data-body-switch>Switch body view</button>{% endif %}
+        {% for row in detail.body.unmapped %}<p class="run-weight-help">{{ row.name }}: {{ row.count|floatformat:"0" }} injuries</p>{% endfor %}
+        {{ detail.body|json_script:"run-injury-body-data" }}
+      </section>
+      {% else %}
+      {% for group in detail.groups %}
+      <section><h3>{{ group.heading }}</h3>
+        <ul class="broken-weapon-bars" aria-label="{{ detail.label }}: {{ group.heading|lower }}">
+          {% for row in group.rows %}<li><span class="broken-weapon-bar-fill" style="width: {{ row.percent }}%" aria-hidden="true"></span><span class="broken-weapon-name">{% if row.icon_url %}<img src="{{ row.icon_url }}" alt="" loading="lazy">{% endif %}<span>{{ row.name }}</span></span><span class="broken-weapon-amount"><strong>{% if detail.litres %}{{ row.count|floatformat:"2g" }} L{% else %}{{ row.count|floatformat:"0g" }}{% endif %}</strong></span></li>{% endfor %}
+        </ul>
+      </section>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% if detail.body %}
+    <footer class="injury-body-footer">
+      {% if detail.total is not None %}<span>{{ detail.total|floatformat:"0g" }} recorded.</span>{% endif %}
+      {% if detail.partial %}<span>Earlier injuries may be missing.</span>{% endif %}
+    </footer>
+    {% endif %}
+  </dialog>
+  {% endfor %}
 
   {% if skills %}
   <dialog class="run-outpost-dialog run-skills-dialog" id="run-skills-dialog" aria-labelledby="run-skills-dialog-title">
@@ -183,7 +248,7 @@
   <section class="run-public-section">
     <header><p class="dashboard-panel-kicker">Activity</p><h3>Recorded totals</h3></header>
     <dl class="run-activity-grid">
-      {% for item in activity %}<div><dt>{% if item.dialog %}<a href="#{{ item.dialog }}" class="run-activity-detail-action" data-outpost-dialog-open="{{ item.dialog }}" aria-haspopup="dialog">{{ item.label }}</a>{% else %}{{ item.label }}{% endif %}</dt><dd>{{ item.value|default_if_none:"Not recorded" }}</dd></div>{% endfor %}
+      {% for item in activity %}<div{% if item.dialog %} class="run-activity-cell-link"{% endif %}><dt>{% if item.dialog %}<a href="#{{ item.dialog }}" class="run-activity-detail-action" data-outpost-dialog-open="{{ item.dialog }}" aria-haspopup="dialog">{{ item.label }}</a>{% else %}{{ item.label }}{% endif %}</dt><dd>{{ item.value|default_if_none:"Not recorded" }}</dd></div>{% endfor %}
     </dl>
   </section>
 

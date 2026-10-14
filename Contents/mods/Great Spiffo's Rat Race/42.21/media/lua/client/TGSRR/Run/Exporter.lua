@@ -1,6 +1,8 @@
 local Identity = require("TGSRR/Run/Identity")
+local TemperatureSnapshot = require("TGSRR/Run/TemperatureSnapshot")
 local Ledger = require("TGSRR/Run/Ledger")
 local ExportCodec = require("TGSRR/Run/ExportCodec")
+local EventCodec = require("TGSRR/Run/EventCodec")
 local IncrementalExportCache = require("TGSRR/Run/IncrementalExportCache")
 local SkillSnapshot = require("TGSRR/Run/SkillSnapshot")
 local OutpostSnapshot = require("TGSRR/Run/OutpostSnapshot")
@@ -321,6 +323,17 @@ local function verifyReadback(decoded, ledger, projection, verifyBodies)
             comparison[1], comparison[2], comparison[3])
         if reason then return false, reason end
     end
+    for _, entry in ipairs({
+        { "outdoorTemperature", actual.outdoorTemperature, projection.outdoorTemperature },
+        { "activeDay.outdoorTemperature", actual.activeDay.outdoorTemperature,
+            projection.activeDay.outdoorTemperature },
+    }) do
+        local observed = assert(EventCodec.canonicalPayload({ value = entry[2] }))
+        local expected = assert(EventCodec.canonicalPayload({ value = entry[3] }))
+        if observed ~= expected then
+            return false, "export_readback_mismatch:" .. entry[1]
+        end
+    end
     return true
 end
 
@@ -410,6 +423,7 @@ function Exporter.generate(run, work, options)
         outposts = OutpostSnapshot.observe(outpostLifecycles),
         activeMods = ModSnapshot.observe(),
         activeDay = DailySnapshot.active(run, player),
+        outdoorTemperature = TemperatureSnapshot.copy(run.outdoorTemperature),
         weight = {
             unit = "kilogram",
             currentKilograms = DailySnapshot.current(

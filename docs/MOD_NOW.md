@@ -10,6 +10,22 @@
   longer authoring workspaces.
 - The modular tracker baseline is committed at `737331b`.
 
+## Outdoor weather extremes (14 October 2026)
+
+- Daily and independent run-wide minimum/maximum temperatures now sample
+  `ClimateManager:getTemperature()` at initialization and `EveryOneMinute`,
+  regardless of the player's location. Each extreme retains Celsius, UTC,
+  world age, in-game time of day and a one-based calendar date. Equal readings
+  retain their first occurrence. Collection stops with the active run.
+- Completed days seal their observations in `day.started.completedDay`;
+  exports also carry the unfinished day and run-wide `outdoorTemperature`.
+  Existing saves disclose partial temperature history. Old ledger entries are
+  not changed and missing observations remain unknown.
+- Desktop collection/export checks cover rollover, resume, ties, signed
+  temperatures, partial history and terminal runs. In-game sleep/fast-forward
+  verification remains outstanding. Website approval now normalizes daily and
+  run-wide observations and presents the temperature history modal.
+
 ## Daily weight observations (14 October 2026)
 
 - New completed and active days include measured `weightKilograms` alongside
@@ -295,3 +311,10 @@ expanded 13-outpost and 169-deliverable authority.
 - [MOD_DECISION_017_RUN_IDENTITY_AND_LIFECYCLE.md](MOD_DECISION_017_RUN_IDENTITY_AND_LIFECYCLE.md)
 - [MOD_DECISION_018_BUILDING_VISIT_HISTORY.md](MOD_DECISION_018_BUILDING_VISIT_HISTORY.md)
 - [MOD_DECISION_019_STARTING_LOCATION.md](MOD_DECISION_019_STARTING_LOCATION.md)
+
+## Character sex export (14 October 2026)
+
+- Character identity exports `sex` as `male` or `female`, sampled using
+  `player:isFemale()`, also used by vanilla ISBodyPartPanel. New runs retain
+  the starting value; existing runs capture the current value on their next
+  export without rewriting missing historical starting data.

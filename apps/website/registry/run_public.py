@@ -176,7 +176,9 @@ def _catalogue_map(kind, identifiers):
 
 
 def _catalogue_icon_map(entries):
-    entry_ids = {entry.pk for entry in entries if entry}
+    entries = [entry for entry in entries if entry]
+    entry_ids = {entry.pk for entry in entries}
+    icon_keys = {entry.pk: entry.icon_key for entry in entries}
     if not entry_ids:
         return {}
     assets = CatalogueAsset.objects.filter(
@@ -195,8 +197,8 @@ def _catalogue_icon_map(entries):
     resolved = {}
     priorities = {}
     for asset in assets:
-        priority = source_priority[asset.source_type]
-        if priority >= priorities.get(asset.entry_id, 0):
+        priority = (source_priority[asset.source_type], asset.source_key == icon_keys[asset.entry_id])
+        if priority >= priorities.get(asset.entry_id, (0, False)):
             resolved[asset.entry_id] = asset.file.url
             priorities[asset.entry_id] = priority
     return resolved
@@ -238,6 +240,106 @@ def build_weight_chart_data(run):
             "inProgress": record.state == "active" and run.lifecycle_status == "active",
         })
     return points
+
+
+def build_temperature_context(run):
+    points = []
+    for record in run.daily_records.order_by("day_index", "state"):
+        if record.temperature_minimum is None or record.temperature_maximum is None:
+            continue
+        calendar = record.temperature_minimum_observation.get("calendar", {})
+        points.append({
+            "day": record.day_index, "minimum": record.temperature_minimum,
+            "maximum": record.temperature_maximum,
+            "year": calendar.get("year"), "month": calendar.get("month"),
+            "minimumObservation": record.temperature_minimum_observation,
+            "maximumObservation": record.temperature_maximum_observation,
+            "partial": record.temperature_partial,
+            "inProgress": record.state == "active" and run.lifecycle_status == "active",
+        })
+    summary = getattr(run, "temperature_summary", None)
+    return {"temperature_chart_data": points, "temperature_summary": summary}
+
+
+def build_activity_breakdowns(run, projection):
+    # Each dimension is a separate view of the same total, never an added total.
+    specs = (
+        ("Recorded injuries", "injuries", "injuries", (
+            ("By injury type", "injury_type", "byType", "id", "count", None),
+            ("By body part", "body_part", "byBodyPart", "id", "count", None),
+        )),
+        ("Fish caught", "fish_caught", "fishCaught", (
+            ("By fish", "item", "fish", "fishId", "caught", CatalogueEntry.Kind.ITEM),
+        )),
+        ("Animals trapped", "animal_trap", "animalsTrapped", (
+            ("By animal", "animal", "animalTypes", "animalType", "trapped", CatalogueEntry.Kind.ANIMAL),
+            ("By trap", "trap", "traps", "trapId", "trapped", CatalogueEntry.Kind.ITEM),
+        )),
+        ("Animals slaughtered", "animal_slaughter", "animalsSlaughtered", (
+            ("By animal", "animal", "animalTypes", "animalType", "slaughtered", CatalogueEntry.Kind.ANIMAL),
+        )),
+        ("Animal births", "animal_birth", "animalBirths", (
+            ("By animal", "animal", "animalTypes", "animalType", "births", CatalogueEntry.Kind.ANIMAL),
+        )),
+        ("Milk collected", "milk_collected", "milkCollected", (
+            ("By milk type", "fluid", "milkTypes", "milkType", "amount", CatalogueEntry.Kind.FLUID),
+        )),
+    )
+    summaries = {
+        summary.kind: summary
+        for summary in run.statistic_summaries.prefetch_related(
+            "metrics__primary_catalogue_entry"
+        ).filter(kind__in=[spec[1] for spec in specs])
+    }
+    details = {}
+    for label, kind, source_key, dimensions in specs:
+        source = projection.get(source_key) or {}
+        if not isinstance(source, dict):
+            source = {}
+        partial = bool(source.get("partial"))
+        if kind == "injuries":
+            source = source.get("all") or {}
+        summary = summaries.get(kind)
+        total = summary.value if summary else source.get("total")
+        if summary:
+            partial = summary.partial
+        groups = []
+        for heading, dimension, rows_key, id_key, value_key, catalogue_kind in dimensions:
+            rows = []
+            if summary:
+                unresolved_entries = _catalogue_map(catalogue_kind, [
+                    metric.raw_primary_id for metric in summary.metrics.all()
+                    if metric.dimension == dimension and not metric.primary_catalogue_entry_id
+                ]) if catalogue_kind else {}
+                for metric in summary.metrics.all():
+                    if metric.dimension == dimension and metric.value > 0:
+                        entry = metric.primary_catalogue_entry or unresolved_entries.get(metric.raw_primary_id)
+                        rows.append(dict(id=metric.raw_primary_id,
+                            name=entry.display_name if entry else _name(metric.raw_primary_id),
+                            count=metric.value, catalogue_entry=entry))
+            else:
+                observations = [row for row in source.get(rows_key, []) if isinstance(row, dict)]
+                entries = _catalogue_map(catalogue_kind, [row.get(id_key) for row in observations]) if catalogue_kind else {}
+                for row in observations:
+                    value = row.get(value_key)
+                    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+                        continue
+                    identifier = str(row.get(id_key) or "Unknown")
+                    entry = entries.get(identifier)
+                    rows.append(dict(id=identifier, name=entry.display_name if entry else _name(identifier),
+                                     count=value, catalogue_entry=entry))
+            rows.sort(key=lambda row: (-row["count"], row["name"].casefold(), row["id"]))
+            icons = _catalogue_icon_map(row["catalogue_entry"] for row in rows)
+            for row in rows:
+                entry = row.pop("catalogue_entry")
+                row["icon_url"] = icons.get(entry.pk, "") if entry else ""
+                row["percent"] = round(min(100, row["count"] / total * 100), 1) if isinstance(total, (int, float)) and total > 0 else 0
+            if rows:
+                groups.append(dict(heading=heading, rows=rows))
+        details[label] = dict(id="run-activity-" + kind.replace("_", "-") + "-dialog",
+            label=label, total=total, partial=partial, groups=groups,
+            litres=kind == "milk_collected")
+    return details
 
 
 def build_public_run_context(run):
@@ -563,19 +665,19 @@ def build_public_run_context(run):
 
     activity = [
         {
-            "label": "Distance travelled",
-            "value": (
-                f"{distance_metres / 1000:,.2f} km"
-                if isinstance(distance_metres, (int, float))
-                else "Not recorded"
-            ),
-        },
-        {
             "label": "Tracked active play",
             "value": (
                 f"{gameplay.get('milliseconds', 0) / 3_600_000:,.1f} hours"
                 if isinstance(gameplay, dict)
                 and isinstance(gameplay.get("milliseconds"), (int, float))
+                else "Not recorded"
+            ),
+        },
+        {
+            "label": "Distance travelled",
+            "value": (
+                f"{distance_metres / 1000:,.2f} km"
+                if isinstance(distance_metres, (int, float))
                 else "Not recorded"
             ),
         },
@@ -587,6 +689,10 @@ def build_public_run_context(run):
                 and isinstance(nimble.get("movementMilliseconds"), (int, float))
                 else "Not recorded"
             ),
+        },
+        {
+            "label": "Zombies killed by fire",
+            "value": projection.get("fireDeaths", {}).get("count", 0),
         },
         {"label": "Recorded injuries", "value": all_injuries.get("total", 0)},
         {"label": "Fish caught", "value": _total(projection, "fishCaught")},
@@ -605,11 +711,20 @@ def build_public_run_context(run):
             "label": "Butter produced",
             "value": projection.get("butterProduced", {}).get("count", 0),
         },
-        {
-            "label": "Fire deaths",
-            "value": projection.get("fireDeaths", {}).get("count", 0),
-        },
     ]
+
+    activity_breakdowns = build_activity_breakdowns(run, projection)
+    if "Recorded injuries" in activity_breakdowns:
+        from .injury_body import injury_body_data
+        activity_breakdowns["Recorded injuries"]["body"] = injury_body_data(run, projection)
+
+    for item in activity:
+        detail = activity_breakdowns.get(item["label"])
+        if detail:
+            if detail["total"] is not None:
+                item["value"] = f'{detail["total"]:,.1f} L' if detail["litres"] else f'{detail["total"]:,.0f}'
+            if detail["groups"]:
+                item["dialog"] = detail["id"]
 
     selected_traits = character.get("selectedStartingTraits", []) if isinstance(character, dict) else []
     current_traits = character.get("currentEffectiveTraits", []) if isinstance(character, dict) else []
@@ -803,6 +918,7 @@ def build_public_run_context(run):
         "weapon_kills_total": weapon_kills_total,
         "weapon_kills_partial": weapon_kills_partial,
         "weight_chart_data": build_weight_chart_data(run),
+        **build_temperature_context(run),
         "weight": (
             f"{weight.get('currentKilograms'):,.1f} kg"
             if isinstance(weight, dict)
@@ -839,6 +955,7 @@ def build_public_run_context(run):
         "visited_town_count": sum(town["visited"] for town in towns),
         "activity": activity,
         "broken_weapons": broken_weapons,
+        "activity_breakdowns": [detail for detail in activity_breakdowns.values() if detail["groups"]],
         "broken_weapons_total": broken_total,
         "broken_weapons_partial": broken_partial,
     }

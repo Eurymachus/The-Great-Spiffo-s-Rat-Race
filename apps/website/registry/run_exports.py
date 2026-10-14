@@ -4,6 +4,7 @@ import math
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from .temperature import temperature_fields
 
 
 PREFIX = "TGSRR1.LZ1."
@@ -665,6 +666,15 @@ def decode_run_export(value, *, block_cache=None):
         raise InvalidRunExport(
             "The outpost lifecycle summaries do not match the verified ledger."
         )
+
+    try:
+        temperature_fields(projection.get("outdoorTemperature"))
+        temperature_fields((projection.get("activeDay") or {}).get("outdoorTemperature"))
+        for event in events:
+            if event.get("event_type") == "day.started":
+                temperature_fields((event.get("payload", {}).get("completedDay") or {}).get("outdoorTemperature"))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise InvalidRunExport("The export contains invalid outdoor temperature observations.") from exc
 
     lifecycle = projection.get("lifecycle")
     terminal_events = [event for event in events if event["event_type"] == "run.ended"]

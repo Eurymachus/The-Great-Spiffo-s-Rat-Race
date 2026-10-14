@@ -191,6 +191,52 @@ class PZCatalogueSource:
                 definitions[item.stable_id] = item
         yield from definitions.values()
 
+    def fluids(self):
+        translations_path = self.root / "media/lua/shared/Translate/EN/Fluids.json"
+        translations = json.loads(translations_path.read_text(encoding="utf-8-sig")) if translations_path.exists() else {}
+        # The game uses one texture for fluid ingredients. Read its declaration
+        # rather than assigning an unrelated inventory container icon.
+        ui_path = self.root / "media/lua/client/Entity/ISUI/CraftRecipe/ISWidgetTooltipInput.lua"
+        icon_key = ""
+        if ui_path.exists():
+            match = re.search(r'^[ \t]*o\.textureFluid\s*=\s*getTexture\("media/textures/([^"/]+)\.png"\)',
+                              ui_path.read_text(encoding="utf-8-sig"), re.MULTILINE)
+            if match:
+                icon_key = match.group(1)
+        for path in sorted((self.root / "media/scripts/generated").glob("fluids*.txt")):
+            text = path.read_text(encoding="utf-8-sig")
+            for match in re.finditer(r'^\s*fluid\s+(\w+)\s*\{([^{}]*)', text, re.MULTILINE):
+                fields = {field.group("key"): field.group("value").strip()
+                          for field in FIELD_PATTERN.finditer(match.group(2))}
+                key = fields.get("DisplayName", "")
+                fields["display_name"] = translations.get(key, match.group(1))
+                fields["icon_key"] = icon_key
+                yield ParsedDefinition(match.group(1), fields)
+
+    def animals(self):
+        from dataclasses import replace
+        from .animal_import import read_animals, read_trapped_animals
+        definitions = {animal.stable_id: animal for animal in
+                       read_animals(self.root / "media/lua/shared/Definitions/animal")}
+        items = {item.stable_id: item for item in self.items()}
+        for animal in read_trapped_animals(
+            self.root / "media/lua/server/Traps/TrapDefinition.lua", items
+        ):
+            adults = sorted((entry for entry in definitions.values()
+                             if entry.species_id == animal.species_id
+                             and entry.life_stage == "adult" and entry.icon_key),
+                            key=lambda entry: entry.stable_id)
+            if adults:
+                # Prefer actual species artwork over a caught-item placeholder.
+                animal = replace(animal, icon_key=adults[0].icon_key)
+            # Some trapping IDs also name a live animal. Keep that authoritative
+            # definition instead of replacing its age/sex metadata.
+            definitions.setdefault(animal.stable_id, animal)
+        yield from definitions.values()
+
+    def animal_name(self, stable_id):
+        return self.display_text(f"IGUI_AnimalType_{stable_id}", stable_id[:1].upper() + stable_id[1:])
+
     def item_name(self, stable_id):
         return self.display_text(stable_id, stable_id)
 

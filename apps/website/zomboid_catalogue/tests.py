@@ -263,6 +263,64 @@ class CatalogueResolverTests(TestCase):
                 encoding="utf-8",
             )
 
+            animal_root = root / "media/lua/shared/Definitions/animal"
+            animal_root.mkdir(parents=True)
+            (animal_root / "CowDefinitions.lua").write_text('''-- AnimalDefinitions.animals["fake"].babyType = "fakebaby";
+AnimalDefinitions.breeds["cow"].breeds["angus"].invIconBaby = "Item_CowBlack_Calf";
+AnimalDefinitions.breeds["cow"].breeds["angus"].invIconFemaleDead = "Item_CowBlack_Dead";
+AnimalDefinitions.breeds["cow"].breeds["angus"].invIconMaleDead = "Item_CowBlackMale_Dead";
+AnimalDefinitions.animals["cowcalf"].breeds = copyTable(AnimalDefinitions.breeds["cow"].breeds);
+AnimalDefinitions.animals["cow"].breeds = AnimalDefinitions.breeds["cow"].breeds;
+AnimalDefinitions.animals["cow"].female = true;
+AnimalDefinitions.animals["cow"].babyType = "cowcalf";
+AnimalDefinitions.animals["bull"].breeds = copyTable(AnimalDefinitions.breeds["cow"].breeds);
+AnimalDefinitions.animals["bull"].male = true;
+''', encoding="utf-8")
+            (root / "media/scripts/generated/fluids.txt").write_text(
+                "fluid CowMilk {\n DisplayName = Fluid_Name_CowMilk,\n ColorReference = White,\n Categories { Beverage, }\n}",
+                encoding="utf-8")
+            (root / "media/lua/shared/Translate/EN/Fluids.json").write_text(
+                json.dumps({"Fluid_Name_CowMilk": "Cow's Milk"}), encoding="utf-8")
+            fluid_ui = root / "media/lua/client/Entity/ISUI/CraftRecipe/ISWidgetTooltipInput.lua"
+            fluid_ui.parent.mkdir(parents=True)
+            fluid_ui.write_text('o.textureFluid = getTexture("media/textures/Item_TestFluid.png");', encoding="utf-8")
+            with (animal_root / "CowDefinitions.lua").open("a", encoding="utf-8") as handle:
+                handle.write('''
+AnimalDefinitions.breeds["testspecies"].breeds["first"].invIconMaleDead = "Item_RealSpecies";
+AnimalDefinitions.animals["testadult"].breeds = AnimalDefinitions.breeds["testspecies"].breeds;
+AnimalDefinitions.animals["testadult"].male = true;
+''')
+            trapping_path = root / "media/lua/server/Traps/TrapDefinition.lua"
+            trapping_path.parent.mkdir(parents=True)
+            trapping_path.write_text('''local custom = {};
+custom.type = "customtrapped";
+custom.item = "Base.TestHammer";
+table.insert(TrapAnimals, custom);
+matching.type = "testspecies";
+matching.item = "Base.TestHammer";
+table.insert(TrapAnimals, matching);
+-- ignored.type = "notregistered";
+ignored.type = "notregistered";
+ignored.item = "Base.TestHammer";
+''', encoding="utf-8")
+            from operations.catalogue_review import build_snapshot
+            snapshot = build_snapshot(root, root / "zombie_decompiled")
+            fluid_row = next(row for row in snapshot if row["kind"] == "fluid")
+            self.assertEqual(fluid_row["icon_key"], "Item_TestFluid")
+            self.assertEqual(fluid_row["display_name"], "Cow's Milk")
+            self.assertEqual(fluid_row["details"]["color_reference"], "White")
+            animal_rows = [row for row in snapshot if row["kind"] == "animal"]
+            self.assertEqual(len(animal_rows), 6)
+            species_row = next(row for row in animal_rows if row["stable_id"] == "testspecies")
+            self.assertEqual(species_row["icon_key"], "Item_RealSpecies")
+            trapped_row = next(row for row in animal_rows if row["stable_id"] == "customtrapped")
+            self.assertEqual(trapped_row["icon_key"], "Item_Hammer")
+            self.assertFalse(any(row["stable_id"] == "notregistered" for row in animal_rows))
+            calf_row = next(row for row in animal_rows if row["stable_id"] == "cowcalf")
+            self.assertEqual(calf_row["icon_key"], "Item_CowBlack_Calf")
+            self.assertEqual(calf_row["details"]["life_stage"], "baby")
+            self.assertEqual(calf_row["asset"]["source_key"], "Item_CowBlack_Calf")
+
             output = StringIO()
             call_command(
                 "import_pz_catalogue",
@@ -271,6 +329,17 @@ class CatalogueResolverTests(TestCase):
                 no_assets=True,
                 stdout=output,
             )
+
+        fluid = CatalogueEntry.objects.get(kind="fluid", stable_id="CowMilk")
+        self.assertEqual(fluid.icon_key, "Item_TestFluid")
+        self.assertEqual(fluid.fluid_details.color_reference, "White")
+        self.assertEqual(fluid.assets.get().source_key, "Item_TestFluid")
+        calf = CatalogueEntry.objects.get(kind="animal", stable_id="cowcalf")
+        self.assertEqual(calf.animal_details.species_id, "cow")
+        self.assertEqual(calf.animal_details.life_stage, "baby")
+        self.assertEqual(calf.assets.get().source_key, "Item_CowBlack_Calf")
+        self.assertEqual(CatalogueEntry.objects.get(kind="animal", stable_id="bull").icon_key,
+                         "Item_CowBlackMale_Dead")
 
         trait = CatalogueEntry.objects.get(kind="trait", stable_id="base:brave")
         occupation = CatalogueEntry.objects.get(
@@ -302,7 +371,7 @@ class CatalogueResolverTests(TestCase):
         self.assertEqual(item_details.weapon_skill.entry.display_name, "Small Blunt")
         self.assertEqual(item_details.weight, 1.5)
         self.assertEqual(item_details.raw_properties["Icon"], "Hammer")
-        self.assertIn("6 created", output.getvalue())
+        self.assertIn("13 created", output.getvalue())
 
     def test_item_artwork_uses_declared_variants_when_icon_is_missing(self):
         from .item_artwork import item_icon_key
@@ -357,6 +426,13 @@ class CatalogueResolverTests(TestCase):
             introduced_in="42.test",
             icon_key="perk_Aiming",
         )
+        animal = CatalogueEntry.objects.create(
+            kind="animal", stable_id="cowcalf", display_name="Calf",
+            introduced_in="42.test", icon_key="Item_CowBlack_Calf",
+        )
+        fluids = [CatalogueEntry.objects.create(kind="fluid", stable_id=identifier,
+            display_name=identifier, introduced_in="42.test", icon_key="Item_Waterdrop_Grey")
+            for identifier in ("CowMilk", "SheepMilk")]
         png = b"\x89PNG\r\n\x1a\n" + b"catalogue-test"
 
         class Headers:
@@ -423,8 +499,10 @@ class CatalogueResolverTests(TestCase):
                 self.assertTrue(
                     any("Skill_Aiming.png" in url for url in requested_urls)
                 )
+                self.assertTrue(any("/CowBlack_Calf.png" in url for url in requested_urls))
+                self.assertEqual(sum("Waterdrop_Grey.png" in url for url in requested_urls), 1)
                 self.assertEqual(unavailable, [])
-                for entry in (trait, occupation, item_one, item_two, skill):
+                for entry in (trait, occupation, item_one, item_two, skill, animal, *fluids):
                     asset = CatalogueAsset.objects.get(entry=entry)
                     self.assertEqual(
                         asset.availability,

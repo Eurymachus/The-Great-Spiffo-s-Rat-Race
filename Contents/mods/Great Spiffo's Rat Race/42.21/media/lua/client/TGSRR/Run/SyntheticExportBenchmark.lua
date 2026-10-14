@@ -17,6 +17,21 @@ local function copyRun(run)
     return result
 end
 
+local function syntheticCalendar(dayIndex)
+    local year, month, day = 1993, 1, dayIndex
+    local lengths = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+    while true do
+        local length = lengths[month]
+        if month == 2 and year % 4 == 0
+                and (year % 100 ~= 0 or year % 400 == 0) then length = 29 end
+        if day <= length then break end
+        day = day - length
+        month = month + 1
+        if month > 12 then month, year = 1, year + 1 end
+    end
+    return { year = year, month = month, day = day }
+end
+
 local function completedDay(dayIndex, startedUtc, startedWorldAgeHours)
     local result = {
         dayIndex = dayIndex,
@@ -25,6 +40,26 @@ local function completedDay(dayIndex, startedUtc, startedWorldAgeHours)
         killDelta = 35 + dayIndex % 31,
         weightDeltaKilograms = ((dayIndex % 9) - 4) / 100,
         weightKilograms = 80 + ((dayIndex % 9) - 4) / 100,
+        outdoorTemperature = {
+            schema = 1,
+            unit = "celsius",
+            source = "outdoor_weather",
+            sampleIntervalGameMinutes = 1,
+            minimum = {
+                celsius = -15 + dayIndex % 35,
+                utc = startedUtc + 21600,
+                worldAgeHours = startedWorldAgeHours + 6,
+                timeOfDay = 6,
+                calendar = syntheticCalendar(dayIndex),
+            },
+            maximum = {
+                celsius = -5 + dayIndex % 35,
+                utc = startedUtc + 54000,
+                worldAgeHours = startedWorldAgeHours + 15,
+                timeOfDay = 15,
+                calendar = syntheticCalendar(dayIndex),
+            },
+        },
         xpDeltas = {
             Fitness = 8 + dayIndex % 7,
             Sprinting = 12 + dayIndex % 13,

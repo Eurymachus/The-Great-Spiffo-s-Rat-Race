@@ -12,6 +12,7 @@ local DevelopmentResetPrompt =
     require("TGSRR/Run/DevelopmentResetPrompt")
 local EventBridge = require("TGSRR/Run/EventBridge")
 local DayTracker = require("TGSRR/Run/DayTracker")
+local TemperatureTracker = require("TGSRR/Run/TemperatureTracker")
 local Exporter = require("TGSRR/Run/Exporter")
 local PendingTraitSelection = require("TGSRR/Run/PendingTraitSelection")
 local ModSnapshot = require("TGSRR/Run/ModSnapshot")
@@ -556,6 +557,7 @@ initialize = function()
         TrackingHealth.stop(dayError, "Daily tracking initialization failed.")
         return
     end
+    TemperatureTracker.initialize(run, created)
     print("[TGSRR Run] " .. (created and "Created" or "Loaded") .. " run " .. tostring(run.runId)
         .. ", session " .. tostring(nextSequence) .. (run.bootstrapped and " (bootstrapped)" or ""))
     local developmentReset = Identity.consumeDevelopmentReset()

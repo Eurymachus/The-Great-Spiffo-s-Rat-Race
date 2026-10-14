@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import (
     AnimalDetails,
+    FluidDetails,
     CatalogueAlias,
     CatalogueAsset,
     CatalogueEntry,
@@ -222,3 +223,9 @@ class CatalogueAssetAdmin(admin.ModelAdmin):
             obj.source_path = ""
             obj.source_checksum = ""
         super().save_model(request, obj, form, change)
+
+
+@admin.register(FluidDetails)
+class FluidDetailsAdmin(admin.ModelAdmin):
+    list_display = ("entry", "color_reference")
+    search_fields = ("entry__stable_id", "entry__display_name")

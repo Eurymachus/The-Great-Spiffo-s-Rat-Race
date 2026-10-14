@@ -1138,3 +1138,19 @@ Abandonment stops future participation, not review of existing submissions. Pend
 - Website approval retains optional daily weights as nullable normalized fields.
   Weight graphs use measured daily observations, with weekly and calendar-month
   averages as in Better Daily Reports. Missing daily weights remain gaps.
+
+## 2026-10-14 - Record outdoor weather extremes throughout each run
+
+- Track global outdoor weather regardless of whether the player is indoors,
+  in a vehicle or outside. Do not use body temperature, watch/local heat-source
+  temperature or wind chill for this metric.
+- Preserve daily minimum/maximum observations and independent run-wide
+  minimum/maximum observations with their in-game timestamps and UTC.
+  Sample on initialization and once per game minute; ties retain the first
+  occurrence. These are sampled records, not guaranteed continuous extrema.
+- Include completed days, the active day and run-wide records in exports.
+  Existing saves disclose partial coverage, with no historical backfill.
+- Approval stores the independently exported run-wide extrema in a run-owned
+  summary alongside daily authority. Each new approved submission refreshes
+  that summary; pending submissions do not change displayed records. The
+  thermometer modal groups days into weekly/monthly extrema, not averages.

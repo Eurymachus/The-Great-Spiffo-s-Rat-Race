@@ -1,5 +1,111 @@
 # Website: Current Focus
 
+## Interactive injury body (14 October 2026)
+
+- Injury modal uses original male/female game silhouettes, outlines and red
+  body-part overlays with pixel-based pointer hit testing. Hover or tap opens
+  an injury popup; arrow keys explore injuries and Escape dismisses details.
+  The centred body replaces the previous dropdowns and permanent details panel. Paired counts come from approved injury metrics;
+  missing type detail is explicitly unclassified. Partial history remains visible.
+- New exports record character sex and approval stores starting/current values.
+  The injury view selects the recorded body automatically; older exports retain
+  the manual selector. No identity is inferred. Casey's synthetic injury pairs now match its existing
+  type and body-part totals (19 injuries). Casey's local demo character now records
+  male for starting/current sex, selecting the body automatically. Injury
+  overlays use a brighter health-display red (#cc2424), with muted white
+  uninjured areas.
+- Migration 0011 adds body-part catalogue artwork. Normal game import without
+  `--no-assets` imports health art from UI2.pack; targeted command:
+  `import_health_body_artwork --game-root <path> --game-version <version>`.
+  No generated or bundled body images. 38 managed assets imported locally.
+- Male/female rendering, chest counts, and hand selection verified in a local
+  rendered-modal preview. Missing artwork retains the existing list UI.
+
+
+## Trapping species artwork (14 October 2026)
+
+- Trapping import prefers matching adult species artwork when available, avoiding
+  placeholder caught-item images such as the game's rabbit item for raccoons.
+  Catalogue display prefers the current icon key; manual overrides still win.
+- Demo Casey now has one raccoon caught in a cage, taking both trapping totals
+  to 32. Previous demo trapping data is backed up in outputs.
+
+
+## Breakdown icon audit (14 October 2026)
+
+- Activity and weapon breakdown icons now read exclusively from catalogue assets.
+  Removed the last display-specific mapping for trapped animal categories.
+- Animal import and review discover registered `TrapAnimals` types and resolve
+  their caught-item texture from game scripts. Existing live-animal definitions
+  retain priority for shared IDs. The local import added four trapping categories,
+  with all four wiki images available. 26 focused tests pass.
+- Injury and body-part rows remain text-only; unknown IDs do not get substitute
+  artwork. No run evidence was changed.
+
+
+## Fluid catalogue artwork (14 October 2026)
+
+- Fluid records and translated names now import from generated game scripts.
+  The importer reads the shared fluid texture from the vanilla crafting UI;
+  wiki reconciliation fetches it as a normal catalogue asset.
+- Milk breakdowns resolve fluid entries rather than using the hardcoded
+  `Base.Milk` carton. Approved fluid metrics now link to fluid catalogue entries;
+  previously unlinked rows resolve at display time without rewriting evidence.
+- Local migration 0010 is applied. All 61 game fluids, including cow and sheep
+  milk, imported with wiki artwork. No separate image package is required.
+
+
+## Animal catalogue import (14 October 2026)
+
+- Game imports and catalogue review snapshots read raw animal IDs, breed icon
+  references, sex and baby relationships from installed animal definitions.
+- Wiki reconciliation includes animal entries, translating `Item_` texture
+  keys to wiki filenames and using normal managed catalogue assets.
+- Removed the temporary animal icon pack and its deployment command. Normal
+  catalogue approval queues the existing wiki sync. Both import commands accept
+  `--kind animal` for targeted refreshes. No animal images need packaging.
+- Local Build 42.21 validation imported 30 animal records and all 30 wiki
+  images successfully. Repeat imports leave them unchanged. 23 focused tests pass.
+- Representative breed artwork is deterministic; adult carcass artwork avoids
+  the calf icons the game reuses for live adult inventory pickup.
+
+## Activity breakdown cells (14 October 2026)
+
+- Recorded injuries, fish caught, animals trapped, animals slaughtered, animal
+  births and milk collected now open breakdown modals when positive detail rows
+  exist. Trapping has separate animal/trap groups; injuries have separate
+  injury-type/body-part groups. These dimensions are never added together.
+- Uses whole-cell links and muted chevrons. Hover and keyboard-visible focus
+  share Long Road's inset amber outline and subtle background tint. Both interactive
+  cells scale to 104% from their centre on hover or keyboard focus, including
+  text, background and border; reduced-motion
+  preferences disable the transition. Normalized approved summaries/metrics
+  take precedence over legacy approved projections, including empty authority.
+  Cells with totals only remain plain. Names/icons resolve through catalogues
+  where available; partial coverage and fractional milk litres are retained.
+- Four focused presentation regressions pass. No migration is needed.
+
+## Outdoor temperature history (14 October 2026)
+
+- The character toolbar now has a thermometer with approved run-wide high/low
+  values and a matching history modal. Highest/Lowest checkboxes control two
+  distinct lines; daily, weekly and monthly grouping uses the same range menus
+  as weight. Weeks/months retain period extrema, not averages. Tooltips retain
+  each extreme's date/time; unknown history stays absent and partial coverage
+  is disclosed. The modal supports pointer and keyboard inspection.
+- Approval stores independent exported run records in `RunTemperatureSummary`
+  and daily values in nullable typed `RunDailyRecord` fields. Full timestamp
+  observations are retained beside each value. Pending submissions do not
+  change this authority, and no daily-sum reconstruction is used.
+- Migration 0065 is applied locally. Temperature and export regression tests
+  pass, as do JavaScript grouping tests. The wider public-run suite has one
+  pre-existing navigation-label assertion failure, reproduced with the original
+  template. Daily/weekly/monthly controls, both line toggles and timestamp
+  tooltips were browser-checked using synthetic data without altering runs.
+- Local website responds HTTP 200 with one logical reference-worker process
+  tree. Production deployment and real in-game temperature export verification
+  remain outstanding.
+
 ## Kills by weapon modal (14 October 2026)
 
 - The favourite weapon button opens a modal matching Broken weapons, with

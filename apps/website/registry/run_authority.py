@@ -2,6 +2,7 @@ from zomboid_catalogue.models import CatalogueEntry, MapLocationVersion
 from zomboid_catalogue.resolver import resolve_identifier
 
 from .models import (
+    RunTemperatureSummary,
     RunCharacter,
     RunCharacterTrait,
     RunContractState,
@@ -17,6 +18,7 @@ from .models import (
     RunStatisticSummary,
     RunWeaponKill,
 )
+from .temperature import temperature_fields
 
 
 DAILY_MAP_METRICS = (
@@ -30,8 +32,8 @@ DAILY_MAP_METRICS = (
     ),
     ("animalBirthDeltas", RunDailyMetric.Kind.ANIMAL_BIRTH, CatalogueEntry.Kind.ANIMAL),
     ("animalPetDeltas", RunDailyMetric.Kind.ANIMAL_PET, CatalogueEntry.Kind.ANIMAL),
-    ("milkCollectedDeltas", RunDailyMetric.Kind.MILK_COLLECTED, None),
-    ("fluidConsumedDeltas", RunDailyMetric.Kind.FLUID_CONSUMED, None),
+    ("milkCollectedDeltas", RunDailyMetric.Kind.MILK_COLLECTED, CatalogueEntry.Kind.FLUID),
+    ("fluidConsumedDeltas", RunDailyMetric.Kind.FLUID_CONSUMED, CatalogueEntry.Kind.FLUID),
     ("fishCaughtDeltas", RunDailyMetric.Kind.FISH_CAUGHT, CatalogueEntry.Kind.ITEM),
 )
 
@@ -174,6 +176,7 @@ def _daily_record_defaults(snapshot, *, calendar=None, observed=None, active=Fal
             if bool(snapshot.get(flag, False))
         ]
     return {
+        **temperature_fields(snapshot.get("outdoorTemperature")),
         "calendar_year": calendar.get("year"),
         "calendar_month": calendar.get("month"),
         "calendar_day": calendar.get("day"),
@@ -279,6 +282,12 @@ def _refresh_daily_authority(run, projection, events, previous_event_sequence=0)
 
 
 def _refresh_statistic_authority(run, projection):
+    if projection.get("outdoorTemperature") is None:
+        RunTemperatureSummary.objects.filter(run=run).delete()
+    else:
+        RunTemperatureSummary.objects.update_or_create(
+            run=run, defaults=temperature_fields(projection["outdoorTemperature"])
+        )
     RunStatisticSummary.objects.filter(run=run).delete()
 
     def summary(kind, source, value_key, *, unit="", secondary_key=None,
@@ -406,7 +415,7 @@ def _refresh_statistic_authority(run, projection):
         if isinstance(row, dict):
             metric(
                 milk, RunStatisticMetric.Dimension.FLUID, row.get("milkType"),
-                row.get("amount"),
+                row.get("amount"), primary_kind=CatalogueEntry.Kind.FLUID,
             )
 
     fluid_source = _snapshot(projection.get("fluidConsumed"))
@@ -420,7 +429,7 @@ def _refresh_statistic_authority(run, projection):
         if isinstance(row, dict):
             metric(
                 fluid, RunStatisticMetric.Dimension.FLUID,
-                row.get("fluidTypeId"), row.get("liters"),
+                row.get("fluidTypeId"), row.get("liters"), primary_kind=CatalogueEntry.Kind.FLUID,
             )
 
     summary(
@@ -494,6 +503,8 @@ def refresh_initial_run_authority(
     character, _ = RunCharacter.objects.update_or_create(
         run=run,
         defaults={
+            "starting_sex": starting.get("sex") if starting.get("sex") in ("male", "female") else "",
+            "current_sex": current.get("sex") if current.get("sex") in ("male", "female") else "",
             "starting_forename": str(starting.get("forename") or ""),
             "starting_surname": str(starting.get("surname") or ""),
             "starting_display_name": str(starting.get("displayName") or ""),

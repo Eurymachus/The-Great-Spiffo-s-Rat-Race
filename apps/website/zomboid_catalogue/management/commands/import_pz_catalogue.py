@@ -7,6 +7,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from zomboid_catalogue.models import (
+    AnimalDetails,
+    FluidDetails,
     CatalogueAsset,
     CatalogueEntry,
     ItemDisplayCategory,
@@ -40,6 +42,8 @@ class Command(BaseCommand):
     help = "Import typed catalogue records directly from an installed Project Zomboid build."
 
     def add_arguments(self, parser):
+        parser.add_argument("--kind", choices=("trait", "occupation", "skill", "item", "animal", "fluid", "body_part"),
+                            help="Limit the import to one catalogue kind.")
         parser.add_argument("--game-root", type=Path, default=DEFAULT_GAME_ROOT)
         parser.add_argument("--decompiled-root", type=Path)
         parser.add_argument("--game-version", required=True)
@@ -63,7 +67,7 @@ class Command(BaseCommand):
             raise CommandError(str(exc)) from exc
 
         counters = {"created": 0, "updated": 0, "unchanged": 0}
-        for definition in source.traits():
+        for definition in (source.traits() if options.get("kind") in (None, "trait") else ()):
             fields = definition.fields
             entry = self._entry(
                 counters,
@@ -102,7 +106,7 @@ class Command(BaseCommand):
                 copy_file=not options["no_assets"],
             )
 
-        for definition in source.occupations():
+        for definition in (source.occupations() if options.get("kind") in (None, "occupation") else ()):
             fields = definition.fields
             icon_key = fields.get("IconPathName", "")
             entry = self._entry(
@@ -132,7 +136,7 @@ class Command(BaseCommand):
             if icon_key:
                 self._asset(entry, None, icon_key, copy_file=False)
 
-        for skill in source.skills():
+        for skill in (source.skills() if options.get("kind") in (None, "skill") else ()):
             if skill.stable_id in CATEGORY_SKILLS:
                 continue
             category = (
@@ -158,7 +162,34 @@ class Command(BaseCommand):
                 },
             )
 
-        for item in source.items():
+        for fluid in (source.fluids() if options.get("kind") in (None, "fluid") else ()):
+            entry = self._entry(
+                counters, kind=CatalogueEntry.Kind.FLUID,
+                stable_id=fluid.stable_id, game_version=game_version,
+                display_name=fluid.fields["display_name"], icon_key=fluid.fields["icon_key"],
+            )
+            FluidDetails.objects.update_or_create(entry=entry, defaults={
+                "color_reference": fluid.fields.get("ColorReference", ""),
+            })
+            if entry.icon_key:
+                self._asset(entry, None, entry.icon_key, copy_file=False)
+
+        for animal in (source.animals() if options.get("kind") in (None, "animal") else ()):
+            entry = self._entry(
+                counters, kind=CatalogueEntry.Kind.ANIMAL,
+                stable_id=animal.stable_id, game_version=game_version,
+                display_name=source.animal_name(animal.stable_id),
+                icon_key=animal.icon_key,
+            )
+            AnimalDetails.objects.update_or_create(entry=entry, defaults={
+                "species_id": animal.species_id,
+                "species_name": source.animal_name(animal.species_id),
+                "life_stage": animal.life_stage,
+            })
+            if animal.icon_key:
+                self._asset(entry, None, animal.icon_key, copy_file=False)
+
+        for item in (source.items() if options.get("kind") in (None, "item") else ()):
             fields = item.fields
             icon_key = item_icon_key(fields)
             entry = self._entry(
@@ -204,6 +235,12 @@ class Command(BaseCommand):
             )
             if icon_key:
                 self._asset(entry, None, icon_key, copy_file=False)
+
+        if (not options["no_assets"] and options.get("kind") in (None, "body_part")
+                and (options["game_root"] / "media/texturepacks/UI2.pack").exists()):
+            from django.core.management import call_command
+            call_command("import_health_body_artwork", game_root=options["game_root"],
+                         game_version=game_version, stdout=self.stdout)
 
         self.stdout.write(
             self.style.SUCCESS(

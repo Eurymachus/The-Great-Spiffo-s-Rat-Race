@@ -6,6 +6,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from zomboid_catalogue.models import (
+    AnimalDetails,
+    FluidDetails,
     CatalogueAsset,
     CatalogueEntry,
     ItemDisplayCategory,
@@ -22,11 +24,20 @@ from .reference_paths import resolved_reference_paths
 
 CATEGORY_SKILLS = {"Agility", "Combat", "Crafting", "FarmingCategory", "Firearm", "PhysicalCategory", "Survivalist"}
 DETAIL_MODELS = {
+    CatalogueEntry.Kind.ANIMAL: AnimalDetails,
+    CatalogueEntry.Kind.FLUID: FluidDetails,
     CatalogueEntry.Kind.TRAIT: TraitDetails,
     CatalogueEntry.Kind.OCCUPATION: OccupationDetails,
     CatalogueEntry.Kind.SKILL: SkillDetails,
     CatalogueEntry.Kind.ITEM: ItemDetails,
 }
+
+
+def _reviewed_kinds(snapshot):
+    # Older reviews do not cover newly supported catalogue kinds.
+    return [kind for kind in DETAIL_MODELS
+            if kind not in (CatalogueEntry.Kind.ANIMAL, CatalogueEntry.Kind.FLUID)
+            or any(row["kind"] == kind for row in snapshot)]
 
 
 def build_snapshot(game_root, decompiled_root):
@@ -84,6 +95,26 @@ def build_snapshot(game_root, decompiled_root):
             },
             "asset": None,
         })
+    for fluid in source.fluids():
+        icon_key = fluid.fields["icon_key"]
+        records.append({
+            "kind": CatalogueEntry.Kind.FLUID, "stable_id": fluid.stable_id,
+            "display_name": fluid.fields["display_name"], "icon_key": icon_key,
+            "details": {"color_reference": fluid.fields.get("ColorReference", "")},
+            "asset": _asset_snapshot(icon_key, None, False) if icon_key else None,
+        })
+    for animal in source.animals():
+        records.append({
+            "kind": CatalogueEntry.Kind.ANIMAL, "stable_id": animal.stable_id,
+            "display_name": source.animal_name(animal.stable_id),
+            "icon_key": animal.icon_key,
+            "details": {
+                "species_id": animal.species_id,
+                "species_name": source.animal_name(animal.species_id),
+                "life_stage": animal.life_stage,
+            },
+            "asset": _asset_snapshot(animal.icon_key, None, False) if animal.icon_key else None,
+        })
     for item in source.items():
         fields = item.fields
         icon_key = fields.get("Icon", "")
@@ -124,7 +155,7 @@ def _asset_snapshot(source_key, source_path, copy_file):
 
 def catalogue_diff(snapshot, game_version):
     desired = {(row["kind"], row["stable_id"]): row for row in snapshot}
-    current = {(entry.kind, entry.stable_id): entry for entry in CatalogueEntry.objects.filter(kind__in=DETAIL_MODELS, introduced_in=game_version)}
+    current = {(entry.kind, entry.stable_id): entry for entry in CatalogueEntry.objects.filter(kind__in=_reviewed_kinds(snapshot), introduced_in=game_version)}
     result = {"added": [], "changed": [], "removed": []}
     for key, row in desired.items():
         entry = current.get(key)
@@ -206,7 +237,7 @@ def approve_catalogue_review(review, reviewer):
         )
         if row["asset"]:
             _apply_asset(entry, row["asset"])
-    for entry in CatalogueEntry.objects.filter(kind__in=DETAIL_MODELS, introduced_in=review.game_version, is_active=True):
+    for entry in CatalogueEntry.objects.filter(kind__in=_reviewed_kinds(review.snapshot), introduced_in=review.game_version, is_active=True):
         if (entry.kind, entry.stable_id) not in desired_keys:
             entry.is_active = False
             entry.save(update_fields=("is_active", "updated_at"))

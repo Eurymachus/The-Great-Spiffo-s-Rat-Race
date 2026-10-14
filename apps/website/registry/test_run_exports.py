@@ -2060,6 +2060,9 @@ class RunSubmissionTests(TestCase):
             generated_at=datetime.now(timezone.utc),
             event_hash="0" * 64,
         )
+        from zomboid_catalogue.models import CatalogueEntry
+        milk_entry = CatalogueEntry.objects.create(kind="fluid", stable_id="CowMilk",
+            display_name="Cow's Milk", introduced_in="42.21")
         projection = {
             "schema": 2,
             "character": {},
@@ -2077,6 +2080,7 @@ class RunSubmissionTests(TestCase):
                 "totalLiters": 1.25,
                 "fluidTypes": [{"fluidTypeId": "Water", "liters": 1.25}],
             },
+            "milkCollected": {"total": 2.5, "milkTypes": [{"milkType": "CowMilk", "amount": 2.5}]},
             "caloriesConsumed": {"totalKilocalories": 450.5},
             "generatorRepairs": {"count": 2, "conditionRestored": 9.5},
         }
@@ -2115,6 +2119,10 @@ class RunSubmissionTests(TestCase):
                 value=1.25,
             ).exists()
         )
+        milk_metric = RunStatisticMetric.objects.get(summary__run=run,
+            summary__kind="milk_collected", raw_primary_id="CowMilk")
+        self.assertEqual(milk_metric.primary_catalogue_entry, milk_entry)
+        self.assertEqual(milk_metric.value, 2.5)
         repairs = RunStatisticSummary.objects.get(
             run=run, kind=RunStatisticSummary.Kind.GENERATOR_REPAIRS
         )

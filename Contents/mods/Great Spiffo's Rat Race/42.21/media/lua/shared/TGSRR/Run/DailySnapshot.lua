@@ -10,6 +10,7 @@ local InjurySnapshot = require("TGSRR/Run/InjurySnapshot")
 local MilkSnapshot = require("TGSRR/Run/MilkSnapshot")
 local FluidConsumedSnapshot = require("TGSRR/Run/FluidConsumedSnapshot")
 local FishCaughtSnapshot = require("TGSRR/Run/FishCaughtSnapshot")
+local TemperatureSnapshot = require("TGSRR/Run/TemperatureSnapshot")
 
 local DailySnapshot = {}
 
@@ -84,6 +85,7 @@ function DailySnapshot.active(run, player)
     return {
         dayIndex = math.max(1, math.floor(tonumber(baseline.dayIndex) or 1)),
         baselinePartial = baseline.partial == true,
+        outdoorTemperature = TemperatureSnapshot.copy(baseline.outdoorTemperature),
         startedUtc = math.max(0, math.floor(tonumber(baseline.startedUtc) or 0)),
         startedWorldAgeHours = startedWorldAgeHours,
         observedUtc = Identity.utcSeconds(),

@@ -25,6 +25,132 @@ from .models import (
 
 
 class PublicRunDetailTests(TestCase):
+    def test_milk_types_use_fluid_catalogue_assets_without_item_fallback(self):
+        from .models import RunStatisticSummary, RunStatisticMetric
+        from .run_public import build_public_run_context
+        summary = RunStatisticSummary.objects.create(run=self.run, kind="milk_collected", value=4.75)
+        for identifier, litres in (("CowMilk", 2.5), ("SheepMilk", 1.25), ("UnknownMilk", 1)):
+            if identifier != "UnknownMilk":
+                entry = CatalogueEntry.objects.create(kind="fluid", stable_id=identifier,
+                    display_name=identifier + " display", introduced_in="42.21")
+                CatalogueAsset.objects.create(entry=entry, role="icon", source_key="Item_Waterdrop_Grey",
+                    source_type="pzwiki", availability="imported", file=f"catalogue/test/{identifier}.png")
+            RunStatisticMetric.objects.create(summary=summary, dimension="fluid",
+                raw_primary_id=identifier, value=litres)
+        context = build_public_run_context(self.run)
+        detail = next(d for d in context["activity_breakdowns"] if d["label"] == "Milk collected")
+        rows = detail["groups"][0]["rows"]
+        self.assertEqual([r["count"] for r in rows], [2.5, 1.25, 1])
+        for row in rows[:2]:
+            self.assertTrue(row["icon_url"].endswith(row["id"] + ".png"))
+            self.assertEqual(row["name"], row["id"] + " display")
+        self.assertEqual(rows[2]["icon_url"], "")
+
+    def test_domestic_animals_use_installed_catalogue_icons(self):
+        for identifier, filename in (("chicken", "Hen"), ("pig", "Pig"), ("cow", "Cow"),
+                                     ("chick", "Chick"), ("piglet", "Piglet"),
+                                     ("calf", "Calf"), ("lamb", "Lamb")):
+            entry = CatalogueEntry.objects.create(kind="animal", stable_id=identifier,
+                display_name=identifier.title(), introduced_in="42.21")
+            CatalogueAsset.objects.create(entry=entry, source_key=filename,
+                role="icon", source_type="pzwiki", availability="imported",
+                file=f"catalogue/test/{filename}.png")
+        from .models import RunStatisticSummary, RunStatisticMetric
+        from .run_public import build_public_run_context
+        for kind, identifiers in (
+            ("animal_slaughter", ["chicken", "pig", "cow"]),
+            ("animal_birth", ["chick", "piglet", "calf", "lamb"]),
+        ):
+            summary = RunStatisticSummary.objects.create(run=self.run, kind=kind, value=len(identifiers))
+            for identifier in identifiers:
+                RunStatisticMetric.objects.create(summary=summary, dimension="animal", raw_primary_id=identifier, value=1)
+        context = build_public_run_context(self.run)
+        for detail in context["activity_breakdowns"]:
+            if detail["label"] not in ("Animals slaughtered", "Animal births"):
+                continue
+            for row in detail["groups"][0]["rows"]:
+                entry = CatalogueEntry.objects.get(kind="animal", stable_id=row["id"])
+                asset = entry.assets.get(source_type=CatalogueAsset.SourceType.PZWIKI)
+                self.assertEqual(row["icon_url"], asset.file.url)
+                self.assertEqual(row["name"], entry.display_name)
+        self.assertTrue(any(item["label"] == "Zombies killed by fire" for item in context["activity"]))
+
+    def test_trapped_animal_icons_use_animal_catalogue_assets(self):
+        from .models import RunStatisticSummary, RunStatisticMetric
+        from .run_public import build_public_run_context
+        summary = RunStatisticSummary.objects.create(run=self.run, kind="animal_trap", value=3)
+        for animal, item in (("rabbit", "Base.DeadRabbit"), ("squirrel", "Base.DeadSquirrel"), ("bird", "Base.DeadBird")):
+            entry = CatalogueEntry.objects.create(kind="animal", stable_id=animal,
+                display_name=animal.title(), introduced_in="42.21")
+            CatalogueAsset.objects.create(entry=entry, role=CatalogueAsset.Role.ICON,
+                source_key=animal, source_type=CatalogueAsset.SourceType.PZWIKI,
+                availability=CatalogueAsset.Availability.IMPORTED,
+                file="catalogue/test/" + animal + ".png")
+            RunStatisticMetric.objects.create(summary=summary, dimension="animal", raw_primary_id=animal, value=1)
+        context = build_public_run_context(self.run)
+        detail = next(d for d in context["activity_breakdowns"] if d["label"] == "Animals trapped")
+        for row in detail["groups"][0]["rows"]:
+            self.assertTrue(row["icon_url"].endswith(row["id"] + ".png"))
+            self.assertEqual(row["name"], row["id"].title())
+            self.assertEqual(row["count"], 1)
+
+    def test_activity_breakdowns_use_authority_and_only_link_available_details(self):
+        from .models import RunStatisticSummary, RunStatisticMetric
+        from .run_public import build_public_run_context
+        from django.template.loader import render_to_string
+
+        for kind, dimension, identifier, value in (
+            ("fish_caught", "item", "Base.Pike", 3),
+            ("animal_slaughter", "animal", "cow", 2),
+            ("animal_birth", "animal", "chicken", 4),
+            ("milk_collected", "fluid", "CowMilk", 1.25),
+            ("animal_trap", "animal", "rabbit", 5),
+            ("injuries", "injury_type", "scratch", 2),
+        ):
+            summary = RunStatisticSummary.objects.create(run=self.run, kind=kind, value=value, partial=True)
+            RunStatisticMetric.objects.create(summary=summary, dimension=dimension,
+                raw_primary_id=identifier, value=value)
+            if kind == "animal_trap":
+                RunStatisticMetric.objects.create(summary=summary, dimension="trap",
+                    raw_primary_id="Base.TrapBox", value=value)
+            if kind == "injuries":
+                RunStatisticMetric.objects.create(summary=summary, dimension="body_part",
+                    raw_primary_id="Hand_L", value=value)
+        context = build_public_run_context(self.run)
+        self.assertEqual(len(context["activity_breakdowns"]), 6)
+        detail = next(d for d in context["activity_breakdowns"] if d["label"] == "Animals trapped")
+        self.assertEqual(len(detail["groups"]), 2)
+        self.assertEqual(detail["total"], 5)
+        self.assertTrue(all(d["partial"] for d in context["activity_breakdowns"]))
+        context["skills"] = []
+        html = render_to_string("registry/public_run_detail.html", context)
+        for detail in context["activity_breakdowns"]:
+            self.assertIn(f'id="{detail["id"]}"', html)
+            self.assertIn(f'data-outpost-dialog-open="{detail["id"]}"', html)
+        for item in context["activity"]:
+            if item["label"] in ("Distance travelled", "Butter produced", "Fire deaths"):
+                self.assertFalse(item.get("dialog"))
+        self.assertIn("1.25 L", html)
+
+    def test_activity_breakdowns_legacy_fallback_and_empty_authority(self):
+        from .models import RunStatisticSummary
+        from .run_public import build_public_run_context
+        self.submission.projection["fishCaught"] = {"total": 4, "fish": [
+            {"fishId": "Base.Pike", "caught": 1},
+            {"fishId": "Base.Bass", "caught": 3},
+            {"fishId": "Base.Empty", "caught": 0}]}
+        self.submission.save(update_fields=("projection",))
+        context = build_public_run_context(self.run)
+        detail = next(d for d in context["activity_breakdowns"] if d["label"] == "Fish caught")
+        self.assertEqual([r["count"] for r in detail["groups"][0]["rows"]], [3, 1])
+        self.assertEqual([r["percent"] for r in detail["groups"][0]["rows"]], [75, 25])
+        RunStatisticSummary.objects.create(run=self.run, kind="fish_caught", value=9)
+        context = build_public_run_context(self.run)
+        self.assertFalse(any(d["label"] == "Fish caught" for d in context["activity_breakdowns"]))
+        cell = next(i for i in context["activity"] if i["label"] == "Fish caught")
+        self.assertEqual(cell["value"], "9")
+        self.assertFalse(cell.get("dialog"))
+
     def test_weapon_kills_modal_uses_approved_authority(self):
         from .models import RunWeaponKill
         from .run_public import build_public_run_context

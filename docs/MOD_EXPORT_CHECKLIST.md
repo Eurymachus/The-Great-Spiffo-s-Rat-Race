@@ -23,6 +23,7 @@ The `Contract` scope contains the agreed export contract. `Team request` contain
 
 | Scope | Data | Status | Notes |
 |---|---|---|---|
+| Team request | Daily and run-wide outdoor temperature extremes | 🟢 Implemented | `outdoorTemperature` carries sampled minimum/maximum Celsius and each observation's UTC, world age, time of day and one-based calendar date. Global outdoor weather is sampled at initialization and every game minute regardless of player location. Completed days seal their extremes; the projection includes active-day and independent run-wide records. Existing history is partial, ties preserve first occurrence and old omissions remain unknown. Desktop collection and export round trips pass; website approval normalizes the data and presents a temperature chart. In-game verification remains outstanding. |
 | Contract | Character name | 🟢 Implemented | Starting and current character metadata are captured; the name is presentation metadata, not the run identity. |
 | Contract | Occupation | 🟢 Implemented | The raw Project Zomboid profession ID is captured immutably in `character.starting.professionId` and observed again in `character.current.professionId`. Localized occupation names are left to the website. |
 | Contract | Starting traits | 🟢 Implemented | Raw namespaced trait IDs are captured from the selected-traits list before the character-creation transition and persisted immutably for the matching new character. Bootstrapped or missed captures are explicitly marked partial. Spawned effective traits are retained separately. |
