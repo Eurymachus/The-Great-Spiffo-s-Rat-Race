@@ -3876,16 +3876,39 @@ small.participant-evidence-warning { color:var(--theme-accent, #f5a630); display
 dialog.run-data-list-dialog { max-height: min(44rem, calc(100dvh - 2rem)); overflow: hidden; }
 dialog.run-data-list-dialog[open] { display: flex; flex-direction: column; }
 .run-data-list-dialog > header { flex-shrink: 0; }
-.run-data-list-dialog > .leaderboard-build-content,
-.run-data-list-dialog > .run-outpost-dialog-content {
+.run-data-list-dialog .run-scroll-list {
+    --list-scroll-track: color-mix(in srgb, var(--theme-border) 35%, var(--theme-surface-alt));
     min-height: 0; max-height: 34rem; overflow-y: scroll; scrollbar-gutter: stable;
-    scrollbar-width: auto; scrollbar-color: var(--theme-border) var(--theme-surface-alt);
+    overscroll-behavior: contain; scrollbar-width: auto;
+    scrollbar-color: var(--theme-border) var(--list-scroll-track);
 }
-.run-data-list-dialog > .leaderboard-build-content::-webkit-scrollbar,
-.run-data-list-dialog > .run-outpost-dialog-content::-webkit-scrollbar { width: 12px; }
-.run-data-list-dialog > .leaderboard-build-content::-webkit-scrollbar-track,
-.run-data-list-dialog > .run-outpost-dialog-content::-webkit-scrollbar-track { background: var(--theme-surface-alt); }
-.run-data-list-dialog > .leaderboard-build-content::-webkit-scrollbar-thumb,
-.run-data-list-dialog > .run-outpost-dialog-content::-webkit-scrollbar-thumb { background: var(--theme-border); border: 3px solid var(--theme-surface-alt); border-radius: 6px; }
+.run-data-list-dialog .run-scroll-list::-webkit-scrollbar { width: 12px; }
+.run-data-list-dialog .run-scroll-list::-webkit-scrollbar-track { background: var(--list-scroll-track); }
+.run-data-list-dialog .run-scroll-list::-webkit-scrollbar-thumb { background: var(--theme-border); border: 3px solid var(--list-scroll-track); border-radius: 6px; }
+.run-data-list-dialog > .run-outpost-dialog-content {
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+    padding: 1rem; scrollbar-gutter: auto;
+}
+.run-data-list-dialog .pz-skills-panel { margin: 0; padding: 0; border: 1px solid var(--theme-border); }
+.run-data-list-dialog .run-outpost-list {
+    border: 1px solid var(--theme-border); background: var(--theme-surface-alt);
+}
 
 .run-weight-controls select.is-pointer-focused:focus { outline: none; box-shadow: none; border-color: var(--theme-border); }
+
+.run-data-list-dialog > .leaderboard-build-content {
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+}
+.run-data-list-dialog > .leaderboard-build-content > p { flex-shrink: 0; }
+.run-data-list-dialog > .leaderboard-build-content > section {
+    display: flex; flex-direction: column; min-height: 0; flex: 0 1 auto;
+}
+.run-data-list-dialog > .leaderboard-build-content > section > h3 { flex-shrink: 0; }
+.run-data-list-dialog .broken-weapon-bars { flex: 0 1 auto; max-height: 24rem; align-content: start; }
+.run-data-list-dialog .broken-weapon-bars > li { flex-shrink: 0; }
+
+.run-skills-dialog .pz-skill-columns {
+    position: sticky; top: 0; z-index: 3;
+    background: var(--theme-surface-alt);
+    box-shadow: 0 2px 0 var(--pz-skill-line);
+}
