@@ -1128,3 +1128,13 @@ Evidence required governs both manual and automatic approval. When disabled, mis
 
 ### Review of abandoned runs (2026-09-12)
 Abandonment stops future participation, not review of existing submissions. Pending submissions remain reviewable and approval preserves abandoned lifecycle and participant deactivation. Active-run admission limits do not apply to this historical approval. Invalidated runs remain excluded from review. This supersedes the earlier closed-run queue exclusion for abandoned runs.
+
+## 2026-10-14 - Record daily absolute weight alongside its delta
+
+- Store measured `weightKilograms` in completed and active days, using the same
+  sample as the signed daily change. Preserve observations even on unchanged days.
+- Keep current weight independently authoritative. Do not calculate missing
+  historical observations backwards from it or rewrite old ledger evidence.
+- Website approval retains optional daily weights as nullable normalized fields.
+  Weight graphs use measured daily observations, with weekly and calendar-month
+  averages as in Better Daily Reports. Missing daily weights remain gaps.

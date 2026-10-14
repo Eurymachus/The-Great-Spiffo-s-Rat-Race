@@ -45,6 +45,7 @@ end
 local function completedDay(current, previousState, dayIndex)
     if not previousState then return nil end
     local result = {
+        weightKilograms = current.weightKilograms,
         dayIndex = tonumber(previousState.dayIndex)
             or math.max(1, dayIndex - 1),
         startedUtc = tonumber(previousState.startedUtc) or 0,

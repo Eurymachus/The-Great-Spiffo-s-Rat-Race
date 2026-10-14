@@ -90,6 +90,7 @@ function DailySnapshot.active(run, player)
         observedWorldAgeHours = currentWorldAgeHours,
         elapsedWorldHours = math.max(0, currentWorldAgeHours - startedWorldAgeHours),
         killDelta = current.kills - (tonumber(baseline.kills) or 0),
+        weightKilograms = current.weightKilograms,
         weightDeltaKilograms = current.weightKilograms
             - (tonumber(baseline.weightKilograms) or 0),
         xpDeltas = DailySnapshot.deltas(current.skills, baseline.skills),

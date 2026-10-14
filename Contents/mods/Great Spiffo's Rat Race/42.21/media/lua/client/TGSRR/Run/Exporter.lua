@@ -181,6 +181,8 @@ local function verifyReadback(decoded, ledger, projection, verifyBodies)
         { "activeDay.weightDeltaKilograms",
             actual.activeDay.weightDeltaKilograms,
             projection.activeDay.weightDeltaKilograms },
+        { "activeDay.weightKilograms", actual.activeDay.weightKilograms,
+            projection.activeDay.weightKilograms },
         { "weaponKills.sources.count", count(actualWeaponKills.sources),
             count(projectedWeaponKills.sources) },
         { "fireDeaths.count", actualFireDeaths.count,

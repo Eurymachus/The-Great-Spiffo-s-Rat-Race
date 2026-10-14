@@ -193,6 +193,10 @@ def _daily_record_defaults(snapshot, *, calendar=None, observed=None, active=Fal
         "weight_delta_kilograms": float(
             snapshot.get("weightDeltaKilograms") or 0
         ),
+        "weight_kilograms": (
+            float(snapshot["weightKilograms"])
+            if snapshot.get("weightKilograms") is not None else None
+        ),
         "fire_death_delta": int(snapshot.get("fireDeathDelta") or 0),
         "distance_delta_meters": float(snapshot.get("distanceDeltaMeters") or 0),
         "butter_produced_delta": int(snapshot.get("butterProducedDelta") or 0),

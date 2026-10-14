@@ -12,6 +12,8 @@ local ModalLayout = require("TGSRR/Run/ModalLayout")
 local ExportMenu = {}
 local ExportOverlay = ISPanel:derive("TGSRRExportOverlay")
 local activeExport = nil
+local pendingDeathExport = nil
+local DEATH_EXPORT_DELAY_MS = 10000
 local updateExport
 
 local function keepGamePaused()
@@ -345,7 +347,16 @@ updateExport = function()
     if activeExport.job.done then finishExport(ok, result) end
 end
 
+function ExportMenu.scheduleDeathExport()
+    if pendingDeathExport or activeExport then return end
+    pendingDeathExport = {
+        run = Identity.get(),
+        dueAt = getTimestampMs() + DEATH_EXPORT_DELAY_MS,
+    }
+end
+
 function ExportMenu.exportRun()
+    pendingDeathExport = nil
     if activeExport then return end
 
     -- Leave the Escape menu before creating the export UI. ToggleEscapeMenu
@@ -465,6 +476,17 @@ function MainScreen:onGainJoypadFocus(joypadData)
 end
 
 Events.OnTickEvenPaused.Add(function()
+    if pendingDeathExport then
+        local run = Identity.get()
+        if run ~= pendingDeathExport.run or not run
+                or run.lifecycle ~= "deceased"
+                or not Identity.isRatRaceChallenge() then
+            pendingDeathExport = nil
+        elseif getTimestampMs() >= pendingDeathExport.dueAt then
+            -- Only opening the export pauses gameplay; let death play out first.
+            ExportMenu.exportRun()
+        end
+    end
     updateExport()
 end)
 

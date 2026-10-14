@@ -25,6 +25,64 @@ from .models import (
 
 
 class PublicRunDetailTests(TestCase):
+    def test_weapon_kills_modal_uses_approved_authority(self):
+        from .models import RunWeaponKill
+        from .run_public import build_public_run_context
+        from django.template.loader import render_to_string
+
+        RunKillSummary.objects.create(run=self.run, weapon_partial=True)
+        for identifier, count in [("Base.Hammer", 2), ("Base.Axe", 2), ("__UNARMED__", 6)]:
+            RunWeaponKill.objects.create(run=self.run, raw_source_id=identifier, kills=count)
+        context = build_public_run_context(self.run)
+        self.assertEqual([w["name"] for w in context["weapon_kills"]], ["Unarmed", "Axe", "Hammer"])
+        self.assertEqual([w["percent"] for w in context["weapon_kills"]], [60, 20, 20])
+        self.assertEqual(context["favourite_weapon"]["kills"], 6)
+        self.assertEqual(context["weapon_kills_total"], 10)
+        html = render_to_string("registry/public_run_detail.html", context)
+        self.assertIn('data-outpost-dialog-open="run-weapon-kills-dialog"', html)
+        self.assertIn('id="run-weapon-kills-dialog"', html)
+        self.assertIn("Earlier weapon kills may be missing", html)
+
+    def test_weapon_kills_legacy_and_empty_authority(self):
+        from .run_public import build_public_run_context
+        context = build_public_run_context(self.run)
+        self.assertEqual([w["count"] for w in context["weapon_kills"]], [27, 8])
+        RunKillSummary.objects.create(run=self.run)
+        context = build_public_run_context(self.run)
+        self.assertEqual(context["weapon_kills"], [])
+        self.assertEqual(context["favourite_weapon"]["name"], "Not recorded")
+
+    def test_weight_chart_uses_measured_daily_weights(self):
+        from .models import RunDailyRecord
+        from .run_public import build_public_run_context
+        from django.template.loader import render_to_string
+
+        for day, weight, state in [(1, 80.0, "sealed"), (2, None, "sealed"), (3, 79.25, "active")]:
+            RunDailyRecord.objects.create(
+                run=self.run, day_index=day, state=state,
+                weight_kilograms=weight, weight_delta_kilograms=99,
+                calendar_year=1993, calendar_month=7, partial=True,
+            )
+        context = build_public_run_context(self.run)
+        self.assertEqual([p["weight"] for p in context["weight_chart_data"]], [80, 79.25])
+        self.assertEqual([p["day"] for p in context["weight_chart_data"]], [1, 3])
+        self.assertTrue(context["weight_chart_data"][-1]["inProgress"])
+        html = render_to_string("registry/public_run_detail.html", context)
+        self.assertIn('data-outpost-dialog-open="run-weight-dialog"', html)
+        self.assertIn('data-weight-chart="run-weight-data"', html)
+        self.assertNotIn("Daily values", html)
+        self.run.lifecycle_status = "dead"
+        context = build_public_run_context(self.run)
+        self.assertFalse(context["weight_chart_data"][-1]["inProgress"])
+
+    def test_weight_chart_does_not_invent_weights_for_older_exports(self):
+        from .models import RunDailyRecord
+        from .run_public import build_weight_chart_data
+
+        self.assertEqual(build_weight_chart_data(self.run), [])
+        RunDailyRecord.objects.create(run=self.run, day_index=3, state="sealed", weight_delta_kilograms=1)
+        self.assertEqual(build_weight_chart_data(self.run), [])
+
     def test_broken_weapons_without_breakdown_has_no_modal_or_link(self):
         from .run_public import build_public_run_context
         from django.template.loader import render_to_string

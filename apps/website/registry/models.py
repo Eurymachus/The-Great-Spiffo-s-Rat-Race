@@ -920,6 +920,7 @@ class RunDailyRecord(models.Model):
     partial_metrics = models.JSONField(default=list, blank=True)
     kill_delta = models.BigIntegerField(default=0)
     weight_delta_kilograms = models.FloatField(default=0)
+    weight_kilograms = models.FloatField(null=True, blank=True)
     fire_death_delta = models.BigIntegerField(default=0)
     distance_delta_meters = models.FloatField(default=0)
     butter_produced_delta = models.BigIntegerField(default=0)

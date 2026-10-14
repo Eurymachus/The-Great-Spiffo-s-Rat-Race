@@ -142,6 +142,7 @@ player-facing panel.
 | `activeDay.killDelta`, `xpDeltas{skillId: value}` | `RunActiveDay.kill_delta`; `RunActiveDaySkillXp` | Skill | Current unsealed day | Replace scalar and non-zero skill rows. |
 | `day.started` day metadata and `completedDay` | `RunDailyRecord` state `sealed`, plus sparse `RunDailyMetric` rows | Conditional | Complete sealed daily history | Rebuild all days from ledger; missing compact delta means zero. |
 | `weight.currentKilograms`, `weight.unit` | `RunStatisticSummary` kind `weight` | None | Current state | Replace. |
+| daily and active `weightKilograms` | Nullable `RunDailyRecord.weight_kilograms` | None | Measured interval-end weight and current day | Preserve explicit observations; older omissions stay null, with no reconstruction from deltas. |
 | daily and active `weightDeltaKilograms` | `RunDailyRecord.weight_delta_kilograms` | None | Complete sealed history and current day | Rebuild/replace by record state. |
 | `distance.travelledMeters`, `rejectedSamples`, `partial`, `unit` | `RunStatisticSummary` kind `distance`; `value`, `secondary_value`, `partial`, `unit` | None | Current cumulative state | Replace. |
 | daily and active `distanceDeltaMeters`, partial flag | `RunDailyRecord.distance_delta_meters`, `partial_metrics` | None | Complete sealed history and current day | Rebuild/replace by record state. |

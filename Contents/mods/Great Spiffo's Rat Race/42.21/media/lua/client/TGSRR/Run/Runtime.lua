@@ -582,7 +582,9 @@ Events.OnPlayerDeath.Add(function(player)
             .. tostring(result))
         return
     end
-    ExportMenu.exportRun()
+    if result ~= "already_deceased" then
+        ExportMenu.scheduleDeathExport()
+    end
 end)
 
 return {

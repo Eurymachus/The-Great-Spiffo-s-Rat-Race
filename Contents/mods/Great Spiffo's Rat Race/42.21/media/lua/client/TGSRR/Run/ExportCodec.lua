@@ -552,6 +552,7 @@ function ExportCodec.selfTest(work)
                 elapsedWorldHours = 7.5,
                 killDelta = 87,
                 weightDeltaKilograms = -0.75,
+                weightKilograms = 79.25,
                 xpDeltas = { Fitness = 45.25, Sprinting = 12 },
                 weaponKillDeltas = { ["Base.Axe"] = 3, __VEHICLE__ = 2 },
                 weaponKillsPartial = false,
@@ -677,6 +678,7 @@ function ExportCodec.selfTest(work)
             or decoded.projection.activeGameplay.milliseconds ~= 456789
             or decoded.projection.activeDay.distanceDeltaMeters ~= 1250.5
             or decoded.projection.activeDay.weightDeltaKilograms ~= -0.75
+            or decoded.projection.activeDay.weightKilograms ~= 79.25
             or decoded.projection.brokenWeapons.total ~= 3
             or decoded.projection.brokenWeapons.weapons[2].breaks ~= 2
             or decoded.projection.activeDay.brokenWeaponDeltas["Base.Axe"] ~= 1

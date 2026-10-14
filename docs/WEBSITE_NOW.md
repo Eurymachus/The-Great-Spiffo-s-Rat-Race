@@ -1,5 +1,39 @@
 # Website: Current Focus
 
+## Kills by weapon modal (14 October 2026)
+
+- The favourite weapon button opens a modal matching Broken weapons, with
+  catalogue icons, counts and proportional bars sorted by kills then name.
+  Approved weapon authority takes precedence over legacy approved projections;
+  the button and list use the same source. Partial tracking and empty records
+  have explicit messages. Existing dialog dismissal and focus handling apply.
+- Three focused weapon-modal and broken-weapon tests pass. No migration is
+  required; public deployment remains outstanding.
+
+## Weight history graph (14 October 2026)
+
+- Sandy Isaacs' local 3,650-day demo history now has synthetic measured weights
+  and calendar dates for all chart groupings, ending at 80 kg. Only its demo
+  daily rows were updated; original submission evidence remains unchanged.
+  Previous daily values are backed up in `outputs/sandy-demo-weights-before-20261014.json`.
+
+- Replaces the initial delta plot with a Better Daily Reports-style measured
+  weight graph: By Day/Week/Month, Last 7/28 days, Last 12/52 weeks, Last 12
+  months or All Time. Weekly/monthly points average available daily weights.
+- Compact square points, hover/touch and keyboard inspection and active-run
+  In Progress markers replace the large daily table. The vertical scale spans
+  the selected range's daily minimum minus 1 kg to its daily maximum plus 1 kg,
+  retaining daily extremes when displaying weekly or monthly averages.
+- New mod exports carry measured daily weights. Approval stores them in nullable
+  `RunDailyRecord.weight_kilograms` (migration 0064). Older omissions remain
+  unknown, without back-calculation or modification of immutable evidence.
+- Daily gaps remain disconnected. Calendar months require recorded dates.
+- Migration 0064 is applied locally. All 75 export tests, two chart-data tests,
+  three JavaScript grouping tests and three focused desktop Lua checks pass.
+  The controls and point tooltips were browser-checked with a synthetic fixture.
+  The local site was restarted and verified with HTTP 200 and one worker tree.
+  In-game export verification and public deployment remain outstanding.
+
 ## Missing catalogue artwork audit (12 October 2026)
 
 - Item artwork now uses explicit Icon first, then the first non-empty

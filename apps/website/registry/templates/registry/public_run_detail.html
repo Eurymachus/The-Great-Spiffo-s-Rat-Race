@@ -20,10 +20,10 @@
       </div>
       <div class="run-character-snapshot" aria-label="Current character state">
         <button type="button" class="run-build-action" data-run-build-open="run-build-dialog" aria-haspopup="dialog" aria-label="View starting build: {{ profession }}" title="Starting build: {{ profession }}">{% if profession_icon_url %}<img src="{{ profession_icon_url }}" alt="">{% else %}<span class="run-snapshot-symbol run-build-symbol" aria-hidden="true">B</span>{% endif %}</button>
-        <button type="button" class="run-character-snapshot-action" title="Current weight: {{ weight }}" aria-label="Current weight: {{ weight }}">
+        <button type="button" class="run-character-snapshot-action" data-outpost-dialog-open="run-weight-dialog" aria-haspopup="dialog" title="Current weight: {{ weight }}. View weight history" aria-label="Current weight: {{ weight }}" aria-describedby="run-weight-title">
           <span class="run-snapshot-symbol run-weight-symbol" aria-hidden="true">kg</span>
         </button>
-        <button type="button" class="run-character-snapshot-action" title="Favourite weapon: {{ favourite_weapon.name }}{% if favourite_weapon.kills is not None %}, {{ favourite_weapon.kills }} kills{% endif %}" aria-label="Favourite weapon: {{ favourite_weapon.name }}{% if favourite_weapon.kills is not None %}, {{ favourite_weapon.kills }} kills{% endif %}">
+        <button type="button" class="run-character-snapshot-action" data-outpost-dialog-open="run-weapon-kills-dialog" aria-haspopup="dialog" title="Favourite weapon: {{ favourite_weapon.name }}{% if favourite_weapon.kills is not None %}, {{ favourite_weapon.kills }} kills{% endif %}" aria-label="Favourite weapon: {{ favourite_weapon.name }}{% if favourite_weapon.kills is not None %}, {{ favourite_weapon.kills }} kills{% endif %}">
           {% if favourite_weapon.icon_url %}<img src="{{ favourite_weapon.icon_url }}" alt="">{% else %}<span class="run-snapshot-symbol run-weapon-symbol" aria-hidden="true">W</span>{% endif %}
         </button>
       </div>
@@ -59,6 +59,39 @@
     </div>
   </section>
   {% endif %}
+
+  <dialog class="leaderboard-build-modal run-weight-dialog" id="run-weight-dialog" aria-labelledby="run-weight-title">
+    <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-weight-title">Weight</strong></div><button type="button" data-outpost-dialog-close aria-label="Close weight chart">Close</button></header>
+    <div class="leaderboard-build-content">
+      {% if weight_chart_data %}
+      {{ weight_chart_data|json_script:"run-weight-data" }}
+      <div data-weight-chart="run-weight-data">
+        <div class="run-weight-controls">
+          <label><span class="visually-hidden">Group weight history</span><select data-weight-group><option value="day">By Day</option><option value="week">By Week</option><option value="month">By Month</option></select></label>
+          <label><span class="visually-hidden">Weight history range</span><select data-weight-range><option value="7">Last 7</option><option value="28">Last 28</option><option value="0">All Time</option></select></label>
+        </div>
+        <div class="run-weight-plot" data-weight-plot tabindex="0" role="slider" aria-label="Weight history, use left and right arrows to inspect points" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+          <svg class="run-weight-chart" aria-hidden="true"></svg>
+          <div class="run-weight-tooltip" data-weight-tooltip hidden></div>
+        </div>
+        <div class="run-weight-caption"><span data-weight-description>Daily weight</span><span data-weight-progress hidden>* In Progress</span></div>
+      </div>
+      <noscript><p>Enable JavaScript to explore the weight chart. Current weight: {{ weight }}.</p></noscript>
+      <p class="run-weight-help">Only recorded daily weights are shown. Older exports may not contain weight history.</p>
+      {% else %}<p>No approved weight history recorded yet. Current weight: {{ weight }}.</p>{% endif %}
+    </div>
+  </dialog>
+
+  <dialog class="leaderboard-build-modal run-broken-weapons-dialog" id="run-weapon-kills-dialog" aria-labelledby="run-weapon-kills-title">
+    <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-weapon-kills-title">Kills by weapon</strong></div><button type="button" data-outpost-dialog-close aria-label="Close kills by weapon">Close</button></header>
+    <div class="leaderboard-build-content">
+      {% if weapon_kills %}<p class="broken-weapons-summary">{{ weapon_kills_total|floatformat:"0g" }} recorded kills, highest counts first.</p>{% endif %}
+      {% if weapon_kills_partial %}<p>Tracking began partway through this run. Earlier weapon kills may be missing.</p>{% endif %}
+      <ul class="broken-weapon-bars" aria-label="Kills by weapon by share of recorded kills">
+        {% for weapon in weapon_kills %}<li><span class="broken-weapon-bar-fill" style="width: {{ weapon.percent }}%" aria-hidden="true"></span><span class="broken-weapon-name">{% if weapon.icon_url %}<img src="{{ weapon.icon_url }}" alt="" loading="lazy">{% endif %}<span>{{ weapon.name }}</span></span><span class="broken-weapon-amount"><strong>{{ weapon.count|floatformat:"0g" }}</strong></span></li>{% empty %}<li>No kills by weapon recorded.</li>{% endfor %}
+      </ul>
+    </div>
+  </dialog>
 
   {% if broken_weapons %}
   <dialog class="leaderboard-build-modal run-broken-weapons-dialog" id="run-broken-weapons-dialog" aria-labelledby="run-broken-weapons-title">

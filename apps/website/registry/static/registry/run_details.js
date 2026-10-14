@@ -69,7 +69,7 @@
             });
             dialog.addEventListener("close", () => trigger.focus());
         });
-        root.querySelectorAll(".run-outpost-dialog, .run-broken-weapons-dialog").forEach((dialog) => {
+        root.querySelectorAll(".run-outpost-dialog, .run-broken-weapons-dialog, .run-weight-dialog").forEach((dialog) => {
             if (dialog.dataset.outpostDialogReady || typeof dialog.showModal !== "function") return;
             dialog.dataset.outpostDialogReady = "true";
             const triggers = root.querySelectorAll(`[data-outpost-dialog-open="${dialog.id}"]`);

@@ -73,6 +73,12 @@ projection exports the current cumulative value directly. The website must not
 calculate that value by summing daily deltas. Daily rows exist for timelines,
 comparisons, filtering, and graphs, and a missing sparse delta means zero.
 
+Daily weight observations are independent of deltas: new `completedDay` and
+`activeDay` objects include `weightKilograms` from the measured Nutrition sample,
+including days with zero change. Unlike an omitted delta, an omitted absolute
+weight means unknown. Older immutable events remain valid and are not backfilled.
+The current `weight.currentKilograms` stays independently authoritative.
+
 `activeDay` contains the current unsealed interval. Each later `day.started`
 ledger event may contain a `completedDay` object sealing the preceding interval.
 In addition to kills, skill XP, weight, weapon kills, fire deaths, distance,

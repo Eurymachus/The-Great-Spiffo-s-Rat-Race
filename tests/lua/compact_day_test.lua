@@ -144,6 +144,7 @@ assert(payload.baseline == nil and payload.previousDay == nil)
 assert(completed.dayIndex == 3)
 assert(completed.killDelta == 5)
 assert(completed.weightDeltaKilograms == -0.75)
+assert(completed.weightKilograms == 79.25)
 assert(completed.xpDeltas.Fitness == 25)
 assert(completed.xpDeltas.Sprinting == nil)
 assert(completed.weaponKillDeltas["Base.Axe"] == 5)
@@ -162,4 +163,8 @@ assert(completed.partialMetrics == nil)
 
 local EventCodec = require "TGSRR/Run/EventCodec"
 local canonical = assert(EventCodec.canonicalPayload(payload))
+assert(DayTracker.onNewDay())
+local unchanged = captured[3].payload.completedDay
+assert(unchanged.weightKilograms == 79.25)
+assert(unchanged.weightDeltaKilograms == nil)
 print("compact day test passed; payload bytes=" .. tostring(#canonical))

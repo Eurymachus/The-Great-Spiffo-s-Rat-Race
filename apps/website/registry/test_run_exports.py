@@ -1954,6 +1954,7 @@ class RunSubmissionTests(TestCase):
                         "startedWorldAgeHours": 0,
                         "killDelta": 4,
                         "weightDeltaKilograms": -0.25,
+                        "weightKilograms": 79.75,
                         "animalPetDeltas": {"cow": 2},
                         "fluidConsumedDeltas": {"Water": 1.25},
                         "caloriesConsumedDelta": 450.5,
@@ -1985,6 +1986,7 @@ class RunSubmissionTests(TestCase):
                 "observedUtc": 220,
                 "observedWorldAgeHours": 26,
                 "elapsedWorldHours": 2,
+                "weightKilograms": 79.5,
                 "distanceDeltaMeters": 125.5,
                 "caloriesConsumedDelta": 25.0,
                 "generatorRepairDelta": 1,
@@ -2006,6 +2008,7 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(sealed.observed_utc, 200)
         self.assertEqual(sealed.kill_delta, 4)
         self.assertEqual(sealed.weight_delta_kilograms, -0.25)
+        self.assertEqual(sealed.weight_kilograms, 79.75)
         self.assertEqual(sealed.calories_consumed_delta, 450.5)
         self.assertEqual(sealed.generator_repair_delta, 2)
         self.assertEqual(sealed.generator_condition_restored_delta, 9.5)
@@ -2022,6 +2025,7 @@ class RunSubmissionTests(TestCase):
 
         active = RunDailyRecord.objects.get(state=RunDailyRecord.State.ACTIVE)
         self.assertEqual(active.day_index, 2)
+        self.assertEqual(active.weight_kilograms, 79.5)
         self.assertEqual(active.calendar_day, 10)
         self.assertEqual(active.distance_delta_meters, 125.5)
         self.assertEqual(active.calories_consumed_delta, 25.0)
@@ -2157,6 +2161,8 @@ class RunSubmissionTests(TestCase):
             run=run, state=RunDailyRecord.State.SEALED, day_index=1
         )
 
+        self.assertIsNone(original.weight_kilograms)
+
         extended_events = first_events + [{
             "event_type": "day.started",
             "utc": 300,
@@ -2164,7 +2170,7 @@ class RunSubmissionTests(TestCase):
             "payload": {
                 "dayIndex": 3,
                 "calendar": {"year": 1993, "month": 7, "day": 11},
-                "completedDay": {"dayIndex": 2, "killDelta": 7},
+                "completedDay": {"dayIndex": 2, "killDelta": 7, "weightKilograms": 79.5},
             },
         }]
         projection["activeDay"] = {"dayIndex": 3, "killDelta": 2}
@@ -2177,6 +2183,13 @@ class RunSubmissionTests(TestCase):
 
         original.refresh_from_db()
         self.assertEqual(original.kill_delta, 4)
+        self.assertIsNone(original.weight_kilograms)
+        self.assertEqual(
+            RunDailyRecord.objects.get(
+                run=run, state=RunDailyRecord.State.SEALED, day_index=2
+            ).weight_kilograms,
+            79.5,
+        )
         self.assertEqual(
             RunDailyRecord.objects.get(
                 run=run, state=RunDailyRecord.State.SEALED, day_index=2

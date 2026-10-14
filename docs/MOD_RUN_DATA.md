@@ -344,13 +344,14 @@ other presentation/runtime structures are intentionally excluded.
 
 Daily history uses one atomic `day.started` event at each `Events.EveryDays`
 transition. It timestamps the new day in UTC and world age. From the second
-marker onward, `completedDay` identifies the just-finished day and contains only
-its non-zero scalar deltas and non-empty ID-keyed delta maps. Missing delta
+marker onward, `completedDay` identifies the just-finished day and contains its measured end-of-day weight,
+non-zero scalar deltas and non-empty ID-keyed delta maps. Missing delta
 fields mean zero; they do not mean unknown. `partial` and `partialMetrics` appear
 only when the sealed interval began from an incomplete baseline. The first
 marker has no `completedDay`; it establishes the baseline only in world-scoped
 ModData and is marked partial when TGSRR was introduced to an already-running
-challenge. Absolute skill/stat baselines are never repeated in ledger events.
+challenge. Absolute skill/stat baselines are never repeated in ledger events. The daily
+weight observation is a measurement at the boundary, not a repeated baseline.
 The ledger remains the authoritative exported daily history.
 
 Format-3 also exports the character's current authoritative Nutrition weight as
@@ -359,6 +360,14 @@ contains signed `weightDeltaKilograms` from its saved day baseline, and each
 `completedDay` seals the same signed delta for the preceding day. A missing
 completed-day weight delta means zero. Weight is an instantaneous measurement,
 so it does not carry a partial-history flag.
+
+As of 14 October 2026, both `completedDay` and `activeDay` also include
+`weightKilograms`, measured from the same Nutrition sample used for the delta.
+Completed days retain the weight observed when that interval is sealed; the
+active day retains weight at export time. The field remains present even when
+the daily change is zero. Older records without it mean unknown, not zero.
+Do not reconstruct or backfill those observations from deltas. This additive
+field leaves old sealed ledger events and their hashes unchanged.
 
 The export contains four additional cumulative activity groups:
 

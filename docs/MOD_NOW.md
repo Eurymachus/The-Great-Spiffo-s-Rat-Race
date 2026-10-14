@@ -10,6 +10,19 @@
   longer authoring workspaces.
 - The modular tracker baseline is committed at `737331b`.
 
+## Daily weight observations (14 October 2026)
+
+- New completed and active days include measured `weightKilograms` alongside
+  the existing signed delta. Both use the same Nutrition sample. Zero-change
+  days still retain their weight; old immutable ledger entries stay unchanged.
+- Website approval stores nullable daily weights. Historical omissions remain
+  unknown, without reconstruction. See the export contract and checklist.
+- Focused desktop Lua collection and benchmark checks pass. In-game export
+  verification remains outstanding.
+- On 14 October the generated Team Test package and local Team Test authoring
+  folder were updated, including these weight changes and the current export
+  updates. All packaged Lua hashes match; Workshop upload remains outstanding.
+
 ## Build 42.21 baseline (24 September 2026)
 
 - Created from the current 42.20 implementation, preserving 42.20 as a prior version.
@@ -147,6 +160,9 @@ the export contract; their policy and test surfaces are documented in
   verification, and absolute file-path copy. Only the current development
   export format is accepted.
 - Export progress and result dialogs preserve the paused state when closed.
+  Death is recorded immediately, with automatic export delayed by ten real-time
+  seconds to allow the death animation to play before the export pauses gameplay.
+  A manual export cancels the pending automatic export.
   TGSRR overrides vanilla modal cleanup for these dialogs because vanilla
   otherwise resumes gameplay after OK or Close.
 - Debug-only synthetic export window offering one, two, five, and ten-year

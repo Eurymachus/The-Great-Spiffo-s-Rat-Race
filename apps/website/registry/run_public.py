@@ -1,3 +1,4 @@
+import math
 import re
 
 from django.utils.html import strip_tags
@@ -220,6 +221,23 @@ def _skill_level_progress(level, xp, thresholds):
     next_level_xp = thresholds[level]
     fraction = (xp - completed_xp) / next_level_xp if next_level_xp else 0
     return level + max(0, min(1, fraction))
+
+
+def build_weight_chart_data(run):
+    """Use measured daily weights only; absent older observations stay unknown."""
+    points = []
+    for record in run.daily_records.order_by("day_index", "state"):
+        weight = record.weight_kilograms
+        if weight is None or not math.isfinite(weight) or weight <= 0:
+            continue
+        points.append({
+            "day": record.day_index,
+            "weight": weight,
+            "year": record.calendar_year,
+            "month": record.calendar_month,
+            "inProgress": record.state == "active" and run.lifecycle_status == "active",
+        })
+    return points
 
 
 def build_public_run_context(run):
@@ -640,44 +658,43 @@ def build_public_run_context(run):
     profession_point_cost = (
         profession_details.point_cost if profession_details else None
     )
-    weapon_sources = projection.get("weaponKills", {}).get("sources", [])
-    weapon_sources = [
-        source
-        for source in weapon_sources
-        if isinstance(source, dict)
-        and source.get("id")
-        and isinstance(source.get("kills"), (int, float))
-    ]
-    favourite_weapon_source = max(
-        weapon_sources,
-        key=lambda source: (source.get("kills", 0), str(source.get("id"))),
-        default=None,
-    )
-    favourite_weapon_id = (
-        favourite_weapon_source.get("id") if favourite_weapon_source else None
-    )
+    weapon_records = list(run.weapon_kills.select_related("catalogue_entry"))
+    weapon_projection = projection.get("weaponKills", {})
+    if not isinstance(weapon_projection, dict):
+        weapon_projection = {}
+    if kill_summary is not None or weapon_records:
+        weapon_sources = [{"id": record.raw_source_id, "kills": record.kills}
+                          for record in weapon_records if record.kills > 0]
+        weapon_kills_partial = bool(kill_summary and kill_summary.weapon_partial)
+    else:
+        weapon_sources = [source for source in weapon_projection.get("sources", [])
+                          if isinstance(source, dict) and source.get("id")
+                          and isinstance(source.get("kills"), (int, float))
+                          and math.isfinite(source["kills"]) and source["kills"] > 0]
+        weapon_kills_partial = bool(weapon_projection.get("partial", False))
     weapon_catalogue = _catalogue_map(
-        CatalogueEntry.Kind.ITEM,
-        (favourite_weapon_id,),
+        CatalogueEntry.Kind.ITEM, (source["id"] for source in weapon_sources),
     )
-    favourite_weapon_entry = weapon_catalogue.get(str(favourite_weapon_id))
+    weapon_catalogue.update({record.raw_source_id: record.catalogue_entry
+                             for record in weapon_records if record.catalogue_entry_id})
     weapon_icons = _catalogue_icon_map(weapon_catalogue.values())
+    weapon_kills = []
+    for source in weapon_sources:
+        identifier = str(source["id"])
+        entry = weapon_catalogue.get(identifier)
+        weapon_kills.append({
+            "id": identifier, "name": entry.display_name if entry else _name(identifier),
+            "count": int(source["kills"]),
+            "icon_url": weapon_icons.get(entry.pk, "") if entry else "",
+        })
+    weapon_kills.sort(key=lambda weapon: (-weapon["count"], weapon["name"].casefold(), weapon["id"]))
+    weapon_kills_total = sum(weapon["count"] for weapon in weapon_kills)
+    for weapon in weapon_kills:
+        weapon["percent"] = round(weapon["count"] / weapon_kills_total * 100, 1) if weapon_kills_total else 0
     favourite_weapon = {
-        "name": (
-            favourite_weapon_entry.display_name
-            if favourite_weapon_entry
-            else _name(favourite_weapon_id) if favourite_weapon_id else "Not recorded"
-        ),
-        "kills": (
-            int(favourite_weapon_source.get("kills", 0))
-            if favourite_weapon_source
-            else None
-        ),
-        "icon_url": (
-            weapon_icons.get(favourite_weapon_entry.pk, "")
-            if favourite_weapon_entry
-            else ""
-        ),
+        "name": weapon_kills[0]["name"] if weapon_kills else "Not recorded",
+        "kills": weapon_kills[0]["count"] if weapon_kills else None,
+        "icon_url": weapon_kills[0]["icon_url"] if weapon_kills else "",
     }
     if not profession_icon_url and str(profession_id).casefold() in (
         "unemployed",
@@ -782,6 +799,10 @@ def build_public_run_context(run):
             profession_point_cost is not None and profession_point_cost < 0
         ),
         "favourite_weapon": favourite_weapon,
+        "weapon_kills": weapon_kills,
+        "weapon_kills_total": weapon_kills_total,
+        "weapon_kills_partial": weapon_kills_partial,
+        "weight_chart_data": build_weight_chart_data(run),
         "weight": (
             f"{weight.get('currentKilograms'):,.1f} kg"
             if isinstance(weight, dict)

@@ -24,6 +24,7 @@ local function completedDay(dayIndex, startedUtc, startedWorldAgeHours)
         startedWorldAgeHours = startedWorldAgeHours,
         killDelta = 35 + dayIndex % 31,
         weightDeltaKilograms = ((dayIndex % 9) - 4) / 100,
+        weightKilograms = 80 + ((dayIndex % 9) - 4) / 100,
         xpDeltas = {
             Fitness = 8 + dayIndex % 7,
             Sprinting = 12 + dayIndex % 13,
