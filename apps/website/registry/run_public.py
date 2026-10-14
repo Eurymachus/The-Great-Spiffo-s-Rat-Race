@@ -767,13 +767,15 @@ def build_public_run_context(run):
         CatalogueEntry.Kind.OCCUPATION,
         (profession_id,),
     )
-    catalogue_icons = _catalogue_icon_map(
-        (*trait_catalogue.values(), *profession_catalogue.values())
-    )
     profession_entry = (
         character_record.starting_occupation
         if character_record and character_record.starting_occupation_id
         else profession_catalogue.get(str(profession_id))
+    )
+    # Resolve artwork for the entries actually displayed, including the sealed
+    # occupation link on older approved runs, not just the latest catalogue IDs.
+    catalogue_icons = _catalogue_icon_map(
+        (*trait_catalogue.values(), profession_entry)
     )
     profession_icon_url = (
         catalogue_icons.get(profession_entry.pk, "") if profession_entry else ""

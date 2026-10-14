@@ -25,6 +25,37 @@ from .models import (
 
 
 class PublicRunDetailTests(TestCase):
+    def test_linked_older_profession_keeps_its_artwork_after_catalogue_upgrade(self):
+        from .models import RunCharacter
+        from .run_public import build_public_run_context
+
+        old = CatalogueEntry.objects.create(
+            kind="occupation", stable_id="base:lumberjack", introduced_in="42.20",
+            display_name="Lumberjack", icon_key="profession_lumberjack",
+        )
+        newer = CatalogueEntry.objects.create(
+            kind="occupation", stable_id=old.stable_id, introduced_in="42.21",
+            display_name="Lumberjack", icon_key=old.icon_key,
+        )
+        old_art = CatalogueAsset.objects.create(
+            entry=old, role="icon", source_key=old.icon_key,
+            file="catalogue/42.20/occupation/lumberjack.png",
+            availability="imported", source_type="pzwiki",
+        )
+        RunCharacter.objects.create(
+            run=self.run, starting_occupation=old,
+            starting_occupation_raw_id=old.stable_id,
+        )
+        self.assertEqual(build_public_run_context(self.run)["profession_icon_url"], old_art.file.url)
+        CatalogueAsset.objects.create(
+            entry=newer, role="icon", source_key=newer.icon_key,
+            file="catalogue/42.21/occupation/lumberjack.png",
+            availability="imported", source_type="pzwiki",
+        )
+        self.assertEqual(build_public_run_context(self.run)["profession_icon_url"], old_art.file.url)
+        self.run.character_record.refresh_from_db()
+        self.assertEqual(self.run.character_record.starting_occupation_id, old.pk)
+
     def test_milk_types_use_fluid_catalogue_assets_without_item_fallback(self):
         from .models import RunStatisticSummary, RunStatisticMetric
         from .run_public import build_public_run_context

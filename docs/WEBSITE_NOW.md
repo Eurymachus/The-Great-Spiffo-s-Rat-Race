@@ -2,6 +2,9 @@
 
 ## Catalogue artwork continuity (15 October 2026)
 
+- The icon map includes the occupation actually linked to an approved character,
+  not only the newest catalogue lookup. Upgrading the catalogue cannot strand
+  historical profession links; artwork resolution never rewrites those links.
 - Public run/build artwork prefers the selected catalogue entry's imported
   Wiki/manual icon. While new-version artwork is pending, use the latest older
   imported icon with exactly the same kind and stable identifier. Never borrow
