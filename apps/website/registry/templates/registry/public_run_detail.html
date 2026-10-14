@@ -77,7 +77,7 @@
         </div>
         <div class="temperature-toggles"><label class="temperature-high"><input type="checkbox" data-temperature-series="maximum" checked> Highest</label><label class="temperature-low"><input type="checkbox" data-temperature-series="minimum" checked> Lowest</label></div>
         <div class="run-weight-plot" data-temperature-plot tabindex="0" role="slider" aria-label="Temperature history, use left and right arrows to inspect points" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-          <svg class="run-weight-chart" aria-hidden="true"></svg><div class="run-weight-tooltip" data-temperature-tooltip hidden></div>
+          <svg class="run-weight-chart" aria-hidden="true"></svg><div class="injury-body-tooltip temperature-tooltip" data-temperature-tooltip hidden></div>
         </div>
         <div class="run-weight-caption"><span data-temperature-description>Daily extremes (°C)</span><span data-temperature-progress hidden>* In Progress</span></div>
       </div>
@@ -109,7 +109,7 @@
     </div>
   </dialog>
 
-  <dialog class="leaderboard-build-modal run-broken-weapons-dialog" id="run-weapon-kills-dialog" aria-labelledby="run-weapon-kills-title">
+  <dialog class="leaderboard-build-modal run-broken-weapons-dialog run-data-list-dialog" id="run-weapon-kills-dialog" aria-labelledby="run-weapon-kills-title">
     <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-weapon-kills-title">Kills by weapon</strong></div><button type="button" data-outpost-dialog-close aria-label="Close kills by weapon">Close</button></header>
     <div class="leaderboard-build-content">
       {% if weapon_kills %}<p class="broken-weapons-summary">{{ weapon_kills_total|floatformat:"0g" }} recorded kills, highest counts first.</p>{% endif %}
@@ -121,7 +121,7 @@
   </dialog>
 
   {% if broken_weapons %}
-  <dialog class="leaderboard-build-modal run-broken-weapons-dialog" id="run-broken-weapons-dialog" aria-labelledby="run-broken-weapons-title">
+  <dialog class="leaderboard-build-modal run-broken-weapons-dialog run-data-list-dialog" id="run-broken-weapons-dialog" aria-labelledby="run-broken-weapons-title">
     <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-broken-weapons-title">Broken weapons</strong></div><button type="button" data-outpost-dialog-close aria-label="Close broken weapons">Close</button></header>
     <div class="leaderboard-build-content">
       <p class="broken-weapons-summary">{{ broken_weapons_total|floatformat:"0g" }} recorded breaks, highest counts first.</p>
@@ -132,7 +132,7 @@
   {% endif %}
 
   {% for detail in activity_breakdowns %}
-  <dialog class="leaderboard-build-modal run-broken-weapons-dialog" id="{{ detail.id }}" aria-labelledby="{{ detail.id }}-title">
+  <dialog class="leaderboard-build-modal run-broken-weapons-dialog{% if not detail.body %} run-data-list-dialog{% endif %}" id="{{ detail.id }}" aria-labelledby="{{ detail.id }}-title">
     <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="{{ detail.id }}-title">{{ detail.label }}</strong></div><button type="button" data-outpost-dialog-close aria-label="Close {{ detail.label|lower }}">Close</button></header>
     <div class="leaderboard-build-content">
       {% if not detail.body %}
@@ -170,7 +170,7 @@
   {% endfor %}
 
   {% if skills %}
-  <dialog class="run-outpost-dialog run-skills-dialog" id="run-skills-dialog" aria-labelledby="run-skills-dialog-title">
+  <dialog class="run-outpost-dialog run-skills-dialog run-data-list-dialog" id="run-skills-dialog" aria-labelledby="run-skills-dialog-title">
     <header><div><p class="dashboard-panel-kicker">Challenge progress</p><h2 id="run-skills-dialog-title">Skill details</h2><p>Current levels from the latest approved export.</p></div><button type="button" class="run-outpost-dialog-close" data-skills-dialog-close aria-label="Close skill details">Close</button></header>
     <div class="run-outpost-dialog-content">
     <div class="pz-skills-panel">
@@ -216,7 +216,7 @@
   {% endif %}
 
   {% if outposts %}
-  <dialog class="run-outpost-dialog" id="run-outpost-dialog" aria-labelledby="run-outpost-dialog-title">
+  <dialog class="run-outpost-dialog run-data-list-dialog" id="run-outpost-dialog" aria-labelledby="run-outpost-dialog-title">
     <header><div><p class="dashboard-panel-kicker">Challenge progress</p><h2 id="run-outpost-dialog-title">Outpost details</h2><p>All outposts are shown. Undiscovered outposts have no recorded evidence.</p></div><button type="button" class="run-outpost-dialog-close" data-outpost-dialog-close aria-label="Close outpost details">Close</button></header>
     <div class="run-outpost-dialog-content">
       {% for outpost in outposts %}

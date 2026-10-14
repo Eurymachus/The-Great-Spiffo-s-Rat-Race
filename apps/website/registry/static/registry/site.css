@@ -3866,3 +3866,26 @@ small.participant-evidence-warning { color:var(--theme-accent, #f5a630); display
 .injury-body-switch:hover, .injury-body-switch:focus-visible { color: var(--theme-accent); }
 
 .injury-body-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .4rem 1rem; flex-shrink: 0; padding: .75rem 1.2rem; border-top: 1px solid var(--theme-border); color: var(--theme-muted); font-size: .85rem; }
+
+[data-temperature-tooltip] { width: max-content; max-width: min(17rem, calc(100% - 16px)); font-weight: 400; white-space: normal; }
+.temperature-tooltip-entry { display: grid; gap: .15rem; margin-top: .5rem; }
+.temperature-tooltip-entry > span { font-weight: 600; }
+[data-temperature-tooltip] small { display: block; color: var(--theme-muted); font-size: .8rem; }
+
+/* Keep list headers fixed and reserve the same scrollbar gutter for every list. */
+dialog.run-data-list-dialog { max-height: min(44rem, calc(100dvh - 2rem)); overflow: hidden; }
+dialog.run-data-list-dialog[open] { display: flex; flex-direction: column; }
+.run-data-list-dialog > header { flex-shrink: 0; }
+.run-data-list-dialog > .leaderboard-build-content,
+.run-data-list-dialog > .run-outpost-dialog-content {
+    min-height: 0; max-height: 34rem; overflow-y: scroll; scrollbar-gutter: stable;
+    scrollbar-width: auto; scrollbar-color: var(--theme-border) var(--theme-surface-alt);
+}
+.run-data-list-dialog > .leaderboard-build-content::-webkit-scrollbar,
+.run-data-list-dialog > .run-outpost-dialog-content::-webkit-scrollbar { width: 12px; }
+.run-data-list-dialog > .leaderboard-build-content::-webkit-scrollbar-track,
+.run-data-list-dialog > .run-outpost-dialog-content::-webkit-scrollbar-track { background: var(--theme-surface-alt); }
+.run-data-list-dialog > .leaderboard-build-content::-webkit-scrollbar-thumb,
+.run-data-list-dialog > .run-outpost-dialog-content::-webkit-scrollbar-thumb { background: var(--theme-border); border: 3px solid var(--theme-surface-alt); border-radius: 6px; }
+
+.run-weight-controls select.is-pointer-focused:focus { outline: none; box-shadow: none; border-color: var(--theme-border); }

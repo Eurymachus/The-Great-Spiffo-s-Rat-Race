@@ -80,7 +80,23 @@
                 }).join("; ") + (point.inProgress ? " (In Progress)" : "") + (point.partial ? " (Partial history)" : "");
                 plot.setAttribute("aria-valuenow", selection);
                 plot.setAttribute("aria-valuetext", text);
-                tooltip.textContent = text;
+                const heading = document.createElement("strong");
+                heading.textContent = point.label;
+                const entries = toggles.filter(t => t.checked).map(t => {
+                    const key = t.dataset.temperatureSeries;
+                    const row = document.createElement("div");
+                    row.className = "temperature-tooltip-entry";
+                    const value = document.createElement("span");
+                    value.className = key === "minimum" ? "temperature-low" : "temperature-high";
+                    value.textContent = `${key === "minimum" ? "Lowest" : "Highest"}: ${number.format(point[key])} \u00b0C`;
+                    const time = document.createElement("small");
+                    time.textContent = stamp(point[key + "Observation"]).trim().replace(/^\(|\)$/g, "");
+                    row.append(value, time);
+                    return row;
+                });
+                const status = document.createElement("small");
+                status.textContent = [point.inProgress && "In progress", point.partial && "Partial history"].filter(Boolean).join(" \u00b7 ");
+                tooltip.replaceChildren(heading, ...entries, ...(status.textContent ? [status] : []));
                 tooltip.hidden = false;
                 tooltip.style.left = `${Math.max(8, Math.min(point.x + 12, plot.clientWidth - tooltip.offsetWidth - 8))}px`;
                 tooltip.style.top = "8px";

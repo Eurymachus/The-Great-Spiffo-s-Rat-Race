@@ -1,6 +1,21 @@
 (() => {
     "use strict";
 
+    // Native selects may retain focus-visible after a pointer selection.
+    document.addEventListener("pointerdown", (event) => {
+        const select = event.target.closest(".run-weight-controls select");
+        if (select) select.classList.add("is-pointer-focused");
+    });
+    document.addEventListener("keydown", () => {
+        document.querySelectorAll(".run-weight-controls select.is-pointer-focused")
+            .forEach(select => select.classList.remove("is-pointer-focused"));
+    });
+    document.addEventListener("focusout", (event) => {
+        if (event.target.matches(".run-weight-controls select")) {
+            event.target.classList.remove("is-pointer-focused");
+        }
+    });
+
     const localDateTimeFormatter = (includeSeconds = false) => new Intl.DateTimeFormat(
         undefined,
         {
