@@ -3918,9 +3918,9 @@ dialog.run-data-list-dialog[open] { display: flex; flex-direction: column; }
 
 /* Keep character details fixed while each trait column scrolls independently. */
 dialog.character-build-traits-dialog {
-    height: clamp(30rem, 80dvh, 46rem);
+    height: clamp(30rem, 90dvh, 48rem);
     min-height: min(30rem, calc(100dvh - 2rem));
-    max-height: min(46rem, calc(100dvh - 2rem));
+    max-height: min(48rem, calc(100dvh - 2rem));
     box-sizing: border-box; overflow: hidden;
 }
 dialog.character-build-traits-dialog[open] { display: flex; flex-direction: column; }
