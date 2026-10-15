@@ -3918,7 +3918,7 @@ dialog.run-data-list-dialog[open] { display: flex; flex-direction: column; }
 
 /* Keep character details fixed while each trait column scrolls independently. */
 dialog.character-build-traits-dialog {
-    height: auto;
+    height: fit-content;
     min-height: 0;
     max-height: calc(100dvh - 2rem);
     box-sizing: border-box; overflow: hidden;
@@ -3926,19 +3926,20 @@ dialog.character-build-traits-dialog {
 dialog.character-build-traits-dialog[open] { display: flex; flex-direction: column; }
 .character-build-traits-dialog > header { flex-shrink: 0; }
 .character-build-traits-dialog > .leaderboard-build-content {
-    display: flex; flex-direction: column; min-height: 0; overflow: hidden; flex: 1;
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden; flex: 0 1 auto;
 }
 .character-build-traits-dialog .leaderboard-profession,
 .character-build-traits-dialog .build-traits-section > h3 { flex-shrink: 0; }
-.character-build-traits-dialog .build-traits-section { display: flex; flex-direction: column; min-height: 0; flex: 1; }
-.character-build-traits-dialog .leaderboard-trait-columns { min-height: 0; flex: 1; }
+.character-build-traits-dialog .build-traits-section { display: flex; flex-direction: column; min-height: 0; flex: 0 1 auto; }
+.character-build-traits-dialog .leaderboard-trait-columns { min-height: 0; flex: 0 1 auto; }
 .character-build-traits-dialog .leaderboard-trait-column { display: flex; flex-direction: column; min-height: 0; }
 .character-build-traits-dialog .leaderboard-trait-column h4 { flex-shrink: 0; }
 .character-build-traits-dialog .leaderboard-trait-column ul {
-    /* Nine 2.5rem rows, eight .4rem gaps and two .5rem padding edges. */
+    /* Nine 2.5rem rows, eight .5rem gaps and two .5rem padding edges. */
     flex: 0 1 auto;
-    height: calc(22.5rem + 3.2rem + 1rem);
-    min-height: 0; max-height: calc(22.5rem + 3.2rem + 1rem);
+    height: calc(22.5rem + 4rem + 1rem);
+    min-height: 0; max-height: calc(22.5rem + 4rem + 1rem);
+    gap: .5rem;
     grid-auto-rows: 2.5rem;
     overflow-y: scroll; scrollbar-gutter: stable;
     align-content: start; overscroll-behavior: contain;
