@@ -34,6 +34,11 @@
         maximum: Math.max(...data.map((point) => point.maximum)) + 1,
     });
 
+    const killBounds = (data) => ({
+        minimum: 0,
+        maximum: Math.max(1, Math.ceil(Math.max(0, ...data.map(p => p.value)) * 1.1 / 5)) * 5,
+    });
+
     const initialise = (root = document) => {
         root.querySelectorAll("[data-weight-chart]").forEach((chart) => {
             if (chart.dataset.ready) return;
@@ -92,13 +97,20 @@
                     node("text", {x: width / 2, y: height / 2, "text-anchor": "middle"}, "No recorded dates for this range.");
                     return;
                 }
-                const left = 52, right = width - 22, top = 20, bottom = height - 36;
-                const {minimum, maximum} = isKills ? {minimum: 0, maximum: Math.max(1, ...data.map(p => p.value)) * 1.1} : weightBounds(data);
+                const right = width - 22, top = 20, bottom = height - 36;
+                const {minimum, maximum} = isKills ? killBounds(data) : weightBounds(data);
                 const weightSpan = maximum - minimum;
+                const labels = [];
+                for (let tick = 0; tick <= 5; tick += 1) {
+                    const y = bottom - (bottom - top) * tick / 5;
+                    labels.push(node("text", {x: 0, y, "text-anchor": "end", "dominant-baseline": "middle"}, number.format(minimum + weightSpan * tick / 5)));
+                }
+                // Measure the actual formatted SVG text, including separators and font.
+                const left = Math.max(52, Math.ceil(Math.max(...labels.map(label => label.getComputedTextLength()))) + 18);
+                labels.forEach(label => label.setAttribute("x", left - 10));
                 for (let tick = 0; tick <= 5; tick += 1) {
                     const y = bottom - (bottom - top) * tick / 5;
                     node("line", {x1: left, x2: right, y1: y, y2: y, class: "weight-grid"});
-                    node("text", {x: left - 10, y, "text-anchor": "end", "dominant-baseline": "middle"}, number.format(minimum + weightSpan * tick / 5));
                 }
                 const first = data[0].index, span = data[data.length - 1].index - first;
                 points = data.map((point) => ({...point,
@@ -159,7 +171,7 @@
             render();
         });
     };
-    if (typeof module !== "undefined") module.exports = {groupRows, ranges, weightBounds};
+    if (typeof module !== "undefined") module.exports = {groupRows, ranges, weightBounds, killBounds};
     if (typeof document !== "undefined") {
         document.addEventListener("page:loaded", () => initialise());
         initialise();
