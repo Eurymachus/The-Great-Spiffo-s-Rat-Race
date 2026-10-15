@@ -25,6 +25,23 @@ from .models import (
 
 
 class PublicRunDetailTests(TestCase):
+    def test_trait_cost_order_is_consistent_in_both_tabs(self):
+        from .run_public import build_public_run_context
+
+        ids = ["base:fastlearner", "base:dextrous", "base:fit", "base:outdoorsman"]
+        for identifier, cost in (("base:minornegative", -2), ("base:majornegative", -8)):
+            entry = CatalogueEntry.objects.create(kind="trait", stable_id=identifier,
+                introduced_in="42.21", display_name=identifier)
+            TraitDetails.objects.create(entry=entry, point_cost=cost)
+            ids.append(identifier)
+        self.submission.projection["character"]["selectedStartingTraits"] = ids
+        self.submission.projection["character"]["currentEffectiveTraits"] = ids
+        self.submission.save(update_fields=("projection",))
+        context = build_public_run_context(self.run)
+        for prefix in ("selected", "current"):
+            self.assertEqual([t["point_cost"] for t in context[f"{prefix}_positive_traits"]], [6, 4, 2, 0])
+            self.assertEqual([t["point_cost"] for t in context[f"{prefix}_negative_traits"]], [-8, -2])
+
     def test_linked_older_profession_keeps_its_artwork_after_catalogue_upgrade(self):
         from .models import RunCharacter
         from .run_public import build_public_run_context

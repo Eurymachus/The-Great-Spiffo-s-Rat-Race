@@ -918,7 +918,7 @@ def build_public_run_context(run):
         point_cost = trait["point_cost"]
         return (
             point_cost is None,
-            point_cost if point_cost is not None else 0,
+            -abs(point_cost) if point_cost is not None else 0,
             trait["name"].casefold(),
         )
 
@@ -937,9 +937,6 @@ def build_public_run_context(run):
     selected_negative_traits, selected_positive_traits = grouped_traits(
         presented_selected_traits
     )
-    # Stable partition keeps the existing point/name order within each group.
-    selected_negative_traits.sort(key=lambda trait: bool(trait["is_passive"]))
-    selected_positive_traits.sort(key=lambda trait: bool(trait["is_passive"]))
     current_negative_traits, current_positive_traits = grouped_traits(
         presented_current_traits
     )
