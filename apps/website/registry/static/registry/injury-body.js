@@ -47,7 +47,7 @@ const initialiseInjuryBody = () => {
     for (const part of data.parts) {
       if (part.total <= 0 && part.id !== active) continue;
       ctx.globalAlpha = part.id === active ? 1 : .9;
-      ctx.drawImage(part.total > 0 ? view[part.id].tinted : view[part.id].image, 0, 0);
+      ctx.drawImage(part.total > 0 ? view[part.id].tinted : view[part.id].image, 0, 0, view.body.width, view.body.height);
     }
     ctx.globalAlpha = 1;
     if (view.outline) ctx.drawImage(view.outline.image, 0, 0);
@@ -55,9 +55,9 @@ const initialiseInjuryBody = () => {
   function hit(event) {
     const view = cache[sex]; if (!view) return;
     const box = canvas.getBoundingClientRect();
-    const x = Math.floor((event.clientX-box.left)*canvas.width/box.width);
-    const y = Math.floor((event.clientY-box.top)*canvas.height/box.height);
-    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return dismiss();
+    const x = Math.floor((event.clientX-box.left)*view.body.width/box.width);
+    const y = Math.floor((event.clientY-box.top)*view.body.height/box.height);
+    if (x < 0 || y < 0 || x >= view.body.width || y >= view.body.height) return dismiss();
     const part = [...data.parts].reverse().find(p => p.total > 0 && view[p.id].pixels[(y*view[p.id].width+x)*4+3] > 32);
     if (!part) return dismiss();
     canvas.style.cursor = 'pointer';

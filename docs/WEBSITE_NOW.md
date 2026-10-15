@@ -14,6 +14,10 @@
 
 ## Interactive injury body (14 October 2026)
 
+- Health artwork uses the original game PNGs at native size, shrinking only
+  when needed to fit the viewport. SVG tracing was rejected for edge artifacts.
+  Re-run the health artwork importer if an installation imported the SVG trial.
+
 - Injury modal uses original male/female game silhouettes, outlines and red
   body-part overlays with pixel-based pointer hit testing. Hover or tap opens
   an injury popup; arrow keys explore injuries and Escape dismisses details.
@@ -29,7 +33,7 @@
 - Migration 0011 adds body-part catalogue artwork. Normal game import without
   `--no-assets` imports health art from UI2.pack; targeted command:
   `import_health_body_artwork --game-root <path> --game-version <version>`.
-  No generated or bundled body images. 38 managed assets imported locally.
+  No bundled body images. 38 game-derived managed assets imported locally.
 - Male/female rendering, chest counts, and hand selection verified in a local
   rendered-modal preview. Missing artwork retains the existing list UI.
 

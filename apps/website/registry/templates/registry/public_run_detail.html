@@ -54,10 +54,10 @@
     <header><p class="dashboard-panel-kicker">Challenge progress</p><h3>The long road</h3></header>
     <div class="run-progress-grid">
       {% for item in progress %}
-      {% if item.id == "outposts" and outposts %}<button type="button" class="run-progress-card run-progress-card-action" data-outpost-dialog-open="run-outpost-dialog" aria-haspopup="dialog">{% elif item.id == "skills" and skills %}<button type="button" class="run-progress-card run-progress-card-action" data-skills-dialog-open="run-skills-dialog" aria-haspopup="dialog">{% else %}<article class="run-progress-card">{% endif %}
+      {% if item.id == "kills" %}<button type="button" class="run-progress-card run-progress-card-action" data-outpost-dialog-open="run-kill-delta-dialog" aria-haspopup="dialog">{% elif item.id == "outposts" and outposts %}<button type="button" class="run-progress-card run-progress-card-action" data-outpost-dialog-open="run-outpost-dialog" aria-haspopup="dialog">{% elif item.id == "landmarks" and landmarks %}<button type="button" class="run-progress-card run-progress-card-action" data-outpost-dialog-open="run-landmarks-dialog" aria-haspopup="dialog">{% elif item.id == "skills" and skills %}<button type="button" class="run-progress-card run-progress-card-action" data-skills-dialog-open="run-skills-dialog" aria-haspopup="dialog">{% else %}<article class="run-progress-card">{% endif %}
         <div><strong>{{ item.name }}</strong><span>{{ item.current_display }} / {{ item.target_display }}</span></div>
         <div class="run-labelled-progress" role="img" aria-label="{{ item.name }} progress: {{ item.percent }}%"><span style="width: {{ item.percent }}%"></span><strong>{{ item.percent }}%</strong></div>
-      {% if item.id == "outposts" and outposts or item.id == "skills" and skills %}</button>{% else %}</article>{% endif %}
+      {% if item.id == "kills" or item.id == "outposts" and outposts or item.id == "skills" and skills or item.id == "landmarks" and landmarks %}</button>{% else %}</article>{% endif %}
       {% endfor %}
     </div>
   </section>
@@ -84,6 +84,28 @@
       <p class="run-weight-help">Outdoor weather, wherever the survivor was. Weekly and monthly views show each period's lowest and highest recorded temperatures. Missing days stay unknown.</p>
       <noscript><p>Enable JavaScript to explore temperature history.</p></noscript>
       {% else %}<p>No approved daily temperature history recorded yet.</p>{% endif %}
+    </div>
+  </dialog>
+
+  <dialog class="leaderboard-build-modal run-weight-dialog" id="run-kill-delta-dialog" aria-labelledby="run-kill-delta-title">
+    <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-kill-delta-title">Kills gained</strong></div><button type="button" data-outpost-dialog-close aria-label="Close kill chart">Close</button></header>
+    <div class="leaderboard-build-content">
+      {% if kill_chart_data %}
+      {{ kill_chart_data|json_script:"run-kill-delta-data" }}
+      <div data-weight-chart="run-kill-delta-data" data-chart-metric="kills">
+        <div class="run-weight-controls">
+          <label><span class="visually-hidden">Group kill history</span><select data-weight-group><option value="day">By Day</option><option value="week">By Week</option><option value="month">By Month</option></select></label>
+          <label><span class="visually-hidden">Kills gained history range</span><select data-weight-range><option value="7">Last 7</option><option value="28">Last 28</option><option value="0">All Time</option></select></label>
+        </div>
+        <div class="run-weight-plot" data-weight-plot tabindex="0" role="slider" aria-label="Kills gained history, use left and right arrows to inspect points" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+          <svg class="run-weight-chart" aria-hidden="true"></svg>
+          <div class="run-weight-tooltip" data-weight-tooltip hidden></div>
+        </div>
+        <div class="run-weight-caption"><span data-weight-description>Daily kills gained</span><span data-weight-progress hidden>* In Progress</span></div>
+      </div>
+      <noscript><p>Enable JavaScript to explore the kill chart.</p></noscript>
+      <p class="run-weight-help">Daily kills gained; weekly and monthly views show totals. Missing days are not filled in.</p>
+      {% else %}<p>No approved kill history recorded yet.</p>{% endif %}
     </div>
   </dialog>
 
@@ -215,6 +237,18 @@
   </dialog>
   {% endif %}
 
+  {% if landmarks %}
+  <dialog class="leaderboard-build-modal run-broken-weapons-dialog run-data-list-dialog" id="run-landmarks-dialog" aria-labelledby="run-landmarks-title">
+    <header><div><p class="dashboard-panel-kicker">Challenge progress</p><strong id="run-landmarks-title">Landmarks</strong></div><button type="button" data-outpost-dialog-close aria-label="Close landmarks">Close</button></header>
+    <div class="leaderboard-build-content">
+      <p class="broken-weapons-summary">{{ visited_landmark_count }} visited. Visited locations first.</p>
+      <ul class="run-landmark-list run-scroll-list" aria-label="Landmark visits">
+        {% for landmark in landmarks %}<li class="{% if landmark.visited %}is-visited{% endif %}">{% include "registry/includes/location_map_link.html" with location=landmark %}<strong>{{ landmark.name }}</strong><span>{% if landmark.visited %}Visited{% else %}Not visited{% endif %}</span></li>{% endfor %}
+      </ul>
+    </div>
+  </dialog>
+  {% endif %}
+
   {% if outposts %}
   <dialog class="run-outpost-dialog run-data-list-dialog" id="run-outpost-dialog" aria-labelledby="run-outpost-dialog-title">
     <header><div><p class="dashboard-panel-kicker">Challenge progress</p><h2 id="run-outpost-dialog-title">Outpost details</h2><p>All outposts are shown. Undiscovered outposts have no recorded evidence.</p></div><button type="button" class="run-outpost-dialog-close" data-outpost-dialog-close aria-label="Close outpost details">Close</button></header>
@@ -223,7 +257,7 @@
       {% for outpost in outposts %}
       {% if outpost.discovered %}
       <details class="run-outpost-detail">
-        <summary><strong>{{ outpost.name }}</strong><span class="run-outpost-stage{% if outpost.complete %} is-complete{% endif %}">{% if outpost.complete %}Completed{% else %}In Progress{% endif %}</span><span class="run-outpost-disclosure" aria-hidden="true"></span>{% if not outpost.complete %}<div class="run-labelled-progress" role="img" aria-label="{{ outpost.name }} progress: {{ outpost.passed }} of {{ outpost.total }}, {{ outpost.percent }}%"><span style="width: {{ outpost.percent }}%"></span><strong>{{ outpost.passed }} / {{ outpost.total }} ({{ outpost.percent }}%)</strong></div>{% endif %}</summary>
+        <summary>{% include "registry/includes/location_map_link.html" with location=outpost %}<strong>{{ outpost.name }}</strong><span class="run-outpost-stage{% if outpost.complete %} is-complete{% endif %}">{% if outpost.complete %}Completed{% else %}In Progress{% endif %}</span><span class="run-outpost-disclosure" aria-hidden="true"></span>{% if not outpost.complete %}<div class="run-labelled-progress" role="img" aria-label="{{ outpost.name }} progress: {{ outpost.passed }} of {{ outpost.total }}, {{ outpost.percent }}%"><span style="width: {{ outpost.percent }}%"></span><strong>{{ outpost.passed }} / {{ outpost.total }} ({{ outpost.percent }}%)</strong></div>{% endif %}</summary>
         <div class="run-outpost-detail-body">
           <ul class="run-outpost-deliverables">
             {% for deliverable in outpost.deliverables %}<li><strong>{{ deliverable.name }}</strong><span>{{ deliverable.value }}</span><strong class="run-outpost-status is-{{ deliverable.status_class }}">{{ deliverable.status }}</strong></li>{% empty %}<li>No deliverable details recorded.</li>{% endfor %}
@@ -231,7 +265,7 @@
         </div>
       </details>
       {% else %}
-      <article class="run-outpost-detail run-outpost-undiscovered"><strong>{{ outpost.name }}</strong><span class="run-outpost-stage">Undiscovered</span></article>
+      <article class="run-outpost-detail run-outpost-undiscovered">{% include "registry/includes/location_map_link.html" with location=outpost %}<strong>{{ outpost.name }}</strong><span class="run-outpost-stage">Undiscovered</span></article>
       {% endif %}
       {% endfor %}
       </div>

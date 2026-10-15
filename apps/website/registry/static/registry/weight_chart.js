@@ -5,7 +5,7 @@
     const number = new Intl.NumberFormat(undefined, {maximumFractionDigits: 3});
 
     // Group the full history before selecting the most recent periods.
-    const groupRows = (rows, mode) => {
+    const groupRows = (rows, mode, metric = "weight") => {
         const buckets = new Map();
         for (const row of rows) {
             if (mode === "month" && (!row.year || !row.month)) continue;
@@ -17,14 +17,14 @@
                 buckets.set(index, {index, axis, label, total: 0, count: 0, minimum: Infinity, maximum: -Infinity, inProgress: false});
             }
             const bucket = buckets.get(index);
-            bucket.total += row.weight;
+            bucket.total += row[metric];
             bucket.count += 1;
-            bucket.minimum = Math.min(bucket.minimum, row.weight);
-            bucket.maximum = Math.max(bucket.maximum, row.weight);
+            bucket.minimum = Math.min(bucket.minimum, row[metric]);
+            bucket.maximum = Math.max(bucket.maximum, row[metric]);
             bucket.inProgress ||= row.inProgress;
         }
         return [...buckets.values()].sort((a, b) => a.index - b.index).map((bucket) => ({
-            ...bucket, value: bucket.total / bucket.count,
+            ...bucket, value: metric === "kills" ? bucket.total : bucket.total / bucket.count,
             axis: bucket.axis + (bucket.inProgress ? "*" : ""),
         }));
     };
@@ -38,6 +38,7 @@
         root.querySelectorAll("[data-weight-chart]").forEach((chart) => {
             if (chart.dataset.ready) return;
             chart.dataset.ready = "true";
+            const isKills = chart.dataset.chartMetric === "kills";
             const rows = JSON.parse(document.getElementById(chart.dataset.weightChart).textContent);
             const group = chart.querySelector("[data-weight-group]");
             const range = chart.querySelector("[data-weight-range]");
@@ -62,7 +63,7 @@
                 if (!points.length) return;
                 selection = Math.max(0, Math.min(points.length - 1, index));
                 const point = points[selection];
-                const text = `${point.label} Weight: ${number.format(point.value)} kg${point.inProgress ? " (In Progress)" : ""}`;
+                const text = `${point.label}: ${number.format(point.value)} ${isKills ? "kills" : "kg"}${point.inProgress ? " (In Progress)" : ""}`;
                 plot.setAttribute("aria-valuenow", selection);
                 plot.setAttribute("aria-valuetext", text);
                 tooltip.textContent = text;
@@ -80,19 +81,19 @@
                 svg.style.height = `${height}px`;
                 svg.replaceChildren();
                 tooltip.hidden = true;
-                let data = groupRows(rows, group.value);
+                let data = groupRows(rows, group.value, isKills ? "kills" : "weight");
                 const limit = Number(range.value);
-                if (limit) data = data.slice(-limit);
+                if (limit && data.length) data = data.filter(p => p.index > data[data.length - 1].index - limit);
                 plot.setAttribute("aria-valuemax", Math.max(0, data.length - 1));
                 progress.hidden = !data.some((point) => point.inProgress);
-                description.textContent = group.value === "day" ? "Daily weight" : "Average daily weight per " + group.value;
+                description.textContent = isKills ? "Kills gained per " + group.value : group.value === "day" ? "Daily weight" : "Average daily weight per " + group.value;
                 if (!data.length) {
                     points = [];
                     node("text", {x: width / 2, y: height / 2, "text-anchor": "middle"}, "No recorded dates for this range.");
                     return;
                 }
                 const left = 52, right = width - 22, top = 20, bottom = height - 36;
-                const {minimum, maximum} = weightBounds(data);
+                const {minimum, maximum} = isKills ? {minimum: 0, maximum: Math.max(1, ...data.map(p => p.value)) * 1.1} : weightBounds(data);
                 const weightSpan = maximum - minimum;
                 for (let tick = 0; tick <= 5; tick += 1) {
                     const y = bottom - (bottom - top) * tick / 5;

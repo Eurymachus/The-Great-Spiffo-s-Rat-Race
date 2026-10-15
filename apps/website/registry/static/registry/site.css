@@ -1358,7 +1358,10 @@
 .leaderboard-trait-column li.is-passive { border-color: #f4f1df; }
 .leaderboard-trait-column li.is-passive > strong { color: #f4f1df; font-size: .78rem; }
 .leaderboard-trait-column li.is-gained { border-color: var(--theme-success, #9bcf72); background: color-mix(in srgb, var(--theme-success, #9bcf72) 9%, var(--theme-surface)); }
-.leaderboard-trait-column li.is-lost { border-color: var(--theme-danger, #d98c87); opacity: .72; }
+.leaderboard-trait-column li.is-lost { border-color: var(--theme-danger, #d98c87); }
+.leaderboard-trait-column li.is-lost > img,
+.leaderboard-trait-column li.is-lost > span:not(.leaderboard-trait-tooltip),
+.leaderboard-trait-column li.is-lost > strong { opacity: .72; }
 .leaderboard-trait-column li.is-lost > span:first-of-type { text-decoration: line-through; }
 .leaderboard-trait-column li .trait-change { min-width: auto; color: inherit; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; }
 .leaderboard-trait-column li.is-gained .trait-change { color: var(--theme-success, #9bcf72); }
@@ -1366,7 +1369,7 @@
 .build-traits-removed { display: grid; gap: .65rem; margin-top: 1rem; padding-top: .9rem; border-top: 1px solid var(--theme-border); }
 .build-traits-removed > h3 { margin: 0; }
 .leaderboard-trait-column .leaderboard-trait-empty { display: block; color: var(--theme-text-muted); }
-.leaderboard-trait-tooltip { position: absolute; top: calc(100% + .35rem); left: -.1rem; z-index: 5; display: none; box-sizing: border-box; width: calc(100% + .2rem); padding: .55rem .7rem; border: 1px solid var(--theme-accent); background: var(--theme-surface); color: var(--theme-text); box-shadow: var(--theme-shadow); font-size: .88rem; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+.leaderboard-trait-tooltip { pointer-events: none; position: absolute; top: calc(100% + .35rem); left: -.1rem; z-index: 5; display: none; box-sizing: border-box; width: calc(100% + .2rem); padding: .55rem .7rem; border: 1px solid var(--theme-accent); background: var(--theme-surface); color: var(--theme-text); box-shadow: var(--theme-shadow); font-size: .88rem; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
 .leaderboard-trait-column li:hover .leaderboard-trait-tooltip,
 .leaderboard-trait-column li:focus .leaderboard-trait-tooltip { display: block; }
 .leaderboard-trait-column li:nth-last-child(-n + 3) .leaderboard-trait-tooltip { top: auto; bottom: calc(100% + .35rem); }
@@ -3854,7 +3857,7 @@ small.participant-evidence-warning { color:var(--theme-accent, #f5a630); display
 .temperature-summary { padding-bottom: .6rem; }
 
 .injury-body-stage { position: relative; width: 100%; min-height: 10rem; }
-.injury-body-stage canvas { display: block; max-width: 100%; height: min(480px, 60dvh); width: auto; margin: 0 auto; }
+.injury-body-stage canvas { display: block; max-width: 100%; max-height: 60dvh; height: auto; width: auto; margin: 0 auto; }
 .injury-body-stage canvas:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 6px; border-radius: var(--theme-radius-small); }
 .injury-body-tooltip { position: absolute; z-index: 2; width: max-content; max-width: min(15rem, calc(100% - 16px)); box-sizing: border-box; padding: .8rem 1rem; border: 1px solid var(--theme-border); border-radius: var(--theme-radius-small); background: var(--theme-surface); box-shadow: 0 6px 24px #0009; pointer-events: none; }
 .injury-body-tooltip strong { color: var(--theme-accent); }
@@ -3912,3 +3915,50 @@ dialog.run-data-list-dialog[open] { display: flex; flex-direction: column; }
     background: var(--theme-surface-alt);
     box-shadow: 0 2px 0 var(--pz-skill-line);
 }
+
+/* Keep character details fixed while each trait column scrolls independently. */
+dialog.character-build-traits-dialog {
+    height: clamp(30rem, 80dvh, 46rem);
+    min-height: min(30rem, calc(100dvh - 2rem));
+    max-height: min(46rem, calc(100dvh - 2rem));
+    box-sizing: border-box; overflow: hidden;
+}
+dialog.character-build-traits-dialog[open] { display: flex; flex-direction: column; }
+.character-build-traits-dialog > header { flex-shrink: 0; }
+.character-build-traits-dialog > .leaderboard-build-content {
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden; flex: 1;
+}
+.character-build-traits-dialog .leaderboard-profession,
+.character-build-traits-dialog .build-traits-section > h3 { flex-shrink: 0; }
+.character-build-traits-dialog .build-traits-section { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.character-build-traits-dialog .leaderboard-trait-columns { min-height: 0; flex: 1; }
+.character-build-traits-dialog .leaderboard-trait-column { display: flex; flex-direction: column; min-height: 0; }
+.character-build-traits-dialog .leaderboard-trait-column h4 { flex-shrink: 0; }
+.character-build-traits-dialog .leaderboard-trait-column ul {
+    flex: 1;
+    min-height: 0; max-height: 30rem; overflow-y: scroll; scrollbar-gutter: stable;
+    align-content: start; overscroll-behavior: contain;
+    scrollbar-color: var(--theme-border) color-mix(in srgb, var(--theme-border) 35%, var(--theme-surface-alt));
+}
+@media (max-width: 600px) {
+    .character-build-traits-dialog .leaderboard-trait-columns { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+.character-build-traits-dialog .leaderboard-trait-column li .leaderboard-trait-tooltip { top: calc(100% + .35rem); bottom: auto; }
+
+.run-landmark-list { margin: 0; padding: .5rem; list-style: none; border: 1px solid var(--theme-border); background: var(--theme-surface-alt); }
+.run-landmark-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .65rem .75rem; border: 1px solid var(--theme-border); background: var(--theme-surface); }
+.run-landmark-list li + li { margin-top: .4rem; }
+.run-landmark-list li > span { flex-shrink: 0; color: var(--theme-muted); font-size: .85rem; }
+.run-landmark-list li.is-visited > span { color: var(--theme-success, #9bcf72); }
+
+.leaderboard-trait-column li { cursor: default; }
+
+.character-build-traits-dialog .build-traits-section[hidden] { display: none; }
+.character-build-traits-dialog .build-trait-tabs { flex-shrink: 0; }
+
+.run-landmark-list li > strong { margin-right: auto; }
+.run-outpost-detail > summary:has(.run-starting-map-link) { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.run-outpost-detail .run-starting-map-link, .run-landmark-list .run-starting-map-link { flex-shrink: 0; }
+
+.run-outpost-undiscovered:has(.run-starting-map-link) { grid-template-columns: auto minmax(0, 1fr) auto; }

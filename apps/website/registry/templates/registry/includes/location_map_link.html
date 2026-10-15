@@ -1,0 +1,1 @@
+{% if location.map_url %}<a class="run-starting-map-link" href="{{ location.map_url }}" target="_blank" rel="noopener" title="View {{ location.name }} on the map" aria-label="View {{ location.name }} on the map">{% if starting_map_icon_url %}<img src="{{ starting_map_icon_url }}" alt="">{% else %}<span aria-hidden="true">Map</span>{% endif %}</a>{% endif %}

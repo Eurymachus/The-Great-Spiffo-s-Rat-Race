@@ -2,6 +2,34 @@
     const initialise = () => {
     "use strict";
 
+    document.querySelectorAll(".character-build-traits-dialog .leaderboard-trait-column ul").forEach((list) => {
+        if (list.dataset.tooltipReady) return;
+        list.dataset.tooltipReady = "true";
+        const position = (row) => {
+            const tooltip = row.querySelector(".leaderboard-trait-tooltip");
+            if (!tooltip) return;
+            tooltip.style.bottom = "auto";
+            tooltip.style.top = "calc(100% + .35rem)";
+            const bounds = list.getBoundingClientRect();
+            const item = row.getBoundingClientRect();
+            const height = tooltip.getBoundingClientRect().height;
+            const gap = 6;
+            const below = bounds.bottom - item.bottom - gap;
+            const above = item.top - bounds.top - gap;
+            let top = below >= height || below >= above ? item.height + gap : -height - gap;
+            top = Math.max(bounds.top - item.top + 2, Math.min(top, bounds.bottom - item.top - height - 2));
+            tooltip.style.top = `${top}px`;
+        };
+        list.querySelectorAll("li[tabindex]").forEach((row) => {
+            row.addEventListener("pointerenter", () => position(row));
+            row.addEventListener("focus", () => position(row));
+        });
+        list.addEventListener("scroll", () => {
+            const row = list.querySelector("li:hover, li:focus");
+            if (row) position(row);
+        });
+    });
+
     const activateTab = (container, tab) => {
         const name = tab.dataset.buildTab;
         const tabs = [...container.querySelectorAll("[data-build-tab]")];

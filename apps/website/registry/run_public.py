@@ -7,6 +7,7 @@ from zomboid_catalogue.models import (
     CatalogueAsset,
     CatalogueEntry,
     SkillDetails,
+    MapLocationVersion,
     version_key,
 )
 
@@ -382,7 +383,9 @@ def build_public_run_context(run):
         elif starting_location.resolved_region_catalogue_id:
             spawn_choice = starting_location.resolved_region_catalogue.display_name
         elif starting_location.resolved_region_raw_id:
-            spawn_choice = starting_location.resolved_region_raw_id
+            region_id = starting_location.resolved_region_raw_id
+            region_names = dict(TOWN_PRESENTATION_CATALOGUE)
+            spawn_choice = region_names.get(region_id.casefold()) or _name(region_id)
         if starting_location.x is not None and starting_location.y is not None:
             starting_coordinates = f"{starting_location.x}, {starting_location.y}"
             if starting_location.z is not None:
@@ -585,7 +588,36 @@ def build_public_run_context(run):
     current_kills = kill_summary.current_kills if kill_summary else run.current_kills
     completed_outposts = sum(outpost["complete"] for outpost in outposts)
     landmark_catalogue = _latest_catalogue_entries(CatalogueEntry.Kind.LOCATION)
-    visited_landmarks = run.authoritative_landmarks.count()
+    landmark_records = {record.raw_location_id.casefold(): record
+                        for record in run.authoritative_landmarks.select_related("catalogue_entry")}
+    landmarks = [{"id": entry.stable_id, "name": entry.display_name,
+                  "visited": stable_id in landmark_records}
+                 for stable_id, entry in landmark_catalogue.items()]
+    for identifier, record in landmark_records.items():
+        if identifier not in landmark_catalogue:
+            landmarks.append({"id": record.raw_location_id,
+                              "name": record.catalogue_entry.display_name if record.catalogue_entry_id else _name(record.raw_location_id),
+                              "visited": True})
+    landmarks.sort(key=lambda row: (not row["visited"], row["name"].casefold()))
+    visited_landmarks = len(landmark_records)
+
+    # Resolve anchors from catalogue map data, without guessing missing coordinates.
+    location_entries = {**{("outpost", e.stable_id.casefold()): e for e in latest_outpost_entries.values()},
+                        **{("location", e.stable_id.casefold()): e for e in landmark_catalogue.values()}}
+    map_anchors = {}
+    for anchor in MapLocationVersion.objects.filter(entry_id__in=[e.pk for e in location_entries.values()]):
+        previous = map_anchors.get(anchor.entry_id)
+        if previous is None or (version_key(anchor.game_version), anchor.registry_version) > (version_key(previous.game_version), previous.registry_version):
+            map_anchors[anchor.entry_id] = anchor
+    for kind, rows in (("outpost", outposts), ("location", landmarks)):
+        for row in rows:
+            entry = location_entries.get((kind, row["id"].casefold()))
+            anchor = map_anchors.get(entry.pk) if entry else None
+            row["map_url"] = f"https://map.projectzomboid.com?{anchor.anchor_x}x{anchor.anchor_y}x{anchor.anchor_z}" if anchor else ""
+            if not row["map_url"] and kind == "location":
+                record = landmark_records.get(row["id"].casefold())
+                if record and record.x is not None and record.y is not None:
+                    row["map_url"] = f"https://map.projectzomboid.com?{record.x}x{record.y}x0"
 
     progress_values = (
         ("kills", current_kills, 1_000_000, None),
@@ -905,6 +937,9 @@ def build_public_run_context(run):
     selected_negative_traits, selected_positive_traits = grouped_traits(
         presented_selected_traits
     )
+    # Stable partition keeps the existing point/name order within each group.
+    selected_negative_traits.sort(key=lambda trait: bool(trait["is_passive"]))
+    selected_positive_traits.sort(key=lambda trait: bool(trait["is_passive"]))
     current_negative_traits, current_positive_traits = grouped_traits(
         presented_current_traits
     )
@@ -932,6 +967,10 @@ def build_public_run_context(run):
         "weapon_kills": weapon_kills,
         "weapon_kills_total": weapon_kills_total,
         "weapon_kills_partial": weapon_kills_partial,
+        "kill_chart_data": [{"day": day.day_index, "kills": day.kill_delta,
+                             "year": day.calendar_year, "month": day.calendar_month,
+                             "inProgress": day.state == "active" and run.lifecycle_status == "active"}
+                            for day in run.daily_records.order_by("day_index", "state")],
         "weight_chart_data": build_weight_chart_data(run),
         **build_temperature_context(run),
         "weight": (
@@ -965,6 +1004,8 @@ def build_public_run_context(run):
             ),
             1,
         ),
+        "landmarks": landmarks,
+        "visited_landmark_count": visited_landmarks,
         "outposts": outposts,
         "towns": towns,
         "visited_town_count": sum(town["visited"] for town in towns),

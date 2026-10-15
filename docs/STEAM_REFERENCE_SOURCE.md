@@ -215,5 +215,8 @@ Health body artwork is extracted from the installed `UI2.pack` into body-part
 catalogue assets, preserving native offsets and transparency. Apply migration
 0011, then run the normal `import_pz_catalogue` without `--no-assets`, or use
 `import_health_body_artwork --game-root <path> --game-version <version>`.
+Both silhouettes and all body-part masks remain original PNGs and display at
+native size. Re-run the command if SVG trial artwork was imported to restore
+PNG references. Manual artwork overrides remain untouched.
 Persistent media must be retained on deployment. If artwork is unavailable,
 the injury modal retains its text breakdown.
