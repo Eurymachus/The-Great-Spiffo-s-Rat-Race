@@ -3918,9 +3918,9 @@ dialog.run-data-list-dialog[open] { display: flex; flex-direction: column; }
 
 /* Keep character details fixed while each trait column scrolls independently. */
 dialog.character-build-traits-dialog {
-    height: clamp(30rem, 90dvh, 48rem);
-    min-height: min(30rem, calc(100dvh - 2rem));
-    max-height: min(48rem, calc(100dvh - 2rem));
+    height: auto;
+    min-height: 0;
+    max-height: calc(100dvh - 2rem);
     box-sizing: border-box; overflow: hidden;
 }
 dialog.character-build-traits-dialog[open] { display: flex; flex-direction: column; }
@@ -3935,8 +3935,12 @@ dialog.character-build-traits-dialog[open] { display: flex; flex-direction: colu
 .character-build-traits-dialog .leaderboard-trait-column { display: flex; flex-direction: column; min-height: 0; }
 .character-build-traits-dialog .leaderboard-trait-column h4 { flex-shrink: 0; }
 .character-build-traits-dialog .leaderboard-trait-column ul {
-    flex: 1;
-    min-height: 0; max-height: 30rem; overflow-y: scroll; scrollbar-gutter: stable;
+    /* Nine 2.5rem rows, eight .4rem gaps and two .5rem padding edges. */
+    flex: 0 1 auto;
+    height: calc(22.5rem + 3.2rem + 1rem);
+    min-height: 0; max-height: calc(22.5rem + 3.2rem + 1rem);
+    grid-auto-rows: 2.5rem;
+    overflow-y: scroll; scrollbar-gutter: stable;
     align-content: start; overscroll-behavior: contain;
     scrollbar-color: var(--theme-border) color-mix(in srgb, var(--theme-border) 35%, var(--theme-surface-alt));
 }
