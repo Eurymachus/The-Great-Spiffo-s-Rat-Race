@@ -1,5 +1,27 @@
 # Website: Current Focus
 
+## Shared run breakdown dialogs (16 October 2026)
+
+- Nine breakdown types now inherit `includes/run_breakdowns/base.html`: charts,
+  weapon lists, activity lists/injuries, skills, landmarks and outposts. The
+  shared shell takes section, title and optional description, with blocks for
+  specialized content and formatted summaries.
+- Shared footers hold totals, sorting notes and coverage warnings outside the
+  scrolling content. Injuries use the same footer; empty footers are omitted.
+  Header descriptions explain content, while chart captions stay with graphs.
+  Four template tests and two focused activity/weapon regressions pass. Browser
+  checks confirmed that a long list scrolls to its end without moving the footer.
+- A narrow dark section bar holds an accessible close icon above the original
+  heading font and description. Lists share a 44rem width; charts use 54rem.
+  Existing scrolling, chart controls and dialog dismissal hooks are retained.
+- Zombie kills belongs to Challenge progress; chart captions say Kills per
+  day/week/month. Activity breakdowns use the Activity section label.
+- Two shared-template tests and two kill-chart tests pass. The public-run suite
+  passes 20 of 21 tests; the existing Back to RatRacer navigation-label failure
+  remains unrelated. Synthetic browser previews checked titles, descriptions,
+  landmark rows, icon closing and Escape dismissal. Production deployment is
+  outstanding.
+
 ## Catalogue artwork continuity (15 October 2026)
 
 - The icon map includes the occupation actually linked to an approved character,

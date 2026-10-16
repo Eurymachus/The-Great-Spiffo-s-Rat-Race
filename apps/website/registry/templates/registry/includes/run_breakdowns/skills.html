@@ -1,0 +1,45 @@
+{% extends "registry/includes/run_breakdowns/base.html" %}
+{% block dialog_classes %}run-outpost-dialog run-skills-dialog run-data-list-dialog{% endblock %}
+{% block modal_content %}
+    <div class="run-outpost-dialog-content">
+    <div class="pz-skills-panel run-scroll-list">
+      <div class="pz-skill-columns" aria-hidden="true">
+        <strong>Skill</strong><strong>Level</strong><strong>Progress</strong>
+      </div>
+      {% for group in skill_groups %}
+      <section class="pz-skill-group">
+        <header class="pz-skill-group-row">
+          <strong><span class="pz-skill-category-icon" aria-hidden="true"></span>{{ group.name }}</strong>
+          <span>{{ group.mastered }} / {{ group.count }}</span>
+          <div class="pz-skill-category-progress">
+            <span style="width: {{ group.percent }}%"></span>
+            <strong>{{ group.progress_display }} / {{ group.target }} ({{ group.percent }}%)</strong>
+          </div>
+        </header>
+        {% for skill in group.skills %}
+        <div class="pz-skill-row{% if skill.mastered %} is-mastered{% endif %}" tabindex="0" title="{{ skill.name }}, Level {{ skill.level }} / 10, Recorded XP: {{ skill.xp|default:'Not recorded' }}">
+          <strong>
+            {% if skill.icon_url %}<img class="pz-skill-icon" src="{{ skill.icon_url }}" alt="" width="24" height="24">{% endif %}
+            {{ skill.name }}
+          </strong>
+          <span>{{ skill.level }} / 10</span>
+          <div class="pz-skill-segments" aria-label="{{ skill.level }} of 10 levels">
+            {% for segment in skill.segments %}<span class="{% if segment.filled %}is-filled{% endif %}"></span>{% endfor %}
+          </div>
+          <aside class="pz-skill-tooltip" role="tooltip">
+            <strong>{{ skill.name }}</strong>
+            <span>Level: {{ skill.level }} / 10</span>
+            <span>Recorded XP: {{ skill.xp|default:"Not recorded" }}</span>
+          </aside>
+        </div>
+        {% empty %}
+        <p>No skills recorded in this category.</p>
+        {% endfor %}
+      </section>
+      {% empty %}
+      <p class="pz-skills-empty">No skill data recorded.</p>
+      {% endfor %}
+    </div>
+    </div>
+{% endblock %}
+{% block modal_footer %}{% include "registry/includes/run_breakdowns/footer.html" with summary="" note="Current levels from the latest approved export." warning="" only %}{% endblock %}

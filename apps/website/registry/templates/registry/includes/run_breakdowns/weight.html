@@ -1,0 +1,22 @@
+{% extends "registry/includes/run_breakdowns/base.html" %}
+{% block dialog_classes %}leaderboard-build-modal run-weight-dialog{% endblock %}
+{% block modal_content %}
+    <div class="leaderboard-build-content">
+      {% if weight_chart_data %}
+      {{ weight_chart_data|json_script:"run-weight-data" }}
+      <div data-weight-chart="run-weight-data">
+        <div class="run-weight-controls">
+          <label><span class="visually-hidden">Group weight history</span><select data-weight-group><option value="day">By Day</option><option value="week">By Week</option><option value="month">By Month</option></select></label>
+          <label><span class="visually-hidden">Weight history range</span><select data-weight-range><option value="7">Last 7</option><option value="28">Last 28</option><option value="0">All Time</option></select></label>
+        </div>
+        <div class="run-weight-plot" data-weight-plot tabindex="0" role="slider" aria-label="Weight history, use left and right arrows to inspect points" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+          <svg class="run-weight-chart" aria-hidden="true"></svg>
+          <div class="run-weight-tooltip" data-weight-tooltip hidden></div>
+        </div>
+        <div class="run-weight-caption"><span data-weight-description>Daily weight</span><span data-weight-progress hidden>* In Progress</span></div>
+      </div>
+      <noscript><p>Enable JavaScript to explore the weight chart. Current weight: {{ weight }}.</p></noscript>
+      {% else %}<p>No approved weight history recorded yet. Current weight: {{ weight }}.</p>{% endif %}
+    </div>
+{% endblock %}
+{% block modal_footer %}{% if weight_chart_data %}{% include "registry/includes/run_breakdowns/footer.html" with summary="" note="Only recorded daily weights are shown. Older exports may not contain weight history." warning="" only %}{% endif %}{% endblock %}

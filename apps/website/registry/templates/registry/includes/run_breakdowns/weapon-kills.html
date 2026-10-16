@@ -1,0 +1,10 @@
+{% extends "registry/includes/run_breakdowns/base.html" %}
+{% block dialog_classes %}leaderboard-build-modal run-broken-weapons-dialog run-data-list-dialog{% endblock %}
+{% block modal_content %}
+    <div class="leaderboard-build-content">
+      {% if weapon_kills %}<ul class="broken-weapon-bars run-scroll-list" aria-label="Kills by weapon by share of recorded kills">
+        {% for weapon in weapon_kills %}<li><span class="broken-weapon-bar-fill" style="width: {{ weapon.percent }}%" aria-hidden="true"></span><span class="broken-weapon-name">{% if weapon.icon_url %}<img src="{{ weapon.icon_url }}" alt="" loading="lazy">{% endif %}<span>{{ weapon.name }}</span></span><span class="broken-weapon-amount"><strong>{{ weapon.count|floatformat:"0g" }}</strong></span></li>{% endfor %}
+      </ul>{% else %}<p>No kills by weapon recorded.</p>{% endif %}
+    </div>
+{% endblock %}
+{% block modal_footer %}{% if weapon_kills %}{% if weapon_kills_partial %}{% include "registry/includes/run_breakdowns/footer.html" with summary=weapon_kills_total|floatformat:"0g"|add:" recorded kills." note="Highest counts first." warning="Tracking began partway through this run. Earlier weapon kills may be missing." only %}{% else %}{% include "registry/includes/run_breakdowns/footer.html" with summary=weapon_kills_total|floatformat:"0g"|add:" recorded kills." note="Highest counts first." warning="" only %}{% endif %}{% elif weapon_kills_partial %}{% include "registry/includes/run_breakdowns/footer.html" with summary="" note="" warning="Tracking began partway through this run. Earlier weapon kills may be missing." only %}{% endif %}{% endblock %}

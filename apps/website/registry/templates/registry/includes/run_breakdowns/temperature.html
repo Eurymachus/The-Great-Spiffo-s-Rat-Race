@@ -1,0 +1,22 @@
+{% extends "registry/includes/run_breakdowns/base.html" %}
+{% block dialog_classes %}leaderboard-build-modal run-weight-dialog{% endblock %}
+{% block modal_content %}
+    <div class="leaderboard-build-content">
+      {% if temperature_chart_data %}
+      {{ temperature_chart_data|json_script:"run-temperature-data" }}
+      <div data-temperature-chart="run-temperature-data">
+        <div class="run-weight-controls">
+          <label><span class="visually-hidden">Group temperature history</span><select data-temperature-group><option value="day">By Day</option><option value="week">By Week</option><option value="month">By Month</option></select></label>
+          <label><span class="visually-hidden">Temperature history range</span><select data-temperature-range><option value="7">Last 7</option><option value="28">Last 28</option><option value="0">All Time</option></select></label>
+        </div>
+        <div class="temperature-toggles"><label class="temperature-high"><input type="checkbox" data-temperature-series="maximum" checked> Highest</label><label class="temperature-low"><input type="checkbox" data-temperature-series="minimum" checked> Lowest</label></div>
+        <div class="run-weight-plot" data-temperature-plot tabindex="0" role="slider" aria-label="Temperature history, use left and right arrows to inspect points" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+          <svg class="run-weight-chart" aria-hidden="true"></svg><div class="injury-body-tooltip temperature-tooltip" data-temperature-tooltip hidden></div>
+        </div>
+        <div class="run-weight-caption"><span data-temperature-description>Daily extremes (°C)</span><span data-temperature-progress hidden>* In Progress</span></div>
+      </div>
+      <noscript><p>Enable JavaScript to explore temperature history.</p></noscript>
+      {% else %}<p>No approved daily temperature history recorded yet.</p>{% endif %}
+    </div>
+{% endblock %}
+{% block modal_footer %}{% with low=temperature_summary.temperature_minimum|floatformat:1 high=temperature_summary.temperature_maximum|floatformat:1 %}{% with extremes="Lowest "|add:low|add:" °C · Highest "|add:high|add:" °C" %}{% if temperature_summary.temperature_partial and temperature_summary.temperature_minimum is None %}{% include "registry/includes/run_breakdowns/footer.html" with summary="" note="" warning="Tracking began partway through this run. Earlier temperatures are unknown." only %}{% elif temperature_summary.temperature_partial %}{% include "registry/includes/run_breakdowns/footer.html" with summary=extremes note="Weekly and monthly views show each period's lowest and highest recorded temperatures. Missing days stay unknown." warning="Tracking began partway through this run. Earlier temperatures are unknown." only %}{% elif temperature_summary.temperature_minimum is not None and temperature_summary %}{% include "registry/includes/run_breakdowns/footer.html" with summary=extremes note="Weekly and monthly views show each period's lowest and highest recorded temperatures. Missing days stay unknown." warning="" only %}{% endif %}{% endwith %}{% endwith %}{% endblock %}

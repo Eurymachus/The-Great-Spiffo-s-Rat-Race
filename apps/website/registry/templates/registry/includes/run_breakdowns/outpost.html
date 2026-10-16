@@ -1,0 +1,23 @@
+{% extends "registry/includes/run_breakdowns/base.html" %}
+{% block dialog_classes %}run-outpost-dialog run-location-dialog run-data-list-dialog{% endblock %}
+{% block modal_content %}
+    <div class="run-outpost-dialog-content">
+      <div class="run-outpost-list run-scroll-list">
+      {% for outpost in outposts %}
+      {% if outpost.discovered %}
+      <details class="run-outpost-detail">
+        <summary>{% include "registry/includes/location_map_link.html" with location=outpost %}<strong>{{ outpost.name }}</strong><span class="run-outpost-stage{% if outpost.complete %} is-complete{% endif %}">{% if outpost.complete %}Completed{% else %}In Progress{% endif %}</span><span class="run-outpost-disclosure" aria-hidden="true"></span>{% if not outpost.complete %}<div class="run-labelled-progress" role="img" aria-label="{{ outpost.name }} progress: {{ outpost.passed }} of {{ outpost.total }}, {{ outpost.percent }}%"><span style="width: {{ outpost.percent }}%"></span><strong>{{ outpost.passed }} / {{ outpost.total }} ({{ outpost.percent }}%)</strong></div>{% endif %}</summary>
+        <div class="run-outpost-detail-body">
+          <ul class="run-outpost-deliverables">
+            {% for deliverable in outpost.deliverables %}<li><strong>{{ deliverable.name }}</strong><span>{{ deliverable.value }}</span><strong class="run-outpost-status is-{{ deliverable.status_class }}">{{ deliverable.status }}</strong></li>{% empty %}<li>No deliverable details recorded.</li>{% endfor %}
+          </ul>
+        </div>
+      </details>
+      {% else %}
+      <article class="run-outpost-detail run-outpost-undiscovered">{% include "registry/includes/location_map_link.html" with location=outpost %}<strong>{{ outpost.name }}</strong><span class="run-outpost-stage">Undiscovered</span></article>
+      {% endif %}
+      {% endfor %}
+      </div>
+    </div>
+{% endblock %}
+{% block modal_footer %}{% include "registry/includes/run_breakdowns/footer.html" with summary="" note="Undiscovered outposts have no recorded evidence." warning="" only %}{% endblock %}

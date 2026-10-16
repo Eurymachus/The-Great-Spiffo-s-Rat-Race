@@ -63,214 +63,32 @@
   </section>
   {% endif %}
 
-  <dialog class="leaderboard-build-modal run-weight-dialog" id="run-temperature-dialog" aria-labelledby="run-temperature-title">
-    <header><div><p class="dashboard-panel-kicker">Weather during the run</p><strong id="run-temperature-title">Outdoor temperature</strong></div><button type="button" data-outpost-dialog-close aria-label="Close temperature chart">Close</button></header>
-    <div class="leaderboard-build-content">
-      {% if temperature_summary and temperature_summary.temperature_minimum is not None %}<p class="temperature-summary">Lowest <strong class="temperature-low">{{ temperature_summary.temperature_minimum|floatformat:1 }} °C</strong> · Highest <strong class="temperature-high">{{ temperature_summary.temperature_maximum|floatformat:1 }} °C</strong></p>{% endif %}
-      {% if temperature_summary.temperature_partial %}<p class="run-weight-help">Tracking began partway through this run. Earlier temperatures are unknown.</p>{% endif %}
-      {% if temperature_chart_data %}
-      {{ temperature_chart_data|json_script:"run-temperature-data" }}
-      <div data-temperature-chart="run-temperature-data">
-        <div class="run-weight-controls">
-          <label><span class="visually-hidden">Group temperature history</span><select data-temperature-group><option value="day">By Day</option><option value="week">By Week</option><option value="month">By Month</option></select></label>
-          <label><span class="visually-hidden">Temperature history range</span><select data-temperature-range><option value="7">Last 7</option><option value="28">Last 28</option><option value="0">All Time</option></select></label>
-        </div>
-        <div class="temperature-toggles"><label class="temperature-high"><input type="checkbox" data-temperature-series="maximum" checked> Highest</label><label class="temperature-low"><input type="checkbox" data-temperature-series="minimum" checked> Lowest</label></div>
-        <div class="run-weight-plot" data-temperature-plot tabindex="0" role="slider" aria-label="Temperature history, use left and right arrows to inspect points" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-          <svg class="run-weight-chart" aria-hidden="true"></svg><div class="injury-body-tooltip temperature-tooltip" data-temperature-tooltip hidden></div>
-        </div>
-        <div class="run-weight-caption"><span data-temperature-description>Daily extremes (°C)</span><span data-temperature-progress hidden>* In Progress</span></div>
-      </div>
-      <p class="run-weight-help">Outdoor weather, wherever the survivor was. Weekly and monthly views show each period's lowest and highest recorded temperatures. Missing days stay unknown.</p>
-      <noscript><p>Enable JavaScript to explore temperature history.</p></noscript>
-      {% else %}<p>No approved daily temperature history recorded yet.</p>{% endif %}
-    </div>
-  </dialog>
+  {% include "registry/includes/run_breakdowns/temperature.html" with dialog_id="run-temperature-dialog" title_id="run-temperature-title" title="Outdoor temperature" section="Weather during the run" description="" skills_close=False %}
 
-  <dialog class="leaderboard-build-modal run-weight-dialog" id="run-kill-delta-dialog" aria-labelledby="run-kill-delta-title">
-    <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-kill-delta-title">Kills gained</strong></div><button type="button" data-outpost-dialog-close aria-label="Close kill chart">Close</button></header>
-    <div class="leaderboard-build-content">
-      {% if kill_chart_data %}
-      {{ kill_chart_data|json_script:"run-kill-delta-data" }}
-      <div data-weight-chart="run-kill-delta-data" data-chart-metric="kills">
-        <div class="run-weight-controls">
-          <label><span class="visually-hidden">Group kill history</span><select data-weight-group><option value="day">By Day</option><option value="week">By Week</option><option value="month">By Month</option></select></label>
-          <label><span class="visually-hidden">Kills gained history range</span><select data-weight-range><option value="7">Last 7</option><option value="28">Last 28</option><option value="0">All Time</option></select></label>
-        </div>
-        <div class="run-weight-plot" data-weight-plot tabindex="0" role="slider" aria-label="Kills gained history, use left and right arrows to inspect points" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-          <svg class="run-weight-chart" aria-hidden="true"></svg>
-          <div class="run-weight-tooltip" data-weight-tooltip hidden></div>
-        </div>
-        <div class="run-weight-caption"><span data-weight-description>Daily kills gained</span><span data-weight-progress hidden>* In Progress</span></div>
-      </div>
-      <noscript><p>Enable JavaScript to explore the kill chart.</p></noscript>
-      <p class="run-weight-help">Daily kills gained; weekly and monthly views show totals. Missing days are not filled in.</p>
-      {% else %}<p>No approved kill history recorded yet.</p>{% endif %}
-    </div>
-  </dialog>
+  {% include "registry/includes/run_breakdowns/kill-delta.html" with dialog_id="run-kill-delta-dialog" title_id="run-kill-delta-title" title="Zombie kills" section="Challenge progress" description="Kills recorded during each day, week or month." skills_close=False %}
 
-  <dialog class="leaderboard-build-modal run-weight-dialog" id="run-weight-dialog" aria-labelledby="run-weight-title">
-    <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-weight-title">Weight</strong></div><button type="button" data-outpost-dialog-close aria-label="Close weight chart">Close</button></header>
-    <div class="leaderboard-build-content">
-      {% if weight_chart_data %}
-      {{ weight_chart_data|json_script:"run-weight-data" }}
-      <div data-weight-chart="run-weight-data">
-        <div class="run-weight-controls">
-          <label><span class="visually-hidden">Group weight history</span><select data-weight-group><option value="day">By Day</option><option value="week">By Week</option><option value="month">By Month</option></select></label>
-          <label><span class="visually-hidden">Weight history range</span><select data-weight-range><option value="7">Last 7</option><option value="28">Last 28</option><option value="0">All Time</option></select></label>
-        </div>
-        <div class="run-weight-plot" data-weight-plot tabindex="0" role="slider" aria-label="Weight history, use left and right arrows to inspect points" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-          <svg class="run-weight-chart" aria-hidden="true"></svg>
-          <div class="run-weight-tooltip" data-weight-tooltip hidden></div>
-        </div>
-        <div class="run-weight-caption"><span data-weight-description>Daily weight</span><span data-weight-progress hidden>* In Progress</span></div>
-      </div>
-      <noscript><p>Enable JavaScript to explore the weight chart. Current weight: {{ weight }}.</p></noscript>
-      <p class="run-weight-help">Only recorded daily weights are shown. Older exports may not contain weight history.</p>
-      {% else %}<p>No approved weight history recorded yet. Current weight: {{ weight }}.</p>{% endif %}
-    </div>
-  </dialog>
+  {% include "registry/includes/run_breakdowns/weight.html" with dialog_id="run-weight-dialog" title_id="run-weight-title" title="Weight" section="Activity" description="" skills_close=False %}
 
-  <dialog class="leaderboard-build-modal run-broken-weapons-dialog run-data-list-dialog" id="run-weapon-kills-dialog" aria-labelledby="run-weapon-kills-title">
-    <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-weapon-kills-title">Kills by weapon</strong></div><button type="button" data-outpost-dialog-close aria-label="Close kills by weapon">Close</button></header>
-    <div class="leaderboard-build-content">
-      {% if weapon_kills %}<p class="broken-weapons-summary">{{ weapon_kills_total|floatformat:"0g" }} recorded kills, highest counts first.</p>{% endif %}
-      {% if weapon_kills_partial %}<p>Tracking began partway through this run. Earlier weapon kills may be missing.</p>{% endif %}
-      {% if weapon_kills %}<ul class="broken-weapon-bars run-scroll-list" aria-label="Kills by weapon by share of recorded kills">
-        {% for weapon in weapon_kills %}<li><span class="broken-weapon-bar-fill" style="width: {{ weapon.percent }}%" aria-hidden="true"></span><span class="broken-weapon-name">{% if weapon.icon_url %}<img src="{{ weapon.icon_url }}" alt="" loading="lazy">{% endif %}<span>{{ weapon.name }}</span></span><span class="broken-weapon-amount"><strong>{{ weapon.count|floatformat:"0g" }}</strong></span></li>{% endfor %}
-      </ul>{% else %}<p>No kills by weapon recorded.</p>{% endif %}
-    </div>
-  </dialog>
+  {% include "registry/includes/run_breakdowns/weapon-kills.html" with dialog_id="run-weapon-kills-dialog" title_id="run-weapon-kills-title" title="Kills by weapon" section="Activity" description="" skills_close=False %}
 
   {% if broken_weapons %}
-  <dialog class="leaderboard-build-modal run-broken-weapons-dialog run-data-list-dialog" id="run-broken-weapons-dialog" aria-labelledby="run-broken-weapons-title">
-    <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="run-broken-weapons-title">Broken weapons</strong></div><button type="button" data-outpost-dialog-close aria-label="Close broken weapons">Close</button></header>
-    <div class="leaderboard-build-content">
-      <p class="broken-weapons-summary">{{ broken_weapons_total|floatformat:"0g" }} recorded breaks, highest counts first.</p>
-      {% if broken_weapons_partial %}<p>Tracking began partway through this run. Earlier breaks may be missing.</p>{% endif %}
-      {% if broken_weapons %}<ul class="broken-weapon-bars run-scroll-list" aria-label="Broken weapons by share of total">{% for weapon in broken_weapons %}<li><span class="broken-weapon-bar-fill" style="width: {{ weapon.percent }}%" aria-hidden="true"></span><span class="broken-weapon-name">{% if weapon.icon_url %}<img src="{{ weapon.icon_url }}" alt="" loading="lazy">{% endif %}<span>{{ weapon.name }}</span></span><span class="broken-weapon-amount"><strong>{{ weapon.count|floatformat:"0g" }}</strong></span></li>{% endfor %}</ul>{% else %}<p>{% if broken_weapons_total %}This approved record contains a total but no weapon breakdown.{% else %}No broken weapons recorded.{% endif %}</p>{% endif %}
-    </div>
-  </dialog>
+  {% include "registry/includes/run_breakdowns/broken-weapons.html" with dialog_id="run-broken-weapons-dialog" title_id="run-broken-weapons-title" title="Broken weapons" section="Activity" description="" skills_close=False %}
   {% endif %}
 
   {% for detail in activity_breakdowns %}
-  <dialog class="leaderboard-build-modal run-broken-weapons-dialog{% if not detail.body %} run-data-list-dialog{% endif %}" id="{{ detail.id }}" aria-labelledby="{{ detail.id }}-title">
-    <header><div><p class="dashboard-panel-kicker">Survival activity</p><strong id="{{ detail.id }}-title">{{ detail.label }}</strong></div><button type="button" data-outpost-dialog-close aria-label="Close {{ detail.label|lower }}">Close</button></header>
-    <div class="leaderboard-build-content">
-      {% if not detail.body %}
-      {% if detail.total is not None %}<p class="broken-weapons-summary">{% if detail.litres %}{{ detail.total|floatformat:"2g" }} L{% else %}{{ detail.total|floatformat:"0g" }}{% endif %} recorded{% if not detail.body %}, highest amounts first{% endif %}.</p>{% endif %}
-      {% if detail.partial %}<p class="run-weight-help">{% if detail.body %}Earlier injuries may be missing.{% else %}Tracking began partway through this run. Earlier records may be missing.{% endif %}</p>{% endif %}
-      {% endif %}
-      {% if detail.body %}
-      <section class="injury-body-view" data-injury-body>
-        <div class="injury-body-stage" data-body-stage>
-          <canvas data-body-canvas width="180" height="440" tabindex="0" role="group" aria-label="Injury history. Use arrow keys to explore body parts, Escape to dismiss details."></canvas>
-          <div class="injury-body-tooltip" data-body-info role="status" aria-live="polite" hidden></div>
-        </div>
-        <p class="injury-body-hint">Hover or tap an injury to view details.</p>
-        {% if not detail.body.sex %}<button type="button" class="injury-body-switch" data-body-switch>Switch body view</button>{% endif %}
-        {% for row in detail.body.unmapped %}<p class="run-weight-help">{{ row.name }}: {{ row.count|floatformat:"0" }} injuries</p>{% endfor %}
-        {{ detail.body|json_script:"run-injury-body-data" }}
-      </section>
-      {% else %}
-      {% for group in detail.groups %}
-      <section><h3>{{ group.heading }}</h3>
-        <ul class="broken-weapon-bars run-scroll-list" aria-label="{{ detail.label }}: {{ group.heading|lower }}">
-          {% for row in group.rows %}<li><span class="broken-weapon-bar-fill" style="width: {{ row.percent }}%" aria-hidden="true"></span><span class="broken-weapon-name">{% if row.icon_url %}<img src="{{ row.icon_url }}" alt="" loading="lazy">{% endif %}<span>{{ row.name }}</span></span><span class="broken-weapon-amount"><strong>{% if detail.litres %}{{ row.count|floatformat:"2g" }} L{% else %}{{ row.count|floatformat:"0g" }}{% endif %}</strong></span></li>{% endfor %}
-        </ul>
-      </section>
-      {% endfor %}
-      {% endif %}
-    </div>
-    {% if detail.body %}
-    <footer class="injury-body-footer">
-      {% if detail.total is not None %}<span>{{ detail.total|floatformat:"0g" }} recorded.</span>{% endif %}
-      {% if detail.partial %}<span>Earlier injuries may be missing.</span>{% endif %}
-    </footer>
-    {% endif %}
-  </dialog>
+  {% include "registry/includes/run_breakdowns/activity.html" with dialog_id=detail.id title_id=detail.id|add:"-title" title=detail.label section="Activity" description="" skills_close=False %}
   {% endfor %}
 
   {% if skills %}
-  <dialog class="run-outpost-dialog run-skills-dialog run-data-list-dialog" id="run-skills-dialog" aria-labelledby="run-skills-dialog-title">
-    <header><div><p class="dashboard-panel-kicker">Challenge progress</p><h2 id="run-skills-dialog-title">Skill details</h2><p>Current levels from the latest approved export.</p></div><button type="button" class="run-outpost-dialog-close" data-skills-dialog-close aria-label="Close skill details">Close</button></header>
-    <div class="run-outpost-dialog-content">
-    <div class="pz-skills-panel run-scroll-list">
-      <div class="pz-skill-columns" aria-hidden="true">
-        <strong>Skill</strong><strong>Level</strong><strong>Progress</strong>
-      </div>
-      {% for group in skill_groups %}
-      <section class="pz-skill-group">
-        <header class="pz-skill-group-row">
-          <strong><span class="pz-skill-category-icon" aria-hidden="true"></span>{{ group.name }}</strong>
-          <span>{{ group.mastered }} / {{ group.count }}</span>
-          <div class="pz-skill-category-progress">
-            <span style="width: {{ group.percent }}%"></span>
-            <strong>{{ group.progress_display }} / {{ group.target }} ({{ group.percent }}%)</strong>
-          </div>
-        </header>
-        {% for skill in group.skills %}
-        <div class="pz-skill-row{% if skill.mastered %} is-mastered{% endif %}" tabindex="0" title="{{ skill.name }}, Level {{ skill.level }} / 10, Recorded XP: {{ skill.xp|default:'Not recorded' }}">
-          <strong>
-            {% if skill.icon_url %}<img class="pz-skill-icon" src="{{ skill.icon_url }}" alt="" width="24" height="24">{% endif %}
-            {{ skill.name }}
-          </strong>
-          <span>{{ skill.level }} / 10</span>
-          <div class="pz-skill-segments" aria-label="{{ skill.level }} of 10 levels">
-            {% for segment in skill.segments %}<span class="{% if segment.filled %}is-filled{% endif %}"></span>{% endfor %}
-          </div>
-          <aside class="pz-skill-tooltip" role="tooltip">
-            <strong>{{ skill.name }}</strong>
-            <span>Level: {{ skill.level }} / 10</span>
-            <span>Recorded XP: {{ skill.xp|default:"Not recorded" }}</span>
-          </aside>
-        </div>
-        {% empty %}
-        <p>No skills recorded in this category.</p>
-        {% endfor %}
-      </section>
-      {% empty %}
-      <p class="pz-skills-empty">No skill data recorded.</p>
-      {% endfor %}
-    </div>
-    </div>
-  </dialog>
+  {% include "registry/includes/run_breakdowns/skills.html" with dialog_id="run-skills-dialog" title_id="run-skills-dialog-title" title="Skill details" section="Challenge progress" description="" skills_close=True %}
   {% endif %}
 
   {% if landmarks %}
-  <dialog class="leaderboard-build-modal run-broken-weapons-dialog run-data-list-dialog" id="run-landmarks-dialog" aria-labelledby="run-landmarks-title">
-    <header><div><p class="dashboard-panel-kicker">Challenge progress</p><strong id="run-landmarks-title">Landmarks</strong></div><button type="button" data-outpost-dialog-close aria-label="Close landmarks">Close</button></header>
-    <div class="leaderboard-build-content">
-      <p class="broken-weapons-summary">{{ visited_landmark_count }} visited. Visited locations first.</p>
-      <ul class="run-landmark-list run-scroll-list" aria-label="Landmark visits">
-        {% for landmark in landmarks %}<li class="{% if landmark.visited %}is-visited{% endif %}">{% include "registry/includes/location_map_link.html" with location=landmark %}<strong>{{ landmark.name }}</strong><span>{% if landmark.visited %}Visited{% else %}Not visited{% endif %}</span></li>{% endfor %}
-      </ul>
-    </div>
-  </dialog>
+  {% include "registry/includes/run_breakdowns/landmarks.html" with dialog_id="run-landmarks-dialog" title_id="run-landmarks-title" title="Landmarks" section="Challenge progress" description="" skills_close=False %}
   {% endif %}
 
   {% if outposts %}
-  <dialog class="run-outpost-dialog run-data-list-dialog" id="run-outpost-dialog" aria-labelledby="run-outpost-dialog-title">
-    <header><div><p class="dashboard-panel-kicker">Challenge progress</p><h2 id="run-outpost-dialog-title">Outpost details</h2><p>All outposts are shown. Undiscovered outposts have no recorded evidence.</p></div><button type="button" class="run-outpost-dialog-close" data-outpost-dialog-close aria-label="Close outpost details">Close</button></header>
-    <div class="run-outpost-dialog-content">
-      <div class="run-outpost-list run-scroll-list">
-      {% for outpost in outposts %}
-      {% if outpost.discovered %}
-      <details class="run-outpost-detail">
-        <summary>{% include "registry/includes/location_map_link.html" with location=outpost %}<strong>{{ outpost.name }}</strong><span class="run-outpost-stage{% if outpost.complete %} is-complete{% endif %}">{% if outpost.complete %}Completed{% else %}In Progress{% endif %}</span><span class="run-outpost-disclosure" aria-hidden="true"></span>{% if not outpost.complete %}<div class="run-labelled-progress" role="img" aria-label="{{ outpost.name }} progress: {{ outpost.passed }} of {{ outpost.total }}, {{ outpost.percent }}%"><span style="width: {{ outpost.percent }}%"></span><strong>{{ outpost.passed }} / {{ outpost.total }} ({{ outpost.percent }}%)</strong></div>{% endif %}</summary>
-        <div class="run-outpost-detail-body">
-          <ul class="run-outpost-deliverables">
-            {% for deliverable in outpost.deliverables %}<li><strong>{{ deliverable.name }}</strong><span>{{ deliverable.value }}</span><strong class="run-outpost-status is-{{ deliverable.status_class }}">{{ deliverable.status }}</strong></li>{% empty %}<li>No deliverable details recorded.</li>{% endfor %}
-          </ul>
-        </div>
-      </details>
-      {% else %}
-      <article class="run-outpost-detail run-outpost-undiscovered">{% include "registry/includes/location_map_link.html" with location=outpost %}<strong>{{ outpost.name }}</strong><span class="run-outpost-stage">Undiscovered</span></article>
-      {% endif %}
-      {% endfor %}
-      </div>
-    </div>
-  </dialog>
+  {% include "registry/includes/run_breakdowns/outpost.html" with dialog_id="run-outpost-dialog" title_id="run-outpost-dialog-title" title="Outpost details" section="Challenge progress" description="All outposts are shown." skills_close=False %}
   {% endif %}
 
   <section class="run-public-section">

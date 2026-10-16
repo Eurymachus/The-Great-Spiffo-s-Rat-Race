@@ -1,0 +1,22 @@
+{% extends "registry/includes/run_breakdowns/base.html" %}
+{% block dialog_classes %}leaderboard-build-modal run-weight-dialog{% endblock %}
+{% block modal_content %}
+    <div class="leaderboard-build-content">
+      {% if kill_chart_data %}
+      {{ kill_chart_data|json_script:"run-kill-delta-data" }}
+      <div data-weight-chart="run-kill-delta-data" data-chart-metric="kills">
+        <div class="run-weight-controls">
+          <label><span class="visually-hidden">Group kill history</span><select data-weight-group><option value="day">By Day</option><option value="week">By Week</option><option value="month">By Month</option></select></label>
+          <label><span class="visually-hidden">Kill history range</span><select data-weight-range><option value="7">Last 7</option><option value="28">Last 28</option><option value="0">All Time</option></select></label>
+        </div>
+        <div class="run-weight-plot" data-weight-plot tabindex="0" role="slider" aria-label="Kill history, use left and right arrows to inspect points" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+          <svg class="run-weight-chart" aria-hidden="true"></svg>
+          <div class="run-weight-tooltip" data-weight-tooltip hidden></div>
+        </div>
+        <div class="run-weight-caption"><span data-weight-description>Kills per day</span><span data-weight-progress hidden>* In Progress</span></div>
+      </div>
+      <noscript><p>Enable JavaScript to explore the kill chart.</p></noscript>
+      {% else %}<p>No approved kill history recorded yet.</p>{% endif %}
+    </div>
+{% endblock %}
+{% block modal_footer %}{% if kill_chart_data %}{% include "registry/includes/run_breakdowns/footer.html" with summary="" note="Weekly and monthly views show totals. Missing days are not filled in." warning="" only %}{% endif %}{% endblock %}

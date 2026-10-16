@@ -91,7 +91,7 @@
                 if (limit && data.length) data = data.filter(p => p.index > data[data.length - 1].index - limit);
                 plot.setAttribute("aria-valuemax", Math.max(0, data.length - 1));
                 progress.hidden = !data.some((point) => point.inProgress);
-                description.textContent = isKills ? "Kills gained per " + group.value : group.value === "day" ? "Daily weight" : "Average daily weight per " + group.value;
+                description.textContent = isKills ? "Kills per " + group.value : group.value === "day" ? "Daily weight" : "Average daily weight per " + group.value;
                 if (!data.length) {
                     points = [];
                     node("text", {x: width / 2, y: height / 2, "text-anchor": "middle"}, "No recorded dates for this range.");

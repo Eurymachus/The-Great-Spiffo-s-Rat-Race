@@ -1,0 +1,10 @@
+{% extends "registry/includes/run_breakdowns/base.html" %}
+{% block dialog_classes %}run-outpost-dialog run-location-dialog run-data-list-dialog{% endblock %}
+{% block modal_content %}
+    <div class="run-outpost-dialog-content">
+      <ul class="run-landmark-list run-outpost-list run-scroll-list" aria-label="Landmark visits">
+        {% for landmark in landmarks %}<li class="run-outpost-detail run-outpost-undiscovered">{% include "registry/includes/location_map_link.html" with location=landmark %}<strong>{{ landmark.name }}</strong><span class="run-outpost-stage{% if landmark.visited %} is-complete{% endif %}">{% if landmark.visited %}Visited{% else %}Not visited{% endif %}</span></li>{% endfor %}
+      </ul>
+    </div>
+{% endblock %}
+{% block modal_footer %}{% include "registry/includes/run_breakdowns/footer.html" with summary=visited_landmark_count|stringformat:"s"|add:" visited." note="Visited locations first." warning="" only %}{% endblock %}

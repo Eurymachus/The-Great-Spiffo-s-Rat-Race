@@ -1,0 +1,6 @@
+{% if summary or note or warning %}
+<footer class="run-breakdown-footer">
+  {% if summary %}<span class="run-breakdown-footer-summary">{{ summary }}</span>{% endif %}
+  {% if note or warning %}<span class="run-breakdown-footer-notes">{% if note %}<span>{{ note }}</span>{% endif %}{% if warning %}<span>{{ warning }}</span>{% endif %}</span>{% endif %}
+</footer>
+{% endif %}

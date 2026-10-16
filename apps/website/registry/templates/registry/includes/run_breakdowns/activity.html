@@ -1,0 +1,33 @@
+{% extends "registry/includes/run_breakdowns/base.html" %}
+{% block dialog_classes %}leaderboard-build-modal run-broken-weapons-dialog{% if not detail.body %} run-data-list-dialog{% endif %}{% endblock %}
+{% block modal_content %}
+    <div class="leaderboard-build-content">
+      {% if detail.body %}
+      <section class="injury-body-view" data-injury-body>
+        <div class="injury-body-stage" data-body-stage>
+          <canvas data-body-canvas width="180" height="440" tabindex="0" role="group" aria-label="Injury history. Use arrow keys to explore body parts, Escape to dismiss details."></canvas>
+          <div class="injury-body-tooltip" data-body-info role="status" aria-live="polite" hidden></div>
+        </div>
+        <p class="injury-body-hint">Hover or tap an injury to view details.</p>
+        {% if not detail.body.sex %}<button type="button" class="injury-body-switch" data-body-switch>Switch body view</button>{% endif %}
+        {% for row in detail.body.unmapped %}<p class="run-weight-help">{{ row.name }}: {{ row.count|floatformat:"0" }} injuries</p>{% endfor %}
+        {{ detail.body|json_script:"run-injury-body-data" }}
+      </section>
+      {% else %}
+      {% for group in detail.groups %}
+      <section><h3>{{ group.heading }}</h3>
+        <ul class="broken-weapon-bars run-scroll-list" aria-label="{{ detail.label }}: {{ group.heading|lower }}">
+          {% for row in group.rows %}<li><span class="broken-weapon-bar-fill" style="width: {{ row.percent }}%" aria-hidden="true"></span><span class="broken-weapon-name">{% if row.icon_url %}<img src="{{ row.icon_url }}" alt="" loading="lazy">{% endif %}<span>{{ row.name }}</span></span><span class="broken-weapon-amount"><strong>{% if detail.litres %}{{ row.count|floatformat:"2g" }} L{% else %}{{ row.count|floatformat:"0g" }}{% endif %}</strong></span></li>{% endfor %}
+        </ul>
+      </section>
+      {% endfor %}
+      {% endif %}
+    </div>
+{% endblock %}
+{% block modal_footer %}{% if detail.total is not None %}{% with total=detail.total|floatformat:"0g" litres=detail.total|floatformat:"2g" %}
+{% if detail.body %}
+  {% if detail.partial %}{% include "registry/includes/run_breakdowns/footer.html" with summary=total|add:" recorded." note="" warning="Earlier injuries may be missing." only %}{% else %}{% include "registry/includes/run_breakdowns/footer.html" with summary=total|add:" recorded." note="" warning="" only %}{% endif %}
+{% else %}
+  {% if detail.litres %}{% with summary=litres|add:" L recorded." %}{% include "registry/includes/run_breakdowns/activity_footer.html" %}{% endwith %}
+  {% else %}{% with summary=total|add:" recorded." %}{% include "registry/includes/run_breakdowns/activity_footer.html" %}{% endwith %}{% endif %}
+{% endif %}{% endwith %}{% elif detail.partial %}{% include "registry/includes/run_breakdowns/footer.html" with summary="" note="" warning="Earlier records may be missing." only %}{% endif %}{% endblock %}

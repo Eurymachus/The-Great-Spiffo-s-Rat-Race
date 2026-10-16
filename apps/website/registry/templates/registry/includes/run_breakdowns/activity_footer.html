@@ -1,0 +1,5 @@
+{% if detail.partial %}
+{% include "registry/includes/run_breakdowns/footer.html" with summary=summary note="Highest amounts first." warning="Tracking began partway through this run. Earlier records may be missing." only %}
+{% else %}
+{% include "registry/includes/run_breakdowns/footer.html" with summary=summary note="Highest amounts first." warning="" only %}
+{% endif %}

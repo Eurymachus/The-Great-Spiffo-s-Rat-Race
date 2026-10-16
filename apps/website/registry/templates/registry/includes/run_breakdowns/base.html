@@ -1,0 +1,14 @@
+<dialog class="run-breakdown-dialog {% block dialog_classes %}{% endblock %}" id="{{ dialog_id }}" aria-labelledby="{{ title_id }}">
+  <header class="run-breakdown-header">
+    <div class="run-breakdown-section-bar">
+      <p class="dashboard-panel-kicker">{{ section }}</p>
+      <button type="button" class="run-breakdown-close" {% if skills_close %}data-skills-dialog-close{% else %}data-outpost-dialog-close{% endif %} aria-label="Close {{ title|lower }}"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m3 3 10 10M13 3 3 13"/></svg></button>
+    </div>
+    <div class="run-breakdown-heading">
+      <h2 id="{{ title_id }}">{{ title }}</h2>
+      {% block description %}{% if description %}<p>{{ description }}</p>{% endif %}{% endblock %}
+    </div>
+  </header>
+  {% block modal_content %}{% endblock %}
+  {% block modal_footer %}{% endblock %}
+</dialog>
