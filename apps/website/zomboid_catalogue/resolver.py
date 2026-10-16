@@ -32,7 +32,14 @@ def resolve_identifier(kind, stable_id, game_version=""):
     matches = [
         entry for entry in entries if applies_to_version(entry, game_version)
     ]
-    unique_matches = {entry.pk: entry for entry in matches}
+    # Multiple versions of one identity are not competing identities. Prefer the
+    # latest applicable definition, but do not guess between distinct alias targets.
+    unique_matches = {}
+    for entry in matches:
+        identity = (entry.kind, entry.stable_id)
+        previous = unique_matches.get(identity)
+        if previous is None or version_key(entry.introduced_in) > version_key(previous.introduced_in):
+            unique_matches[identity] = entry
     if len(unique_matches) == 1:
         return next(iter(unique_matches.values()))
     return None

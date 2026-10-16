@@ -1,5 +1,15 @@
 # Website: Current Focus
 
+## Version-aware authority catalogue links (17 October 2026)
+
+- The shared resolver collapses applicable versions of the same kind/stable ID
+  to the latest applicable definition. Distinct alias identities remain ambiguous.
+  Approval therefore links known items instead of recording null catalogue links
+  after a second catalogue version is installed.
+- `reconcile_broken_weapon_catalogue` is dry-run-first; `--apply` fills only null
+  broken-weapon cumulative/daily links for exact item IDs. Existing links, raw
+  identifiers, quantities and submitted evidence remain unchanged.
+
 ## Shared run breakdown dialogs (16 October 2026)
 
 - Nine breakdown types now inherit `includes/run_breakdowns/base.html`: charts,
