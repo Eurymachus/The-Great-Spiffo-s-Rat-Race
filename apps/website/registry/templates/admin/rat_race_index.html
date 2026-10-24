@@ -10,10 +10,6 @@
 {% block bodyclass %}{{ block.super }} rr-admin-dashboard{% endblock %}
 {% block content %}
 <div class="admin-dashboard">
-  <p class="dashboard-introduction">Review incoming work and items needing attention.</p>
-  {% if dashboard_runtime %}
-  <p class="dashboard-runtime">Release <strong>{{ dashboard_runtime.release }}</strong> &middot; Reference worker: <strong>{% if dashboard_runtime.worker_ready %}Current heartbeat{% else %}No current heartbeat for this release{% endif %}</strong></p>
-  {% endif %}
   {% for section in dashboard_sections %}
   <section aria-labelledby="dashboard-{{ section.id }}-heading">
     <h2 id="dashboard-{{ section.id }}-heading">{{ section.title }}</h2>
@@ -30,6 +26,12 @@
   {% empty %}
   <p>No review queues are available for your role. Use the left navigation to open your administration sections.</p>
   {% endfor %}
+  {% if dashboard_runtime %}
+  <section aria-labelledby="dashboard-system-heading">
+    <h2 id="dashboard-system-heading">System</h2>
+  <p class="dashboard-runtime">Release <strong>{{ dashboard_runtime.release }}</strong> &middot; Reference worker: <strong>{% if dashboard_runtime.worker_ready %}Current heartbeat{% else %}No current heartbeat for this release{% endif %}</strong></p>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}
 {% block sidebar %}{% endblock %}
