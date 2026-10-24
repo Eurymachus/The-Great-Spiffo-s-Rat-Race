@@ -12,6 +12,65 @@ class RatRaceAdminConfig(AdminConfig):
 
 
 class RatRaceAdminSite(AdminSite):
+    def each_context(self, request):
+        context = super().each_context(request)
+        if request.user.is_authenticated and request.user.is_staff:
+            context["admin_notifications"] = request.user.notifications.all()[:10]
+            context["admin_unread_count"] = request.user.notifications.filter(read_at__isnull=True).count()
+        sections = {
+            key: {"id": key, "title": title, "icon": icon, "items": []}
+            for key, title, icon in (
+                ("rr2", "Rat Race 2.0", "2"),
+                ("rr1", "Rat Race 1.0", "1"),
+                ("people", "Community", "people"),
+                ("rules", "Rules and mods", "rules"),
+                ("website", "Website", "website"),
+                ("catalogue", "Game catalogue", "catalogue"),
+                ("system", "System", "system"),
+            )
+        }
+        destinations = {
+            "ChallengeRun": ("rr2", "Challenge runs"),
+            "ChallengeMode": ("rr2", "Challenge modes"),
+            "LegacyRun": ("rr1", "Runs and results"),
+            "LegacyRunClaim": ("rr1", "Ownership claims"),
+            "LegacyRunSubmission": ("rr1", "Run updates"),
+            "LegacyDataImport": ("rr1", "Data imports"),
+            "Participant": ("people", "Participants"),
+            "Notification": ("people", "Notifications"),
+            "AccountClosureRecord": ("people", "Account closures"),
+            "StreamingAccount": ("people", "Connected channels"),
+            "StreamingMedia": ("people", "Stream recordings"),
+            "WorkshopMod": ("rules", "Workshop mods"),
+            "ExploitRuling": ("rules", "Exploit rulings"),
+            "Group": ("system", "Roles and permissions"),
+        }
+        for app in context["available_apps"]:
+            default = ("website" if app["app_label"] in {"branding", "pages", "administration"}
+                       else "catalogue" if app["app_label"] == "zomboid_catalogue" else "system")
+            for model in app["models"]:
+                url = model.get("admin_url") or model.get("add_url")
+                if not url:
+                    continue
+                section, title = destinations.get(model["object_name"], (default, model["name"]))
+                sections[section]["items"].append({
+                    "title": title, "url": url,
+                    "current": request.path.startswith(url),
+                })
+        for section in sections.values():
+            priority = {
+                "rr2": ("Challenge runs", "Challenge modes"),
+                "rr1": ("Run updates", "Runs and results", "Ownership claims", "Data imports"),
+            }.get(section["id"])
+            if priority:
+                section["items"].sort(key=lambda item: priority.index(item["title"]))
+            section["open"] = section["id"] in {"rr2", "rr1"} or any(
+                item["current"] for item in section["items"]
+            )
+        context["admin_menu"] = [section for section in sections.values() if section["items"]]
+        context["admin_home_current"] = request.path == reverse("admin:index")
+        return context
+
     def index(self, request, extra_context=None):
         queues = []
         definitions = (
@@ -38,11 +97,24 @@ class RatRaceAdminSite(AdminSite):
             elif label == "registry.Participant":
                 query = {**query, "_filters": "1"}
             queues.append({
+                "section": "rr2" if label == "registry.RunSubmission" else (
+                    "rr1" if label in {"registry.LegacyRunClaim", "registry.LegacyRunSubmission"}
+                    else "shared"
+                ),
                 "title": title,
                 "count": model_admin.get_queryset(request).filter(**filters).count(),
                 "url": url + "?" + urlencode(query),
             })
         context = {**(extra_context or {}), "title": "Dashboard", "dashboard_queues": queues}
+        context["dashboard_sections"] = [
+            {"id": key, "title": title, "queues": section_queues}
+            for key, title in (
+                ("rr2", "Rat Race 2.0"),
+                ("rr1", "Rat Race 1.0"),
+                ("shared", "Accounts and operations"),
+            )
+            if (section_queues := [queue for queue in queues if queue["section"] == key])
+        ]
         if request.user.has_perm("operations.view_referencesource"):
             from operations.runtime_state import get_worker_heartbeat_state
 

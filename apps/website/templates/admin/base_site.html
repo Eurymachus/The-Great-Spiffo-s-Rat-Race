@@ -1,11 +1,11 @@
 {% extends "admin/base.html" %}
 {% load i18n static %}
 
-{% block title %}{% if staging_environment %}[DEV] {% endif %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_short_title }} admin{% endblock %}
+{% block title %}{% if staging_environment %}[DEV] {% endif %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Rat Race Admin{% endblock %}
 
 {% block extrastyle %}
     {{ block.super }}
-    <link rel="stylesheet" href="{% static 'registry/admin.css' %}?v=20261024-home">
+    <link rel="stylesheet" href="{% static 'registry/admin.css' %}?v=20261024-topbar">
     <link rel="stylesheet" href="{% static 'registry/admin_list_toolbar.css' %}?v=13">
     <link rel="stylesheet" href="{% static 'registry/admin_record.css' %}?v=2">
     {% if staging_environment %}<style>.staging-admin-banner{background:#ffb12b;color:#171007;font-weight:800;padding:.7rem;text-align:center;letter-spacing:.06em}</style>{% endif %}
@@ -15,18 +15,13 @@
     {{ block.super }}
     <script>
       document.documentElement.classList.add("admin-toolbar-pending");
-      if (window.matchMedia("(max-width: 767px)").matches) {
-        localStorage.setItem("django.admin.navSidebarIsOpen", "false");
-      }
     </script>
     <script src="{% static 'registry/admin_list_toolbar.js' %}?v=8-prepaint" defer></script>
     <script src="{% static 'registry/admin_record.js' %}?v=7" defer></script>
-    <script src="{% static 'registry/admin_prepaint.js' %}?v=20260830-3"></script>
     <script src="{% static 'registry/admin_close.js' %}?v=20260721-1" defer></script>
     <script src="{% static 'registry/admin_save.js' %}?v=20260810-3" defer></script>
     <script src="{% static 'registry/admin_navigation.js' %}?v=20260913-return" defer></script>
     <script src="{% static 'registry/admin_run_submission_filters.js' %}?v=20260831-1" defer></script>
-    <script src="{% static 'registry/admin_sidebar_sections.js' %}?v=20260830-1" defer></script>
     <script src="{% static 'operations/js/clickable-operation-rows.js' %}?v=20260730-1" defer></script>
     <script>window.ratRaceAdminGate = {returnUrl: "{% url 'registry:account' %}"};</script>
     <script src="{% static 'registry/admin_viewport_gate.js' %}?v=20260716-4" defer></script>
@@ -34,7 +29,24 @@
 
 {% block branding %}
 {% if staging_environment %}<div class="staging-admin-banner">DEVELOPMENT / TEST SITE: Data may be reset</div>{% endif %}
-<div id="site-name"><a href="{% url 'admin:index' %}">{{ site_short_title }} administration</a></div>
+{% if has_permission %}
+<span id="admin-app-icon" role="img" aria-label="Rat Race Admin" title="Rat Race Admin">{% if site_header_logo_url %}<img src="{{ site_header_logo_url }}" alt="">{% elif site_favicon_url %}<img src="{{ site_favicon_url }}" alt="">{% else %}<span>RR</span>{% endif %}</span>
+{% else %}<div id="site-name">Rat Race Admin</div>{% endif %}
+{% if has_permission %}
+<button id="admin-menu-trigger" type="button" aria-label="Open navigation" aria-controls="nav-sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+<nav class="admin-top-links" aria-label="Quick navigation">
+  <a href="{% url 'admin:index' %}" aria-label="Dashboard" title="Dashboard"{% if admin_home_current %} aria-current="page"{% endif %}>{% include 'admin/menu_icon.html' with icon='home' %}</a>
+  {% for section in admin_menu %}
+  <div class="admin-top-section">
+    <button type="button" data-menu-dropdown="{{ section.id }}" aria-label="{{ section.title }}" title="{{ section.title }}" aria-expanded="false" aria-controls="admin-dropdown-{{ section.id }}">{% include 'admin/menu_icon.html' with icon=section.icon %}</button>
+    <div class="admin-top-dropdown" id="admin-dropdown-{{ section.id }}" hidden>
+      <strong>{{ section.title }}</strong>
+      <ul>{% for item in section.items %}<li><a href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.title }}</a></li>{% endfor %}</ul>
+    </div>
+  </div>
+  {% endfor %}
+</nav>
+{% endif %}
 {% if user.is_anonymous %}
   {% include "admin/color_theme_toggle.html" %}
 {% endif %}
@@ -42,12 +54,41 @@
 
 {% block nav-global %}{% endblock %}
 
-{% block messages %}
-{% if request.resolver_match.app_name == "admin" and request.resolver_match.url_name != "index" and request.resolver_match.url_name != "app_list" %}
-<nav class="admin-navigation-bar" aria-label="Section navigation" data-server-rendered>
-    <a class="admin-navigation-back" href="{% url 'admin:index' %}" aria-label="Back to Home" title="Back to Home">Back</a>
-</nav>
+{% block usertools %}
+{% if has_permission %}
+<div id="user-tools" class="rr-user-tools">
+  {% if site_url %}<a class="rr-user-action" href="{{ site_url }}" aria-label="View site" title="View site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a18 18 0 0 1 0 18 18 18 0 0 1 0-18Z"/></svg></a>{% endif %}
+  <div class="admin-top-section">
+    <button class="rr-user-action" type="button" data-menu-dropdown="notifications" aria-label="Notifications{% if admin_unread_count %}, {{ admin_unread_count }} unread{% endif %}" title="Notifications" aria-expanded="false" aria-controls="admin-notifications-dropdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0v6l2 3H4l2-3V9ZM10 21h4"/></svg>{% if admin_unread_count %}<span class="rr-notification-badge">{{ admin_unread_count }}</span>{% endif %}</button>
+    <div class="admin-top-dropdown rr-notifications-dropdown" id="admin-notifications-dropdown" hidden>
+      <strong>Notifications{% if admin_unread_count %} ({{ admin_unread_count }} unread){% endif %}</strong>
+      <ul>{% for notification in admin_notifications %}
+        <li class="rr-notification{% if not notification.is_read %} unread{% endif %}"><strong>{{ notification.title }}</strong><p>{{ notification.message }}</p><small>{% if not notification.is_read %}Unread · {% endif %}{{ notification.created_at|timesince }} ago</small></li>
+      {% empty %}<li class="rr-notification">You're all caught up. No notifications yet.</li>{% endfor %}</ul>
+      {% if admin_notifications %}<small class="rr-notification-limit">Showing the latest 10 notifications.</small>{% endif %}
+      {% if admin_unread_count %}<form method="post" action="{% url 'registry:mark_notifications_read' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button type="submit">Mark all as read</button></form>{% endif %}
+    </div>
+  </div>
+  <div class="admin-top-section rr-profile">
+    <button class="rr-profile-trigger" type="button" data-menu-dropdown="profile" aria-label="Your settings" aria-expanded="false" aria-controls="admin-profile-dropdown">
+      <span class="rr-profile-avatar" aria-hidden="true">{% if user.avatar and user.avatar_status == 'approved' %}<img src="{{ user.avatar.url }}" alt="">{% else %}{{ user.nickname|first|upper }}{% endif %}</span>
+      <span class="rr-profile-name">{{ user.nickname }}</span><span class="admin-menu-chevron" aria-hidden="true"></span>
+    </button>
+    <div class="admin-top-dropdown rr-profile-dropdown" id="admin-profile-dropdown" hidden>
+      <strong>Your settings</strong>
+      <div class="rr-profile-identity">{{ user.nickname }}<small>{{ user.email }}</small></div>
+      <fieldset class="rr-theme-options"><legend>Display theme</legend><div>
+        <label><input type="radio" name="admin-display-theme" value="auto">Automatic</label>
+        <label><input type="radio" name="admin-display-theme" value="light">Light</label>
+        <label><input type="radio" name="admin-display-theme" value="dark">Dark</label>
+      </div></fieldset>
+      <ul>
+        <li><a href="{% url 'registry:account_settings' %}">Account settings</a></li>
+        {% if user.has_usable_password %}<li><a href="{% url 'admin:password_change' %}">Change password</a></li>{% endif %}
+      </ul>
+      <form id="logout-form" method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
+    </div>
+  </div>
+</div>
 {% endif %}
-{{ block.super }}
 {% endblock %}
-

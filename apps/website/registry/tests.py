@@ -2451,6 +2451,28 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Spiffo Fan")
 
+    def test_admin_notification_dropdown_is_private_and_stays_in_admin(self):
+        staff = Participant.objects.create_superuser(
+            email="admin-bell@example.com", nickname="Admin Bell", password="Test-password-482!",
+        )
+        other = Participant.objects.create_user(
+            email="other-bell@example.com", nickname="Other Bell", password="Test-password-482!",
+        )
+        notification = Notification.objects.create(recipient=staff, title="Admin notice", message="Your private notice")
+        Notification.objects.create(recipient=other, title="Other private notice", message="Not yours")
+        self.client.force_login(staff)
+        response = self.client.get(reverse("admin:index"))
+        self.assertContains(response, 'id="admin-notifications-dropdown"')
+        self.assertContains(response, "Your private notice")
+        self.assertNotContains(response, "Other private notice")
+        notification.refresh_from_db()
+        self.assertIsNone(notification.read_at)
+        response = self.client.post(reverse("registry:mark_notifications_read"), {"next": reverse("admin:index")})
+        self.assertRedirects(response, reverse("admin:index"))
+        notification.refresh_from_db()
+        self.assertIsNotNone(notification.read_at)
+        self.assertIsNone(other.notifications.get().read_at)
+
     def test_admin_home_renders_dashboard(self):
         user = get_user_model().objects.create_superuser(
             email="breadcrumb-admin@example.com",
@@ -2467,11 +2489,27 @@ class RegistrationTests(TestCase):
         response = self.client.get(reverse("admin:index"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Review queues")
+        self.assertContains(response, 'id="dashboard-rr2-heading">Rat Race 2.0</h2>')
+        self.assertContains(response, 'id="dashboard-rr1-heading">Rat Race 1.0</h2>')
+        self.assertEqual(
+            [[queue["title"] for queue in section["queues"]]
+             for section in response.context["dashboard_sections"][:2]],
+            [["2.0 submissions"], ["1.0 claims", "1.0 updates"]],
+        )
         self.assertContains(response, "1.0 claims")
         self.assertEqual(response.context["title"], "Dashboard")
         self.assertContains(response, 'class="admin-sidebar-home"')
-        self.assertContains(response, 'aria-current="page">Home</a>')
+        self.assertTrue(response.context["admin_home_current"])
+        self.assertNotContains(response, 'id="nav-filter"')
+        menu_urls = [item["url"] for section in response.context["admin_menu"] for item in section["items"]]
+        expected_urls = [model.get("admin_url") or model.get("add_url")
+                         for app in response.context["available_apps"] for model in app["models"]
+                         if model.get("admin_url") or model.get("add_url")]
+        self.assertCountEqual(menu_urls, expected_urls)
+        detail = self.client.get(reverse("admin:registry_legacyrun_change", args=(legacy_run.pk,)))
+        current_items = [item for section in detail.context["admin_menu"]
+                         for item in section["items"] if item["current"]]
+        self.assertEqual([item["title"] for item in current_items], ["Runs and results"])
         self.assertNotContains(response, 'dashboard-sections-heading')
         self.assertNotContains(response, 'admin/css/dashboard.css')
         claim_queue = next(queue for queue in response.context["dashboard_queues"] if queue["title"] == "1.0 claims")
@@ -2506,9 +2544,11 @@ class RegistrationTests(TestCase):
                 response = self.client.get("/admin/")
 
                 self.assertEqual(response.status_code, 200)
-                self.assertContains(response, "Review queues")
+                self.assertEqual(response.context["title"], "Dashboard")
                 if role_name == "Branding Administrator":
                     self.assertEqual(response.context["dashboard_queues"], [])
+                    self.assertEqual(response.context["dashboard_sections"], [])
+                    self.assertEqual([section["id"] for section in response.context["admin_menu"]], ["website"])
                     self.assertNotContains(response, "1.0 claims")
                 self.client.logout()
 
@@ -2612,11 +2652,11 @@ class RegistrationTests(TestCase):
         response = self.client.get(reverse("admin:app_list", kwargs={"app_label": "auth"}))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'id="nav-filter"')
-        self.assertContains(response, "Participant administration")
-        self.assertContains(response, "Challenge configuration")
-        self.assertContains(response, "Run moderation")
-        self.assertContains(response, "Platform integrations")
+        self.assertNotContains(response, 'id="nav-filter"')
+        self.assertContains(response, "Community")
+        self.assertContains(response, "Rat Race 2.0")
+        self.assertContains(response, "Rat Race 1.0")
+        self.assertContains(response, "Connected channels")
 
     def test_registry_app_landing_redirects_to_first_permitted_group_model(self):
         user = get_user_model().objects.create_superuser(

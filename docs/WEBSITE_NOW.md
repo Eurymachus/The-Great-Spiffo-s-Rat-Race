@@ -31,7 +31,52 @@
 
 ## RR Admin Dashboard (24 October 2026)
 
-- Layout follow-up: Home is the first sidebar link on every admin page. The
+- The full-width header contains navigation, breadcrumbs and account controls
+  in three coloured sections. Breadcrumbs replace the separate Back bar and
+  retain list filters and return-to-run destinations. Only the content inset
+  reserves unused scrollbar space.
+- The notification bell shows the latest ten personal notifications in admin;
+  mark-all-read returns to the same admin page. Opening it does not mark read.
+- Hover menus share one close timer and the active dropdown stacks above its
+  neighbours, without overlapping invisible hover bridges.
+
+
+- The top-right controls use View site and Notifications icons plus an approved
+  avatar (or initial) and nickname. Your settings opens a dropdown containing
+  identity, Automatic/Light/Dark theme choices, account settings, password change and
+  CSRF-protected POST logout. The Rat app icon is non-interactive branding;
+  the hamburger opens the Rat Race Admin drawer.
+
+- VELMA-inspired Top Bar navigation now opens the existing menu in an overlay
+  drawer, leaving page content full width. A persistent header hamburger is
+  available at every width; above 1300px, named icon shortcuts open section
+  dropdowns without opening the drawer. Dropdowns support arrow keys, Escape,
+  outside-click dismissal and one open section at a time. Dashboard links directly
+  to the Dashboard. Escape, the close button
+  and backdrop dismiss the drawer, with keyboard focus returned to its trigger.
+  Menu grouping, permissions, ordering and per-account section preferences remain.
+  VELMA was read only as a reference; local changes are not yet deployed.
+
+- Menu section expansion is remembered per account in this browser. Saved open
+  and closed choices take priority over automatic current-section expansion;
+  without a saved choice or available storage, the server defaults apply.
+
+- Local navigation redesign replaces the filterable model tables with an icon
+  menu: Dashboard, Rat Race 2.0, Rat Race 1.0, Community, Rules and mods, Website,
+  Game catalogue and System. Links retain Django permission filtering; current
+  destinations are highlighted and their section opens automatically. Native
+  disclosures support keyboard use; the drawer supports Escape and unavailable
+  browser storage. No filter or sidebar Add shortcuts remain.
+- The project override of Django's base template replaces its filter-dependent
+  sidebar script with `admin_menu.js`; compare that template when upgrading Django.
+  Local browser checks cover expansion, participant navigation and returning to Dashboard.
+  This menu change has not been deployed to staging.
+
+- Dashboard review cards are grouped under Rat Race 2.0, Rat Race 1.0 and
+  Accounts and operations. Sections without permitted queues are omitted;
+  existing queue permissions, counts and destinations remain unchanged.
+
+- Layout follow-up: Dashboard is the first sidebar link on every admin page. The
   Dashboard contains review queues and runtime status only; duplicate section
   navigation was removed. It extends the admin base directly, avoiding Django's
   `.dashboard #content { width: 600px; }` rule. Browser preview at 1280px confirms

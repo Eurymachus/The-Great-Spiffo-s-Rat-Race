@@ -1,0 +1,13 @@
+{% extends "admin/app_index.html" %}
+{% load i18n %}
+{% block nav-breadcrumbs %}
+  <nav class="admin-header-breadcrumbs" aria-label="{% translate 'Breadcrumbs' %}">
+    <div class="breadcrumbs">
+      <a href="{% url 'admin:index' %}">{% translate 'Dashboard' %}</a>
+      &rsaquo;
+      {% for app in app_list %}
+        {{ app.name }}
+      {% endfor %}
+    </div>
+  </nav>
+{% endblock %}

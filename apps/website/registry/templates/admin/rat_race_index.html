@@ -14,26 +14,28 @@
   {% if dashboard_runtime %}
   <p class="dashboard-runtime">Release <strong>{{ dashboard_runtime.release }}</strong> &middot; Reference worker: <strong>{% if dashboard_runtime.worker_ready %}Current heartbeat{% else %}No current heartbeat for this release{% endif %}</strong></p>
   {% endif %}
-  <section aria-labelledby="dashboard-review-heading">
-    <h2 id="dashboard-review-heading">Review queues</h2>
+  {% for section in dashboard_sections %}
+  <section aria-labelledby="dashboard-{{ section.id }}-heading">
+    <h2 id="dashboard-{{ section.id }}-heading">{{ section.title }}</h2>
     <div class="dashboard-queues">
-      {% for queue in dashboard_queues %}
+      {% for queue in section.queues %}
       <a class="dashboard-queue{% if queue.count %} has-work{% endif %}" href="{{ queue.url }}">
         <span class="dashboard-queue-count">{{ queue.count }}</span>
         <span>{{ queue.title }}</span>
         <span class="dashboard-queue-action">Open queue &rarr;</span>
       </a>
-      {% empty %}
-      <p>No review queues are available for your role. Use the left navigation to open your administration sections.</p>
       {% endfor %}
     </div>
   </section>
+  {% empty %}
+  <p>No review queues are available for your role. Use the left navigation to open your administration sections.</p>
+  {% endfor %}
 </div>
 {% endblock %}
 {% block sidebar %}{% endblock %}
 
 {% block nav-breadcrumbs %}
-<nav aria-label="{% translate 'Breadcrumbs' %}">
+<nav class="admin-header-breadcrumbs" aria-label="{% translate 'Breadcrumbs' %}">
     <div class="breadcrumbs">Dashboard</div>
 </nav>
 {% endblock %}

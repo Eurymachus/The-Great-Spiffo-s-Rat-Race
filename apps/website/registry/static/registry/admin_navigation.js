@@ -9,16 +9,7 @@
     const parentLink = breadcrumbLinks.at(-1);
     if (!content || !parentLink) return;
 
-    let bar = content.querySelector(".admin-navigation-bar");
-    let backLink = bar?.querySelector(".admin-navigation-back");
-    const navigationWasRendered = Boolean(bar && backLink);
-    if (!navigationWasRendered) {
-        bar = document.createElement("nav");
-        bar.className = "admin-navigation-bar";
-        bar.setAttribute("aria-label", "Section navigation");
-        backLink = document.createElement("a");
-        backLink.className = "admin-navigation-back";
-    }
+    const backLink = parentLink;
     const explicitReturn = document.querySelector("[data-admin-return-url]");
     const requestedReturn = new URLSearchParams(window.location.search).get('return_to');
     const returnUrl = requestedReturn ? new URL(requestedReturn, window.location.href) : null;
@@ -35,7 +26,7 @@
         parentUrl.search = preservedFilters;
     }
     backLink.href = parentUrl.href;
-    backLink.textContent = "Back";
+    if (fromRun) backLink.textContent = "Run";
     const parentName = fromRun ? "run" : parentLink.textContent.trim();
     if (parentName) {
         backLink.setAttribute("aria-label", `Back to ${parentName}`);
@@ -48,8 +39,4 @@
         navigation.navigate(backLink.href);
     });
 
-    if (!navigationWasRendered) {
-        bar.append(backLink);
-        content.prepend(bar);
-    }
 })();

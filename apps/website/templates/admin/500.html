@@ -1,0 +1,9 @@
+{% extends "admin/500.html" %}
+{% load i18n admin_urls %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Dashboard' %}</a>
+&rsaquo; {% translate 'Server error' %}
+</div>
+{% endblock %}

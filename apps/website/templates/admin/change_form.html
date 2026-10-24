@@ -1,5 +1,5 @@
 {% extends "admin/change_form.html" %}
-{% load admin_modify %}
+{% load admin_modify i18n admin_urls %}
 {% block content_title %}{% endblock %}
 {% block content_subtitle %}{% endblock %}
 {% block object-tools %}
@@ -14,4 +14,13 @@
   </ul>
   {% endif %}
 </header>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Dashboard' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+&rsaquo; {% if has_view_permission %}<a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>{% else %}{{ opts.verbose_name_plural|capfirst }}{% endif %}
+&rsaquo; {% if add %}{% blocktranslate with name=opts.verbose_name %}Add {{ name }}{% endblocktranslate %}{% else %}{{ original|truncatewords:"18" }}{% endif %}
+</div>
 {% endblock %}

@@ -1,0 +1,9 @@
+{% extends "admin/invalid_setup.html" %}
+{% load i18n admin_urls %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Dashboard' %}</a>
+&rsaquo; {{ title }}
+</div>
+{% endblock %}

@@ -1,7 +1,19 @@
 {% load i18n %}
-<button class="sticky toggle-nav-sidebar" id="toggle-nav-sidebar" aria-label="{% translate 'Toggle navigation' %}"></button>
-<nav class="sticky" id="nav-sidebar" aria-label="{% translate 'Sidebar' %}">
-  <a class="admin-sidebar-home" href="{% url 'admin:index' %}"{% if request.path == '/admin/' %} aria-current="page"{% endif %}>Home</a>
-  <input type="search" id="nav-filter" placeholder="{% translate 'Start typing to filter…' %}" aria-label="{% translate 'Filter navigation items' %}">
-  {% include 'admin/app_list.html' with app_list=available_apps show_changelinks=False %}
+<button type="button" class="admin-menu-backdrop" aria-label="Close navigation" hidden tabindex="-1"></button>
+<nav class="sticky" id="nav-sidebar" aria-label="Administration menu" data-menu-user="{{ request.user.pk }}">
+  <div class="admin-menu-drawer-heading"><span class="admin-drawer-brand">{% if site_header_logo_url %}<img src="{{ site_header_logo_url }}" alt="">{% elif site_favicon_url %}<img src="{{ site_favicon_url }}" alt="">{% endif %}<strong>Rat Race Admin</strong></span><button type="button" id="admin-menu-close" aria-label="Close navigation">&times;</button></div>
+  <div class="admin-menu">
+    <a class="admin-sidebar-home" href="{% url 'admin:index' %}"{% if admin_home_current %} aria-current="page"{% endif %}><span class="admin-menu-icon" aria-hidden="true">{% include 'admin/menu_icon.html' with icon='home' %}</span><span>Dashboard</span></a>
+    {% for section in admin_menu %}
+    <details class="admin-menu-section" data-menu-section="{{ section.id }}"{% if section.open %} open{% endif %}>
+      <summary><span class="admin-menu-icon" aria-hidden="true">{% include 'admin/menu_icon.html' with icon=section.icon %}</span><span>{{ section.title }}</span><span class="admin-menu-chevron" aria-hidden="true"></span></summary>
+      <ul>
+        {% for item in section.items %}
+        <li><a href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.title }}</a></li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endfor %}
+  </div>
+  <div class="admin-menu-drawer-footer"><span>{{ site_short_title }}</span>{% if staging_environment %}<strong>Development / test site</strong>{% endif %}</div>
 </nav>
