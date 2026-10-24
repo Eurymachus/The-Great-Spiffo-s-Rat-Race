@@ -1,6 +1,10 @@
 from django.contrib.admin import AdminSite
 from django.contrib.admin.apps import AdminConfig
 from django.shortcuts import redirect
+from django.apps import apps
+from django.conf import settings
+from django.urls import reverse
+from urllib.parse import urlencode
 
 
 class RatRaceAdminConfig(AdminConfig):
@@ -8,6 +12,47 @@ class RatRaceAdminConfig(AdminConfig):
 
 
 class RatRaceAdminSite(AdminSite):
+    def index(self, request, extra_context=None):
+        queues = []
+        definitions = (
+            ("registry.RunSubmission", "2.0 submissions", {"status": "received"}, {"status__exact": "received"}),
+            ("registry.LegacyRunClaim", "1.0 claims", {"status": "pending"}, {"status__exact": "pending"}),
+            ("registry.LegacyRunSubmission", "1.0 updates", {"status": "received", "source": "participant"}, {"status__exact": "received", "source__exact": "participant"}),
+            ("registry.Participant", "Avatar reviews", {"avatar_status": "pending"}, {"avatar_status__exact": "pending"}),
+            ("registry.Participant", "Account closure requests", {"deletion_requested_at__isnull": False}, {"deletion_requested_at__isnull": "False"}),
+            ("operations.CatalogueImportReview", "Catalogue reviews", {"status": "ready"}, {"status__exact": "ready"}),
+            ("operations.ReferenceUpdateJob", "Reference jobs needing attention", {"status__in": ["failed", "authentication_required"]}, {"status__in": "failed,authentication_required"}),
+        )
+        for label, title, filters, query in definitions:
+            model = apps.get_model(label)
+            model_admin = self._registry.get(model)
+            if not model_admin or not model_admin.has_view_permission(request):
+                continue
+            opts = model._meta
+            url = reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
+            if label == "registry.RunSubmission":
+                from .run_saved_views import FILTERS
+
+                url = reverse("admin:registry_challengerun_changelist")
+                query = {**dict.fromkeys(FILTERS, ""), "work": "review"}
+            elif label == "registry.Participant":
+                query = {**query, "_filters": "1"}
+            queues.append({
+                "title": title,
+                "count": model_admin.get_queryset(request).filter(**filters).count(),
+                "url": url + "?" + urlencode(query),
+            })
+        context = {**(extra_context or {}), "title": "Dashboard", "dashboard_queues": queues}
+        if request.user.has_perm("operations.view_referencesource"):
+            from operations.runtime_state import get_worker_heartbeat_state
+
+            heartbeat = get_worker_heartbeat_state()
+            context["dashboard_runtime"] = {
+                "release": settings.RELEASE_ID,
+                "worker_ready": bool(heartbeat and heartbeat.get("release_id") == settings.RELEASE_ID),
+            }
+        return super().index(request, context)
+
     registry_groups = (
         (
             "Participant administration",

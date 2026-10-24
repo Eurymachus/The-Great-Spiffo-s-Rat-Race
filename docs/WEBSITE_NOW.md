@@ -11,6 +11,32 @@
 - Local regression tests cover preview, environment refusal, preservation,
   repeat import and rollback. Staging deployment and host rehearsal remain outstanding.
 
+## Claim review workspace (24 October 2026)
+
+- The 1.0 claims list now includes claimant/channel summaries, evidence excerpts,
+  historical bests and inline approval. Full details opens a modal containing
+  both historical results, channels, full evidence and decision history.
+- Old individual claim URLs redirect to the list and open the requested modal,
+  even outside the current filters/page. Generic claim editing is refused.
+- Approval/decline still use the existing locked, permission-checked actions;
+  decline requires a reason and completed reviews cannot notify twice.
+- All 21 legacy import/claim tests pass, including filtered modal links,
+  view-only access, escaped evidence, decline and repeated approval.
+- Local implementation only; staging deployment and browser acceptance pending.
+
+## RR Admin Dashboard (24 October 2026)
+
+- `/admin/` now opens a role-aware Dashboard instead of redirecting into a
+  model list. Cards link to pending 2.0 submissions, 1.0 claims/updates, avatar
+  reviews, closure requests, catalogue reviews and reference jobs needing attention.
+- Counts use each registered admin's view permission and queryset. Existing
+  administration section links remain available; branding-only staff see no
+  participant queues. Reference-source staff see release and worker heartbeat.
+- Five focused tests pass, covering all standard roles, restricted branding
+  access, a real pending-claim count and filtered queue destinations.
+- Implemented locally; immutable staging release remains `b580e48`. Dashboard
+  deployment and browser acceptance remain outstanding.
+
 ## Version-aware authority catalogue links (17 October 2026)
 
 - The shared resolver collapses applicable versions of the same kind/stable ID

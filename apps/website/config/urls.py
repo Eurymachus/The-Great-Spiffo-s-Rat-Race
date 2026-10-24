@@ -15,7 +15,6 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.shortcuts import redirect
 from django.urls import include, path
 
 from . import health
@@ -24,16 +23,6 @@ from .staging import robots_txt
 
 
 def admin_home(request):
-    if request.user.has_perm("registry.view_participant"):
-        return redirect("admin:registry_participant_changelist")
-    if request.user.has_perm("registry.view_runsubmission"):
-        return redirect("admin:registry_runsubmission_changelist")
-    if request.user.has_perm("registry.view_workshopmod"):
-        return redirect("admin:registry_workshopmod_changelist")
-    if request.user.has_perm("branding.view_sitebranding"):
-        return redirect("admin:branding_sitebranding_change", object_id="1")
-    if request.user.has_perm("zomboid_catalogue.view_catalogueentry"):
-        return redirect("admin:zomboid_catalogue_catalogueentry_changelist")
     return admin.site.index(request)
 
 urlpatterns = [

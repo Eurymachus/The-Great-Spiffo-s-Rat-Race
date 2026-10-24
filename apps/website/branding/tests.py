@@ -306,11 +306,9 @@ class SiteBrandingAdminTests(TestCase):
         self.assertFalse(participant.has_perm("registry.view_participant"))
 
         admin_home = self.client.get("/admin/")
-        self.assertRedirects(
-            admin_home,
-            reverse("admin:branding_sitebranding_change", args=(self.branding.pk,)),
-            fetch_redirect_response=False,
-        )
+        self.assertEqual(admin_home.status_code, 200)
+        self.assertContains(admin_home, "Dashboard")
+        self.assertNotContains(admin_home, "1.0 claims")
         participant_list = self.client.get(
             reverse("admin:registry_participant_changelist")
         )

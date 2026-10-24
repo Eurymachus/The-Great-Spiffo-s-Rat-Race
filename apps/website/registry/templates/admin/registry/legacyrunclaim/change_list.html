@@ -1,0 +1,55 @@
+{% extends "admin/change_list.html" %}
+{% load admin_list %}
+
+{% block result_list %}
+<div class="results claim-workspace">
+  <table id="result_list">
+    <thead><tr><th>Historical record</th><th>Claimant</th><th>Evidence</th><th>Status / submitted</th><th>Review</th></tr></thead>
+    <tbody>
+    {% for claim in cl.result_list %}
+      <tr>
+        <th scope="row"><a href="?claim={{ claim.pk }}" data-claim-open="claim-{{ claim.pk }}">{{ claim.run.legacy_participant_name }}</a><small>{{ claim.run.get_lifecycle_display }}</small>{% if claim.run.best_submission %}<small>{{ claim.run.best_submission.challenge_progress|floatformat:2 }}% best &middot; {{ claim.run.best_submission.zombie_kills }} kills</small>{% endif %}</th>
+        <td>{{ claim.participant.nickname }}{% with channel=claim.participant.primary_streaming_account %}{% if channel %}<small>{{ channel.get_provider_display }}: {{ channel.display_name }} ({{ channel.get_status_display }})</small>{% endif %}{% endwith %}</td>
+        <td>{{ claim.evidence|default:"No additional evidence supplied."|truncatechars:180 }}</td>
+        <td><strong>{{ claim.get_status_display }}</strong><small>{{ claim.submitted_at|date:"j M Y, H:i" }}</small>{% if claim.reviewed_by %}<small>By {{ claim.reviewed_by.nickname }}</small>{% endif %}</td>
+        <td><div class="claim-row-actions"><a class="button" href="?claim={{ claim.pk }}" data-claim-open="claim-{{ claim.pk }}">Full details</a>{% if claim.status == "pending" and claim.can_review %}<button type="submit" class="button" form="claim-approve-{{ claim.pk }}">Approve claim</button>{% endif %}</div></td>
+      </tr>
+    {% empty %}<tr><td colspan="5">No claims match these filters.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+{% for claim in claim_dialogs %}
+  {% if claim.status == "pending" and claim.can_review %}
+  <form id="claim-approve-{{ claim.pk }}" method="post" action="{% url 'admin:registry_legacyrunclaim_approve' claim.pk %}">{% csrf_token %}</form>
+  {% endif %}
+  <dialog class="claim-detail-dialog" id="claim-{{ claim.pk }}" aria-labelledby="claim-title-{{ claim.pk }}" {% if selected_claim.pk == claim.pk %}data-claim-auto-open{% endif %}>
+    <header class="claim-review-header"><div><p class="claim-review-kicker">Rat Race 1.0 claim</p><h2 id="claim-title-{{ claim.pk }}">{{ claim.run.legacy_participant_name }}</h2></div><button type="button" class="button" data-claim-close>Close</button></header>
+    <div class="claim-detail-body">
+      <dl class="claim-review-facts">
+        <div><dt>Claimant</dt><dd>{{ claim.participant.nickname }}</dd></div>
+        <div><dt>Status</dt><dd>{{ claim.get_status_display }}</dd></div>
+        <div><dt>Submitted</dt><dd>{{ claim.submitted_at|date:"j F Y, H:i" }}</dd></div>
+        <div><dt>Run lifecycle</dt><dd>{{ claim.run.get_lifecycle_display }}</dd></div>
+      </dl>
+      <section class="claim-review-evidence"><h3>Connected channels</h3><ul>{% for channel in claim.review_channels %}<li>{{ channel.get_provider_display }}: {{ channel.display_name }} &middot; {{ channel.get_status_display }}{% if channel.channel_url %} &middot; <a href="{{ channel.channel_url }}" target="_blank" rel="noopener noreferrer">Open channel</a>{% endif %}</li>{% empty %}<li>No connected channels.</li>{% endfor %}</ul></section>
+      <section class="claim-review-evidence"><h3>Participant evidence</h3><p>{{ claim.evidence|default:"No additional evidence was supplied."|linebreaksbr }}</p></section>
+      <section class="claim-review-evidence"><h3>Historical results</h3><div class="claim-results">
+        {% include "admin/registry/legacyrunclaim/result.html" with result=claim.run.current_submission heading="Current Leaderboard result" %}
+        {% include "admin/registry/legacyrunclaim/result.html" with result=claim.run.best_submission heading="Hall of Fame best" %}
+      </div></section>
+      {% if claim.run.claimed_participant %}<p class="claim-review-evidence">Currently linked to {{ claim.run.claimed_participant.nickname }}.</p>{% endif %}
+      {% if claim.reviewed_at %}<section class="claim-review-evidence"><h3>Decision</h3><p>{{ claim.get_status_display }} by {{ claim.reviewed_by.nickname|default:"Former administrator" }}, {{ claim.reviewed_at|date:"j F Y, H:i" }}</p><p>{{ claim.review_note|linebreaksbr }}</p></section>{% endif %}
+      {% if claim.status == "pending" and claim.can_review %}
+      <section class="claim-review-evidence claim-decision-actions">
+        <form method="post" action="{% url 'admin:registry_legacyrunclaim_approve' claim.pk %}">{% csrf_token %}<label for="claim-note-{{ claim.pk }}">Review note (optional)</label><textarea id="claim-note-{{ claim.pk }}" name="review_note" rows="2"></textarea><button type="submit" class="button">Approve claim</button></form>
+        <details><summary>Decline claim</summary><form method="post" action="{% url 'admin:registry_legacyrunclaim_decline' claim.pk %}">{% csrf_token %}<label for="claim-reason-{{ claim.pk }}">Reason (required)</label><textarea id="claim-reason-{{ claim.pk }}" name="reason" rows="3" maxlength="1000" required></textarea><button type="submit" class="button run-review-decline">Decline claim</button></form></details>
+      </section>
+      {% endif %}
+    </div>
+  </dialog>
+{% endfor %}
+{% endblock %}

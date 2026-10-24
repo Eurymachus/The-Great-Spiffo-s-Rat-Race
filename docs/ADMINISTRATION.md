@@ -17,9 +17,10 @@ anywhere else. Django stores a password hash, not the entered password. The loca
 development database is excluded from Git.
 
 Open `http://127.0.0.1:8000/admin/` and sign in.
-The admin root and breadcrumb Home link open the participant list directly. A
-separate dashboard will only be introduced when it has useful operational data to
-show rather than duplicating the navigation.
+The admin root and breadcrumb Home link open the Dashboard. It shows permitted
+review queue counts and links to filtered workspaces, followed by the available
+administration sections. Staff with reference-source access also see the release
+identifier and whether the reference worker has a current matching heartbeat.
 
 ## Participant List
 
@@ -84,8 +85,8 @@ pages immediately. It cannot be duplicated or deleted.
 
 Superusers already have access to this section. A participant may instead be
 promoted to the `Branding Administrator` group, which grants scoped branding and
-theme permissions plus staff login. A branding-only administrator is sent
-directly to Branding when opening `/admin/` and cannot view participants.
+theme permissions plus staff login. A branding-only administrator sees the
+Dashboard with their permitted sections and cannot view participant review queues.
 
 Website Themes provides three editable presets. From its list, a branding
 administrator can preview a selected theme on the real signup page, activate it,

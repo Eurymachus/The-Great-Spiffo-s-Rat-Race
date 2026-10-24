@@ -1,9 +1,43 @@
 {% extends "admin/index.html" %}
-{% load i18n %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'registry/admin_dashboard.css' %}">
+{% endblock %}
+
+{% block coltype %}colM{% endblock %}
+{% block content %}
+<div class="admin-dashboard">
+  <p class="dashboard-introduction">Review incoming work and open the administration sections available to your role.</p>
+  {% if dashboard_runtime %}
+  <p class="dashboard-runtime">Release <strong>{{ dashboard_runtime.release }}</strong> &middot; Reference worker: <strong>{% if dashboard_runtime.worker_ready %}Current heartbeat{% else %}No current heartbeat for this release{% endif %}</strong></p>
+  {% endif %}
+  <section aria-labelledby="dashboard-review-heading">
+    <h2 id="dashboard-review-heading">Review queues</h2>
+    <div class="dashboard-queues">
+      {% for queue in dashboard_queues %}
+      <a class="dashboard-queue{% if queue.count %} has-work{% endif %}" href="{{ queue.url }}">
+        <span class="dashboard-queue-count">{{ queue.count }}</span>
+        <span>{{ queue.title }}</span>
+        <span class="dashboard-queue-action">Open queue &rarr;</span>
+      </a>
+      {% empty %}
+      <p>No review queues are available for your role. Use the sections below.</p>
+      {% endfor %}
+    </div>
+  </section>
+  <section aria-labelledby="dashboard-sections-heading">
+    <h2 id="dashboard-sections-heading">Administration</h2>
+    {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+  </section>
+</div>
+{% endblock %}
+{% block sidebar %}{% endblock %}
 
 {% block nav-breadcrumbs %}
 <nav aria-label="{% translate 'Breadcrumbs' %}">
-    <div class="breadcrumbs">{% translate 'Home' %}</div>
+    <div class="breadcrumbs">Dashboard</div>
 </nav>
 {% endblock %}
 

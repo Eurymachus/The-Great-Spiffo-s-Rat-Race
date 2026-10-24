@@ -1154,3 +1154,10 @@ Abandonment stops future participation, not review of existing submissions. Pend
   summary alongside daily authority. Each new approved submission refreshes
   that summary; pending submissions do not change displayed records. The
   thermometer modal groups days into weekly/monthly extrema, not averages.
+
+# 2026-10-24 - Review Rat Race 1.0 claims in the list workspace
+
+The claims list is the primary review screen, with richer claim summaries and
+inline approval. Full information and reasoned decline are available in a modal.
+Old individual claim links open that modal in the list. Existing authorization,
+collision checks, transactional decisions and notifications remain authoritative.

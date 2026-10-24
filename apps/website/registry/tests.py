@@ -307,7 +307,7 @@ class LegacyDataImportTests(TestCase):
         self.client.force_login(reviewer)
 
         change_url = reverse("admin:registry_legacyrunclaim_change", args=(claim.pk,))
-        response = self.client.get(change_url)
+        response = self.client.get(change_url, follow=True)
         self.assertContains(response, "Approve claim")
         self.assertContains(response, "Decline")
         self.assertNotContains(response, "Save and continue editing")
@@ -316,7 +316,7 @@ class LegacyDataImportTests(TestCase):
             reverse("admin:registry_legacyrunclaim_approve", args=(claim.pk,))
         )
 
-        self.assertRedirects(response, change_url)
+        self.assertRedirects(response, change_url, target_status_code=302)
         claim.refresh_from_db()
         legacy_run.refresh_from_db()
         self.assertEqual(claim.status, LegacyRunClaim.Status.APPROVED)
@@ -341,7 +341,7 @@ class LegacyDataImportTests(TestCase):
 
         response = self.client.post(decline_url, {"reason": ""})
         self.assertRedirects(
-            response, reverse("admin:registry_legacyrunclaim_change", args=(claim.pk,))
+            response, reverse("admin:registry_legacyrunclaim_change", args=(claim.pk,)), target_status_code=302
         )
         claim.refresh_from_db()
         self.assertEqual(claim.status, LegacyRunClaim.Status.PENDING)
@@ -351,7 +351,7 @@ class LegacyDataImportTests(TestCase):
         )
 
         self.assertRedirects(
-            response, reverse("admin:registry_legacyrunclaim_change", args=(claim.pk,))
+            response, reverse("admin:registry_legacyrunclaim_change", args=(claim.pk,)), target_status_code=302
         )
         claim.refresh_from_db()
         legacy_run.refresh_from_db()
@@ -361,6 +361,47 @@ class LegacyDataImportTests(TestCase):
         self.assertIsNone(legacy_run.claimed_participant)
         notification = participant.notifications.get(title="Rat Race 1.0 run claim declined")
         self.assertIn("could not be verified", notification.message)
+
+    def test_claim_workspace_details_permissions_and_filtered_deep_link(self):
+        from django.contrib.auth.models import Permission
+
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        claim = LegacyRunClaim.objects.create(
+            run=run, participant=reviewer, evidence="My full evidence <script>bad()</script>",
+        )
+        reader = Participant.objects.create_user(
+            email="claim-reader@example.com", nickname="Claim Reader",
+            password="valid-test-password", is_staff=True, is_active=True,
+        )
+        reader.user_permissions.add(Permission.objects.get(codename="view_legacyrunclaim"))
+        self.client.force_login(reader)
+        url = reverse("admin:registry_legacyrunclaim_changelist")
+        response = self.client.get(url, {"status__exact": "approved", "claim": claim.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-claim-auto-open")
+        self.assertContains(response, "My full evidence &lt;script&gt;bad()&lt;/script&gt;")
+        self.assertContains(response, "Hall of Fame best")
+        self.assertNotContains(response, ">Approve claim</button>")
+        self.assertNotContains(response, 'name="reason"')
+        self.assertEqual(self.client.post(reverse("admin:registry_legacyrunclaim_approve", args=(claim.pk,))).status_code, 404)
+        self.assertEqual(self.client.post(reverse("admin:registry_legacyrunclaim_change", args=(claim.pk,))).status_code, 405)
+        self.assertEqual(self.client.get(url, {"claim": 999999}).status_code, 404)
+
+    def test_claim_approval_cannot_be_repeated(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        claim = LegacyRunClaim.objects.create(
+            run=LegacyRun.objects.get(normalized_legacy_name="active racer"), participant=reviewer,
+        )
+        self.client.force_login(reviewer)
+        url = reverse("admin:registry_legacyrunclaim_approve", args=(claim.pk,))
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.client.post(url)
+        before = Notification.objects.count()
+        self.client.post(url)
+        self.assertEqual(Notification.objects.count(), before)
 
     def test_dashboard_shows_legacy_claim_state_and_linked_results(self):
         review, reviewer = self.create_review()
@@ -2410,7 +2451,7 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Spiffo Fan")
 
-    def test_admin_home_redirects_to_participants(self):
+    def test_admin_home_renders_dashboard(self):
         user = get_user_model().objects.create_superuser(
             email="breadcrumb-admin@example.com",
             nickname="Breadcrumb Admin",
@@ -2418,13 +2459,21 @@ class RegistrationTests(TestCase):
         )
         self.client.force_login(user)
 
+        legacy_run = LegacyRun.objects.create(
+            source_key="dashboard-test", legacy_participant_name="Dashboard Racer",
+            normalized_legacy_name="dashboard racer",
+        )
+        LegacyRunClaim.objects.create(run=legacy_run, participant=user)
         response = self.client.get(reverse("admin:index"))
 
-        self.assertRedirects(
-            response,
-            reverse("admin:registry_participant_changelist"),
-            fetch_redirect_response=False,
-        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Review queues")
+        self.assertContains(response, "1.0 claims")
+        self.assertEqual(response.context["title"], "Dashboard")
+        claim_queue = next(queue for queue in response.context["dashboard_queues"] if queue["title"] == "1.0 claims")
+        self.assertEqual(claim_queue["count"], 1)
+        for queue in response.context["dashboard_queues"]:
+            self.assertEqual(self.client.get(queue["url"]).status_code, 200, queue["title"])
 
     def test_admin_home_routes_every_standard_staff_role(self):
         call_command("bootstrap_roles", verbosity=0)
@@ -2452,14 +2501,11 @@ class RegistrationTests(TestCase):
 
                 response = self.client.get("/admin/")
 
-                destination_arguments = {"object_id": "1"} if (
-                    role_name == "Branding Administrator"
-                ) else {}
-                self.assertRedirects(
-                    response,
-                    reverse(destination_name, kwargs=destination_arguments),
-                    fetch_redirect_response=False,
-                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Review queues")
+                if role_name == "Branding Administrator":
+                    self.assertEqual(response.context["dashboard_queues"], [])
+                    self.assertNotContains(response, "1.0 claims")
                 self.client.logout()
 
     def test_admin_home_renders_index_for_staff_without_known_role(self):

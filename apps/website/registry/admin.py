@@ -232,7 +232,8 @@ class LegacyRunSubmissionAdmin(admin.ModelAdmin):
 
 @admin.register(LegacyRunClaim)
 class LegacyRunClaimAdmin(admin.ModelAdmin):
-    change_form_template = "admin/registry/legacyrunclaim/change_form.html"
+    change_list_template = "admin/registry/legacyrunclaim/change_list.html"
+    list_select_related = ("run", "run__current_submission", "run__best_submission", "participant", "participant__primary_streaming_account", "reviewed_by")
     list_display = ("run", "participant", "status", "submitted_at", "reviewed_by", "reviewed_at")
     list_filter = ("status",)
     search_fields = ("run__legacy_participant_name", "participant__nickname")
@@ -242,21 +243,51 @@ class LegacyRunClaimAdmin(admin.ModelAdmin):
     )
     fields = readonly_fields
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("participant__streaming_accounts").select_related("run__claimed_participant")
+
     class Media:
         css = {"all": (
             "registry/admin_run_review.css",
             "registry/admin_legacy_claim_review.css",
         )}
+        js = ("registry/admin_legacy_claim_review.js",)
 
     def changelist_view(self, request, extra_context=None):
         context = dict(extra_context or {})
         context["title"] = "Rat Race 1.0 run claim reviews"
-        return super().changelist_view(request, extra_context=context)
+        response = super().changelist_view(request, extra_context=context)
+        if hasattr(response, "context_data") and response.context_data and "cl" in response.context_data:
+            claims = list(response.context_data["cl"].result_list)
+            selected = None
+            if request.GET.get("claim"):
+                selected = self.get_object(request, request.GET["claim"])
+                if not selected or not self.has_view_permission(request, selected):
+                    raise Http404
+                if all(claim.pk != selected.pk for claim in claims):
+                    claims.append(selected)
+            for claim in claims:
+                claim.can_review = self.has_change_permission(request, claim)
+                claim.review_channels = [account for account in claim.participant.streaming_accounts.all() if account.provider in {"twitch", "youtube"}]
+            response.context_data.update(claim_dialogs=claims, selected_claim=selected)
+        return response
+
+    def get_changelist_instance(self, request):
+        original = request.GET
+        request.GET = original.copy()
+        request.GET.pop("claim", None)
+        try:
+            return super().get_changelist_instance(request)
+        finally:
+            request.GET = original
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
-        context = dict(extra_context or {})
-        context["title"] = "Review Rat Race 1.0 run claim"
-        return super().change_view(request, object_id, form_url, context)
+        if request.method != "GET":
+            return HttpResponseNotAllowed(("GET",))
+        claim = self.get_object(request, object_id)
+        if not claim or not self.has_view_permission(request, claim):
+            raise Http404
+        return redirect(reverse("admin:registry_legacyrunclaim_changelist") + f"?claim={claim.pk}")
 
     def get_urls(self):
         return [

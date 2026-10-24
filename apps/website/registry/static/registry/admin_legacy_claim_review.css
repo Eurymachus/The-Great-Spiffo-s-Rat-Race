@@ -125,3 +125,16 @@
         padding-inline: 1rem;
     }
 }
+.claim-workspace small { display: block; margin-top: .4rem; color: var(--body-quiet-color); font-weight: normal; }
+.claim-row-actions { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+.claim-workspace td { max-width: 25rem; overflow-wrap: anywhere; }
+.claim-detail-dialog { width: min(60rem, calc(100vw - 3rem)); max-height: 85vh; padding: 0; border: 1px solid var(--hairline-color); border-radius: 8px; background: var(--body-bg); color: var(--body-fg); }
+.claim-detail-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+.claim-detail-dialog > header { border-bottom: 1px solid var(--hairline-color); }
+.claim-detail-body { overflow-wrap: anywhere; }
+.claim-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1.5rem; }
+.claim-results dl { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.claim-results dd { margin: 0; }
+.claim-decision-actions form { display: grid; gap: .7rem; margin-bottom: 1rem; }
+.claim-decision-actions textarea { box-sizing: border-box; width: 100%; }
+.claim-decision-actions summary { cursor: pointer; margin-bottom: .8rem; }

@@ -1,9 +1,7 @@
 (() => {
     "use strict";
 
-    // App index screens are the top of this administration hierarchy. The
-    // nominal /admin/ parent redirects to a model list, which would create a
-    // navigation loop if a Back button were shown here.
+    // App index screens keep their existing section navigation.
     if (/^\/admin\/[^/]+\/$/.test(window.location.pathname)) return;
 
     const content = document.querySelector("main#content-start");
