@@ -172,3 +172,54 @@ The same validator is available for controlled command-line operations:
 
 That command previews by default. Add `--confirm` only after reviewing its
 counts. Do not replace this process with a runtime Google Sheets dependency.
+
+## Repeatable Rat Race 1.0 staging rehearsals
+
+Use `reset_legacy_rehearsal` to return staging's Rat Race 1.0 dataset to empty
+after testing imports, claims and participant updates. It requires the effective
+Django setting `STAGING_ENVIRONMENT` to be boolean `True`; ordinary development
+and production settings are refused, including preview mode. Never enable this
+setting on production to bypass the restriction.
+
+The command deletes all Rat Race 1.0 runs and their claims and submissions,
+including approved, pending and declined records. It preserves participant
+accounts, passwords, roles, primary-channel selections, Twitch/YouTube connections,
+encrypted credentials, cached media, and all Rat Race 2.0 runs and evidence.
+Import audit records (including uploaded CSVs and previews) remain available.
+Existing notifications and administration logs also remain; old rehearsal links
+may point to removed records. The reset sends no notifications or provider calls.
+
+1. Deploy the command to staging. Coordinate a quiet rehearsal window: pause
+   tester and moderator activity, imports, claims and submissions until the reset
+   finishes. Row locking does not prevent every concurrent new import.
+2. On the staging host, use its deployed release and virtual environment, with
+   its protected `staging.env` loaded using the existing deployment tooling and
+   `DJANGO_SETTINGS_MODULE=config.settings_windows_staging`. Verify the database
+   target is the staging database. Do not copy production environment settings.
+3. From the deployed repository root, preview the counts:
+
+   ```powershell
+   python .\apps\website\manage.py reset_legacy_rehearsal
+   ```
+
+4. Retain any test results needed for comparison, then explicitly confirm:
+
+   ```powershell
+   python .\apps\website\manage.py reset_legacy_rehearsal --confirm
+   ```
+
+   Deletion is transactional. A failure rolls it back. An empty dataset can be
+   reset again safely. These commands assume `python` resolves to the staging
+   virtual environment; they do not load secrets or select a database themselves.
+5. Upload fresh Leaderboard and Hall of Fame CSVs using the import process above.
+   Review counts and warnings and confirm the import. Previously completed import
+   records remain audit history and cannot be confirmed again.
+6. Rehearse claim approval and decline, progress submission and review, death
+   reporting, and both ranking views. Use the retained accounts and connected
+   channels to test Twitch and YouTube evidence again without reconnecting solely
+   because of the reset. Provider expiry or revocation may still require reconnecting.
+7. Record the result, then repeat from step 1 for another rehearsal. Before and
+   after reset, spot-check a retained account, each provider connection and a 2.0 run.
+
+This is a staging rehearsal operation, not the live handover process. Live import
+replacement remains blocked after any claim or participant-created 1.0 submission.

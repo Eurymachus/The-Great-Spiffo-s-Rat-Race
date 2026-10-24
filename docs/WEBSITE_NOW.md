@@ -1,5 +1,16 @@
 # Website: Current Focus
 
+## Repeatable Rat Race 1.0 staging rehearsals (18 October 2026)
+
+- `reset_legacy_rehearsal` previews by default; `--confirm` transactionally deletes
+  1.0 runs, claims and submissions. It refuses non-staging settings.
+- Accounts, platform connections and credentials, primary-channel selections,
+  2.0 records, import audit history and notifications remain intact.
+- Re-upload both CSVs after reset to repeat the import, claim and update journey.
+  Pause staging writes during reset. See [ADMINISTRATION.md](ADMINISTRATION.md#repeatable-rat-race-10-staging-rehearsals).
+- Local regression tests cover preview, environment refusal, preservation,
+  repeat import and rollback. Staging deployment and host rehearsal remain outstanding.
+
 ## Version-aware authority catalogue links (17 October 2026)
 
 - The shared resolver collapses applicable versions of the same kind/stable ID
