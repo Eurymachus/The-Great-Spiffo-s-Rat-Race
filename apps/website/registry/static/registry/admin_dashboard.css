@@ -1,4 +1,5 @@
-.admin-dashboard { max-width: 80rem; }
+.rr-admin-dashboard #content { width: auto; max-width: none; }
+.admin-dashboard { width: 100%; }
 .dashboard-introduction { margin: 0 0 1.8rem; color: var(--body-quiet-color); }
 .admin-dashboard section { margin-bottom: 2rem; }
 .admin-dashboard section > h2 { margin-bottom: 1rem; font-size: 1.15rem; }

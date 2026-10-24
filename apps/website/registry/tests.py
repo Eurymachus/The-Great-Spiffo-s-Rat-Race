@@ -2470,6 +2470,10 @@ class RegistrationTests(TestCase):
         self.assertContains(response, "Review queues")
         self.assertContains(response, "1.0 claims")
         self.assertEqual(response.context["title"], "Dashboard")
+        self.assertContains(response, 'class="admin-sidebar-home"')
+        self.assertContains(response, 'aria-current="page">Home</a>')
+        self.assertNotContains(response, 'dashboard-sections-heading')
+        self.assertNotContains(response, 'admin/css/dashboard.css')
         claim_queue = next(queue for queue in response.context["dashboard_queues"] if queue["title"] == "1.0 claims")
         self.assertEqual(claim_queue["count"], 1)
         for queue in response.context["dashboard_queues"]:

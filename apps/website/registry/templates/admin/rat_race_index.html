@@ -1,4 +1,4 @@
-{% extends "admin/index.html" %}
+{% extends "admin/base_site.html" %}
 {% load i18n static %}
 
 {% block extrastyle %}
@@ -7,9 +7,10 @@
 {% endblock %}
 
 {% block coltype %}colM{% endblock %}
+{% block bodyclass %}{{ block.super }} rr-admin-dashboard{% endblock %}
 {% block content %}
 <div class="admin-dashboard">
-  <p class="dashboard-introduction">Review incoming work and open the administration sections available to your role.</p>
+  <p class="dashboard-introduction">Review incoming work and items needing attention.</p>
   {% if dashboard_runtime %}
   <p class="dashboard-runtime">Release <strong>{{ dashboard_runtime.release }}</strong> &middot; Reference worker: <strong>{% if dashboard_runtime.worker_ready %}Current heartbeat{% else %}No current heartbeat for this release{% endif %}</strong></p>
   {% endif %}
@@ -23,13 +24,9 @@
         <span class="dashboard-queue-action">Open queue &rarr;</span>
       </a>
       {% empty %}
-      <p>No review queues are available for your role. Use the sections below.</p>
+      <p>No review queues are available for your role. Use the left navigation to open your administration sections.</p>
       {% endfor %}
     </div>
-  </section>
-  <section aria-labelledby="dashboard-sections-heading">
-    <h2 id="dashboard-sections-heading">Administration</h2>
-    {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
   </section>
 </div>
 {% endblock %}
