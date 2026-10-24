@@ -3699,16 +3699,20 @@ button:hover { background: var(--theme-accent-hover); }
     .managed-tab:hover { transform: none; }
 }
 .staging-banner {
-    background: #f3a52b;
-    border-bottom: 2px solid #ffe4a8;
+    box-sizing: border-box;
+    width: 100%;
+    background: #ffb12b;
     color: #171007;
-    font-weight: 800;
-    letter-spacing: .045em;
-    padding: .7rem 1rem;
+    font-size: 11px;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: .02em;
+    padding: 3px 12px;
     position: relative;
     text-align: center;
     z-index: 1000;
 }
+.staging-banner strong { font-weight: inherit; }
 
 .submission-locked-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.25rem 1.5rem; padding:1.25rem 0; }
 .submission-locked-summary > div { display:grid; gap:.25rem; }
