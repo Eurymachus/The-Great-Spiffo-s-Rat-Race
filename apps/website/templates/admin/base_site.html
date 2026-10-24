@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'registry/admin.css' %}?v=20261024-topbar">
     <link rel="stylesheet" href="{% static 'registry/admin_list_toolbar.css' %}?v=13">
     <link rel="stylesheet" href="{% static 'registry/admin_record.css' %}?v=2">
-    {% if staging_environment %}<style>.staging-admin-banner{background:#ffb12b;color:#171007;font-weight:800;padding:.7rem;text-align:center;letter-spacing:.06em}</style>{% endif %}
+    {% if staging_environment %}<style>.staging-admin-banner{flex:0 0 auto;box-sizing:border-box;width:100%;background:#ffb12b;color:#171007;font-size:11px;line-height:1.3;font-weight:600;padding:3px 12px;text-align:center;letter-spacing:.02em}</style>{% endif %}
 {% endblock %}
 
 {% block extrahead %}
@@ -27,8 +27,11 @@
     <script src="{% static 'registry/admin_viewport_gate.js' %}?v=20260716-4" defer></script>
 {% endblock %}
 
-{% block branding %}
+{% block environment_banner %}
 {% if staging_environment %}<div class="staging-admin-banner">DEVELOPMENT / TEST SITE: Data may be reset</div>{% endif %}
+{% endblock %}
+
+{% block branding %}
 {% if has_permission %}
 <span id="admin-app-icon" role="img" aria-label="Rat Race Admin" title="Rat Race Admin">{% if site_header_logo_url %}<img src="{{ site_header_logo_url }}" alt="">{% elif site_favicon_url %}<img src="{{ site_favicon_url }}" alt="">{% else %}<span>RR</span>{% endif %}</span>
 {% else %}<div id="site-name">Rat Race Admin</div>{% endif %}
