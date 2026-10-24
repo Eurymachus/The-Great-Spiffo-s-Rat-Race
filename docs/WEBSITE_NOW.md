@@ -9,7 +9,11 @@
 - Re-upload both CSVs after reset to repeat the import, claim and update journey.
   Pause staging writes during reset. See [ADMINISTRATION.md](ADMINISTRATION.md#repeatable-rat-race-10-staging-rehearsals).
 - Local regression tests cover preview, environment refusal, preservation,
-  repeat import and rollback. Staging deployment and host rehearsal remain outstanding.
+  repeat import and rollback. Deployed and rehearsed on staging on 24 October:
+  the dataset was already empty, so no reset was performed. Imported 211 real
+  spreadsheet identities (14 Active, 197 Inactive). Twitch and YouTube are now
+  configured; YouTube channel/media access was verified. See
+  [the staging rehearsal record](STAGING_REHEARSAL_2026-10-24.md).
 
 ## Claim review workspace (24 October 2026)
 
@@ -22,9 +26,20 @@
   decline requires a reason and completed reviews cannot notify twice.
 - All 21 legacy import/claim tests pass, including filtered modal links,
   view-only access, escaped evidence, decline and repeated approval.
-- Local implementation only; staging deployment and browser acceptance pending.
+- Deployed to staging as `049f40f` on 24 October. Health, protected data and
+  matching worker checks pass. Authenticated browser acceptance awaits sign-in.
 
 ## RR Admin Dashboard (24 October 2026)
+
+- Layout follow-up: Home is the first sidebar link on every admin page. The
+  Dashboard contains review queues and runtime status only; duplicate section
+  navigation was removed. It extends the admin base directly, avoiding Django's
+  `.dashboard #content { width: 600px; }` rule. Browser preview at 1280px confirms
+  966px available content, three card columns and no duplicated navigation.
+- Layout correction deployed as `38b1bc8`; public release/readiness, installer
+  worker checks and protected-data comparisons pass. Three focused Dashboard
+  tests pass. Visual check used an isolated rendered preview; authenticated
+  staging browser acceptance still requires owner sign-in in the in-app tab.
 
 - `/admin/` now opens a role-aware Dashboard instead of redirecting into a
   model list. Cards link to pending 2.0 submissions, 1.0 claims/updates, avatar
@@ -34,8 +49,8 @@
   participant queues. Reference-source staff see release and worker heartbeat.
 - Five focused tests pass, covering all standard roles, restricted branding
   access, a real pending-claim count and filtered queue destinations.
-- Implemented locally; immutable staging release remains `b580e48`. Dashboard
-  deployment and browser acceptance remain outstanding.
+- Deployed to staging as `049f40f` on 24 October. Authenticated browser
+  acceptance awaits sign-in in the in-app browser.
 
 ## Version-aware authority catalogue links (17 October 2026)
 
