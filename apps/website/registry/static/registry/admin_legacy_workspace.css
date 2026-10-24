@@ -1,0 +1,18 @@
+.rr-legacy-workspace .legacy-status-tabs { margin-top: 1.5rem; }
+.rr-legacy-workspace #changelist .results { border: 1px solid var(--hairline-color); overflow-x: auto; }
+.rr-legacy-workspace #result_list { width: 100%; border-collapse: collapse; }
+.rr-legacy-workspace #result_list thead th { padding: .75rem 1rem; background: var(--darkened-bg); white-space: nowrap; }
+.rr-legacy-workspace #result_list tbody th,
+.rr-legacy-workspace #result_list tbody td { padding: 1rem; vertical-align: middle; }
+.rr-legacy-workspace #result_list tbody tr:nth-child(even) > * { background: var(--darkened-bg); }
+.rr-legacy-workspace #result_list tbody th small,
+.rr-legacy-workspace #result_list tbody td small { display: block; margin-top: .35rem; color: var(--body-quiet-color); font-weight: normal; }
+.rr-legacy-workspace .claim-row-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.rr-legacy-workspace .claim-row-actions .button { padding: .65rem .9rem; white-space: nowrap; }
+.rr-legacy-workspace #changelist .paginator { padding: 1rem; margin-top: 1rem; border-top: 1px solid var(--hairline-color); }
+
+.legacy-reset-view { flex: 0 0 auto; align-self: center; padding: .5rem .75rem; white-space: nowrap; }
+.legacy-reset-view[hidden] { display: none; }
+.rr-legacy-workspace #result_list thead th { font-size: .6875rem; line-height: 1.4; font-weight: 600; }
+.rr-legacy-workspace #result_list thead th .text a { padding: 0; }
+.rr-legacy-workspace .run-table-tabs { margin-bottom: -1px; }

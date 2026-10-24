@@ -105,7 +105,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const reset = document.createElement('button');
   reset.type = 'button'; reset.className = 'shared-filter-reset'; reset.textContent = 'Reset filters';
-  reset.addEventListener('click', () => { groups.forEach(group => group.clear()); params.delete('p'); schedule(); });
+  const savedViewReset = document.querySelector('.legacy-reset-view');
+  if (savedViewReset) {
+    reset.textContent = 'Reset view';
+    reset.addEventListener('click', () => { location.assign(savedViewReset.href); });
+    savedViewReset.hidden = true;
+  } else {
+    reset.addEventListener('click', () => { groups.forEach(group => group.clear()); params.delete('p'); schedule(); });
+  }
   bar.append(button, reset, picker, chips);
   source.remove();
   list.prepend(bar);

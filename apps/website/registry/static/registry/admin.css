@@ -24,8 +24,13 @@ body:not(.login):not(.popup) #content {
     padding-inline: var(--admin-page-inset);
 }
 body:not(.login):not(.popup) #content {
-    /* Compensate for an absent scrollbar without narrowing background bands. */
-    padding-inline-end: calc(var(--admin-page-inset) + var(--admin-scrollbar-reserve, 0px));
+    width: calc(100% - var(--admin-scrollbar-reserve, 0px));
+    max-width: 1440px;
+    box-sizing: border-box;
+    margin-inline: auto;
+    /* Centre against the same viewport whether the scroll track is visible or not. */
+    position: relative;
+    left: calc(var(--admin-scrollbar-occupied, 0px) / 2);
 }
 @media (max-width: 767px) {
     html { --admin-page-inset: 12px; }

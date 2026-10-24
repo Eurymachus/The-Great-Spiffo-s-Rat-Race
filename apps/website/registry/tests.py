@@ -67,6 +67,26 @@ class LegacyDataImportTests(TestCase):
             uploaded_by=reviewer,
         ), reviewer
 
+    def test_legacy_workspace_saved_tabs_preserve_search(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        self.client.force_login(reviewer)
+        for model in ("legacyrun", "legacyrunsubmission", "legacyrunclaim", "legacydataimport"):
+            with self.subTest(model=model):
+                params = {"q": "Active"}
+                if model == "legacyrun":
+                    params["workspace"] = "runs"
+                response = self.client.get(reverse(f"admin:registry_{model}_changelist"), params)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'aria-label="Saved Rat Race 1.0 views"')
+                self.assertEqual(response.context["cl"].model._meta.model_name, model)
+                self.assertEqual(response.context["cl"].query, "Active")
+                selected = response.context["selected_view"]
+                saved = self.client.get(reverse("admin:registry_legacyrun_changelist"), {"view": selected.pk})
+                self.assertEqual(saved.status_code, 200)
+                self.assertEqual(saved.context["cl"].query, "Active")
+                self.assertEqual(saved.context["cl"].model._meta.model_name, model)
+
     def test_preview_merges_both_files_without_storing_channel_data(self):
         review, reviewer = self.create_review()
         self.assertEqual(review.preview["counts"]["merged_runs"], 3)
@@ -2494,7 +2514,7 @@ class RegistrationTests(TestCase):
         self.assertEqual(
             [[queue["title"] for queue in section["queues"]]
              for section in response.context["dashboard_sections"][:2]],
-            [["2.0 submissions"], ["1.0 claims", "1.0 updates"]],
+            [["2.0 submissions", "Mod submission reviews"], ["1.0 claims", "1.0 updates"]],
         )
         self.assertContains(response, "1.0 claims")
         self.assertEqual(response.context["title"], "Dashboard")
@@ -2505,11 +2525,14 @@ class RegistrationTests(TestCase):
         expected_urls = [model.get("admin_url") or model.get("add_url")
                          for app in response.context["available_apps"] for model in app["models"]
                          if model.get("admin_url") or model.get("add_url")]
+        legacy_urls = {reverse(f"admin:registry_{name}_changelist") for name in
+                       ("legacyrun", "legacyrunclaim", "legacyrunsubmission", "legacydataimport")}
+        expected_urls = [url for url in expected_urls if url not in legacy_urls] + [reverse("admin:registry_legacyrun_changelist")]
         self.assertCountEqual(menu_urls, expected_urls)
         detail = self.client.get(reverse("admin:registry_legacyrun_change", args=(legacy_run.pk,)))
         current_items = [item for section in detail.context["admin_menu"]
                          for item in section["items"] if item["current"]]
-        self.assertEqual([item["title"] for item in current_items], ["Runs and results"])
+        self.assertEqual([item["title"] for item in current_items], ["Runs and reviews"])
         self.assertNotContains(response, 'dashboard-sections-heading')
         self.assertNotContains(response, 'admin/css/dashboard.css')
         claim_queue = next(queue for queue in response.context["dashboard_queues"] if queue["title"] == "1.0 claims")

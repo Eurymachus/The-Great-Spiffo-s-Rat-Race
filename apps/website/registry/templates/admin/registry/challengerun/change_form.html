@@ -16,6 +16,9 @@
   {% if original and run_overview %}
 
     <div class="run-review challenge-run-detail">
+      {% if run_overview.export_error %}
+      <div class="errornote" role="alert"><strong>Stored approved export is invalid.</strong> {{ run_overview.export_error }} Approval comparison is unavailable. Displayed run data and its approval status have not been changed.</div>
+      {% endif %}
       <section class="run-review-hero run-record-banner admin-record-header">
         <div>
           <p class="run-review-kicker">Challenge Run</p>

@@ -1174,3 +1174,23 @@ contract and remaining host-specific work live in
 - Pre-commit verification: 51 relevant tests pass, migration drift and whitespace
   checks pass. Browser checks covered layout and menu/dialog actions; animated
   drag cursor behaviour still needs broader manual verification.
+
+## Unified Rat Race 1.0 workspace (24 October 2026)
+
+- Runs and reviews is the single 1.0 menu destination. Built-in saved tabs cover
+  runs, active runs, update review, claim review and data imports; each retains
+  the appropriate table and existing review actions.
+- Personal and shared saved views support filters, search, sorting, per-user
+  last-tab memory, drag reordering, hide/restore and reset. Shared edits require
+  `registry.manage_shared_legacy_views`; imports remain superuser-only.
+- Migration 0067 creates the view and preference tables and seeds shared tabs.
+  Migration 0068 prioritises Claim review, then Update review, for default tab
+  orders while retaining customised orders. First visits open Claim review.
+  Apply migrations before deploying the workspace. Existing direct list and
+  claim-review links remain supported.
+- Content width and centring now compensate for both visible and absent
+  scrollbars. Header backgrounds remain full width.
+- System diagnostics use cards for release, worker, installed game build and
+  catalogue counts/imports. Rat Race 2.0 includes pending mod reviews.
+- Invalid stored approved exports show a warning on run pages instead of
+  crashing; approval comparison is unavailable and stored records stay intact.

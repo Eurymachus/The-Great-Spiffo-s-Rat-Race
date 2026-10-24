@@ -1594,3 +1594,32 @@ class WorkshopModViewPreference(models.Model):
 class WorkshopModWorkspacePreference(models.Model):
     user = models.OneToOneField(Participant, on_delete=models.CASCADE)
     last_view = models.ForeignKey(WorkshopModSavedView, null=True, blank=True, on_delete=models.SET_NULL)
+
+
+class LegacySavedView(models.Model):
+    owner = models.ForeignKey(Participant, null=True, on_delete=models.SET_NULL, related_name="legacy_saved_views")
+    name = models.CharField(max_length=80)
+    shared = models.BooleanField(default=False)
+    filters = models.JSONField(default=dict)
+    system_key = models.CharField(max_length=30, unique=True, null=True, blank=True)
+
+    class Meta:
+        permissions = [("manage_shared_legacy_views", "Can manage shared Rat Race 1.0 views")]
+        ordering = ("pk",)
+
+
+class LegacyViewPreference(models.Model):
+    user = models.ForeignKey(Participant, on_delete=models.CASCADE)
+    view = models.ForeignKey(LegacySavedView, on_delete=models.CASCADE)
+    hidden = models.BooleanField(default=False)
+    position = models.PositiveIntegerField(default=0)
+    filters = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ("position", "pk")
+        constraints = [models.UniqueConstraint(fields=("user", "view"), name="unique_user_legacy_view")]
+
+
+class LegacyWorkspacePreference(models.Model):
+    user = models.OneToOneField(Participant, on_delete=models.CASCADE)
+    last_view = models.ForeignKey(LegacySavedView, null=True, blank=True, on_delete=models.SET_NULL)

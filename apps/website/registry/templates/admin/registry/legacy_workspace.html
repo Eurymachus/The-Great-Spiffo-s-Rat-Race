@@ -1,0 +1,29 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'registry/admin_run_review.css' %}">
+<link rel="stylesheet" href="{% static 'registry/admin_legacy_workspace.css' %}">
+{% endblock %}
+{% block bodyclass %}{{ block.super }} rr-legacy-workspace{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Dashboard</a> &rsaquo; Rat Race 1.0</div>{% endblock %}
+{% block result_list %}
+{% include "admin/registry/legacy_tabs.html" %}
+{{ block.super }}
+{% endblock %}
+
+{% block footer %}{{ block.super }}
+{% include "admin/registry/legacy_view_dialogs.html" %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  let opener;
+  const open = (id, button) => { opener = button.closest('.run-tab-menu')?.querySelector('summary') || button; button.closest('.run-tab-menu')?.removeAttribute('open'); document.getElementById(id).showModal(); };
+  document.querySelectorAll('[data-run-panel]').forEach(button => button.addEventListener('click', () => open(button.dataset.runPanel, button)));
+  document.querySelectorAll('.run-workspace-panel').forEach(panel => {
+    panel.querySelector('[data-close-panel]').addEventListener('click', () => panel.close());
+    panel.addEventListener('close', () => opener?.focus());
+  });
+
+});
+</script>
+{% endblock %}

@@ -26,10 +26,31 @@
   {% empty %}
   <p>No review queues are available for your role. Use the left navigation to open your administration sections.</p>
   {% endfor %}
-  {% if dashboard_runtime %}
+  {% if dashboard_runtime or dashboard_system_cards %}
   <section aria-labelledby="dashboard-system-heading">
     <h2 id="dashboard-system-heading">System</h2>
-  <p class="dashboard-runtime">Release <strong>{{ dashboard_runtime.release }}</strong> &middot; Reference worker: <strong>{% if dashboard_runtime.worker_ready %}Current heartbeat{% else %}No current heartbeat for this release{% endif %}</strong></p>
+    <div class="dashboard-system-cards">
+      {% if dashboard_runtime %}
+      <article class="dashboard-system-card">
+        <div class="dashboard-system-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5ZM3 8v9l9 5 9-5V8M12 13v9"/></svg>Deployed release</div>
+        <strong class="dashboard-system-value"><code>{{ dashboard_runtime.release }}</code></strong>
+        <p>Version running on this site</p>
+      </article>
+      <article class="dashboard-system-card {% if dashboard_runtime.worker_ready %}is-healthy{% else %}needs-attention{% endif %}">
+        <div class="dashboard-system-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12h5l3-8 4 16 3-8h5"/></svg>Reference worker</div>
+        <strong class="dashboard-system-value"><span class="dashboard-status-dot" aria-hidden="true"></span>{% if dashboard_runtime.worker_ready %}Heartbeat current{% else %}Needs attention{% endif %}</strong>
+        <p>{% if dashboard_runtime.worker_ready %}Heartbeat matches this release{% else %}No current heartbeat for this release{% endif %}</p>
+      </article>
+      {% endif %}
+      {% for card in dashboard_system_cards %}
+      <article class="dashboard-system-card">
+        <div class="dashboard-system-label">{{ card.label }}</div>
+        <strong class="dashboard-system-value">{{ card.value }}</strong>
+        <p>{{ card.detail }}</p>
+        <a class="dashboard-system-action" href="{{ card.url }}">{{ card.action }} &rarr;</a>
+      </article>
+      {% endfor %}
+    </div>
   </section>
   {% endif %}
 </div>

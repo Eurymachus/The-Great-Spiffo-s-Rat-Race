@@ -550,10 +550,22 @@ def build_run_review(current_submission):
 
 
 def build_challenge_run_overview(run):
-    approved_events = decode_run_export_cached(run.approved_submission.raw_export).events if run.approved_submission else []
+    approved_events = []
+    export_error = ""
+    if run.approved_submission:
+        try:
+            approved_events = decode_run_export_cached(run.approved_submission.raw_export).events
+        except InvalidRunExport as exc:
+            export_error = str(exc)
     events = [event for event in (run.latest_events or []) if isinstance(event, dict)]
     counts = Counter(str(event.get("event_type") or "unknown") for event in events)
+    event_rows = _event_rows(events, approved_events)
+    if export_error:
+        for row in event_rows:
+            row["review_level"] = "warning"
+            row["review_reason"] = "Approval comparison unavailable: the stored approved export is invalid."
     return {
+        "export_error": export_error,
         "event_counts": [
             {
                 "event_type": event_type,
@@ -564,7 +576,7 @@ def build_challenge_run_overview(run):
             }
             for event_type, count in counts.most_common()
         ],
-        "event_rows": _event_rows(events, approved_events),
+        "event_rows": event_rows,
         "snapshot_json": json.dumps(
             run.latest_projection or {}, indent=2, ensure_ascii=False, sort_keys=True
         ),

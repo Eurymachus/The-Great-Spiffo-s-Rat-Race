@@ -67,6 +67,11 @@ class RatRaceAdminSite(AdminSite):
             section["open"] = section["id"] in {"rr2", "rr1"} or any(
                 item["current"] for item in section["items"]
             )
+        if sections["rr1"]["items"]:
+            sections["rr1"]["items"] = [{
+                "title": "Runs and reviews", "url": reverse("admin:registry_legacyrun_changelist"),
+                "current": any(item["current"] for item in sections["rr1"]["items"]),
+            }]
         context["admin_menu"] = [section for section in sections.values() if section["items"]]
         context["admin_home_current"] = request.path == reverse("admin:index")
         return context
@@ -75,6 +80,7 @@ class RatRaceAdminSite(AdminSite):
         queues = []
         definitions = (
             ("registry.RunSubmission", "2.0 submissions", {"status": "received"}, {"status__exact": "received"}),
+            ("registry.WorkshopMod", "Mod submission reviews", {"ruling": "pending"}, {"ruling__exact": "pending", "_filters": "1"}),
             ("registry.LegacyRunClaim", "1.0 claims", {"status": "pending"}, {"status__exact": "pending"}),
             ("registry.LegacyRunSubmission", "1.0 updates", {"status": "received", "source": "participant"}, {"status__exact": "received", "source__exact": "participant"}),
             ("registry.Participant", "Avatar reviews", {"avatar_status": "pending"}, {"avatar_status__exact": "pending"}),
@@ -96,8 +102,11 @@ class RatRaceAdminSite(AdminSite):
                 query = {**dict.fromkeys(FILTERS, ""), "work": "review"}
             elif label == "registry.Participant":
                 query = {**query, "_filters": "1"}
+            elif label in {"registry.LegacyRunClaim", "registry.LegacyRunSubmission"}:
+                url = reverse("admin:registry_legacyrun_changelist")
+                query = {**query, "workspace": "claims" if label.endswith("Claim") else "updates", "_filters": "1"}
             queues.append({
-                "section": "rr2" if label == "registry.RunSubmission" else (
+                "section": "rr2" if label in {"registry.RunSubmission", "registry.WorkshopMod"} else (
                     "rr1" if label in {"registry.LegacyRunClaim", "registry.LegacyRunSubmission"}
                     else "shared"
                 ),
@@ -123,6 +132,33 @@ class RatRaceAdminSite(AdminSite):
                 "release": settings.RELEASE_ID,
                 "worker_ready": bool(heartbeat and heartbeat.get("release_id") == settings.RELEASE_ID),
             }
+        system_cards = []
+        if request.user.has_perm("operations.view_referencesource"):
+            source_model = apps.get_model("operations", "ReferenceSource")
+            for source in source_model.objects.order_by("pk"):
+                system_cards.append({
+                    "label": source.name,
+                    "value": f"Build {source.installed_build_id}" if source.installed_build_id else "Not installed",
+                    "detail": "Decompiled reference matches" if source.installed_build_id and source.installed_build_id == source.decompiled_build_id else "Decompiled reference needs updating",
+                    "url": reverse("admin:operations_referencesource_change", args=(source.pk,)),
+                    "action": "View game reference",
+                })
+        if request.user.has_perm("zomboid_catalogue.view_catalogueentry"):
+            entries = apps.get_model("zomboid_catalogue", "CatalogueEntry").objects
+            system_cards.append({
+                "label": "Game catalogue", "value": f"{entries.filter(is_active=True).count():,} active entries",
+                "detail": f"{entries.count():,} total versioned entries",
+                "url": reverse("admin:zomboid_catalogue_catalogueentry_changelist"), "action": "Browse catalogue",
+            })
+        if request.user.has_perm("operations.view_catalogueimportreview"):
+            reviews = apps.get_model("operations", "CatalogueImportReview").objects
+            latest = reviews.filter(status="approved").order_by("-reviewed_at", "-pk").first()
+            system_cards.append({
+                "label": "Catalogue imports", "value": f"{reviews.filter(status='ready').count():,} awaiting review",
+                "detail": f"Last approved: Zomboid {latest.game_version} (build {latest.installed_build_id})" if latest else "No approved catalogue import yet",
+                "url": reverse("admin:operations_catalogueimportreview_changelist"), "action": "Review imports",
+            })
+        context["dashboard_system_cards"] = system_cards
         return super().index(request, context)
 
     registry_groups = (

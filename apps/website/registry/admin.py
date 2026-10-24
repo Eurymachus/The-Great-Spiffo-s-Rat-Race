@@ -1,3 +1,4 @@
+from .legacy_admin_workspace import LegacyWorkspaceMixin
 import csv
 import uuid
 from datetime import timedelta
@@ -104,7 +105,7 @@ class ExploitRulingAdmin(admin.ModelAdmin):
 
 
 @admin.register(LegacyRun)
-class LegacyRunAdmin(admin.ModelAdmin):
+class LegacyRunAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
     list_display = (
         "legacy_participant_name", "lifecycle", "claimed_participant",
         "current_submission", "best_submission", "updated_at",
@@ -121,7 +122,7 @@ class LegacyRunAdmin(admin.ModelAdmin):
 
 
 @admin.register(LegacyRunSubmission)
-class LegacyRunSubmissionAdmin(admin.ModelAdmin):
+class LegacyRunSubmissionAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
     change_form_template = "admin/registry/legacyrunsubmission/change_form.html"
     list_display = (
         "run", "source", "status", "source_rank", "zombie_kills",
@@ -231,7 +232,7 @@ class LegacyRunSubmissionAdmin(admin.ModelAdmin):
 
 
 @admin.register(LegacyRunClaim)
-class LegacyRunClaimAdmin(admin.ModelAdmin):
+class LegacyRunClaimAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
     change_list_template = "admin/registry/legacyrunclaim/change_list.html"
     list_select_related = ("run", "run__current_submission", "run__best_submission", "participant", "participant__primary_streaming_account", "reviewed_by")
     list_display = ("run", "participant", "status", "submitted_at", "reviewed_by", "reviewed_at")
@@ -257,7 +258,8 @@ class LegacyRunClaimAdmin(admin.ModelAdmin):
         context = dict(extra_context or {})
         context["title"] = "Rat Race 1.0 run claim reviews"
         response = super().changelist_view(request, extra_context=context)
-        if hasattr(response, "context_data") and response.context_data and "cl" in response.context_data:
+        if (hasattr(response, "context_data") and response.context_data and "cl" in response.context_data
+                and response.context_data["cl"].model is LegacyRunClaim):
             claims = list(response.context_data["cl"].result_list)
             selected = None
             if request.GET.get("claim"):
@@ -395,7 +397,7 @@ class LegacyDataImportUploadForm(forms.Form):
 
 
 @admin.register(LegacyDataImport)
-class LegacyDataImportAdmin(admin.ModelAdmin):
+class LegacyDataImportAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
     change_list_template = "admin/registry/legacydataimport/change_list.html"
     change_form_template = "admin/registry/legacydataimport/change_form.html"
     list_display = (

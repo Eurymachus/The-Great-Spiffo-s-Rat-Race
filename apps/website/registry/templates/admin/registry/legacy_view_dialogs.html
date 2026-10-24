@@ -1,0 +1,14 @@
+<dialog class="run-workspace-panel" id="create-run-view" aria-labelledby="create-view-title">
+  <header><h2 id="create-view-title">Save view</h2><button type="button" data-close-panel aria-label="Close">×</button></header>
+  <p>Saves the currently applied search, filters and sorting. Use Search &amp; filters to adjust them first.</p>
+  <form action="{% url 'admin:registry_legacyrun_changelist' %}" method="post" class="save-view-form">
+    {% csrf_token %}<input type="hidden" name="view" value="{{ selected_view.pk }}">
+    {% for key,value in saved_filter_fields %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    <label>View name <input name="name" value="{{ selected_view.name }}" maxlength="80" required></label>
+    {% if can_share_views %}<label><input type="checkbox" name="shared"{% if selected_view.shared %} checked{% endif %}> Shared with moderators</label>{% endif %}
+    <footer class="save-view-actions">
+      {% if can_edit_view %}<button class="button save-view-update" name="saved_view_action" value="update">Update</button>{% endif %}
+      <button class="button save-view-new" name="saved_view_action" value="create">Save New</button>
+    </footer>
+  </form>
+</dialog>

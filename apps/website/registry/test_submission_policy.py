@@ -15,6 +15,23 @@ from .vod_evidence import parse_vod_url
 
 @override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class SubmissionPolicyTests(TestCase):
+    def test_invalid_approved_export_does_not_crash_run_tabs(self):
+        sub = self.submission(events=self.events)
+        sub.raw_export = "LOCAL SYNTHETIC UI DEMO: not a genuine tracker export."
+        sub.status = RunSubmission.Status.APPROVED
+        sub.save(update_fields=("raw_export", "status"))
+        run = sub.run
+        run.approved_submission = sub
+        run.save(update_fields=("approved_submission",))
+        self.client.force_login(self.staff)
+        for tab in ("overview", "submissions", "audits"):
+            response = self.client.get(reverse("admin:registry_challengerun_change", args=(run.pk,)), {"tab": tab})
+            self.assertContains(response, "Stored approved export is invalid.")
+            self.assertTrue(response.context["run_overview"]["export_error"])
+        sub.refresh_from_db()
+        self.assertEqual(sub.status, RunSubmission.Status.APPROVED)
+        self.assertTrue(sub.raw_export.startswith("LOCAL SYNTHETIC"))
+
     def setUp(self):
         self.owner = Participant.objects.create_user(email="policy@example.com", nickname="Policy", password="password", status="verified")
         self.staff = Participant.objects.create_superuser(email="audit@example.com", nickname="Auditor", password="password")

@@ -14,6 +14,7 @@
         const syncContentInset = () => {
             const occupied = pageScroll.offsetWidth - pageScroll.clientWidth;
             pageScroll.style.setProperty("--admin-scrollbar-reserve", `${Math.max(0, scrollbarWidth - occupied)}px`);
+            pageScroll.style.setProperty("--admin-scrollbar-occupied", `${occupied}px`);
         };
         const observer = new ResizeObserver(syncContentInset);
         observer.observe(pageScroll);
