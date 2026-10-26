@@ -28,11 +28,13 @@
   <form id="claim-approve-{{ claim.pk }}" method="post" action="{% url 'admin:registry_legacyrunclaim_approve' claim.pk %}">{% csrf_token %}</form>
   {% endif %}
   <dialog class="claim-detail-dialog" id="claim-{{ claim.pk }}" aria-labelledby="claim-title-{{ claim.pk }}" {% if selected_claim.pk == claim.pk %}data-claim-auto-open{% endif %}>
-    <header class="claim-review-header"><div><p class="claim-review-kicker">Rat Race 1.0 claim</p><h2 id="claim-title-{{ claim.pk }}">{{ claim.run.legacy_participant_name }}</h2></div><button type="button" class="button" data-claim-close>Close</button></header>
+    <header class="claim-dialog-header">
+      <div class="claim-dialog-section-bar"><p class="claim-review-kicker">Rat Race 1.0 claim</p><button type="button" class="claim-dialog-close" data-claim-close aria-label="Close claim review">&times;</button></div>
+      <div class="claim-dialog-heading"><h2 id="claim-title-{{ claim.pk }}">{{ claim.run.legacy_participant_name }}</h2><span class="run-review-status status-{{ claim.status }}">{{ claim.get_status_display }}</span></div>
+    </header>
     <div class="claim-detail-body">
       <dl class="claim-review-facts">
         <div><dt>Claimant</dt><dd>{{ claim.participant.nickname }}</dd></div>
-        <div><dt>Status</dt><dd>{{ claim.get_status_display }}</dd></div>
         <div><dt>Submitted</dt><dd>{{ claim.submitted_at|date:"j F Y, H:i" }}</dd></div>
         <div><dt>Run lifecycle</dt><dd>{{ claim.run.get_lifecycle_display }}</dd></div>
       </dl>
@@ -44,13 +46,32 @@
       </div></section>
       {% if claim.run.claimed_participant %}<p class="claim-review-evidence">Currently linked to {{ claim.run.claimed_participant.nickname }}.</p>{% endif %}
       {% if claim.reviewed_at %}<section class="claim-review-evidence"><h3>Decision</h3><p>{{ claim.get_status_display }} by {{ claim.reviewed_by.nickname|default:"Former administrator" }}, {{ claim.reviewed_at|date:"j F Y, H:i" }}</p><p>{{ claim.review_note|linebreaksbr }}</p></section>{% endif %}
-      {% if claim.status == "pending" and claim.can_review %}
-      <section class="claim-review-evidence claim-decision-actions">
-        <form method="post" action="{% url 'admin:registry_legacyrunclaim_approve' claim.pk %}">{% csrf_token %}<label for="claim-note-{{ claim.pk }}">Review note (optional)</label><textarea id="claim-note-{{ claim.pk }}" name="review_note" rows="2"></textarea><button type="submit" class="button">Approve claim</button></form>
-        <details><summary>Decline claim</summary><form method="post" action="{% url 'admin:registry_legacyrunclaim_decline' claim.pk %}">{% csrf_token %}<label for="claim-reason-{{ claim.pk }}">Reason (required)</label><textarea id="claim-reason-{{ claim.pk }}" name="reason" rows="3" maxlength="1000" required></textarea><button type="submit" class="button run-review-decline">Decline claim</button></form></details>
-      </section>
-      {% endif %}
     </div>
+      {% if claim.status == "pending" and claim.can_review %}
+      <footer class="claim-decision-actions">
+        <form method="post" action="{% url 'admin:registry_legacyrunclaim_approve' claim.pk %}" data-claim-decision-form>{% csrf_token %}
+          <label for="claim-note-{{ claim.pk }}">Review note (optional for approval, required for decline)</label>
+          <textarea id="claim-note-{{ claim.pk }}" name="review_note" rows="2" maxlength="1000"></textarea>
+          <input type="hidden" name="reason" value="">
+          <div class="claim-action-buttons">
+            <button type="submit" class="button claim-decline-button" formaction="{% url 'admin:registry_legacyrunclaim_decline' claim.pk %}" data-claim-decline>Decline</button>
+            <button type="submit" class="button">Approve</button>
+          </div>
+        </form>
+        <dialog class="claim-reason-dialog" aria-labelledby="claim-reason-title-{{ claim.pk }}">
+          <h2 id="claim-reason-title-{{ claim.pk }}">Finalise decline</h2>
+          <p>A reason is required and will be shared with the claimant.</p>
+          <form method="post" action="{% url 'admin:registry_legacyrunclaim_decline' claim.pk %}" data-claim-reason-form>{% csrf_token %}
+            <label for="claim-reason-{{ claim.pk }}">Decline reason</label>
+            <textarea id="claim-reason-{{ claim.pk }}" name="reason" rows="3" maxlength="1000" required autofocus></textarea>
+            <div class="claim-action-buttons">
+              <button type="button" class="button claim-reason-cancel">Cancel</button>
+              <button type="submit" class="button claim-decline-button">Decline claim</button>
+            </div>
+          </form>
+        </dialog>
+      </footer>
+      {% endif %}
   </dialog>
 {% endfor %}
 {% endblock %}

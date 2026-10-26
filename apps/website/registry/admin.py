@@ -1,3 +1,4 @@
+from django.templatetags.static import static
 from .legacy_admin_workspace import LegacyWorkspaceMixin
 import csv
 import uuid
@@ -250,9 +251,9 @@ class LegacyRunClaimAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
     class Media:
         css = {"all": (
             "registry/admin_run_review.css",
-            "registry/admin_legacy_claim_review.css",
+            static("registry/admin_legacy_claim_review.css") + "?v=20261025-actions",
         )}
-        js = ("registry/admin_legacy_claim_review.js",)
+        js = (static("registry/admin_legacy_claim_review.js") + "?v=20261025-actions",)
 
     def changelist_view(self, request, extra_context=None):
         context = dict(extra_context or {})

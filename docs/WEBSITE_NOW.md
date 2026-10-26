@@ -17,6 +17,24 @@
 
 ## Claim review workspace (24 October 2026)
 
+- Claim modal now has adjacent Approve and Decline buttons. Decline sends the
+  existing review note as its reason, or opens a required-reason dialog when
+  the note is blank. Browser checked opening, required validation, cancellation
+  and focus return without deciding the local claim. 22 claim/import tests pass.
+
+- Direct legacy list URLs now retain saved-view defaults instead of clearing
+  and remembering all filters. Claim review defaults to Pending review;
+  Approved and All remain available through filters. Local personal view reset
+  and browser-verified on 25 October. All 29 saved-view and import/claim tests
+  pass. Not deployed.
+
+- Local modal styling follow-up (25 October): shared-style section bar and close
+  icon, compact metadata, bordered result panels, scrolling evidence and separate
+  action footer. All 22 legacy import/claim tests pass. Local browser check confirms the
+  approved-claim layout, body scrolling, fixed header, close icon, Escape and
+  focus return. Pending-action footer and mobile checks remain outstanding.
+  Local website returns HTTP 200 with one logical reference-worker tree; not deployed.
+
 - The 1.0 claims list now includes claimant/channel summaries, evidence excerpts,
   historical bests and inline approval. Full details opens a modal containing
   both historical results, channels, full evidence and decision history.

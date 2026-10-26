@@ -17,6 +17,34 @@ document.addEventListener("DOMContentLoaded", () => {
             if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
         });
         dialog.addEventListener("close", () => { trigger?.focus(); });
+        const decisionForm = dialog.querySelector("[data-claim-decision-form]");
+        const reasonDialog = dialog.querySelector(".claim-reason-dialog");
+        if (decisionForm && reasonDialog) {
+            const note = decisionForm.elements.review_note;
+            const reason = reasonDialog.querySelector("textarea");
+            decisionForm.addEventListener("submit", event => {
+                if (!event.submitter?.hasAttribute("data-claim-decline")) return;
+                decisionForm.elements.reason.value = note.value.trim();
+                if (!decisionForm.elements.reason.value) {
+                    event.preventDefault();
+                    reasonDialog.showModal();
+                }
+            });
+            reasonDialog.querySelector(".claim-reason-cancel").addEventListener("click", () => reasonDialog.close());
+            reason.addEventListener("input", () => reason.setCustomValidity(""));
+            reasonDialog.querySelector("form").addEventListener("submit", event => {
+                if (!reason.value.trim()) {
+                    event.preventDefault();
+                    reason.setCustomValidity("Enter a reason for declining this claim.");
+                    reason.reportValidity();
+                }
+            });
+            reasonDialog.addEventListener("close", event => {
+                event.stopPropagation();
+                if (reason.value.trim()) note.value = reason.value;
+                decisionForm.querySelector("[data-claim-decline]").focus();
+            });
+        }
         if (dialog.hasAttribute("data-claim-auto-open")) dialog.showModal();
     });
 });

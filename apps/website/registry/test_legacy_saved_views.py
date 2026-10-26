@@ -2,7 +2,7 @@ from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Participant, LegacySavedView, LegacyViewPreference, LegacyWorkspacePreference
+from .models import Participant, LegacyRun, LegacyRunClaim, LegacySavedView, LegacyViewPreference, LegacyWorkspacePreference
 
 
 class LegacySavedViewTests(TestCase):
@@ -84,3 +84,22 @@ class LegacySavedViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(LegacyViewPreference.objects.get(user=self.staff, view=view).filters, {})
         self.assertEqual(self.post("delete", view=view.pk).status_code, 404)
+
+    def test_direct_claim_list_keeps_pending_default_and_explicit_status_filters(self):
+        run = LegacyRun.objects.create(source_key="claim-filter", legacy_participant_name="Filter Racer")
+        pending = LegacyRunClaim.objects.create(run=run, participant=self.staff)
+        other = Participant.objects.create_user(email="approved-filter@example.com", nickname="Approved Racer")
+        approved = LegacyRunClaim.objects.create(run=run, participant=other, status="approved")
+        url = reverse("admin:registry_legacyrunclaim_changelist")
+        view = LegacySavedView.objects.get(system_key="claims")
+        response = self.client.get(url)
+        self.assertEqual(list(response.context["cl"].result_list), [pending])
+        self.assertEqual(LegacyViewPreference.objects.get(user=self.staff, view=view).filters["status__exact"], "pending")
+        response = self.client.get(self.url, {"view": view.pk})
+        self.assertEqual(list(response.context["cl"].result_list), [pending])
+        response = self.client.get(url, {"status__exact": "approved"})
+        self.assertEqual(list(response.context["cl"].result_list), [approved])
+        response = self.client.get(url, {"_filters": "1", "status__exact": ""})
+        self.assertEqual(set(response.context["cl"].result_list), {pending, approved})
+        response = self.client.get(url, {"reset": "1"})
+        self.assertEqual(list(response.context["cl"].result_list), [pending])

@@ -22,7 +22,6 @@ class LegacyWorkspaceMixin:
                 request.GET = request.GET.copy()
                 kind = next(key for key, value in WORKSPACES.items() if value == self.model._meta.model_name)
                 request.GET["workspace"] = kind
-                request.GET["_filters"] = "1"
             params, saved_context = resolve_view(request)
             request.GET = params
             request.legacy_workspace_resolved = True

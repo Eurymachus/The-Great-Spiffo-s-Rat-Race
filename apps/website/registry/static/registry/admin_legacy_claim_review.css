@@ -128,13 +128,53 @@
 .claim-workspace small { display: block; margin-top: .4rem; color: var(--body-quiet-color); font-weight: normal; }
 .claim-row-actions { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
 .claim-workspace td { max-width: 25rem; overflow-wrap: anywhere; }
-.claim-detail-dialog { width: min(60rem, calc(100vw - 3rem)); max-height: 85vh; padding: 0; border: 1px solid var(--hairline-color); border-radius: 8px; background: var(--body-bg); color: var(--body-fg); }
+/* Claim dialogs follow the shared review header, scrolling body and action footer. */
+.claim-detail-dialog { box-sizing: border-box; width: min(48rem, calc(100vw - 2rem)); max-height: 90vh; max-height: 90dvh; padding: 0; overflow: hidden; border: 1px solid var(--hairline-color); border-radius: 8px; background: var(--body-bg); color: var(--body-fg); box-shadow: 0 16px 64px #0006; }
+.claim-detail-dialog[open] { display: flex; flex-direction: column; }
 .claim-detail-dialog::backdrop { background: rgb(0 0 0 / 65%); }
-.claim-detail-dialog > header { border-bottom: 1px solid var(--hairline-color); }
-.claim-detail-body { overflow-wrap: anywhere; }
-.claim-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1.5rem; }
-.claim-results dl { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
-.claim-results dd { margin: 0; }
-.claim-decision-actions form { display: grid; gap: .7rem; margin-bottom: 1rem; }
-.claim-decision-actions textarea { box-sizing: border-box; width: 100%; }
-.claim-decision-actions summary { cursor: pointer; margin-bottom: .8rem; }
+.claim-dialog-header { flex: 0 0 auto; border-bottom: 1px solid var(--hairline-color); }
+.claim-dialog-section-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .25rem .75rem .25rem 1.5rem; background: var(--darkened-bg); }
+.claim-dialog-section-bar p { margin: 0; }
+.claim-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.5rem; }
+.claim-dialog-heading h2 { margin: 0; padding: 0; background: none; color: var(--body-fg); font-size: 1.4rem; overflow-wrap: anywhere; }
+.claim-detail-dialog button { box-sizing: border-box; min-height: 44px; padding: .65rem 1rem; border: 1px solid var(--hairline-color); border-radius: 4px; font: inherit; cursor: pointer; }
+.claim-detail-dialog button.claim-dialog-close { width: 44px; padding: 0; border-color: transparent; background: transparent; color: var(--body-fg); font-size: 24px; }
+.claim-detail-dialog button.claim-dialog-close:hover { background: var(--selected-bg); }
+.claim-detail-dialog button:focus-visible, .claim-detail-dialog summary:focus-visible { outline: 2px solid var(--link-fg); outline-offset: 2px; }
+.claim-detail-body { min-height: 0; overflow: auto; overflow-wrap: anywhere; padding: 0 1.5rem; }
+.claim-detail-dialog .claim-review-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; padding: 1rem 0; border-top: 0; background: none; }
+.claim-detail-dialog .claim-review-facts div { display: block; }
+.claim-detail-dialog .claim-review-facts dt { font-size: .75rem; margin-bottom: .3rem; font-weight: normal; }
+.claim-detail-dialog .claim-review-evidence { padding: 1rem 0; margin: 0; }
+.claim-detail-dialog .claim-review-evidence + .claim-review-evidence { border-top: 1px solid var(--hairline-color); }
+.claim-detail-dialog .claim-review-evidence ul { padding: 0; margin: 0; list-style: none; }
+.claim-detail-dialog .claim-review-evidence li { list-style: none; padding: .3rem 0; }
+.claim-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: .75rem; }
+.claim-results > div { border: 1px solid var(--hairline-color); border-radius: 4px; padding: 1rem; }
+.claim-results h4 { margin: 0 0 .75rem; }
+.claim-results dl { display: grid; grid-template-columns: 1fr auto; gap: .5rem 1rem; margin: 0; font-variant-numeric: tabular-nums; }
+.claim-results dt { color: var(--body-quiet-color); font-weight: normal; }
+.claim-results dd { margin: 0; text-align: right; }
+.claim-decision-actions { flex: 0 1 auto; overflow: auto; padding: 1rem 1.5rem; border-top: 1px solid var(--hairline-color); background: var(--darkened-bg); }
+.claim-decision-actions form { display: grid; gap: .5rem; margin: 0; }
+.claim-decision-actions button { justify-self: end; background: var(--button-bg); color: var(--button-fg); }
+.claim-decision-actions button:hover { background: var(--button-hover-bg); }
+.claim-decision-actions textarea { box-sizing: border-box; width: 100%; min-height: 3rem; }
+.claim-decision-actions details { margin-top: .75rem; }
+.claim-decision-actions summary { cursor: pointer; color: var(--link-fg); }
+.claim-decision-actions details[open] summary { margin-bottom: .75rem; }
+@media (max-width: 600px) {
+    .claim-dialog-section-bar { padding-left: 1rem; }
+    .claim-dialog-heading, .claim-decision-actions { padding: 1rem; }
+    .claim-dialog-heading { flex-wrap: wrap; }
+    .claim-detail-body { padding-inline: 1rem; }
+    .claim-detail-dialog .claim-review-facts, .claim-results { grid-template-columns: 1fr; }
+}
+
+.claim-action-buttons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .75rem; margin-top: .5rem; }
+.claim-detail-dialog .claim-decline-button { background: var(--delete-button-bg); color: var(--button-fg); }
+.claim-detail-dialog .claim-decline-button:hover { background: var(--delete-button-hover-bg); }
+.claim-reason-dialog { box-sizing: border-box; width: min(32rem, calc(100vw - 2rem)); max-height: 85dvh; overflow: auto; padding: 1.5rem; border: 1px solid var(--hairline-color); border-radius: 8px; background: var(--body-bg); color: var(--body-fg); box-shadow: 0 16px 64px #0006; }
+.claim-reason-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+.claim-reason-dialog h2 { margin: 0 0 .75rem; }
+.claim-detail-dialog .claim-reason-cancel { background: var(--body-bg); color: var(--body-fg); }
