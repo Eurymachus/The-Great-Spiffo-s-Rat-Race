@@ -1,5 +1,99 @@
 # Production Deployment Contract
 
+## OSWALD Cloudflare Tunnel maintenance (26 October 2026)
+
+The host's shared tunnel connector was upgraded from **2026.7.3** to
+**2026.10.4** following the [eMudhra certificate compromise notice](https://blog.cloudflare.com/emudhra-certificate-compromise).
+The target was verified against the [official stable release](https://github.com/cloudflare/cloudflared/releases/tag/2026.10.4).
+Follow [Cloudflare's update guidance](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/update-cloudflared/)
+and re-check the latest supported version for future maintenance.
+
+### Installation and preserved configuration
+
+- Windows MSI installation, tracked by WinGet as `Cloudflare.cloudflared`.
+- Executable: `C:\Program Files (x86)\cloudflared\cloudflared.exe`.
+- Service: `Cloudflared`, automatic startup, running as `LocalSystem`.
+- Remotely managed tunnel; the service uses `tunnel run --token-file` with
+  `C:\ProgramData\cloudflared\token`. Never print the token or unredacted
+  service/process command lines. The token remains protected by its existing ACL.
+- Service recovery settings, executable path, startup type, service account and
+  token-file configuration were compared before/after and remained unchanged.
+- Metrics/readiness bind to `127.0.0.1:20241`. `/ready` reports connector
+  readiness; `/metrics` exposes the version of the running process. The local
+  `/config` endpoint exposes the active remotely managed configuration: treat it
+  as operational configuration and do not publish its full contents.
+
+The active ingress configuration was inspected before upgrading. It contains:
+
+| Public hostname | Origin |
+| --- | --- |
+| `tgsrr.com` | `http://127.0.0.1:8000` |
+| `www.tgsrr.com` | `http://127.0.0.1:8000` |
+| `dev.tgsrr.com` | `http://127.0.0.1:8002` |
+| Catch-all | `http_status:404` |
+
+No HTTPS origins were configured, so origin certificate-chain replacement was
+unnecessary. TLS verification was not disabled. Reinspect actual configuration
+before each future upgrade; do not assume this route inventory remains current.
+
+### Upgrade procedure used
+
+1. Established the public/local baseline and inspected the running service,
+   package registration, token-file mechanism and active ingress configuration.
+2. Downloaded the official `cloudflared-windows-amd64.exe` for 2026.10.4 and
+   verified GitHub's published SHA-256:
+   `411b16d40c8d872243efeb52c550053d00af0a8a97fbb32e730fb8aba429eaa8`.
+3. Created an administrator/SYSTEM-only backup directory at
+   `C:\ProgramData\cloudflared\security-upgrade-20261026`. It retains the
+   previous executable, service registry export, protected token backup, active
+   configuration, package-manager log and final verification receipt. Do not
+   expose these backup contents or restore the vulnerable binary as routine
+   rollback.
+4. Started the verified new binary as a separate manual-start LocalSystem
+   service named `CloudflaredSecurityUpgrade`, display name
+   `Cloudflared Security Upgrade Replica`, using the same protected token file
+   and metrics bound to `127.0.0.1:20242`. This follows Cloudflare's requirement
+   for distinct Windows service names/display names. No new tunnel or DNS
+   record was created.
+5. Required replica readiness and identical active configuration before stopping
+   the original service. The replica had two ready edge connections before
+   cutover. New requests can use the replica; stopping a connector can still
+   interrupt existing long-lived HTTP/WebSocket/TCP sessions.
+6. Upgraded through the existing package-management mechanism:
+
+   ```powershell
+   winget upgrade --id Cloudflare.cloudflared --exact --source winget --version 2026.10.4 --silent --disable-interactivity --accept-package-agreements
+   ```
+
+   Specify `--source winget` to avoid unrelated Microsoft Store source prompts.
+   Select a freshly verified version for future updates. Do not substitute
+   `cloudflared update` for a package-managed installation.
+7. Verified the installed executable and original service settings, restarted
+   `Cloudflared`, and verified its actual process executable path plus the
+   running version in metrics. Compared active configuration and token hash/ACL
+   against baseline. Checked public staging readiness before stopping and
+   removing the temporary service.
+8. Confirmed the original connector has four ready edge connections and the
+   temporary service is removed. Retained the secured backup for audit.
+
+### Verification and coverage
+
+- Running service executable and `build_info` both report 2026.10.4.
+- Final elevated OSWALD inventory found one running cloudflared process and one
+  automatic `Cloudflared` service. Docker inventory succeeded and found no
+  running cloudflared containers. The separate temporary service is absent.
+- Original service startup/recovery configuration, token hash/ACL and active
+  ingress configuration match their pre-upgrade values.
+- Public staging returns HTTP 200 and readiness passes all components on
+  application release `0ec0ba7`. No application was redeployed or restarted.
+- `tgsrr.com` returns HTTP 503, matching its pre-upgrade public baseline.
+  `www.tgsrr.com` also returns HTTP 503 after the upgrade and uses the same
+  origin. Raw local HTTP checks still redirect with HTTP 301, as before;
+  origin requests with forwarded HTTPS headers return staging 200/live 503.
+- This records OSWALD's connector. Other account tunnels/connectors on other
+  machines have not been inventoried or verified through the Cloudflare
+  dashboard and must not be considered covered by this host upgrade.
+
 This document defines the production shape of the Rat Race website. Codex may
 provision, release, diagnose, and maintain the host, but the deployed platform
 must continue operating independently after a deployment task ends.
