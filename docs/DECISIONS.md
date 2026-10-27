@@ -1161,3 +1161,11 @@ The claims list is the primary review screen, with richer claim summaries and
 inline approval. Full information and reasoned decline are available in a modal.
 Old individual claim links open that modal in the list. Existing authorization,
 collision checks, transactional decisions and notifications remain authoritative.
+
+# 2026-10-27 - Allow a participant to reclaim after a decline
+
+A declined Rat Race 1.0 claim does not permanently bar the same participant
+from claiming that record. Show Claim again when otherwise eligible, and return
+the existing claim to Pending review on resubmission with a new submission time
+and cleared decision fields. Ownership and other open claims still prevent
+conflicting claims. A fresh moderator decision is required.

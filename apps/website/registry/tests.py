@@ -266,6 +266,28 @@ class LegacyDataImportTests(TestCase):
                 self.assertContains(response, "Active Racer")
                 self.assertNotContains(response, "/runs//")
 
+    def test_declined_claim_can_be_submitted_again(self):
+        review, reviewer = self.create_review()
+        apply_legacy_import(review, reviewer)
+        run = LegacyRun.objects.get(normalized_legacy_name="active racer")
+        claim = LegacyRunClaim.objects.create(
+            run=run, participant=reviewer, status="declined",
+            reviewed_by=reviewer, reviewed_at=timezone.now(), review_note="Previous reason",
+        )
+        self.client.force_login(reviewer)
+        url = reverse("registry:claim_legacy_run", args=(run.pk,))
+        self.assertEqual(self.client.post(url).status_code, 302)
+        claim.refresh_from_db()
+        self.assertEqual(claim.status, "pending")
+        self.assertIsNone(claim.reviewed_by)
+        self.assertIsNone(claim.reviewed_at)
+        self.assertEqual(claim.review_note, "")
+        submitted_at = claim.submitted_at
+        self.client.post(url)
+        claim.refresh_from_db()
+        self.assertEqual(claim.submitted_at, submitted_at)
+        self.assertEqual(LegacyRunClaim.objects.filter(run=run, participant=reviewer).count(), 1)
+
     def test_participant_can_submit_legacy_run_claim(self):
         review, reviewer = self.create_review()
         apply_legacy_import(review, reviewer)

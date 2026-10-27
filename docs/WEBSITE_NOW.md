@@ -17,6 +17,12 @@
 
 ## Claim review workspace (24 October 2026)
 
+- Declined claims are claimable again by the same participant (27 October).
+  Resubmission reuses the existing claim, resets its decision fields and updates
+  the submission timestamp. Existing ownership and other-open-claim checks still
+  apply. Prior decline notifications remain; the claim holds the latest review
+  state. All 23 legacy import/claim tests pass. Not deployed.
+
 - Claim modal now has adjacent Approve and Decline buttons. Decline sends the
   existing review note as its reason, or opens a required-reason dialog when
   the note is blank. Browser checked opening, required validation, cancellation

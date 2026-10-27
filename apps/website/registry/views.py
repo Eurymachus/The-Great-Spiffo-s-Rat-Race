@@ -724,10 +724,15 @@ def claim_legacy_run(request, run_id):
         elif claim.status == LegacyRunClaim.Status.APPROVED:
             messages.info(request, "This Rat Race 1.0 run is already linked to your account.")
         else:
-            messages.error(
-                request,
-                "This Rat Race 1.0 run claim was declined. Contact the team if it should be reconsidered.",
-            )
+            claim.status = LegacyRunClaim.Status.PENDING
+            claim.submitted_at = timezone.now()
+            claim.reviewed_by = None
+            claim.reviewed_at = None
+            claim.review_note = ""
+            claim.save(update_fields=(
+                "status", "submitted_at", "reviewed_by", "reviewed_at", "review_note",
+            ))
+            messages.success(request, "Your Rat Race 1.0 run claim has been submitted for review.")
 
     return redirect(next_url)
 

@@ -54,8 +54,6 @@ def managed_ranking_table(context, block):
                 entry["claim_state"] = "pending"
             elif claim and claim.status == LegacyRunClaim.Status.APPROVED:
                 entry["claim_state"] = "claimed"
-            elif claim and claim.status == LegacyRunClaim.Status.DECLINED:
-                entry["claim_state"] = "declined"
             elif has_other_link or has_other_open_claim:
                 entry["claim_state"] = "unavailable"
             else:
