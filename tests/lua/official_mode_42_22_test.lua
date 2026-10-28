@@ -1,4 +1,4 @@
-local root = "Contents/mods/Great Spiffo's Rat Race/42.21/media/lua/"
+local root = "Contents/mods/Great Spiffo's Rat Race/42.22/media/lua/"
 package.path = root .. "shared/?.lua;" .. root .. "client/?.lua;" .. package.path
 package.loaded["OptionScreens/MainScreen"] = true
 package.loaded["OptionScreens/LoadGameScreen"] = true
@@ -76,5 +76,22 @@ assert(mode=="Winter is Coming", "dead official save must not load")
 -- Requiring the patch again cannot wrap it twice.
 package.loaded["TGSRR/Patches/OfficialMode"]=nil
 require("TGSRR/Patches/OfficialMode")
-version="42.21.0"; assert(require("TGSRR/Challenge/OfficialMode").enabled()==false)
+-- Exercise the actual spawn filter with Java-like mode objects. Sandbox must
+-- compare the returned object directly, without a string registry lookup.
+local spawnFile=assert(io.open(root .. "client/LastStand/TGSRR.lua"))
+local spawnSource=spawnFile:read("*a"); spawnFile:close()
+local filterStart=assert(spawnSource:find("local function TGSRR_shouldShowMapSpawnInfo",1,true))
+local filterEnd=assert(spawnSource:find("function MapSpawnSelect:fillList()",filterStart,true))
+local filter=assert(loadstring("local TGSRR_CHALLENGE_IDS={TGSRR=true}\n"
+    .. spawnSource:sub(filterStart,filterEnd-1)
+    .. "\nreturn TGSRR_shouldShowMapSpawnInfo"))()
+local sandboxObject,otherObject={},{}
+getCore=function() return {
+    getGameMode=function() return sandboxObject end,
+    isChallenge=function() return false end,
+} end
+GameMode.get=function() error("Unexpected mode lookup") end
+assert(filter({only_for_game_mode=sandboxObject}))
+assert(not filter({only_for_game_mode=otherObject}))
+assert(filter({}))
 print("42.22 official mode tests passed")

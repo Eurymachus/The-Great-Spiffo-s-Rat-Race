@@ -87,7 +87,7 @@ local function challengeEvidence()
             or selectedId
             or (core and core.getChallengeID
                 and nonEmpty(core:getChallengeID()) or ""),
-        gameMode = captured and captured.gameMode or gameMode,
+        gameMode = gameMode,
     }
 end
 

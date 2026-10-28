@@ -13,7 +13,7 @@ $testRoot = Join-Path (Get-Location) 'outputs\pz422-official-test'
 $sourceMod = Join-Path (Get-Location) "Contents\mods\Great Spiffo's Rat Race"
 $testMod = Join-Path $testRoot 'mods\TGSRR'
 New-Item -ItemType Directory -Force -Path $testMod | Out-Null
-Copy-Item -LiteralPath (Join-Path $sourceMod '42.21') -Destination $testMod -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $sourceMod '42.22') -Destination $testMod -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $sourceMod 'common') -Destination $testMod -Recurse -Force
 Start-Process -FilePath 'C:\Games\Steam\steamapps\common\ProjectZomboid\ProjectZomboid64.exe' -WorkingDirectory 'C:\Games\Steam\steamapps\common\ProjectZomboid' -ArgumentList ('-nosteam "-cachedir=' + $testRoot + '"') -WindowStyle Hidden
 ```

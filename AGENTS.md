@@ -56,8 +56,8 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
   use the one with the greatest numeric job ID.
 - The installed reference is Build 42.22 on `pre-release`, Steam build
   `26221929`. Select a matching completed decompilation using the rules above;
-  older build directories are historical references. Shipped mod code remains
-  under `42.21` pending a separate 42.22 compatibility review.
+  older build directories are historical references. Active mod development is
+  under `42.22`; `42.21` retains its pre-42.22 implementation.
 - Continue to use `C:\Games\Steam\steamapps\common\PZJava` only when legacy
   behavior or API mapping is useful.
 
@@ -113,7 +113,7 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
   silently disable tracking.
 - Desktop Lua tests do not reproduce every missing Kahlua global. Before
   handing off Lua changes, run:
-  `rg -n "\b(pcall|xpcall)\s*\(" "Contents/mods/Great Spiffo's Rat Race/42.21" --glob "*.lua"`
+  `rg -n "\b(pcall|xpcall)\s*\(" "Contents/mods/Great Spiffo's Rat Race/42.22" --glob "*.lua"`
   and require zero matches, then run:
   `rg -n "\bnext\s*\(" "Contents/mods/Great Spiffo's Rat Race" --glob "*.lua"`
   and require zero matches.

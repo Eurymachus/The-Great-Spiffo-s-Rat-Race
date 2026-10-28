@@ -1,4 +1,3 @@
-local OfficialMode = require("TGSRR/Challenge/OfficialMode")
 require("OptionScreens/LoadGameScreen")
 require("OptionScreens/MainScreen")
 
@@ -9,8 +8,7 @@ local RAT_RACE_GAME_MODES = {
 }
 
 local function isRatRaceSave(info)
-    return info and (RAT_RACE_GAME_MODES[info.gameMode] == true
-        or OfficialMode.isSave(info.gameMode, info.saveName))
+    return info and RAT_RACE_GAME_MODES[info.gameMode] == true
 end
 
 local function isDeadRatRaceSave(info)
@@ -122,8 +120,7 @@ if MainScreen and not MainScreen.TGSRR_deadSavePatched then
     local continueLatestSave = MainScreen.continueLatestSave
 
     MainScreen.continueLatestSave = function(gameMode, saveName)
-        if saveName and (RAT_RACE_GAME_MODES[gameMode]
-                or OfficialMode.isSave(gameMode, saveName)) then
+        if RAT_RACE_GAME_MODES[gameMode] and saveName then
             local info = getSaveInfoForGameMode(gameMode, saveName)
             if isDeadRatRaceGameMode(info, gameMode) then
                 return

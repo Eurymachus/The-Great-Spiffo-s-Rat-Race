@@ -7,7 +7,7 @@ The team-test item is a separate, unlisted Steam Workshop package generated
 from the current repository contents. Its internal mod ID is `TGSRR-test`, so
 it remains distinct from the public mod's `TGSRR` ID.
 The package copies the versioned mod tree, including shared `common` content,
-the active `42.21` version, and retained historical versions.
+the active `42.22` version, and retained historical versions.
 
 The test package is generated from production content, with only its displayed
 name and internal mod ID changed in the copied version-specific `mod.info` files.

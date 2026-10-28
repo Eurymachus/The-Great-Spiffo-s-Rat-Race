@@ -2,7 +2,6 @@ require("OptionScreens/MainScreen")
 require("OptionScreens/LoadGameScreen")
 local OfficialMode = require("TGSRR/Challenge/OfficialMode")
 
-if not OfficialMode.enabled() then return end
 if MainScreen.TGSRR_officialModePatched then return end
 
 -- Keep the challenge definition and exported identity distinct from its storage

@@ -9,8 +9,9 @@
 - Website reference updating supports that branch. Follow
   [the release checklist](STEAM_REFERENCE_SOURCE.md#new-game-release-checklist)
   for decompilation and a separately approved versioned catalogue review.
-- Editable mod content remains under `42.21`, with a version-gated 42.22 RR
-  Official save-routing fix. Full 42.22 compatibility remains a separate audit.
+- Editable mod content is under `42.22`, with the RR Official save-routing
+  fix. `42.21` retains its original implementation. Full 42.22 compatibility
+  remains a separate audit.
 
 ### Existing RR Official save loading blocker (27 October 2026)
 
@@ -51,9 +52,9 @@
   unprefixed saves retain vanilla routing.
 - SelectedChallenge resolves runtime GameMode objects using the save prefix;
   Identity and milestone filters retain canonical challenge names. MapSpawnSelect
-  converts the new GameMode object to text before ResourceLocation lookup.
-  Dead-save blocking covers the new folder convention. The adapter is disabled
-  on 42.21. Unofficial CDDA/Sprinters compatibility is not included.
+  uses the returned GameMode object directly in the `42.22` implementation.
+  Dead-save blocking covers the new folder convention. The adapter exists only
+  in `42.22`. Unofficial CDDA/Sprinters compatibility is not included.
 - Six focused Lua scripts pass: official_mode_42_22, challenge_context,
   challenge_evidence, dead_save_ui, milestone_snapshot and starting_location.
   The new test executes the installed vanilla Continue function. Prohibited
@@ -95,6 +96,18 @@
   the test ran the stock installed 42.22 executable, without an optimized JAR.
   This verifies identity continuity for this copy, not all older saves or full
   gameplay compatibility. Keep originals backed up when trying other saves.
+
+### Dedicated 42.22 source (28 October 2026)
+
+- Corrected the initial placement of the fix: the complete implementation now
+  lives in `42.22`, with `versionMin=42.22`. Restored all `42.21` Lua files to
+  their state before commit `19c0745b`. Shared `common` assets stay shared.
+- Removed the runtime version gate from the 42.22-only adapter. Spawn selection
+  consumes `getCore():getGameMode()` directly instead of converting it to text
+  and looking the same object up again.
+- The 27 October runtime results above were obtained before this folder split.
+  They remain evidence for the routing logic, not a new runtime test of the
+  reorganized package.
 
 ## Branch and worktree
 
