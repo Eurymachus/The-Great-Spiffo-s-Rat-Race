@@ -1,3 +1,4 @@
+require("TGSRR/Patches/OfficialMode")
 require("TGSRR/Run/PendingTraitSelection")
 require("TGSRR/Sandbox/PresetRegistration")
 require("TGSRR/Patches/PostDeathUI")

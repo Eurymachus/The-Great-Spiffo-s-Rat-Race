@@ -28,7 +28,7 @@ local function TGSRR_shouldShowMapSpawnInfo(info)
         return true
     end
 
-    local currentMode = GameMode.get(ResourceLocation.of(getCore():getGameMode()))
+    local currentMode = GameMode.get(ResourceLocation.of(tostring(getCore():getGameMode())))
     if currentMode == info.only_for_game_mode then
         return true
     end

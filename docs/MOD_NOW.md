@@ -1,5 +1,101 @@
 # Mod: Current Focus
 
+## Build 42.22 reference transition (27 October 2026)
+
+- Steam desktop now uses `pre-release`, build `26221929` (42.22).
+- Validated reference: `tgsrr_decompiled/build-26221929-job-15`. Local catalogue
+  review 10 is approved. Artwork job 8 completed with 4,810 imported images;
+  the 532 unsupported or placeholder icons remain recorded as unavailable.
+- Website reference updating supports that branch. Follow
+  [the release checklist](STEAM_REFERENCE_SOURCE.md#new-game-release-checklist)
+  for decompilation and a separately approved versioned catalogue review.
+- Editable mod content remains under `42.21`, with a version-gated 42.22 RR
+  Official save-routing fix. Full 42.22 compatibility remains a separate audit.
+
+### Existing RR Official save loading blocker (27 October 2026)
+
+- Twist's read-only log at
+  `S:/Downloads/Games/Project Zomboid/Modding/Save Logs/console.txt` identifies
+  42.22.0 and loads `TGSRR-test` and `TGSRROptimized`. It reports a null
+  `toString` call in vanilla `MainScreen.checkSaveFile` at line 1051, including
+  after those mods load. Disabling mods alone does not explain the report.
+- Current local `42.21/media/lua/client/LastStand/TGSRR.lua` uses the legacy mode
+  string `The Great Spiffo's Rat Race`. Its OnChallengeQuery handler calls
+  `addChallenge`; vanilla `addChallenge` only populates the challenge list.
+  TGSRR's SelectedChallenge registration is an internal Lua lookup, not Java
+  GameMode registration.
+- In build `26221929`, `IsoWorld.setGameMode(String)` resolves a registered
+  GameMode; Core and IsoWorld getters return that object. An unknown legacy
+  mode resolves to null. Vanilla getSaveInfo prefixes bare save names with that
+  mode, and MainScreen's missing-info branch dereferences it. This matches the
+  observed failure, but Twist's exact mod package and save folder have not been
+  compared or reproduced in-game.
+- `GameMode` and `ResourceLocation` are exposed through LuaManager.Exposer.
+  Public `GameMode.register(String, boolean)` rejects the default `base`
+  namespace, which unnamespaced legacy strings imply. Direct Registry.register
+  is marked `@HiddenFromLua`, so it is not a valid Lua alias workaround.
+- The owner chose Lua-only compatibility and permits relocating test copies.
+  No Java patch or automatic save migration is part of this change. No save
+  corruption or general relocation of saves has been established.
+
+### Lua-only RR Official save routing (27 October 2026)
+
+- On 42.22, RR Official uses the built-in `Challenges` GameMode for storage and
+  creates `Saves/Challenges/TGSRR_<generated name>`. No custom registry entry or
+  Windows-invalid colon is needed. Keep the `TGSRR_` prefix when renaming test
+  saves; it distinguishes official saves from unrelated challenge saves.
+- The original challenge definition, ID `TGSRR`, and exported mode name
+  `The Great Spiffo's Rat Race` remain unchanged. A narrow doChallenge adapter
+  supplies the storage mode, and createWorld adds the prefix. Continue and Load
+  resolve prefixed saves back to the original definition. Unrelated modes and
+  unprefixed saves retain vanilla routing.
+- SelectedChallenge resolves runtime GameMode objects using the save prefix;
+  Identity and milestone filters retain canonical challenge names. MapSpawnSelect
+  converts the new GameMode object to text before ResourceLocation lookup.
+  Dead-save blocking covers the new folder convention. The adapter is disabled
+  on 42.21. Unofficial CDDA/Sprinters compatibility is not included.
+- Six focused Lua scripts pass: official_mode_42_22, challenge_context,
+  challenge_evidence, dead_save_ui, milestone_snapshot and starting_location.
+  The new test executes the installed vanilla Continue function. Prohibited
+  global scans pass. Desktop tests alone are not the runtime acceptance proof.
+- Actual 42.22.0 build `26221929` smoke test used the isolated profile
+  `outputs/pz422-official-test`, with only TGSRR enabled. Created world
+  `TGSRR_2020417414175672035`, entered gameplay, saved and quit to menu, then
+  successfully used Continue to restore it. Console records the same run
+  `rr-1793141551-1793141551967-529870-810837` as session 1 then session 2.
+  Run metadata preserves `startingChallengeId=TGSRR` and the original mode name.
+- The test character subsequently died; the final export and no-respawn UI ran.
+  A separate vanilla IsoDoor.ToggleDoorActual null-player exception occurred
+  during zombie activity. The original MainScreen null-mode error did not recur.
+  This smoke test does not certify unrelated gameplay APIs.
+- A copied legacy official save also passed an actual 42.22 load and save test
+  (details below). Original saves remain untouched. No Workshop upload was performed.
+
+### Existing-save copy test (27 October 2026)
+
+- Repeatable setup and test steps: [isolated testing environment](MOD_TEST_ENVIRONMENT.md).
+
+- Copied `Saves/The Great Spiffo's Rat Race/2026-10-03_20-39-43` into the
+  isolated profile as `Saves/Challenges/TGSRR_2026-10-03_20-39-43_copytest`.
+  Also copied its matching `Lua/TGSRR/Runs/<run ID>` directory into that profile.
+  When relocating within the same profile, that run-history directory stays put.
+- Selected the copy through Load, accepted vanilla's version-conversion warning
+  for the copy, and entered gameplay as Eury Fightus. Console confirms
+  `Loaded run rr-1791056531-1791056531266-363709-651386, session 2`.
+  Saved and returned to the menu; the saved global mod data retains that same ID.
+- The original session-1 log remains an exact prefix of the copied session log.
+  Session 2 retains `challengeId=TGSRR`, the original game-mode name and character,
+  with no added, removed or changed mod references. No tracker reset or exception
+  was logged during this test.
+- SHA-256 verification after testing confirms all 2,212 original save files and
+  all four original run-history files are unchanged. Baseline hashes are in
+  `outputs/legacy-save-copy-baseline.json`; test console is in
+  `outputs/pz422-official-test/console.txt`.
+- The save declares TGSRR and TGSRROptimized. Both mod folders were present, but
+  the test ran the stock installed 42.22 executable, without an optimized JAR.
+  This verifies identity continuity for this copy, not all older saves or full
+  gameplay compatibility. Keep originals backed up when trying other saves.
+
 ## Branch and worktree
 
 - Canonical development branch: `codex/rat-race-dev`.

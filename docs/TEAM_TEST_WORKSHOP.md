@@ -1,5 +1,8 @@
 # Team Test Workshop Item
 
+For local save/load tests and copied-save migration checks, follow the
+[isolated mod testing environment](MOD_TEST_ENVIRONMENT.md).
+
 The team-test item is a separate, unlisted Steam Workshop package generated
 from the current repository contents. Its internal mod ID is `TGSRR-test`, so
 it remains distinct from the public mod's `TGSRR` ID.

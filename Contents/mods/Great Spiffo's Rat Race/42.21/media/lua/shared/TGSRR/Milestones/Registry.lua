@@ -1,3 +1,4 @@
+local SelectedChallenge = require("TGSRR/Run/SelectedChallenge")
 local ChallengeEvents = require("TGSRR/Core/Events")
 local Ledger = require("TGSRR/Milestones/Ledger")
 
@@ -8,7 +9,9 @@ local subscribedEvents = {}
 
 local function currentMode()
     local core = getCore and getCore() or nil
-    return core and core:getGameMode() or nil
+    local mode = core and core:getGameMode() or nil
+    local selected = SelectedChallenge.observe(mode)
+    return selected and selected.gameMode or (mode and tostring(mode) or nil)
 end
 
 local function modeAllowed(definition)

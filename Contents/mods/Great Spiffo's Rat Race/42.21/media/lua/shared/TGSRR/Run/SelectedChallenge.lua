@@ -1,3 +1,4 @@
+local OfficialMode = require("TGSRR/Challenge/OfficialMode")
 local SelectedChallenge = {}
 
 local definitionsByGameMode = {}
@@ -29,6 +30,10 @@ end
 function SelectedChallenge.observe(gameMode)
     gameMode = nonEmpty(gameMode)
     if not gameMode then return nil end
+    if gameMode == OfficialMode.storage then
+        if not OfficialMode.isCurrent() then return nil end
+        gameMode = OfficialMode.legacy
+    end
     local evidence = definitionsByGameMode[gameMode]
     if not evidence then
         return nil
