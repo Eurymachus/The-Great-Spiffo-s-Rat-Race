@@ -1,5 +1,6 @@
 from datetime import time
 from pathlib import Path
+from zoneinfo import available_timezones
 
 from django import forms
 from django.conf import settings
@@ -67,6 +68,10 @@ class DailyLeaderboardScheduleForm(forms.ModelForm):
     run_time = forms.TimeField(
         label="Time",
         widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "step": 60}),
+    )
+    timezone_name = forms.ChoiceField(
+        label="Time zone",
+        choices=[(name, name) for name in sorted(available_timezones())],
     )
 
     class Meta:
