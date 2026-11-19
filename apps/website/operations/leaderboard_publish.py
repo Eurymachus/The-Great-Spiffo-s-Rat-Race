@@ -42,7 +42,7 @@ def configuration():
 
 
 @transaction.atomic
-def enqueue(*, scheduled=False, now=None):
+def enqueue(*, scheduled=False, now=None, force_upload=False):
     configuration()
     schedule, _ = Schedule.objects.get_or_create(pk=1)
     schedule = Schedule.objects.select_for_update().get(pk=1)
@@ -61,7 +61,7 @@ def enqueue(*, scheduled=False, now=None):
     active = Job.objects.filter(schedule=schedule, status__in=ACTIVE).first()
     if active:
         return active
-    return Job.objects.create(schedule=schedule, scheduled_day=day)
+    return Job.objects.create(schedule=schedule, scheduled_day=day, force_upload=force_upload)
 
 
 def tick():
@@ -226,7 +226,7 @@ def publish(job):
         job.row_count = len(rows)
         job.content_hash = data_hash(rows)
         previous = Job.objects.filter(status=Job.Status.PUBLISHED, item_id=TEST_ITEM_ID).order_by("-finished_at").first()
-        if previous and previous.content_hash == job.content_hash:
+        if not job.force_upload and previous and previous.content_hash == job.content_hash:
             job.status = Job.Status.UNCHANGED
             job.summary = "Standings and mod template are unchanged; no upload needed."
         else:

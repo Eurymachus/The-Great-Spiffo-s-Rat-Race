@@ -1,0 +1,13 @@
+{% extends "admin/change_form.html" %}
+
+{% block object-tools-items %}
+  {% if has_change_permission %}
+    <li>
+      <form method="post" action="{% url 'admin:operations_dailyleaderboardschedule_run_now' original.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="button">Run now</button>
+      </form>
+    </li>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

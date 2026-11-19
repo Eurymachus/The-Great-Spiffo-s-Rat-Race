@@ -37,6 +37,7 @@ class DailyLeaderboardJob(models.Model):
 
     schedule = models.ForeignKey(DailyLeaderboardSchedule, on_delete=models.PROTECT)
     scheduled_day = models.DateField(null=True, blank=True)
+    force_upload = models.BooleanField(default=False)
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.QUEUED)
     requested_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)

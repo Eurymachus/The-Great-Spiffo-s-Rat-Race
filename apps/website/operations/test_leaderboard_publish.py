@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from operations import leaderboard_publish as publisher
 from operations.models import DailyLeaderboardJob as Job, DailyLeaderboardSchedule as Schedule
@@ -97,8 +99,22 @@ class DailyLeaderboardTests(TestCase):
 
     @patch.object(publisher, "snapshot", return_value=[])
     @patch.object(publisher, "steam")
-    def test_worker_publishes_only_after_verified_download(self, steam, snapshot):
-        job = publisher.enqueue()
+    def test_run_now_uploads_unchanged_snapshot_and_verifies_download(self, steam, snapshot):
+        Job.objects.create(
+            schedule=self.schedule, status=Job.Status.PUBLISHED,
+            item_id=publisher.TEST_ITEM_ID, content_hash=publisher.data_hash([]),
+        )
+        admin = get_user_model().objects.create_superuser(
+            email="publisher@example.com", nickname="Publisher", password="test-password-only",
+        )
+        self.client.force_login(admin)
+        run_now = reverse("admin:operations_dailyleaderboardschedule_run_now", args=[self.schedule.pk])
+        schedule_page = reverse("admin:operations_dailyleaderboardschedule_change", args=[self.schedule.pk])
+        self.assertContains(self.client.get(schedule_page), "Run now")
+        self.assertEqual(self.client.get(run_now).status_code, 405)
+        self.assertRedirects(self.client.post(run_now), schedule_page)
+        job = Job.objects.get(status=Job.Status.QUEUED, force_upload=True)
+        self.assertIsNone(job.scheduled_day)
         checkout = self.root / "steamapps/workshop/content/108600" / publisher.TEST_ITEM_ID
 
         def run_steam(executable, username, arguments):

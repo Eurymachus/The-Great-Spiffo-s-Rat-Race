@@ -4,7 +4,7 @@ from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.db import transaction
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponseForbidden, HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -64,6 +64,7 @@ class LeaderboardSuperuserAdmin(admin.ModelAdmin):
 
 @admin.register(DailyLeaderboardSchedule)
 class DailyLeaderboardScheduleAdmin(LeaderboardSuperuserAdmin):
+    change_form_template = "admin/operations/dailyleaderboardschedule/change_form.html"
     list_display = ("name", "enabled", "hour", "minute", "timezone_name")
     actions = ("queue_snapshot",)
 
@@ -74,16 +75,41 @@ class DailyLeaderboardScheduleAdmin(LeaderboardSuperuserAdmin):
         obj.pk = 1
         super().save_model(request, obj, form, change)
 
+    def get_urls(self):
+        return [
+            path(
+                "<int:object_id>/run-now/",
+                self.admin_site.admin_view(self.run_now),
+                name="operations_dailyleaderboardschedule_run_now",
+            ),
+            *super().get_urls(),
+        ]
+
+    def run_now(self, request, object_id):
+        if not self.has_change_permission(request):
+            return HttpResponseForbidden()
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+        schedule = get_object_or_404(self.get_queryset(request), pk=object_id)
+        self._queue_snapshot(request, force_upload=True)
+        return redirect("admin:operations_dailyleaderboardschedule_change", schedule.pk)
+
     @admin.action(description="Queue a DEV leaderboard snapshot")
     def queue_snapshot(self, request, queryset):
+        self._queue_snapshot(request)
+
+    def _queue_snapshot(self, request, *, force_upload=False):
         from .leaderboard_publish import enqueue
         if not request.user.is_superuser:
             return
         try:
-            job = enqueue()
+            job = enqueue(force_upload=force_upload)
         except ValueError as exc:
             self.message_user(request, str(exc), messages.ERROR)
         else:
+            if force_upload and not job.force_upload:
+                self.message_user(request, f"Job {job.pk} is already active. No forced upload was queued.", messages.WARNING)
+                return
             self.message_user(request, f"Job {job.pk}: {job.get_status_display()}.")
 
 
