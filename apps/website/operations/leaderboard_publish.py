@@ -11,12 +11,14 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import connection, transaction
 from django.utils import timezone
 
 from registry.leaderboard import build_current_leaderboard
 from .models import DailyLeaderboardJob as Job, DailyLeaderboardSchedule as Schedule
 from .reference_update import notify_superusers
+from .steam_lock import SteamBusy, steam_lock
 
 TEST_ITEM_ID = "3842654789"
 TEMPLATE = Path(__file__).resolve().parents[3] / "deployment" / "leaderboard-mod"
@@ -34,7 +36,7 @@ def configuration():
         raise ValueError("Configure the Workshop owner's Steam account.")
     executable = Path(settings.STEAMCMD_EXECUTABLE)
     root = Path(settings.LEADERBOARD_PACKAGE_ROOT)
-    if not executable.is_file() or not root.is_absolute():
+    if not executable.is_absolute() or not executable.is_file() or not root.is_absolute():
         raise ValueError("Configure absolute publisher storage and a valid SteamCMD executable.")
     return executable, username, root
 
@@ -70,10 +72,21 @@ def tick():
     if not getattr(settings, "STAGING_ENVIRONMENT", False):
         return
     try:
+        executable, _, _ = configuration()
         enqueue(scheduled=True)
-    except ValueError:
+    except (ValueError, ValidationError):
         logger.error("Daily leaderboard configuration is invalid; publication remains disabled.")
         return
+    try:
+        with steam_lock(executable):
+            _publish_queued_job()
+    except SteamBusy:
+        return
+    except OSError:
+        logger.error("Daily leaderboard could not open the SteamCMD lock.")
+
+
+def _publish_queued_job():
     with transaction.atomic():
         schedule = Schedule.objects.select_for_update().get(pk=1)
         if Job.objects.filter(schedule=schedule, status__in=(Job.Status.RUNNING, Job.Status.UNCERTAIN)).exists():
@@ -175,6 +188,35 @@ def verified_download(executable, target):
         raise ValueError("Downloaded Workshop package does not match the generated snapshot.")
 
 
+def download_and_verify(executable, username, target):
+    download = steam(executable, username, ["+workshop_download_item", "108600", TEST_ITEM_ID, "validate"])
+    if download.returncode != 0 or b"success. downloaded item" not in download.stdout.lower():
+        raise RuntimeError("Workshop download did not complete.")
+    verified_download(executable, target)
+
+
+def reconcile(job_id):
+    executable, username, root = configuration()
+    with steam_lock(executable):
+        job = Job.objects.get(
+            pk=job_id, status__in=(Job.Status.RUNNING, Job.Status.UNCERTAIN),
+        )
+        target = root / f"job-{job.pk}"
+        if job.status == Job.Status.RUNNING and not job.package_path:
+            # Publication saves the package path before it invokes SteamCMD.
+            job.status = Job.Status.FAILED
+            job.summary = "Reconciled an interruption before SteamCMD upload."
+        else:
+            if job.item_id != TEST_ITEM_ID or Path(job.package_path).resolve() != target.resolve():
+                raise ValueError("The job does not have a retained upload package.")
+            download_and_verify(executable, username, target)
+            job.status = Job.Status.PUBLISHED
+            job.summary = "Reconciled against the Unlisted test item; downloaded hashes verified."
+        job.finished_at = timezone.now()
+        job.save(update_fields=("status", "summary", "finished_at"))
+        return job
+
+
 def publish(job):
     uploading = False
     try:
@@ -205,10 +247,7 @@ def publish(job):
             elif result.returncode != 0:
                 raise RuntimeError("Steam reported an abnormal exit after upload; review before retrying.")
             else:
-                download = steam(executable, username, ["+workshop_download_item", "108600", TEST_ITEM_ID, "validate"])
-                if download.returncode != 0 or b"Success. Downloaded item" not in download.stdout:
-                    raise RuntimeError("Upload completed but download verification did not complete.")
-                verified_download(executable, target)
+                download_and_verify(executable, username, target)
                 job.status = Job.Status.PUBLISHED
                 job.summary = f"Published {len(rows)} DEV standings to the Unlisted test item; downloaded hashes verified."
     except Exception as exc:
@@ -218,5 +257,8 @@ def publish(job):
     job.finished_at = timezone.now()
     job.save()
     if job.status in (Job.Status.FAILED, Job.Status.AUTH_REQUIRED, Job.Status.UNCERTAIN):
-        notify_superusers("Daily leaderboard publication needs attention", f"Job {job.pk}: {job.summary}")
+        try:
+            notify_superusers("Daily leaderboard publication needs attention", f"Job {job.pk}: {job.summary}")
+        except Exception:
+            logger.exception("Unable to notify moderators about leaderboard job %s.", job.pk)
     return job

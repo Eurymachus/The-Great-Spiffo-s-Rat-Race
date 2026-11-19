@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import tempfile
 from datetime import datetime, timezone
@@ -91,4 +92,51 @@ class DailyLeaderboardTests(TestCase):
         job = publisher.enqueue()
         publisher.publish(job)
         self.assertEqual(job.status, Job.Status.FAILED)
+        steam.assert_not_called()
+
+
+    @patch.object(publisher, "snapshot", return_value=[])
+    @patch.object(publisher, "steam")
+    def test_worker_publishes_only_after_verified_download(self, steam, snapshot):
+        job = publisher.enqueue()
+        checkout = self.root / "steamapps/workshop/content/108600" / publisher.TEST_ITEM_ID
+
+        def run_steam(executable, username, arguments):
+            if arguments[0] == "+workshop_build_item":
+                self.assertEqual(Path(arguments[1]).name, "upload.vdf")
+                return subprocess.CompletedProcess([], 0, b"Committing update...Success", b"")
+            self.assertEqual(arguments, ["+workshop_download_item", "108600", publisher.TEST_ITEM_ID, "validate"])
+            shutil.copytree(self.root / "packages" / f"job-{job.pk}" / "Contents", checkout)
+            return subprocess.CompletedProcess([], 0, b"Success. Downloaded item", b"")
+
+        steam.side_effect = run_steam
+        publisher.tick()
+        job.refresh_from_db()
+        self.assertEqual(job.status, Job.Status.PUBLISHED)
+        self.assertEqual(steam.call_count, 2)
+
+    @patch.object(publisher, "snapshot", return_value=[])
+    @patch.object(publisher, "notify_superusers")
+    @patch.object(publisher, "steam")
+    def test_mismatch_blocks_publication_until_verified_reconciliation(self, steam, notify, snapshot):
+        steam.side_effect = [
+            subprocess.CompletedProcess([], 0, b"Committing update...Success", b""),
+            subprocess.CompletedProcess([], 0, b"Success. Downloaded item", b""),
+            subprocess.CompletedProcess([], 0, b"Success. Downloaded item", b""),
+        ]
+        job = publisher.enqueue()
+        publisher.tick()
+        job.refresh_from_db()
+        self.assertEqual(job.status, Job.Status.UNCERTAIN)
+        checkout = self.root / "steamapps/workshop/content/108600" / publisher.TEST_ITEM_ID
+        shutil.copytree(Path(job.package_path) / "Contents", checkout)
+        self.assertEqual(publisher.reconcile(job.pk).status, Job.Status.PUBLISHED)
+
+    @patch.object(publisher, "steam")
+    def test_busy_steam_installation_leaves_job_queued(self, steam):
+        job = publisher.enqueue()
+        with publisher.steam_lock(self.root / "steamcmd.exe"):
+            publisher.tick()
+        job.refresh_from_db()
+        self.assertEqual(job.status, Job.Status.QUEUED)
         steam.assert_not_called()

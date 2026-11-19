@@ -10,6 +10,7 @@ from registry.models import Notification, Participant
 from .job_output import run_logged_process
 from .models import ReferenceSource, ReferenceUpdateJob
 from .reference_paths import resolved_reference_paths
+from .steam_lock import SteamBusy, steam_lock
 
 
 BUILD_ID = re.compile(r'"buildid"\s+"(?P<build_id>\d+)"')
@@ -100,25 +101,32 @@ def run_reference_update(job):
     job.previous_build_id = previous
     job.save(update_fields=("previous_build_id",))
     try:
-        completed = run_logged_process(
-            [
-                str(executable),
-                "+force_install_dir",
-                str(install_root),
-                "+login",
-                username,
-                "+app_update",
-                "108600",
-                "-beta",
-                job.steam_branch,
-                "validate",
-                "+quit",
-            ],
-            job=job,
-            label="Starting SteamCMD",
-            redact=(username,),
-            timeout=settings.STEAMCMD_UPDATE_TIMEOUT_SECONDS,
-        )
+        with steam_lock(executable):
+            completed = run_logged_process(
+                [
+                    str(executable),
+                    "+force_install_dir",
+                    str(install_root),
+                    "+login",
+                    username,
+                    "+app_update",
+                    "108600",
+                    "-beta",
+                    job.steam_branch,
+                    "validate",
+                    "+quit",
+                ],
+                job=job,
+                label="Starting SteamCMD",
+                redact=(username,),
+                timeout=settings.STEAMCMD_UPDATE_TIMEOUT_SECONDS,
+            )
+    except SteamBusy:
+        job.status = ReferenceUpdateJob.Status.QUEUED
+        job.started_at = None
+        job.summary = "Waiting for SteamCMD to become available."
+        job.save(update_fields=("status", "started_at", "summary"))
+        return job
     except (OSError, subprocess.TimeoutExpired) as exc:
         _finish_failure(
             job, source, f"SteamCMD could not complete: {type(exc).__name__}."

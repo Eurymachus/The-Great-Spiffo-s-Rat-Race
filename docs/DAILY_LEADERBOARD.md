@@ -1,6 +1,6 @@
 # TGSRR Daily Leaderboard DEV test
 
-Work in progress, not deployed or enabled on OSWALD.
+The publisher is disabled by default. Deploy to OSWALD DEV before enabling the schedule.
 
 The existing Unlisted Workshop test item is `3842654789`. Publication is
 restricted to that item and staging settings. The separate main mod and
@@ -24,9 +24,10 @@ STEAMCMD_EXECUTABLE=<host SteamCMD executable>
 
 Use host-local Steam authentication under the worker's Windows identity.
 Do not copy passwords into Django or commit cached Steam credentials.
-The worker needs exclusive operational access to its SteamCMD installation;
-do not run interactive Steam authentication or manual SteamCMD commands while
-a publication is running.
+DEV already records Eurymachus as the authenticated Reference Source account.
+The reference updater, website authentication and leaderboard publisher share
+an exclusive lock per SteamCMD installation. Run manual SteamCMD commands only
+while those application operations are idle.
 
 After deployment and migration, run with the protected DEV environment:
 
@@ -47,9 +48,16 @@ replacement. A genuinely empty leaderboard is a valid snapshot.
 
 Ambiguous upload outcomes block further jobs pending reconciliation. A worker
 interrupted during an upload leaves its job running and also blocks subsequent
-jobs. Host-side reconciliation tooling and deployment verification remain
-unfinished. Do not enable the schedule until those checks are complete.
+jobs. From the release with the protected DEV environment loaded, run:
 
-Local validation so far: eight publisher tests pass. The broader operations
-run has two failures in existing changelist layout assertions, which still
-need baseline investigation before release.
+```text
+python manage.py reconcile_daily_leaderboard <job-id>
+```
+
+The command checks the retained package against a fresh Workshop download.
+A verified match closes the job as published. A recorded interruption before
+SteamCMD starts closes as failed before upload. A mismatch keeps the job blocked
+for operator review. The command issues no upload.
+
+The two changelist layout failures in the operations suite also reproduce on
+the pre-publisher DEV release `782bd5e`.

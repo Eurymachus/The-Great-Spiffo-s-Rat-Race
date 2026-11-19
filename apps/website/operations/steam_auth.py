@@ -10,6 +10,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from .steam_lock import steam_lock
+
 
 SAFE_ACCOUNT = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 SAFE_GUARD_CODE = re.compile(r"^[A-Za-z0-9]{4,12}$")
@@ -19,6 +21,7 @@ GUARD_REQUIRED = (
     "auth code",
     "enter the current code",
 )
+GUARD_SESSION_SECONDS = 300
 LOGIN_OK = ("logged in ok", "waiting for user info...ok")
 LOGIN_FAILED = (
     "invalid password",
@@ -41,8 +44,17 @@ class PendingAuthentication:
     reader: threading.Thread | None = None
     captured: bytearray = field(default_factory=bytearray)
     next_cache_check: float = 0
+    steam_session_lock: object = None
 
     def destroy(self):
+        try:
+            self._stop_process()
+        finally:
+            if self.steam_session_lock is not None:
+                self.steam_session_lock.__exit__(None, None, None)
+                self.steam_session_lock = None
+
+    def _stop_process(self):
         if self.uses_pty:
             try:
                 if self.process.isalive():
@@ -115,7 +127,7 @@ def _start_session(executable, account_name, password):
         process=process,
         executable=str(Path(executable)),
         uses_pty=uses_pty,
-        expires_at=time.monotonic() + 300,
+        expires_at=time.monotonic() + GUARD_SESSION_SECONDS,
         next_cache_check=time.monotonic() + 2,
     )
     attempt.reader = threading.Thread(
@@ -190,8 +202,19 @@ def _finish(attempt):
 
 
 def begin_authentication(executable, account_name, password):
-    attempt = _start_session(executable, account_name, password)
-    status = _wait_for_status(attempt, settings.STEAMCMD_AUTH_TIMEOUT_SECONDS)
+    session_lock = steam_lock(executable)
+    session_lock.__enter__()
+    try:
+        attempt = _start_session(executable, account_name, password)
+    except BaseException:
+        session_lock.__exit__(None, None, None)
+        raise
+    attempt.steam_session_lock = session_lock
+    try:
+        status = _wait_for_status(attempt, settings.STEAMCMD_AUTH_TIMEOUT_SECONDS)
+    except BaseException:
+        _finish(attempt)
+        raise
     if status == "authenticated":
         _finish(attempt)
         return "authenticated", ""
@@ -200,6 +223,10 @@ def begin_authentication(executable, account_name, password):
         with _lock:
             _purge_expired()
             _attempts[token] = attempt
+        delay = min(GUARD_SESSION_SECONDS, max(0, attempt.expires_at - time.monotonic()))
+        timer = threading.Timer(delay, _expire_attempts)
+        timer.daemon = True
+        timer.start()
         return "guard_required", token
     _finish(attempt)
     return "failed", ""
@@ -256,18 +283,17 @@ def poll_authentication(token):
     with _lock:
         _purge_expired()
         attempt = _attempts.get(token)
-    if not attempt:
-        return "expired"
-    status = _status_from_output(attempt)
-    if status in {"waiting", "guard_required"}:
-        now = time.monotonic()
-        if now < attempt.next_cache_check:
-            return "waiting"
-        attempt.next_cache_check = now + 5
-        if not _cached_session_valid(attempt.executable, attempt.account_name):
-            return "waiting"
-        status = "authenticated"
-    with _lock:
+        if not attempt:
+            return "expired"
+        status = _status_from_output(attempt)
+        if status in {"waiting", "guard_required"}:
+            now = time.monotonic()
+            if now < attempt.next_cache_check:
+                return "waiting"
+            attempt.next_cache_check = now + 5
+            if not _cached_session_valid(attempt.executable, attempt.account_name):
+                return "waiting"
+            status = "authenticated"
         _attempts.pop(token, None)
     _finish(attempt)
     return status
@@ -279,3 +305,8 @@ def _purge_expired():
         if attempt.expires_at <= now:
             attempt.destroy()
             del _attempts[token]
+
+
+def _expire_attempts():
+    with _lock:
+        _purge_expired()
