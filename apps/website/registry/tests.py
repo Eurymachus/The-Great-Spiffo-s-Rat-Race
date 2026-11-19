@@ -2551,6 +2551,10 @@ class RegistrationTests(TestCase):
                        ("legacyrun", "legacyrunclaim", "legacyrunsubmission", "legacydataimport")}
         expected_urls = [url for url in expected_urls if url not in legacy_urls] + [reverse("admin:registry_legacyrun_changelist")]
         self.assertCountEqual(menu_urls, expected_urls)
+        system_urls = [item["url"] for section in response.context["admin_menu"]
+                       if section["id"] == "system" for item in section["items"]]
+        self.assertIn(reverse("admin:operations_dailyleaderboardschedule_changelist"), system_urls)
+        self.assertIn(reverse("admin:operations_dailyleaderboardjob_changelist"), system_urls)
         detail = self.client.get(reverse("admin:registry_legacyrun_change", args=(legacy_run.pk,)))
         current_items = [item for section in detail.context["admin_menu"]
                          for item in section["items"] if item["current"]]
@@ -2590,6 +2594,8 @@ class RegistrationTests(TestCase):
 
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.context["title"], "Dashboard")
+                self.assertNotContains(response, reverse("admin:operations_dailyleaderboardschedule_changelist"))
+                self.assertNotContains(response, reverse("admin:operations_dailyleaderboardjob_changelist"))
                 if role_name == "Branding Administrator":
                     self.assertEqual(response.context["dashboard_queues"], [])
                     self.assertEqual(response.context["dashboard_sections"], [])

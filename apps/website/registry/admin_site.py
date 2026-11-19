@@ -190,6 +190,8 @@ class RatRaceAdminSite(AdminSite):
                 "ReferenceUpdateJob",
                 "CatalogueImportReview",
                 "PZWikiArtworkSyncJob",
+                "DailyLeaderboardSchedule",
+                "DailyLeaderboardJob",
                 "RunDataDangerZone",
             ),
         ),
