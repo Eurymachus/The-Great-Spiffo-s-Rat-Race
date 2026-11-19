@@ -1,5 +1,120 @@
 # Mod: Current Focus
 
+## Approved RR 2 food requirement (19 November 2026)
+
+- Require 20,000 calories per outpost, increased from 5,000. Retain existing
+  non-spoilable-food and storage eligibility rules, including nested bags in
+  qualifying world-object containers in registered ground-floor rooms.
+- Decision recorded while reviewing the extra objective proposals. Implementation
+  and validation are pending; the current runtime has not been changed by this
+  decision capture. Define treatment of existing runs without rewriting their
+  historical completion evidence.
+- Player-crafted weapons/tools are also approved below; other supply and
+  location proposals remain undecided in `docs/IDEAS.md`.
+- Applies to RR 2 development, not the separate RR 1.0 maintenance line.
+
+## Approved RR 2 player-crafted weapons and tools (19 November 2026)
+
+- Outpost weapons and tools must have been crafted by the player. Require one
+  forged crowbar and one forged sledgehammer at every outpost, approved on
+  19 November 2026. The remaining equipment list is undecided.
+- The owner's rationale is to give required Blacksmithing progression a useful
+  stocking purpose and make equipment obtainable through crafting. The expectation
+  that most recipes unlock by level 9 remains to be verified against the current
+  build before selecting items.
+- Quantities, condition thresholds, eligible items, shared weapon/tool credit,
+  firearms/ammunition and treatment of earlier crafts remain undecided.
+- Implementation is pending. Verify individual-item crafting provenance;
+  possessing a forged item or a cumulative crafting count alone is insufficient
+  evidence that the stored item was crafted by this player.
+
+## Custom GameMode save-path report (16 November 2026)
+
+- Official TIS report: [42.22.2: Custom GameMode names create invalid save paths on Windows](https://theindiestone.com/forums/topic/103293-42222-custom-gamemode-names-create-invalid-save-paths-on-windows/).
+- The temporary `TGSRR:test` challenge registered successfully on build
+  `26486631`. Console confirmed that `createWorld()` returned with that mode,
+  followed by "The savefile directory doesn't exist" and the game closing.
+  This reproduced the failure within the development mod with other mods
+  enabled; an isolated reproduction has not been recorded.
+- Public GameMode registration requires a non-base namespace, but the save
+  path uses the identifier unchanged, including the Windows-invalid colon.
+  Working vanilla challenges use private, hardcoded `registerBase()` entries.
+  Retain the existing `Challenges/TGSRR_<name>` compatibility routing.
+- Related report: [CDDA save conversion and Sandbox fallback](https://theindiestone.com/forums/topic/103113-42222-the-issue-of-converting-a-save-from-the-a-really-cd-da/).
+  CDDA's missing built-in registration is distinct from the namespaced-path
+  failure. No TIS fix or acknowledgement has been verified.
+- Temporary probe: `42.22/media/lua/client/LastStand/TGSRR_SaveProbe.lua` under
+  the mod source. Remove before release.
+
+## Build 42.22.2 reference (10 November 2026)
+
+- Installed Steam build `26486631`; the 10 November game console confirms
+  `42.22.2`. The desktop manifest reports mounted `pre-release` but configured
+  `public`; no Steam update or branch change was performed.
+- Vineflower job 17 completed and validated
+  `tgsrr_decompiled/build-26486631-job-17`. Verified `.tgsrr-build-id`,
+  `zombie/characters/skills/PerkFactory.java` and `zombie/Lua/LuaManager.java`.
+  Older reference directories remain intact.
+- Decompiler limitations: method-writing warnings for Okio `commonSnapshot`
+  and `snapshot`, and Kotlin reflection `getTypeName`. Successful sentinel
+  validation is not a guarantee that every bundled method decompiled fully.
+- Active mod development remains under `42.22`. No catalogue promotion was
+  performed.
+- Rat Race 1.0 maintenance is approved as a separate branch; see below.
+
+## Rat Race 1.0 maintenance branch (10 November 2026)
+
+- Created local `codex/rat-race-1.0-maintenance` from `master` at
+  `a6e997c13112fe69c4b56e31259235b85b190683` (Add build 42.19 mod version).
+  This is the legacy challenge implementation, without the RR 2.0 modules.
+- Temporarily maintain 1.0 for 42.22.2 by porting narrowly scoped compatibility
+  fixes. Do not merge the RR 2.0 development branch into this release line.
+- Separate worktree created at
+  `E:/LocalProfiles/Eurymachus/GameData/Zomboid/Workshop/The Great Spiffo's Rat Race - Legacy 1.0`.
+  Its new `42.22` source ports spawn-screen routing, the map-mode comparison,
+  legacy Random selection and registered-mode save routing for all three
+  challenge variants. RR 2.0 modules were not imported. Changes are uncommitted;
+  the branch has not been pushed or published.
+- Verified the downloaded official Workshop item `3554864233` on 10 November:
+  all 85 files match this branch's `Contents/` tree. There are 29 byte-identical
+  files and 56 with only CRLF/LF differences; no content changes, additions or
+  missing files. Local comparison and public SHA-256 hashes are recorded in
+  `outputs/legacy-1.0-baseline/comparison.json`.
+- Focused menu/save regression tests, seven-file Lua syntax checks and
+  prohibited-global scans pass. Historical Contents remain unchanged.
+  The legacy worktree has refreshed instructions and an isolated test profile
+  with `tools/start-legacy-test.ps1`. Runtime testing of new games and copied
+  existing saves remains required before release.
+- The current workspace stays on `codex/rat-race-dev` with its uncommitted work
+  preserved. Team Test continues to carry RR 2.0 development content.
+
+### Spawn selection bypass (10 November 2026)
+
+- The installed 42.22.2 `NewGameScreen.clickPlay` challenge path unconditionally
+  calls `useDefaultSpawnRegion` and opens character creation. It bypasses
+  TGSRR's existing spawn list even when multiple regions are available.
+- `TGSRR/Patches/SpawnSelection.lua` preserves vanilla initialization, then
+  opens spawn selection for TGSRR, TGSRR_CDDA and TGSRR_Sprinters when choices
+  exist. Other challenges and single-region flows retain vanilla behaviour.
+- The regression executes the installed vanilla `clickPlay`, reproduces the
+  bypass before patching, and verifies restored routing and one initialization.
+  Spawn-selection, official-mode and starting-location desktop tests pass;
+  prohibited-global scans are clear. In-game acceptance remains outstanding.
+- Regenerated the local Team Test package on 10 November using the canonical
+  generator, including this fix. Verified all packaged Lua hashes against the
+  source and retained `TGSRR-test`. Restart PZ to load the refreshed package.
+  This is not a Rat Race 1.0 release; no Workshop upload was performed.
+
+## Build 42.22.1 reference (4 November 2026)
+
+- Installed pre-release Steam build: `26409601`.
+- Existing Vineflower workflow completed decompile job 16 successfully:
+  `tgsrr_decompiled/build-26409601-job-16`. Verified the matching
+  `.tgsrr-build-id` marker and `zombie/characters/skills/PerkFactory.java`.
+- Previous reference directories are retained. Active mod development remains
+  under `42.22`. Catalogue review and mod compatibility verification are separate
+  outstanding work; this operation only refreshed the Java reference.
+
 ## Build 42.22 reference transition (27 October 2026)
 
 - Steam desktop now uses `pre-release`, build `26221929` (42.22).

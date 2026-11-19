@@ -447,6 +447,21 @@ class ReferenceUpdateTests(TestCase):
             manifest.write_text('"buildid" "654321"', encoding="utf-8")
             self.assertEqual(installed_build_id(game_root), "654321")
 
+    def test_latest_manifest_wins_when_desktop_and_steamcmd_share_install(self):
+        import os
+        with TemporaryDirectory() as root:
+            game_root = Path(root) / "steamapps" / "common" / "ProjectZomboid"
+            nested = game_root / "steamapps" / "appmanifest_108600.acf"
+            nested.parent.mkdir(parents=True)
+            desktop = Path(root) / "steamapps" / "appmanifest_108600.acf"
+            nested.write_text('"buildid" "25485521"', encoding="utf-8")
+            desktop.write_text('"buildid" "26221929"', encoding="utf-8")
+            os.utime(nested, (100, 100))
+            os.utime(desktop, (200, 200))
+            self.assertEqual(installed_build_id(game_root), "26221929")
+            os.utime(nested, (300, 300))
+            self.assertEqual(installed_build_id(game_root), "25485521")
+
     def test_resolved_paths_select_latest_job_for_the_requested_build(self):
         with TemporaryDirectory() as root:
             reference_root = Path(root)
@@ -497,7 +512,7 @@ class ReferenceUpdateTests(TestCase):
             ).exists()
         )
 
-    @override_settings(STEAMCMD_UPDATE_TIMEOUT_SECONDS=30, STEAMCMD_BRANCH="unstable")
+    @override_settings(STEAMCMD_UPDATE_TIMEOUT_SECONDS=30, STEAMCMD_BRANCH="pre-release")
     def test_update_uses_protected_settings_not_legacy_source_paths(self):
         with TemporaryDirectory() as root:
             executable = Path(root) / "steamcmd.exe"
@@ -520,7 +535,7 @@ class ReferenceUpdateTests(TestCase):
         arguments = run.call_args.args[0]
         self.assertEqual(arguments[0], str(executable))
         self.assertIn("reference-account", arguments)
-        self.assertEqual(arguments[arguments.index("-beta") + 1], "unstable")
+        self.assertEqual(arguments[arguments.index("-beta") + 1], "pre-release")
 
     @override_settings(PZ_DECOMPILATION_TIMEOUT_SECONDS=30)
     def test_decompilation_replaces_reference_only_after_validation(self):
@@ -578,6 +593,7 @@ class ReferenceUpdateTests(TestCase):
             source.refresh_from_db()
             self.assertEqual(job.status, ReferenceUpdateJob.Status.UPDATED)
             self.assertEqual(source.decompiled_build_id, "777")
+            self.assertEqual(source.installed_build_id, "777")
             self.assertTrue(old_file.exists())
             output_root = output_parent / f"build-777-job-{job.pk}"
             self.assertEqual(

@@ -11,6 +11,7 @@ from operations.models import ReferenceUpdateJob
 from operations.catalogue_review import generate_catalogue_review
 from operations.models import CatalogueImportReview, PZWikiArtworkSyncJob
 from operations.worker_health import WorkerHeartbeat
+from operations.leaderboard_publish import tick as publish_daily_leaderboard
 from django.db import transaction
 from django.utils import timezone
 
@@ -137,6 +138,7 @@ class Command(BaseCommand):
                                 f"PZWiki artwork sync #{artwork_job.pk}: "
                                 f"{artwork_job.get_status_display()}."
                             )
+                publish_daily_leaderboard()
                 if once:
                     return
                 time.sleep(interval)

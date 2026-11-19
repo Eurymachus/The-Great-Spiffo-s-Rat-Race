@@ -54,8 +54,9 @@ Use these local paths when tracing Lua behavior, mod dependencies, or Project Zo
 - Select a directory whose `.tgsrr-build-id` matches the currently installed
   Steam build ID. When multiple successful directories exist for that build,
   use the one with the greatest numeric job ID.
-- The installed reference is Build 42.22 on `pre-release`, Steam build
-  `26221929`. Select a matching completed decompilation using the rules above;
+- The installed reference is Build 42.22.2, Steam build `26486631`.
+  Steam's mounted branch is `pre-release`, while UserConfig reports `public`.
+  Select a matching completed decompilation using the rules above;
   older build directories are historical references. Active mod development is
   under `42.22`; `42.21` retains its pre-42.22 implementation.
 - Continue to use `C:\Games\Steam\steamapps\common\PZJava` only when legacy

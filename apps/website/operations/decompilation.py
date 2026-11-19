@@ -27,6 +27,8 @@ def _finish(job, source, status, summary, build_id=""):
         summary if status == ReferenceUpdateJob.Status.FAILED else ""
     )
     if status == ReferenceUpdateJob.Status.UPDATED:
+        # Steam desktop may have updated the installation outside our queue.
+        source.installed_build_id = build_id
         source.decompiled_build_id = build_id
         source.decompiled_at = now
     source.save()

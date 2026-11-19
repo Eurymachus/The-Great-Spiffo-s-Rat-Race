@@ -28,7 +28,14 @@ def installed_build_id(library_root):
         root / "steamapps" / "appmanifest_108600.acf",
         root.parent.parent / "appmanifest_108600.acf",
     )
-    for manifest in candidates:
+    # Steam desktop and SteamCMD can maintain separate manifests for one install.
+    # The most recently written manifest reflects the latest updater's state.
+    manifests = sorted(
+        (path for path in candidates if path.is_file()),
+        key=lambda path: path.stat().st_mtime_ns,
+        reverse=True,
+    )
+    for manifest in manifests:
         if manifest.exists():
             match = BUILD_ID.search(
                 manifest.read_text(encoding="utf-8", errors="replace")

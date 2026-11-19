@@ -1,5 +1,5 @@
 param(
-    [string]$OutputPath = "outputs/team-test-workshop",
+    [string]$OutputPath = (Join-Path $env:USERPROFILE "Zomboid/Workshop/The Great Spiffo's Rat Race - Team Test"),
     [string]$WorkshopId = "3792308588"
 )
 
@@ -14,6 +14,14 @@ $resolvedOutput = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
 $modSource = Join-Path $repositoryRoot "Contents/mods/Great Spiffo's Rat Race"
 $previewSource = Join-Path $repositoryRoot "preview.png"
 $metadataTemplate = Join-Path $PSScriptRoot "team-test-workshop.txt"
+
+$resolvedOutput = [System.IO.Path]::GetFullPath($resolvedOutput)
+$sourceRoot = [System.IO.Path]::GetFullPath($repositoryRoot)
+if ($resolvedOutput -eq $sourceRoot -or
+    $sourceRoot.StartsWith($resolvedOutput.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "Output must not replace the source repository or its parent."
+}
+Write-Output "Regenerating Team Test at: $resolvedOutput"
 
 if (Test-Path -LiteralPath $resolvedOutput) {
     Remove-Item -LiteralPath $resolvedOutput -Recurse -Force

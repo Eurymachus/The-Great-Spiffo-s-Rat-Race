@@ -42,6 +42,7 @@ The protected deployment environment supplies:
 ```text
 STEAMCMD_EXECUTABLE=/opt/steamcmd/steamcmd.sh
 STEAMCMD_USERNAME=steam-account-login-name
+STEAMCMD_BRANCH=pre-release
 PZ_REFERENCE_ROOT=/srv/tgsrr/project-zomboid-reference
 STEAMCMD_UPDATE_TIMEOUT_SECONDS=1800
 STEAMCMD_AUTH_TIMEOUT_SECONDS=15
@@ -127,6 +128,13 @@ After a successful Steam update, open **System operations → Project Zomboid
 reference source** and press **Decompile installed build**. The web request only
 queues an audited job. The same separately supervised worker runs Vineflower.
 
+An installation updated through Steam desktop can be decompiled directly. A
+successful validated decompile refreshes both the installed and decompiled build
+IDs in the website, so no redundant SteamCMD update is required.
+When Steam desktop and SteamCMD both have manifests for the same installation,
+build detection uses the most recently written valid manifest. This avoids an
+older nested SteamCMD manifest masking a newer desktop update, or vice versa.
+
 Each run writes into a new build/job directory under
 `PZ_REFERENCE_ROOT/tgsrr_decompiled`,
 checks for `zombie/characters/skills/PerkFactory.java`, writes a
@@ -160,8 +168,32 @@ is:
 5. approve and promote the catalogue change;
 6. retain the previous known-good catalogue for rollback.
 
-The current operations queue implements steps 1 and 2. Catalogue reviews and
-reviewed promotion remain separate follow-on work.
+The worker handles updates, decompilation and catalogue snapshot generation.
+Catalogue approval is a separate administrator action, described below.
+
+### New game release checklist
+
+1. Confirm the installed Steam manifest build ID and branch. The updater supports
+   Stable (`public`), Unstable (`unstable`) and Pre-release (`pre-release`). Set
+   `STEAMCMD_BRANCH` in each host's protected environment to its intended default;
+   manual update jobs retain the branch selected when queued. Restart services
+   after changing environment settings. Do not use an old branch default to
+   update an installation that has moved to another branch.
+2. If Steam desktop already updated the configured installation, skip **Check
+   for updates**. Otherwise select the intended branch and complete that job.
+3. Select **Decompile installed build**. Wait for success and verify the matching
+   `.tgsrr-build-id` and `zombie/characters/skills/PerkFactory.java` in the new
+   immutable build/job directory. Retain the older directories.
+4. Select **Generate catalogue review** and enter the exact version, currently
+   `42.22`. Wait for **Ready for review**, then inspect the snapshot differences.
+   Differences are against existing records for that same version label: a first
+   import of 42.22 appears as additions, not a semantic comparison with 42.21.
+5. Approve and apply only after inspection. Approval queues artwork reconciliation.
+   Keep previous-version catalogue records and approved run evidence intact.
+6. Repeat the workflow for each deployment's configured reference installation
+   and database. A local review does not update staging or production.
+7. Update project reference-build guidance and separately verify mod compatibility
+   against the new Lua and Java references before declaring the mod supported.
 
 ## Recovery
 

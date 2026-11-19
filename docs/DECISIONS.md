@@ -1169,3 +1169,36 @@ from claiming that record. Show Claim again when otherwise eligible, and return
 the existing claim to Pending review on resubmission with a new submission time
 and cleared decision fields. Ownership and other open claims still prevent
 conflicting claims. A fresh moderator decision is required.
+# 2026-11-10 - Maintain Rat Race 1.0 separately for 42.22.2
+
+- Use `codex/rat-race-1.0-maintenance` as a temporary legacy maintenance line,
+  starting from the legacy `master` baseline at `a6e997c1`.
+- Port only required compatibility fixes. Keep RR 2.0 features on
+  `codex/rat-race-dev`; do not merge that development branch into the 1.0 line.
+- Verify the public Workshop baseline and test the legacy package before
+  publishing. Branch creation alone does not establish 42.22.2 compatibility.
+
+# 2026-11-19 - Require 20,000 food calories at each RR 2 outpost
+
+- Increase the food requirement from 5,000 to 20,000 calories per outpost.
+  The owner chose the higher target to add challenge and stocking work.
+- Retain existing non-spoilable-food and storage eligibility rules, including
+  nested bags in qualifying world-object containers in registered ground-floor
+  rooms. This decision does not add livestock, fluid calories or new storage modes.
+- Implementation and validation remain pending. Existing-run transition must
+  preserve immutable historical completion evidence.
+- Other extra supply/location ideas remain proposals. This decision applies
+  to RR 2 only, not the separate legacy RR 1.0 maintenance release.
+
+# 2026-11-19 - Require player-crafted outpost weapons and tools in RR 2
+
+- Weapons and tools supplied for outpost requirements must have been crafted
+  by the player. The subsequent equipment decision on 19 November makes one
+  forged crowbar and one forged sledgehammer mandatory at every outpost.
+- Crafting should give the challenge's Blacksmithing progression a practical
+  purpose. Exact recipe unlock levels and acquisition effort need verification
+  before finalizing the equipment list.
+- Remaining counts, condition, eligible items, duplicate/shared credit, firearms/ammunition
+  and earlier-craft handling remain open. The Brazilian challenge's 20 weapons
+  and 10 tools have not been adopted.
+- Implementation and individual-item provenance verification remain pending.

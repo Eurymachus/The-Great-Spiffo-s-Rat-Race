@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document records useful collection techniques found in three unrelated mods. They are research references only.
+This document records useful collection techniques found in unrelated mods and their supporting applications. They are research references only.
 
 TGSRR has no runtime integration with these mods. It does not read their identities or data, write their formats, select them as authorities, or change behaviour based on whether they are installed. The Tracker presents the canonical data collected by TGSRR itself.
 
@@ -170,3 +170,118 @@ Use ModData for compact authority only:
 - Small aggregates required by gameplay.
 
 Use character/run-scoped files for append-only or growing histories, with RAM projections for runtime queries and change-only or save-lifecycle writes.
+
+## PZCommunityRank Companion and backend (19 November 2026)
+
+### Conclusion and correction
+
+The Brazilian challenge combines automated mod telemetry, Companion uploads,
+backend sanity checks and moderator-certified objectives. The earlier Lua-only
+comparison was incomplete: absence of an in-game equipment or clearance check
+does not mean the overall challenge accepts that objective without review.
+The backend has an explicit moderator approval path, and its documentation
+records an example of base points being checked against a VOD.
+
+This is reference research, not approval to adopt their requirements or add a
+TGSRR Companion application.
+
+### Sources and limits
+
+- Installed Workshop `3746228308`, `PZCommunityRank` Lua version `2.36.0`.
+- [Official downloads](https://www.pzrank.com.br/links) advertised Companion
+  `v2.7.0`, with an [official release](https://github.com/lbcamargo94/PZ-Rank-Companion-Releases/releases/tag/v2.7.0).
+- The release repository describes the source as private, but Companion source
+  was readable through the GitHub connector during this investigation:
+  [commit 80fed5c](https://github.com/lbcamargo94/PZ-Rank-Companion/tree/80fed5c1e2a9024e46b737156ad1a8b23ab3ae73),
+  with package version `2.7.0`.
+- Backend and frontend source were inspected at
+  [commit 9f073ad](https://github.com/lbcamargo94/PZ-Rank/tree/9f073ad5e0ae88de11737ac56b908a5c34c7e052).
+
+The Companion binary was not installed or executed, and binary/source
+equivalence was not established. No production database, authenticated
+submission or moderator action was inspected. Source availability at review
+time does not establish the exact deployed version, signing configuration or
+how consistently moderators follow the documented process.
+
+### What the mod and Companion actually establish
+
+The installed `RankMain.lua` counts restaurant visits by entering selected room
+types and deduplicating building hashes. Its military visit flag comes from
+entering a coordinate rectangle. Neither establishes a supplied outpost or
+cleared military site. Crafting counters classify recipe names, categories and
+tags; they do not establish individual output ownership or storage at a base.
+For example, broad `bow` matching can also match `bowl`, and forging categories
+can include smelting rather than a finished weapon. No checks for beds, food
+calories, barricades, plumbing or a base vehicle were found in this Lua path.
+
+The Companion's [main.js](https://github.com/lbcamargo94/PZ-Rank-Companion/blob/80fed5c1e2a9024e46b737156ad1a8b23ab3ae73/main.js)
+watches mod-produced files under `Zomboid/Lua/pz_rank`, reads codes, stats and
+other exported records, and uploads them. Its sync path signs codes and stats
+with HMAC-SHA256. Local SQLite storage is app history, not evidence of an
+independent game-save parser. No independent world, inventory or clearance
+verification was found in the reviewed data path. Signing authenticates the
+submitted message under the signing scheme; it does not independently prove
+that an in-game objective happened.
+
+Companion [local achievements](https://github.com/lbcamargo94/PZ-Rank-Companion/blob/80fed5c1e2a9024e46b737156ad1a8b23ab3ae73/achievements-local.js)
+use visit counts for some base achievements, including a threshold of 13 for
+all bases. These local indicators are not the backend's official objective
+authority: backend achievements instead use the 12 official base records and
+moderator-supplied flags.
+
+### Moderator approval and scoring
+
+The [objective editor](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/frontend/src/components/painel/EditObjectivesModal.tsx)
+provides a checklist for each of 12 restaurants: base, bed, windows, sink,
+power, food, vehicle and arsenal. It also exposes military base, Spiffo HQ and
+Spiffo relic flags. The [requirement labels](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/frontend/src/lib/objectives.ts)
+specify 12,500 food calories and an arsenal of 20 weapons and 10 tools produced
+by the player. These are Brazilian requirements, not agreed TGSRR quantities.
+
+- [PATCH /:id/objectives](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/backend/src/routes/entries.ts)
+  requires moderator access, updates objective data and recomputes the score.
+  Player tokens do not grant this authority. The route does not require a VOD
+  URL, evidence attachment or review reason, and its object validation is
+  shallow rather than a complete checklist schema.
+- [Self-moderation protection](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/backend/src/lib/selfModeration.ts)
+  compares the normalized moderator login with the player nickname. This is
+  name-based protection rather than a durable account-to-run identity link.
+- [Moderation logging](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/backend/src/lib/moderationLog.ts)
+  records the actor, time, action and affected entry/player. Objective edits
+  are summarized as changed, without the individual checkbox differences.
+- [Scoring](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/backend/src/lib/scoring.ts)
+  awards 1,000 points per official base with `has_base`; it does not require
+  all equipment flags for those points. The special flags award military
+  1,000, HQ 5,000 and relic 3,000 points.
+- [Backend achievements](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/backend/src/lib/achievements.ts)
+  distinguish established bases from visits. Full objective completion
+  requires all 12 bases with every equipment flag and all three special
+  flags. Military clearance uses the moderator flag, not the visit counter.
+- [Sync](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/backend/src/routes/sync.ts)
+  preserves existing approved objectives during a run and clears them for a
+  new run. Visit telemetry does not automatically populate approvals.
+
+The [moderation documentation](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/docs/moderacao.md)
+records a VOD-based review of base points. This demonstrates a documented human
+review practice, not a mandatory evidence gate enforced by the objective API.
+
+### Automated validation and relevance to TGSRR
+
+Backend [Companion stats validation](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/backend/src/lib/companionStats.ts)
+checks allowed fields, numeric bounds, character matching and signatures when
+a signing secret is configured. [Plausibility checks](https://github.com/lbcamargo94/PZ-Rank/blob/9f073ad5e0ae88de11737ac56b908a5c34c7e052/backend/src/lib/plausibility.ts)
+check kill totals/rates and skill progression, with anomalies subject to review.
+These checks add useful validation but do not independently inspect equipment
+or prove player crafting provenance.
+
+The useful comparison is automated observations plus human certification in
+their system, versus TGSRR's more detailed per-outpost requirement observations,
+lifecycle/regression records and reviewable evidence. Neither should be
+described as infallible proof of the whole game world. TGSRR's player-crafted
+weapon/tool provenance remains pending, as does the approved increase from
+5,000 to 20,000 calories per outpost. Our loaded-zombie observation limits also
+remain relevant when discussing clearance evidence.
+
+Subsequent TGSRR decision on 19 November: one player-crafted forged crowbar and
+one player-crafted forged sledgehammer are mandatory at every outpost. Remaining
+equipment and quantities are still being decided; see `IDEAS.md`.

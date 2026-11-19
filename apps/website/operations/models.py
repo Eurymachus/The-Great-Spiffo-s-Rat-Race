@@ -2,6 +2,59 @@ from django.db import models
 from django.conf import settings
 
 
+class DailyLeaderboardSchedule(models.Model):
+    name = models.CharField(max_length=80, default="TGSRR Daily Leaderboard")
+    enabled = models.BooleanField(default=False)
+    hour = models.PositiveSmallIntegerField(default=9)
+    minute = models.PositiveSmallIntegerField(default=0)
+    timezone_name = models.CharField(max_length=64, default="Europe/London")
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+        if self.hour > 23 or self.minute > 59:
+            raise ValidationError("Choose a valid daily time.")
+        try:
+            ZoneInfo(self.timezone_name)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValidationError("Choose a valid IANA timezone.")
+        if self.pk not in (None, 1):
+            raise ValidationError("Only one leaderboard publisher is supported.")
+
+    def __str__(self):
+        return self.name
+
+
+class DailyLeaderboardJob(models.Model):
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        RUNNING = "running", "Running"
+        PUBLISHED = "published", "Published"
+        UNCHANGED = "unchanged", "Unchanged"
+        FAILED = "failed", "Failed before upload"
+        AUTH_REQUIRED = "auth_required", "Steam authentication required"
+        UNCERTAIN = "uncertain", "Upload outcome requires review"
+
+    schedule = models.ForeignKey(DailyLeaderboardSchedule, on_delete=models.PROTECT)
+    scheduled_day = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.QUEUED)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    item_id = models.CharField(max_length=24, blank=True)
+    content_hash = models.CharField(max_length=64, blank=True)
+    row_count = models.PositiveIntegerField(default=0)
+    package_path = models.TextField(blank=True)
+    summary = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-requested_at", "-pk")
+        constraints = [
+            models.UniqueConstraint(fields=("schedule", "scheduled_day"), name="leaderboard_once_per_day"),
+            models.UniqueConstraint(fields=("schedule",), condition=models.Q(status__in=("queued", "running", "uncertain")), name="leaderboard_one_active_job"),
+        ]
+
+
 class RateLimitBucket(models.Model):
     key = models.CharField(max_length=96, primary_key=True)
     attempts = models.PositiveIntegerField(default=0)
@@ -72,6 +125,7 @@ class ReferenceUpdateJob(models.Model):
     class Branch(models.TextChoices):
         PUBLIC = "public", "Stable"
         UNSTABLE = "unstable", "Unstable"
+        PRE_RELEASE = "pre-release", "Pre-release"
 
     steam_branch = models.CharField(
         max_length=16, choices=Branch.choices, default=Branch.PUBLIC, editable=False,

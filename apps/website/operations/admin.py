@@ -28,6 +28,8 @@ from .runtime_state import (
     rate_limit_attempts,
 )
 from .models import (
+    DailyLeaderboardJob,
+    DailyLeaderboardSchedule,
     CatalogueImportReview,
     PZWikiArtworkSyncJob,
     ReferenceSource,
@@ -44,6 +46,58 @@ from .steam_auth import (
     complete_authentication,
     poll_authentication,
 )
+
+
+class LeaderboardSuperuserAdmin(admin.ModelAdmin):
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(DailyLeaderboardSchedule)
+class DailyLeaderboardScheduleAdmin(LeaderboardSuperuserAdmin):
+    list_display = ("name", "enabled", "hour", "minute", "timezone_name")
+    actions = ("queue_snapshot",)
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser and not DailyLeaderboardSchedule.objects.exists()
+
+    def save_model(self, request, obj, form, change):
+        obj.pk = 1
+        super().save_model(request, obj, form, change)
+
+    @admin.action(description="Queue a DEV leaderboard snapshot")
+    def queue_snapshot(self, request, queryset):
+        from .leaderboard_publish import enqueue
+        if not request.user.is_superuser:
+            return
+        try:
+            job = enqueue()
+        except ValueError as exc:
+            self.message_user(request, str(exc), messages.ERROR)
+        else:
+            self.message_user(request, f"Job {job.pk}: {job.get_status_display()}.")
+
+
+@admin.register(DailyLeaderboardJob)
+class DailyLeaderboardJobAdmin(LeaderboardSuperuserAdmin):
+    list_display = ("id", "requested_at", "scheduled_day", "status", "row_count")
+    list_filter = ("status",)
+    readonly_fields = tuple(field.name for field in DailyLeaderboardJob._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 class ConnectSteamForm(forms.Form):

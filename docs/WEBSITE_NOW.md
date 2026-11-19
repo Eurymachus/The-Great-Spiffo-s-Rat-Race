@@ -1,5 +1,49 @@
 # Website: Current Focus
 
+## Build 42.22.2 decompilation (10 November 2026)
+
+- Local Vineflower job 17 completed for installed Steam build `26486631`.
+  Output: `tgsrr_decompiled/build-26486631-job-17`; verified the build marker,
+  `PerkFactory.java` and `LuaManager.java`. The reference-source record was
+  refreshed by the existing decompilation workflow. Older outputs remain.
+- Three method-writing warnings affect bundled Kotlin/Okio code; see
+  `docs/MOD_NOW.md`. No catalogue review, promotion or deployment was performed.
+
+## Build 42.22.1 decompilation (4 November 2026)
+
+- Local decompile job 16 completed and validated installed pre-release build
+  `26409601` using the existing Vineflower workflow. Output:
+  `tgsrr_decompiled/build-26409601-job-16`.
+- Verified the build marker and `PerkFactory.java`; the local reference-source
+  record now identifies `26409601` as installed and decompiled. Older reference
+  directories remain intact. No catalogue review or promotion was performed.
+
+## Pre-release reference branch (27 October 2026)
+
+- Reference update forms and the enqueue command accept `pre-release`, alongside
+  `public` and `unstable`. Migration 0014 records the additional branch choice.
+- Local `STEAMCMD_BRANCH` is now `pre-release`. Other deployments retain their
+  configured defaults until explicitly updated and restarted.
+- A successful decompile also refreshes the installed build ID, supporting
+  installations updated directly through Steam desktop.
+- Build detection uses the newest valid manifest when Steam desktop and SteamCMD
+  have separate manifests for the same installation. Regression coverage tests
+  both update directions.
+- All 40 focused reference, live-job, authentication and catalogue review tests
+  pass. The local migration is applied. No staging or production deployment.
+- Follow [the release checklist](STEAM_REFERENCE_SOURCE.md#new-game-release-checklist)
+  to generate and inspect a versioned review before approving catalogue changes.
+- Local decompile job 15 validated build `26221929` in
+  `build-26221929-job-15`. Catalogue review 10 for `42.22` was approved on
+  27 October: 5,342 additions, zero changes and zero deactivations.
+- Artwork job 8 completed: 4,810 PZwiki images imported; 532 unavailable
+  (327 placeholder icons requiring world artwork, 205 without a supported icon
+  key). No download failures were reported.
+- Job 14 was marked failed after detecting stale-manifest provenance; its output
+  is retained as `invalid-manifest-job-14`, outside selectable build directories.
+  The previous valid 42.21 reference remains `build-25485521-job-13`.
+- Final local health check: HTTP 200 and one logical reference-worker process tree.
+
 ## Repeatable Rat Race 1.0 staging rehearsals (18 October 2026)
 
 - `reset_legacy_rehearsal` previews by default; `--confirm` transactionally deletes

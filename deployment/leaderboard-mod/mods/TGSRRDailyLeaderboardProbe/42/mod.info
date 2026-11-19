@@ -1,0 +1,6 @@
+name=TGSRR Daily Leaderboard - Upload Test
+id=TGSRRDailyLeaderboardProbe
+author=Eurymachus
+description=Unlisted hosted DEV leaderboard data test.
+modversion=0.1.0
+versionMin=42.0

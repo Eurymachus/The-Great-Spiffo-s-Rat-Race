@@ -306,6 +306,13 @@ REFERENCE_WORKER_HEARTBEAT_TTL_SECONDS = 60
 STEAMCMD_EXECUTABLE = os.environ.get("STEAMCMD_EXECUTABLE", "")
 STEAMCMD_BRANCH = os.environ.get("STEAMCMD_BRANCH", "public").strip() or "public"
 STEAMCMD_USERNAME = os.environ.get("STEAMCMD_USERNAME", "")
+# Disabled by default. This first publisher is restricted to hosted DEV and
+# the existing Unlisted test item; no item-creation command is supported.
+LEADERBOARD_PUBLISH_ENABLED = os.environ.get("LEADERBOARD_PUBLISH_ENABLED", "false").lower() == "true"
+LEADERBOARD_WORKSHOP_ID = os.environ.get("LEADERBOARD_WORKSHOP_ID", "")
+LEADERBOARD_STEAM_USERNAME = os.environ.get("LEADERBOARD_STEAM_USERNAME", "")
+LEADERBOARD_PACKAGE_ROOT = os.environ.get("LEADERBOARD_PACKAGE_ROOT", "")
+LEADERBOARD_UPLOAD_TIMEOUT = 300
 STEAM_WEB_API_KEY = os.environ.get("STEAM_WEB_API_KEY", "")
 PZ_REFERENCE_ROOT = os.environ.get("PZ_REFERENCE_ROOT", "")
 STEAMCMD_UPDATE_TIMEOUT_SECONDS = int(

@@ -12,7 +12,7 @@ the active `42.22` version, and retained historical versions.
 The test package is generated from production content, with only its displayed
 name and internal mod ID changed in the copied version-specific `mod.info` files.
 
-## Prepare a new item
+## Regenerate the local Team Test copy
 
 From the repository root, run:
 
@@ -20,14 +20,18 @@ From the repository root, run:
 powershell -ExecutionPolicy Bypass -File tools/prepare-team-test-workshop.ps1
 ```
 
-The upload-ready package is written to `outputs/team-test-workshop`. Its
-`workshop.txt` targets the existing unlisted Workshop item `3792308588`.
+By default this replaces the actual local Team Test package in place at
+`%USERPROFILE%/Zomboid/Workshop/The Great Spiffo's Rat Race - Team Test`.
+On this machine, `C:/Users/refle/Zomboid` links to
+`E:/LocalProfiles/Eurymachus/GameData/Zomboid`, so these are the same copy.
+Its `workshop.txt` targets the existing unlisted Workshop item `3792308588`.
+Restart PZ after regeneration so it loads the new Lua and version folders.
+Regeneration does not publish a Steam Workshop update.
 
-To create it directly in the local Project Zomboid Workshop authoring folder,
-provide an absolute output path:
+Only when an isolated upload/staging package is wanted, override the default:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools/prepare-team-test-workshop.ps1 -OutputPath "C:\Users\refle\Zomboid\Workshop\The Great Spiffo's Rat Race - Team Test"
+powershell -ExecutionPolicy Bypass -File tools/prepare-team-test-workshop.ps1 -OutputPath "outputs/team-test-workshop"
 ```
 
 The generator uses Workshop ID `3792308588` by default. The parameter remains
@@ -37,5 +41,5 @@ available if a different item must be targeted explicitly:
 powershell -ExecutionPolicy Bypass -File tools/prepare-team-test-workshop.ps1 -WorkshopId 1234567890
 ```
 
-The generated package is excluded from Git. The source template and generator
-are version controlled.
+The generated local package is outside this repository; `outputs/` staging
+packages are ignored. The source template and generator are version controlled.

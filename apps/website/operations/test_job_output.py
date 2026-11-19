@@ -22,9 +22,9 @@ class LiveJobTests(TestCase):
         )
         self.client.force_login(user)
         url = reverse("admin:operations_referencesource_check_updates", args=[self.job.source_id])
-        with self.settings(STEAMCMD_BRANCH="unstable"):
+        with self.settings(STEAMCMD_BRANCH="pre-release"):
             page = self.client.get(url)
-            self.assertContains(page, 'value="unstable" selected')
+            self.assertContains(page, 'value="pre-release" selected')
         before = ReferenceUpdateJob.objects.count()
         self.client.post(url, {"steam_branch": "invalid"})
         self.assertEqual(ReferenceUpdateJob.objects.count(), before)

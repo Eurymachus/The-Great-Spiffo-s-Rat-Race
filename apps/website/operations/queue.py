@@ -22,7 +22,7 @@ def enqueue_reference_update(
 ):
     steam_branch = steam_branch or settings.STEAMCMD_BRANCH
     if steam_branch not in ReferenceUpdateJob.Branch.values:
-        raise ValueError("Choose Stable or Unstable for the reference update.")
+        raise ValueError("Choose Stable, Unstable or Pre-release for the reference update.")
     ReferenceSource.objects.select_for_update().get(pk=source.pk)
     active = (
         ReferenceUpdateJob.objects.filter(
