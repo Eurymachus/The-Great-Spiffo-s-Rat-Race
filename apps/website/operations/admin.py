@@ -1,3 +1,4 @@
+from datetime import time
 from pathlib import Path
 
 from django import forms
@@ -62,11 +63,40 @@ class LeaderboardSuperuserAdmin(admin.ModelAdmin):
         return False
 
 
+class DailyLeaderboardScheduleForm(forms.ModelForm):
+    run_time = forms.TimeField(
+        label="Time",
+        widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "step": 60}),
+    )
+
+    class Meta:
+        model = DailyLeaderboardSchedule
+        fields = ("enabled", "run_time", "timezone_name")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.initial.setdefault("run_time", time(self.instance.hour, self.instance.minute))
+
+    def clean_run_time(self):
+        run_time = self.cleaned_data["run_time"]
+        if run_time.second or run_time.microsecond:
+            raise forms.ValidationError("Choose a time to the nearest minute.")
+        self.instance.hour = run_time.hour
+        self.instance.minute = run_time.minute
+        return run_time
+
+
 @admin.register(DailyLeaderboardSchedule)
 class DailyLeaderboardScheduleAdmin(LeaderboardSuperuserAdmin):
+    form = DailyLeaderboardScheduleForm
     change_form_template = "admin/operations/dailyleaderboardschedule/change_form.html"
-    list_display = ("name", "enabled", "hour", "minute", "timezone_name")
-    actions = ("queue_snapshot",)
+
+    def changelist_view(self, request, extra_context=None):
+        if not self.has_view_permission(request):
+            return HttpResponseForbidden()
+        if self.get_queryset(request).filter(pk=1).exists():
+            return redirect("admin:operations_dailyleaderboardschedule_change", 1)
+        return redirect("admin:operations_dailyleaderboardschedule_add")
 
     def has_add_permission(self, request):
         return request.user.is_superuser and not DailyLeaderboardSchedule.objects.exists()
@@ -91,26 +121,18 @@ class DailyLeaderboardScheduleAdmin(LeaderboardSuperuserAdmin):
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
         schedule = get_object_or_404(self.get_queryset(request), pk=object_id)
-        self._queue_snapshot(request, force_upload=True)
-        return redirect("admin:operations_dailyleaderboardschedule_change", schedule.pk)
-
-    @admin.action(description="Queue a DEV leaderboard snapshot")
-    def queue_snapshot(self, request, queryset):
-        self._queue_snapshot(request)
-
-    def _queue_snapshot(self, request, *, force_upload=False):
         from .leaderboard_publish import enqueue
-        if not request.user.is_superuser:
-            return
+
         try:
-            job = enqueue(force_upload=force_upload)
+            job = enqueue(force_upload=True)
         except ValueError as exc:
             self.message_user(request, str(exc), messages.ERROR)
         else:
-            if force_upload and not job.force_upload:
+            if not job.force_upload:
                 self.message_user(request, f"Job {job.pk} is already active. No forced upload was queued.", messages.WARNING)
-                return
-            self.message_user(request, f"Job {job.pk}: {job.get_status_display()}.")
+            else:
+                self.message_user(request, f"Job {job.pk}: {job.get_status_display()}.")
+        return redirect("admin:operations_dailyleaderboardschedule_change", schedule.pk)
 
 
 @admin.register(DailyLeaderboardJob)

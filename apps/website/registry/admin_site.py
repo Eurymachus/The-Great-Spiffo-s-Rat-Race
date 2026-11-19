@@ -43,6 +43,7 @@ class RatRaceAdminSite(AdminSite):
             "StreamingMedia": ("people", "Stream recordings"),
             "WorkshopMod": ("rules", "Workshop mods"),
             "ExploitRuling": ("rules", "Exploit rulings"),
+            "DailyLeaderboardSchedule": ("system", "Daily leaderboard schedule"),
             "Group": ("system", "Roles and permissions"),
         }
         for app in context["available_apps"]:
