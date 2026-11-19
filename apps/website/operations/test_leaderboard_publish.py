@@ -11,6 +11,7 @@ from django.urls import reverse
 
 from operations import leaderboard_publish as publisher
 from operations.models import DailyLeaderboardJob as Job, DailyLeaderboardSchedule as Schedule
+from registry.models import ChallengeMode
 
 
 class DailyLeaderboardTests(TestCase):
@@ -49,6 +50,28 @@ class DailyLeaderboardTests(TestCase):
 
     def test_missing_optional_day_is_nil(self):
         self.assertEqual(publisher.lua({"day": None}), '{["day"]=nil}')
+
+    @patch.object(publisher, "build_ranking_table")
+    def test_snapshot_ranks_same_racer_separately_for_each_mode(self, rank):
+        official = ChallengeMode.objects.create(key="official", display_name="Official", display_order=1)
+        cdda = ChallengeMode.objects.create(key="cdda", display_name="CDDA", display_order=2)
+        row = {
+            "rank": 1, "racer": "Racer", "survivor": "Survivor", "completion": 10,
+            "kills": 25, "outposts_completed": 0, "maxed_skills": 0, "in_game_day": 2,
+        }
+        rankings = {official.pk: [row], cdda.pk: [{**row, "kills": 12}]}
+        rank.side_effect = lambda config: rankings.get(config["challenge_modes"][0], [])
+
+        rows = publisher.snapshot()
+
+        self.assertCountEqual(
+            [call.args[0]["challenge_modes"] for call in rank.call_args_list],
+            [[mode_id] for mode_id in ChallengeMode.objects.values_list("pk", flat=True)],
+        )
+        self.assertEqual(
+            [(row["modeKey"], row["modeName"], row["racer"], row["rank"], row["kills"]) for row in rows],
+            [("official", "Official", "Racer", 1, 25), ("cdda", "CDDA", "Racer", 1, 12)],
+        )
 
     def test_production_and_other_item_refused(self):
         with override_settings(STAGING_ENVIRONMENT=False), self.assertRaises(ValueError):
@@ -110,7 +133,22 @@ class DailyLeaderboardTests(TestCase):
         self.client.force_login(admin)
         run_now = reverse("admin:operations_dailyleaderboardschedule_run_now", args=[self.schedule.pk])
         schedule_page = reverse("admin:operations_dailyleaderboardschedule_change", args=[self.schedule.pk])
-        self.assertContains(self.client.get(schedule_page), "Run now")
+        self.assertRedirects(
+            self.client.get(reverse("admin:operations_dailyleaderboardschedule_changelist")),
+            schedule_page,
+        )
+        page = self.client.get(schedule_page)
+        self.assertContains(page, "Run now")
+        self.assertContains(page, 'type="time"')
+        self.assertContains(page, 'value="09:00"')
+        for field in ("name", "hour", "minute"):
+            self.assertNotContains(page, f'name="{field}"')
+        response = self.client.post(schedule_page, {
+            "enabled": "on", "run_time": "14:25", "timezone_name": "Europe/London", "_save": "Save",
+        }, follow=True)
+        self.assertEqual(response.request["PATH_INFO"], schedule_page)
+        self.schedule.refresh_from_db()
+        self.assertEqual((self.schedule.hour, self.schedule.minute), (14, 25))
         self.assertEqual(self.client.get(run_now).status_code, 405)
         self.assertRedirects(self.client.post(run_now), schedule_page)
         job = Job.objects.get(status=Job.Status.QUEUED, force_upload=True)

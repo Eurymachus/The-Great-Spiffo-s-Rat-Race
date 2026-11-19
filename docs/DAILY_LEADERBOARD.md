@@ -9,7 +9,9 @@ Team Test item are not targets.
 The website worker checks a database schedule, defaulting to 09:00
 Europe/London. It queues at most once per local date, with current-day catchup
 after downtime. Unchanged standings and template files skip the upload.
-The source currently uses the website's current Rat Race 2.0 leaderboard.
+The snapshot ranks each registered Rat Race 2.0 challenge mode independently
+using the website's leaderboard rules. Each racer can place once per mode.
+Schema 2 adds the challenge mode key and display name to each row.
 The package contains data only; an in-game display remains separate work.
 
 Required protected DEV environment settings:

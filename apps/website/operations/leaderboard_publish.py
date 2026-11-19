@@ -15,12 +15,15 @@ from django.core.exceptions import ValidationError
 from django.db import connection, transaction
 from django.utils import timezone
 
-from registry.leaderboard import build_current_leaderboard
+from pages.ranking_config import default_ranking_config
+from registry.leaderboard import build_ranking_table
+from registry.models import ChallengeMode
 from .models import DailyLeaderboardJob as Job, DailyLeaderboardSchedule as Schedule
 from .reference_update import notify_superusers
 from .steam_lock import SteamBusy, steam_lock
 
 TEST_ITEM_ID = "3842654789"
+SNAPSHOT_SCHEMA = 2
 TEMPLATE = Path(__file__).resolve().parents[3] / "deployment" / "leaderboard-mod"
 ACTIVE = (Job.Status.QUEUED, Job.Status.RUNNING, Job.Status.UNCERTAIN)
 logger = logging.getLogger(__name__)
@@ -126,20 +129,26 @@ def snapshot():
         if connection.vendor == "postgresql":
             with connection.cursor() as cursor:
                 cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
-        rows = build_current_leaderboard()
-        return [{
-            "rank": row["rank"], "racer": row["racer"], "survivor": row["survivor"],
-            "completion": row["completion"], "kills": row["kills"],
-            "outposts": row["outposts_completed"], "skills": row["maxed_skills"],
-            "day": row["in_game_day"],
-        } for row in rows]
+        rows = []
+        config = default_ranking_config()
+        for mode in ChallengeMode.objects.all():
+            for row in build_ranking_table({**config, "challenge_modes": [mode.pk]}):
+                rows.append({
+                    "modeKey": mode.key,
+                    "modeName": mode.display_name,
+                    "rank": row["rank"], "racer": row["racer"], "survivor": row["survivor"],
+                    "completion": row["completion"], "kills": row["kills"],
+                    "outposts": row["outposts_completed"], "skills": row["maxed_skills"],
+                    "day": row["in_game_day"],
+                })
+        return rows
 
 
 def data_hash(rows):
     if not (TEMPLATE / "mods/TGSRRDailyLeaderboardProbe/42/mod.info").is_file():
         raise ValueError("Leaderboard mod template is missing.")
     digest = hashlib.sha256(json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode())
-    digest.update(b"leaderboard-schema-1")
+    digest.update(f"leaderboard-schema-{SNAPSHOT_SCHEMA}".encode())
     for file in sorted(TEMPLATE.rglob("*")):
         if file.is_file():
             digest.update(file.relative_to(TEMPLATE).as_posix().encode())
@@ -152,7 +161,7 @@ def package(job, rows, root):
     target.mkdir(parents=True, exist_ok=False)
     shutil.copytree(TEMPLATE, target / "Contents")
     (target / "Contents/mods/TGSRRDailyLeaderboardProbe/common").mkdir()
-    payload = {"schema": 1, "source": "Hosted DEV - test standings", "asOfUtc": timezone.now().isoformat(), "rows": rows}
+    payload = {"schema": SNAPSHOT_SCHEMA, "source": "Hosted DEV - test standings", "asOfUtc": timezone.now().isoformat(), "rows": rows}
     data = target / "Contents/mods/TGSRRDailyLeaderboardProbe/42/media/lua/client/TGSRRDailyLeaderboardData.lua"
     data.parent.mkdir(parents=True, exist_ok=True)
     data.write_text("TGSRRDailyLeaderboardData = " + lua(payload) + "\n", encoding="utf-8")
