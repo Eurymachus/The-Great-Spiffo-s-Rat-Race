@@ -6,6 +6,103 @@ This is the working checklist for the player/run data that TGSRR intends to coll
 
 TGSRR is always the sole authority for this data. Installed unrelated mods do not supply, replace, or alter any item in this checklist. The Tracker is TGSRR's player-facing presentation of the canonical state.
 
+## Statistics readiness audit (20 November 2026)
+
+Scope: static trace of the current 42.22 collectors, Runtime initialization,
+Exporter projection, website approval and normalized authority, plus existing
+regression tests. This is not a fresh in-game validation of every collector.
+Compared with the live [Brazilian statistics page](https://www.pzrank.com.br/estatisticas).
+No new collection or public statistics page is implemented by this audit.
+
+### Data already collected and exported
+
+| Family | Available evidence | Website work / interpretation |
+|---|---|---|
+| Participants and runs | Website participant identity, TGSRR run identity, starting timestamps, challenge mode, terminal lifecycle/timestamps | Count distinct runs and accounts, not submissions. Define eligibility, mode and build filters. Registered accounts and participating accounts are different populations. |
+| Character builds | Starting/current occupation and sex; selected starting, spawned effective and current trait sets | Normalized RunCharacter and RunCharacterTrait support popularity, repeated builds and descriptive comparisons. Choose the correct trait phase; current traits are not original choices. |
+| Spawn geography | Chosen region and observed starting XYZ/building, partial provenance | RunStartingLocation exists. Map raw region/tile evidence to a versioned geography; distinguish chosen region from actual spawn. |
+| Survival | Day starts, active day, terminal time, active gameplay milliseconds | Survival distributions and weekly starts/deaths are derivable. Active runs are ongoing observations, not completed lifetimes. Submission recency does not prove recent play. |
+| Combat | Vanilla kills, daily kills, per-item/pseudo-source weapon kills, separate fire deaths; cumulative posture/fence/window categories | RunKillSummary, RunWeaponKill and daily records exist. Fire deaths are not player-credited kills. Weapon category grouping needs catalogue mapping. Posture/assist counts have no daily breakdown. |
+| Skills | Current levels/XP, daily XP deltas, skill-level events and first level-10 milestones | RunSkill and daily metrics exist. Level-10 timing is already exported; generic milestone analytics need normalization. Level zero is sparse and must be reconstructed from the applicable registry. |
+| Outposts | Current requirements/progress, first/latest completion, latest regression, counts and first-completion order | RunOutpost and RunOutpostDeliverable exist. Supports completion rates, order and milestone timing. No complete chronological log of every later regression or every unfinished requirement value. |
+| Towns and landmarks | First visits with stable IDs, timestamps and observed coordinates | RunLandmark is normalized. Town visits remain in approved projection/events; add normalized town authority for community analytics. Visits do not prove clearing or looting. |
+| Literature | Skill-book/recipe-literature baseline, first read evidence, item IDs and learned recipes | Exported but no dedicated literature authority table. Excludes leisure books and ordinary magazines. Baseline reads do not have invented original read times. |
+| Movement and time | Combined planar distance, rejected movement samples, active gameplay time and on-foot moving-aim time | Normalized cumulative/daily statistics exist. Distance includes vehicles; cannot report kilometres driven separately. Active gameplay is not stream duration. |
+| Health and weather | Daily/current body weight, observed outdoor temperature extrema, injury type/body-part pairs and zombie-associated subset | Normalized summaries/daily records exist. Injury transitions are not every damage hit; zombie association is evidence, not guaranteed causation. Weather values are sampled outdoor extrema, not body temperature or daily means. |
+| Wildlife and husbandry | Slaughter actions, claimed trap catches by animal/trap pairing, domestic births, petting, fish landed by item type, milk litres by fluid | Normalized totals/daily dimensions exist. Slaughter excludes ordinary animal combat kills; fishing excludes nets and trash. No current herd inventory or general species-encounter tracker. |
+| Consumption and production | Calories consumed, manual fluid consumption by type, butter produced | Normalized cumulative/daily values exist. Butter is a specific recipe tracker, not general crafting. Consumed water is not collected water; consumed calories are not meals cooked. |
+| Equipment and generators | Weapons broken by item, generator repair count/condition restored, first generator-knowledge observation with context | Repairs/breaks normalized. Knowledge milestone is exported but needs analytics normalization. Knowledge observation does not conclusively identify its source. |
+| Sessions and mods | Session starts, initial and changed mod/Workshop IDs, debug observations, recovery branches | Available as evidence. Population mod-use charts need approved, normalized mappings and a defined initial/current/history scope. Exclude superseded recovery branches from totals. |
+
+### Genuine additional tracking candidates
+
+All remain proposals; API feasibility and runtime cost need verification before
+implementation. A new metric needs collection, persistence, export validation,
+approval normalization, coverage metadata and presentation together.
+
+| Candidate seen on Brazilian page | TGSRR gap and proposed counting boundary |
+|---|---|
+| Death causes and death regions | TerminalState records death and time, not cause or final location. Add terminal observations with explicit unknown/uncertain classification; injuries cannot substitute for cause. Capture a coarse region or map a terminal tile, rather than inferring it from the last town visited. |
+| Items/materials/weapons/forged weapons/clothes/furniture/ceramics made | Add successful recipe/output collection, stable recipe and item IDs, quantities and versioned category mapping. Distinguish recipe executions from output units, cancellation from completion, and intermediate materials from finished tools. Coordinate with the separately approved outpost crafting-provenance work; aggregate counts do not prove provenance of a stored item. |
+| Structures and stone structures built; workstations used | Add successful construction actions and actual successful station use. Separate unique stations from action counts and repairs/dismantling. |
+| Crops planted and harvested; meals cooked | New successful-action collectors. Define harvest actions versus item yield and cooking transitions versus recipe executions. |
+| Eggs collected and cheese produced | New collection/production hooks. Existing milk and butter tracking does not cover these. |
+| Trees cut and animal tracks followed | New completed-action tracking with a clear tree/track identity or action-count definition. |
+| Houses looted, doors opened, basements explored | Existing internal buildingVisits proves first entry only and is not exported. Export compact visit summaries for exploration, or separately define actual looting. Doors need distinct-door versus repeated-action semantics; basements need stable identity. |
+| Kilometres driven | Split movement into on-foot and vehicle categories; decide whether passenger travel counts or only driving. Combined existing distance cannot recover this split retrospectively. |
+| Distinct sleeping places and longest awake interval | New sleep start/end observations, stable place grouping and game-time duration. No existing sleep history. |
+| Days without canned food | Existing calorie totals do not retain food identity. Track qualifying consumption and streak start/end with explicit food-category rules. |
+| Water collected | Track acquisition separately from drinking; prevent transferring the same water between vessels repeatedly counting as new collection. |
+| Animal species | Existing action-specific type sets can answer species fished/trapped/slaughtered/petted. General species encountered or owned requires separate observation and a definition. |
+
+Brazilian presentation ideas requiring no new game tracking include medians,
+histograms, weekly run starts/deaths, popular/repeated trait builds, weapon
+preference versus survival, skill-level distributions, records and descriptive
+comparisons. Add minimum sample sizes and coverage counts. Their named seasons
+and inactivity thresholds are policies, not existing TGSRR definitions.
+
+### Reconciliation with parked ideas
+
+- Aggregate trait/weapon charts and richer approved-run chronology remain
+  website presentation work. The underlying evidence largely exists.
+- The parked generic per-day aggregate proposal is partly stale: many daily
+  families are already exported and normalized. Extend only specific gaps.
+- Coarse kill/death heatmaps, sleeping areas, basement exploration and canned-
+  food streaks remain unimplemented proposals. Town/landmark first visits are
+  already implemented but are not a continuous exploration trail.
+- The old reference to collectible evidence in approved exports is not backed
+  by a general collectible collector in the current code. Special relics at
+  selected locations are separately parked, new-run-only work.
+- XP attributed specifically to skill-book boosts and hunger fulfilled remain
+  explicitly deferred. Correlating reading with XP is possible; claiming the
+  book caused a precise amount of XP is not supported.
+- Milestone timings and daily summaries suggested in the conversation are
+  already implemented in substantial part, not new collector requirements.
+
+### Evidence and validation
+
+- Mod: `42.22/media/lua/client/TGSRR/Run/Runtime.lua`, `Exporter.lua`,
+  `DayTracker.lua`, `EventBridge.lua`, `MilestoneSnapshot.lua`,
+  `TerminalState.lua`, and the named per-family trackers/snapshots.
+- Website: `registry/submission_approval.py`, `run_authority.py`, `models.py`,
+  `run_public.py`, and `test_run_exports.py`.
+- Approval refreshes normalized authority from approved evidence. Community
+  analytics should follow the 18 August decision in DECISIONS.md: query
+  normalized authority, not repeatedly decode projection JSON. Towns,
+  literature, generic milestones and generator knowledge need additional
+  normalization for that use, even though their export evidence exists.
+- Five existing focused tests passed: cumulative statistic normalization,
+  sealed/active daily authority, sparse skills/kills, outpost reconstruction,
+  and isolation of pending/declined updates from approved runs.
+- Preserve per-family partial/missing semantics. Missing old observations are
+  not automatically zero; absent sparse deltas within a supported contract
+  can mean zero. Cumulative totals are independently authoritative and must
+  not be replaced by sums of daily records.
+- No game-side changes, live data mutations, deployment or fresh in-game
+  collector validation were performed. Recommended next decision: choose the
+  first statistics-page questions from existing evidence, then approve a small
+  explicit shortlist of additional collectors.
+
 ## Status definitions
 
 - 🟢 **Implemented**: TGSRR already collects or persists the underlying canonical information. This does not by itself mean the final submission exporter is complete.
