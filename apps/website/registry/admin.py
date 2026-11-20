@@ -342,7 +342,16 @@ class LegacyRunClaimAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
             claim.review_note = request.POST.get("review_note", "").strip()
             claim.save(update_fields=("status", "reviewed_by", "reviewed_at", "review_note"))
 
-        self.message_user(request, "The Rat Race 1.0 run claim was approved.", level=messages.SUCCESS)
+        self.message_user(
+            request,
+            format_html(
+                'Approved {}\'s claim for the Rat Race 1.0 record "{}". <a href="{}">View claim</a>.',
+                claim.participant.nickname,
+                run.legacy_participant_name,
+                reverse("admin:registry_legacyrunclaim_change", args=(claim.pk,)),
+            ),
+            level=messages.SUCCESS,
+        )
         notify(
             claim.participant,
             category=Notification.Category.ACCOUNT,
@@ -350,7 +359,7 @@ class LegacyRunClaimAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
             message=f"Your historical Rat Race record for {run.legacy_participant_name} is now linked to your account.",
             destination=reverse("registry:account"),
         )
-        return redirect("admin:registry_legacyrunclaim_change", claim.pk)
+        return redirect("admin:registry_legacyrunclaim_changelist")
 
     def decline_claim_view(self, request, object_id):
         if request.method != "POST":

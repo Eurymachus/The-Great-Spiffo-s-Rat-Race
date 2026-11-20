@@ -358,7 +358,7 @@ class LegacyDataImportTests(TestCase):
             reverse("admin:registry_legacyrunclaim_approve", args=(claim.pk,))
         )
 
-        self.assertRedirects(response, change_url, target_status_code=302)
+        self.assertRedirects(response, reverse("admin:registry_legacyrunclaim_changelist"))
         claim.refresh_from_db()
         legacy_run.refresh_from_db()
         self.assertEqual(claim.status, LegacyRunClaim.Status.APPROVED)

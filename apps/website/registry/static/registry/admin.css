@@ -263,6 +263,13 @@ body .submit-row input[name="_continue"],
 .admin-save-toast.is-success { --admin-save-accent: var(--message-success-bg, #2e7d32); }
 .admin-save-toast.is-error { --admin-save-accent: var(--error-fg, #ba2121); }
 .admin-save-toast.is-error::before { content: "!"; }
+.admin-save-toast.is-warning { --admin-save-accent: #9b6500; }
+.admin-save-toast.is-warning::before { content: "!"; }
+.admin-message-toasts { display: grid; gap: .65rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+.admin-message-toasts .admin-save-toast { pointer-events: auto; }
+.admin-message-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.admin-message-close { flex: 0 0 auto; border: 0; padding: .25rem .5rem; background: transparent; color: inherit; font-size: 1.25rem; cursor: pointer; }
+.admin-message-close:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
     .admin-save-toast { transition: opacity .01ms linear; }
