@@ -388,3 +388,20 @@ untested.
   weakening validation or immutable evidence.
 - Additional versioned report-schema and synthetic long-run size tests when the
   export contract changes.
+
+## Special items at selected locations (20 November 2026)
+
+- Idea for Rat Race 2.0: place custom collectibles or relics at deliberately
+  chosen landmarks, in specific containers or as objects on display. Collecting
+  them could become optional objectives with recorded challenge evidence.
+- A fixed item at a fixed landmark is a possible first version. Alternatives
+  include choosing from a curated list of locations per run or distributing
+  several collectibles across Kentucky. Item identities, locations, rewards
+  and any points contribution remain undecided.
+- The owner confirmed that this feature only needs to support new challenge
+  runs because the challenge has not launched. Existing-save migration is
+  explicitly outside the scope of this idea.
+- Placement should happen once per world when the relevant location loads,
+  persist across saves/reloads, and never respawn an item after collection.
+  Verify the placement and collection APIs before implementation.
+- Parked proposal only; capturing this note does not authorize implementation.
