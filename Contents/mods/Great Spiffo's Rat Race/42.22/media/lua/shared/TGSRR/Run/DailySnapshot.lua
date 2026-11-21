@@ -13,6 +13,8 @@ local FluidConsumedSnapshot = require("TGSRR/Run/FluidConsumedSnapshot")
 local FishCaughtSnapshot = require("TGSRR/Run/FishCaughtSnapshot")
 local TemperatureSnapshot = require("TGSRR/Run/TemperatureSnapshot")
 
+local CookedFoodSnapshot = require("TGSRR/Run/CookedFoodSnapshot")
+
 local DailySnapshot = {}
 
 local function weightKilograms(player)
@@ -46,6 +48,8 @@ function DailySnapshot.current(player, run)
             MilkSnapshot.copy(run and run.milkCollected),
         butterProduced =
             math.max(0, math.floor(tonumber(run and run.butterProduced) or 0)),
+        cookedFoodItems = run and run.cookedFood
+            and CookedFoodSnapshot.copy(run.cookedFood.items) or nil,
         fishCaught = FishCaughtSnapshot.copy(run and run.fishCaught),
         injuries = InjurySnapshot.copy(run and run.injuries),
         zombieAssociatedInjuries =
@@ -133,6 +137,9 @@ function DailySnapshot.active(run, player)
             - math.max(0, math.floor(
                 tonumber(baseline.butterProduced) or 0)),
         butterProducedPartial = baseline.butterProducedPartial == true,
+        cookedFoodItemsDeltas = current.cookedFoodItems
+            and DailySnapshot.deltas(current.cookedFoodItems, baseline.cookedFoodItems) or nil,
+        cookedFoodPartial = baseline.cookedFoodPartial == true or nil,
         fishCaughtDeltas =
             DailySnapshot.deltas(current.fishCaught, baseline.fishCaught),
         fishCaughtPartial = baseline.fishCaughtPartial == true,

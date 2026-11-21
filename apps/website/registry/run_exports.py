@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from .temperature import temperature_fields
 from .death_evidence import canonical_death_evidence
+from .cooked_food import validate_cooked_food
 from .distance import validate_distance
 
 
@@ -663,6 +664,7 @@ def decode_run_export(value, *, block_cache=None):
     if previous_hash != event_hash:
         raise InvalidRunExport("The export ledger hash does not match its events.")
     try:
+        validate_cooked_food(projection, events)
         validate_distance(projection, events)
     except ValueError as exc:
         raise InvalidRunExport(str(exc)) from exc

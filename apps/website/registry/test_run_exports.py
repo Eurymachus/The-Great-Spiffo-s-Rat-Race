@@ -2034,7 +2034,7 @@ class RunSubmissionTests(TestCase):
         self.assertEqual(active.nimble_movement_milliseconds_delta, 3000)
         self.assertEqual(active.active_gameplay_milliseconds_delta, 15000)
         self.assertTrue(active.partial)
-        self.assertEqual(active.partial_metrics, ["distance"])
+        self.assertEqual(active.partial_metrics, ["distance", "cookedFood"])
         broken = active.metrics.get(kind=RunDailyMetric.Kind.BROKEN_WEAPON)
         self.assertEqual(broken.raw_primary_id, "Base.Axe")
         self.assertEqual(broken.value, 1)

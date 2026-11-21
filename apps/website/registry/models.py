@@ -1011,6 +1011,7 @@ class RunDailyMetric(models.Model):
         ANIMAL_PET = "animal_pet", "Animal pet"
         MILK_COLLECTED = "milk_collected", "Milk collected"
         FLUID_CONSUMED = "fluid_consumed", "Fluid consumed"
+        COOKED_FOOD = "cooked_food", "Cooked food collected"
         FISH_CAUGHT = "fish_caught", "Fish caught"
         INJURY = "injury", "Injury"
         ZOMBIE_ASSOCIATED_INJURY = (
@@ -1076,6 +1077,7 @@ class RunStatisticSummary(models.Model):
         FLUID_CONSUMED = "fluid_consumed", "Fluid consumed"
         CALORIES_CONSUMED = "calories_consumed", "Calories consumed"
         BUTTER_PRODUCED = "butter_produced", "Butter produced"
+        COOKED_FOOD = "cooked_food", "Cooked food collected"
         FISH_CAUGHT = "fish_caught", "Fish caught"
         INJURIES = "injuries", "Injuries"
         ZOMBIE_ASSOCIATED_INJURIES = (

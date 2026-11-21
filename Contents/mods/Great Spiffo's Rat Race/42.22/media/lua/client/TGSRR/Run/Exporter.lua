@@ -1,5 +1,6 @@
 local DistanceSnapshot = require("TGSRR/Run/DistanceSnapshot")
 local Identity = require("TGSRR/Run/Identity")
+local CookedFoodSnapshot = require("TGSRR/Run/CookedFoodSnapshot")
 local TemperatureSnapshot = require("TGSRR/Run/TemperatureSnapshot")
 local Ledger = require("TGSRR/Run/Ledger")
 local ExportCodec = require("TGSRR/Run/ExportCodec")
@@ -331,6 +332,11 @@ local function verifyReadback(decoded, ledger, projection, verifyBodies)
         { "distance.modesPartial", actual.distance.modesPartial, projection.distance.modesPartial },
         { "activeDay.distanceByModeDeltas", actual.activeDay.distanceByModeDeltas, projection.activeDay.distanceByModeDeltas },
         { "activeDay.distanceModesPartial", actual.activeDay.distanceModesPartial, projection.activeDay.distanceModesPartial },
+        { "cookedFood", actual.cookedFood, projection.cookedFood },
+        { "activeDay.cookedFoodItemsDeltas", actual.activeDay.cookedFoodItemsDeltas,
+            projection.activeDay.cookedFoodItemsDeltas },
+        { "activeDay.cookedFoodPartial", actual.activeDay.cookedFoodPartial,
+            projection.activeDay.cookedFoodPartial },
         { "outdoorTemperature", actual.outdoorTemperature, projection.outdoorTemperature },
         { "activeDay.outdoorTemperature", actual.activeDay.outdoorTemperature,
             projection.activeDay.outdoorTemperature },
@@ -466,6 +472,7 @@ function Exporter.generate(run, work, options)
             partial = run.zombieKillTypesPartial == true,
         },
         townVisits = TownSnapshot.observe(run),
+        cookedFood = CookedFoodSnapshot.observe(run),
         literature = LiteratureSnapshot.observe(run),
         locations = LocationSnapshot.observe(run),
         milestones = milestones,

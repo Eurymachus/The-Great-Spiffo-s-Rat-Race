@@ -22,6 +22,7 @@ from .models import (
 )
 from .temperature import temperature_fields
 from .death_evidence import death_fields
+from .cooked_food import items_counts
 
 
 DAILY_MAP_METRICS = (
@@ -37,6 +38,7 @@ DAILY_MAP_METRICS = (
     ("animalPetDeltas", RunDailyMetric.Kind.ANIMAL_PET, CatalogueEntry.Kind.ANIMAL),
     ("milkCollectedDeltas", RunDailyMetric.Kind.MILK_COLLECTED, CatalogueEntry.Kind.FLUID),
     ("fluidConsumedDeltas", RunDailyMetric.Kind.FLUID_CONSUMED, CatalogueEntry.Kind.FLUID),
+    ("cookedFoodItemsDeltas", RunDailyMetric.Kind.COOKED_FOOD, CatalogueEntry.Kind.ITEM),
     ("fishCaughtDeltas", RunDailyMetric.Kind.FISH_CAUGHT, CatalogueEntry.Kind.ITEM),
 )
 
@@ -52,6 +54,7 @@ ACTIVE_PARTIAL_FLAGS = {
     "animalsPettedPartial": "animals_petted",
     "milkCollectedPartial": "milk_collected",
     "butterProducedPartial": "butter_produced",
+    "cookedFoodPartial": "cookedFood",
     "fishCaughtPartial": "fish_caught",
     "injuriesPartial": "injuries",
     "fluidConsumedPartial": "fluid_consumed",
@@ -179,6 +182,8 @@ def _daily_record_defaults(snapshot, *, calendar=None, observed=None, active=Fal
             for flag, metric in ACTIVE_PARTIAL_FLAGS.items()
             if bool(snapshot.get(flag, False))
         ]
+    if "cookedFoodItemsDeltas" not in snapshot:
+        partial_metrics = [*partial_metrics, "cookedFood"]
     return {
         **temperature_fields(snapshot.get("outdoorTemperature")),
         "calendar_year": calendar.get("year"),
@@ -460,6 +465,18 @@ def _refresh_statistic_authority(run, projection):
         "count",
         raw_reference_id="Base.Butter",
     )
+
+    cookedFood = projection.get("cookedFood")
+    if isinstance(cookedFood, dict):
+        counts = items_counts(cookedFood["items"])
+        target = summary(
+            RunStatisticSummary.Kind.COOKED_FOOD,
+            {"total": sum(counts.values()), "partial": cookedFood.get("partial", False)},
+            "total", unit="collected_cooked_food_item",
+        )
+        for item_id, count in counts.items():
+            metric(target, RunStatisticMetric.Dimension.ITEM, item_id, count,
+                   primary_kind=CatalogueEntry.Kind.ITEM)
 
     fish_source = _snapshot(projection.get("fishCaught"))
     fish = summary(RunStatisticSummary.Kind.FISH_CAUGHT, fish_source, "total")

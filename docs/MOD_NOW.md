@@ -1,5 +1,26 @@
 # Mod: Current Focus
 
+## Cooked food collected (21 November 2026)
+
+- Implemented in 42.22: successful solo transfers and ground pickups into the
+  player's inventory/carried bags, including food inside acquired bags. Eligible
+  Food items are cooked or tagged AlreadyCooked, and not burnt. No chef attribution.
+- Persistent item ModData `TGSRRCookedFoodRunId` prevents the same item counting
+  again after storage, retrieval, repeated callbacks or reload. Existing carried
+  food is baselined once without credit when the collector is introduced.
+- Cumulative raw full-item-type counts are independent of daily history.
+  `cookedFood = {schema = 1, items = {...}, partial = true?}` exports with sparse
+  `cookedFoodItemsDeltas` and coverage metadata. Approval normalizes item metrics
+  and a cumulative summary. Missing historical coverage remains unknown.
+- Keep this slice simple: no recipe/portioning marker propagation, cooking-XP
+  inference, appliance scanning or per-item export ledger. New items created by
+  slicing or transformations may count separately on later collection.
+- Desktop collector, daily rollover/reinitialization and website validation tests
+  pass. In-game transfer, whole-bag pickup, save/reload and midnight acceptance
+  remain pending. Both local Team Test copies updated and all 614 mod files
+  verified on 21 November. Workshop metadata preserved; no upload.
+
+
 ## Travel mode distance (21 November 2026)
 
 - Replaced `OnPlayerMove` sampling with a constant-memory `OnTick` collector.

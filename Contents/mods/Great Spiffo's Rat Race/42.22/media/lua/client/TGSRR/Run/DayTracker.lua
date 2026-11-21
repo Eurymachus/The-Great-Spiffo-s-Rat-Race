@@ -87,6 +87,10 @@ local function completedDay(current, previousState, dayIndex)
     addDelta(result, "butterProducedDelta",
         current.butterProduced - math.max(0,
             math.floor(tonumber(previousState.butterProduced) or 0)))
+    if current.cookedFoodItems then
+        result.cookedFoodItemsDeltas = deltas(
+            current.cookedFoodItems, previousState.cookedFoodItems)
+    end
     addDeltas(result, "fishCaughtDeltas",
         deltas(current.fishCaught, previousState.fishCaught))
     addDeltas(result, "injuryDeltas",
@@ -127,6 +131,7 @@ local function completedDay(current, previousState, dayIndex)
         { "animalsPetted", "animalsPettedPartial" },
         { "milkCollected", "milkCollectedPartial" },
         { "butterProduced", "butterProducedPartial" },
+        { "cookedFood", "cookedFoodPartial" },
         { "fishCaught", "fishCaughtPartial" },
         { "injuries", "injuriesPartial" },
         { "fluidConsumed", "fluidConsumedPartial" },
@@ -211,6 +216,9 @@ local function beginDay(initial)
         butterProduced = current.butterProduced,
         butterProducedPartial =
             initial == true and activeRun.butterProducedPartial == true,
+        cookedFoodItems = current.cookedFoodItems,
+        cookedFoodPartial = initial == true
+            and activeRun.cookedFood and activeRun.cookedFood.partial == true or nil,
         fishCaught = current.fishCaught,
         fishCaughtPartial =
             initial == true and activeRun.fishCaughtPartial == true,
