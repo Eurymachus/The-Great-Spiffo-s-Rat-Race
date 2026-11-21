@@ -216,14 +216,25 @@ local function finishExport(ok, result)
             .. " ms"
             .. "\nBlocks reused: " .. tostring(result.reusedBlockCount or 0)
             .. "  |  Blocks built: " .. tostring(result.builtBlockCount or 0)
+        if result.memory then
+            local memory = result.memory
+            summaryText = summaryText
+                .. string.format("\nSampled JVM heap MiB: build peak %.1f | export peak %.1f",
+                    (memory.buildPeakKiB or 0) / 1024, (memory.exportPeakKiB or 0) / 1024)
+                .. string.format("\nExport baseline %.1f MiB | peak rise %.1f MiB | disk ledger %.1f MiB",
+                    (memory.exportBaselineKiB or 0) / 1024,
+                    ((memory.exportPeakKiB or 0) - (memory.exportBaselineKiB or 0)) / 1024,
+                    (result.syntheticLedgerBytes or 0) / 1048576)
+                .. "\nSampled whole-JVM usage; report saved beside export."
+        end
     end
     local modal = showMessage(
         readyText .. "\n\n" .. summaryText,
         L.text("UI_TGSRR_Tracker_CopyFilePath", "Copy File Path"),
         nil,
         nil,
-        result.syntheticDays and 600 or nil,
-        result.syntheticDays and 430 or 348,
+        result.syntheticDays and 760 or nil,
+        result.syntheticDays and 490 or 348,
         true
     )
     modal.prerender = function(self)
@@ -239,11 +250,11 @@ local function finishExport(ok, result)
         self:drawTextCentre(summaryText, self:getWidth() / 2,
             result.syntheticDays and 54 or 68,
             1, 1, 1, 1, UIFont.Small)
-            local noticeY = result.syntheticDays and 154 or 100
-            local savedLabelY = result.syntheticDays and 180 or 120
-            local firstPathY = result.syntheticDays and 204 or 140
-            local secondPathY = result.syntheticDays and 226 or 160
-            local instructionY = result.syntheticDays and 254 or 186
+            local noticeY = result.syntheticDays and 214 or 100
+            local savedLabelY = result.syntheticDays and 240 or 120
+            local firstPathY = result.syntheticDays and 264 or 140
+            local secondPathY = result.syntheticDays and 286 or 160
+            local instructionY = result.syntheticDays and 314 or 186
             self:drawTextCentre(
                 L.text("UI_TGSRR_Tracker_ExportSavedForUpload",
                     "Export saved for website upload."),

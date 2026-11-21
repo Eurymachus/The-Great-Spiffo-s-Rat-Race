@@ -550,12 +550,26 @@ the export contract; their policy and test surfaces are documented in
   A manual export cancels the pending automatic export.
   TGSRR overrides vanilla modal cleanup for these dialogs because vanilla
   otherwise resumes gameplay after OK or Close.
-- Debug-only synthetic export window offering one, two, five, and ten-year
-  benchmarks. Each builds the corresponding deterministic daily records in
-  memory, sends them through the real event codec and exporter, and writes a
-  separately named export without changing the saved run ledger. Benchmark
-  history is isolated from mutable live-session events, so its block identities
-  remain stable across game restarts and repeated tests measure cache reuse.
+- Debug-only synthetic export window offers one, two, five, and ten-year
+  fixtures covering every current completed-day counter, including distance
+  modes, leisure reading, animals, milk, fluids, injuries, repairs and time.
+  Fixture v2 writes deterministic ledger segments into a separate
+  `<runId>-benchmark-v2-<days>` directory, then uses the normal exporter and
+  `Ledger.readAll` disk verification path. No full synthetic history cache is
+  retained. Repeat fixtures keep stable block identities for cache tests.
+- Benchmark results include disk-ledger bytes, build/export stage timings and
+  sampled JVM heap baseline/peak/end values for fixture building and export.
+  A `.benchmark.txt` report is saved beside each synthetic export. PZ's exposed
+  Kahlua `collectgarbage("count")` measures the whole JVM heap in KiB, not Lua
+  allocations or process RSS. Samples occur at cooperative work checkpoints
+  at least 10 ms apart and at stage boundaries; brief intervening peaks can be
+  missed. No forced GC or OS cache clearing: newly written fixture reads are
+  normally warm-cache reads. Synthetic exports remain unsuitable for submission.
+- Validation: desktop regression uses real temporary files and the production
+  ledger reader, checks every current daily metric, deterministic repeat
+  fixtures, live-run isolation, a 256-record segment boundary, memory reporting
+  and I/O/corruption failures. In-game JVM memory and long-run timings still
+  need rerunning with this richer fixture; old benchmark numbers are not v2.
 - Export progress overlays show a live hours, minutes, and seconds elapsed
   timer for ordinary and synthetic exports.
 - Every export remains saved under `Zomboid/Lua/TGSRR/Runs`. The result window
