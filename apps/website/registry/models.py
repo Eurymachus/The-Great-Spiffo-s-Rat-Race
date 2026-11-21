@@ -718,6 +718,39 @@ class RunStartingLocation(models.Model):
     )
 
 
+class RunDeathSummary(models.Model):
+    run = models.OneToOneField(ChallengeRun, on_delete=models.CASCADE, related_name="death_summary")
+    schema = models.PositiveSmallIntegerField()
+    capture_context = models.CharField(max_length=24)
+    cause = models.CharField(max_length=64)
+    certainty = models.CharField(max_length=24)
+    last_damage_source = models.CharField(max_length=64, blank=True)
+    killed_by_fall = models.BooleanField(null=True)
+    death_drag_down = models.BooleanField(null=True)
+    infected_at_death = models.BooleanField(null=True)
+    x = models.IntegerField(null=True)
+    y = models.IntegerField(null=True)
+    z = models.IntegerField(null=True)
+    building_def_id = models.CharField(max_length=160, blank=True)
+    registered_kind = models.CharField(max_length=24, blank=True)
+    registered_raw_id = models.CharField(max_length=255, blank=True)
+    registry_version = models.PositiveIntegerField(null=True)
+    location_captured_utc = models.PositiveBigIntegerField(null=True)
+    location_world_age_hours = models.FloatField(null=True)
+
+
+class RunDeathDamage(models.Model):
+    summary = models.ForeignKey(RunDeathSummary, on_delete=models.CASCADE, related_name="recent_damage")
+    source = models.CharField(max_length=64)
+    amount = models.FloatField()
+    age_milliseconds = models.PositiveIntegerField()
+    observation_order = models.PositiveSmallIntegerField()
+
+    class Meta:
+        ordering = ("observation_order",)
+        constraints = [models.UniqueConstraint(fields=("summary", "source"), name="unique_run_death_damage_source")]
+
+
 class RunLifecycleSummaryFields(models.Model):
     class CurrentState(models.TextChoices):
         COMPLETE = "complete", "Complete"

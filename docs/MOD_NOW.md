@@ -1,5 +1,98 @@
 # Mod: Current Focus
 
+## Terminal death evidence (21 November 2026)
+
+- Further infected-fall export validated: run
+  `rr-1795260350-1795260350371-798215-158712` captures `infectedAtDeath=true`
+  and `killedByFall=true`, with `deathDragDown=false`. Cause is `fall` with
+  `explicit_flag`; latest `FALLDOWN` damage is 1010, 573 ms before death, at
+  tile `(12492, 1608, 0)`. This confirms an explicit fatal-fall classification
+  alongside independently captured systemic infection in an in-game export.
+
+- Infected-fall test export validated: run
+  `rr-1795260116-1795260116118-172564-775650` captures `infectedAtDeath=true`
+  independently of cause. Both terminal flags were false; the fallback records
+  `FALLDOWN` as suspected, amount 8332.5, 45 ms before death, at tile
+  `(358, 9867, 1)`. Do not describe this example as explicit fatal-fall detection.
+  Investigate why the engine flag was false before assuming it covers every
+  fall death; retain the observed flag and suspected-source evidence unchanged.
+
+- Added optional `infectedAtDeath`, read from the exposed
+  `BodyDamage.isInfected()` systemic zombie-infection flag during the death
+  callback, independently of damage history and cause selection. True/false
+  observations are retained; older exports, unavailable body damage and later
+  recovery capture remain unknown. No ordinary wound-infection inference or
+  inference about deliberate death is made. Existing terminal captures remain
+  immutable. Approval stores nullable `RunDeathSummary.infected_at_death`.
+- Migration 0072 applied locally. All 38 focused death/codec tests, Lua tests,
+  actual Lua-to-Python export validation and prohibited-global scans pass.
+  Both local Team Test packages regenerated and all 611 mod files verified
+  against source with the intentional Team Test metadata substitutions.
+  Restart PZ before testing infected fall/drag-down and an uninfected control.
+  No Workshop upload or hosted deployment was performed.
+
+- Accelerated zombie-infection test export validated: run
+  `rr-1795259560-1795259560018-546598-328997` records both terminal flags false,
+  last damage source and cause `INFECTION`, with certainty `suspected`. Its sole
+  recent source is infection, amount 110, 25 ms before death, at tile
+  `(411, 9761, 0)`, building ID `10696053409972248`. This validates the tested
+  infection mortality path; ordinary-duration and mixed-source cases remain
+  separate coverage questions.
+
+- Bleeding test export validated: run
+  `rr-1795259179-1795259179537-160385-118086` records both terminal flags false,
+  last damage source and cause `BLEEDING`, with certainty `suspected`. Its sole
+  recent source is bleeding, amount approximately 0.439939, 14 ms before death,
+  at tile `(11534, 6932, 0)`, building ID `7600017644716067`. This supplies an
+  in-game example of the bleeding suspicion path and retained building identity.
+
+- Fire test export validated: run
+  `rr-1795258407-1795258407592-643512-581764` records both terminal flags false,
+  last damage source and cause `FIRE`, with certainty `suspected`. The sole
+  recent source is fire, amount approximately 0.106655, 32 ms before the death
+  callback, at tile `(9771, 12828, 0)`. This validates the suspected-source path
+  for this fire test; it does not establish certainty for mixed damage cases.
+
+- Fatal-fall test export validated: run
+  `rr-1795258117-1795258117309-734807-656668` records `killedByFall=true`,
+  `deathDragDown=false`, cause `fall` with `explicit_flag`, and terminal tile
+  `(8082, 11674, 1)`. The last damage observation is `FALLDOWN`, amount 1000,
+  767 ms before the death callback. Both fall and drag-down classifications
+  now have an in-game example; subsequent tests are recorded above.
+
+- First in-game export validated: run
+  `rr-1795257762-1795257762261-267784-578790` records explicit zombie drag-down,
+  `killedByFall=false`, terminal tile `(7222, 8288, 0)`, fall damage 5,128 ms
+  earlier and bleeding 12 ms earlier. This confirms the flag takes priority
+  over the most recent damage source in this case; later fall tests are above.
+- That export exposed sparse location `partial=false` omission by the exporter.
+  Import comparison now expands only that documented default on validated
+  copies, preserving original event/projection evidence and rejecting changed
+  locations or flags. The original export now validates unchanged; 37 focused
+  death/codec tests pass. This fix is website-only, no Team Test rebuild needed.
+
+- First slice implemented in 42.22 with the in-game examples above: capture XYZ,
+  optional building/outpost/landmark, explicit fatal-fall and drag-down flags,
+  and bounded recent damage observations in the existing `run.ended` event.
+- Flags take priority; otherwise the last observed damage source within ten
+  real-time seconds is labelled suspected. Retain other recent sources and
+  their ages because callback order does not establish fatal causation.
+- Export carries the same schema-1 `deathEvidence` snapshot. Website decoding
+  verifies event/projection agreement and classification consistency; approval
+  stores typed death summary and recent-source rows (migration 0069).
+- No per-hit ledger or position trail. The transient window resets on runtime
+  initialization/recovery; repeated terminal export preserves the first record.
+  A later recovery capture is explicitly labelled and has no reconstructed
+  damage history. Old exports without the field retain unknown coverage.
+- See the terminal testing checklist in `MOD_EXPORT_CHECKLIST.md`. No confirmed
+  general zombie-attack, poisoning-subtype or moodle-based diagnosis is claimed.
+- Validation: 124 website/export/approval tests passed, followed by all seven
+  focused death tests after validator hardening. Lua collector/terminal tests,
+  changed-file syntax checks, actual Lua format-4 export decoded by Python,
+  migration consistency and prohibited-global scans pass. Migration 0069 is
+  applied to the local development database. No Workshop/hosted deployment
+  was performed; subsequent in-game results are recorded above.
+
 ## Approved RR 2 food requirement (19 November 2026)
 
 - Require 20,000 calories per outpost, increased from 5,000. Retain existing

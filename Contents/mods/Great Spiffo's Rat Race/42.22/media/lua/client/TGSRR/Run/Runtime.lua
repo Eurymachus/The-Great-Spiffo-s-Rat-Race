@@ -38,6 +38,7 @@ local GeneratorRepairTracker =
     require("TGSRR/Run/GeneratorRepairTracker")
 local InjuryTracker = require("TGSRR/Run/InjuryTracker")
 local TerminalState = require("TGSRR/Run/TerminalState")
+local DeathEvidence = require("TGSRR/Run/DeathEvidence")
 local ExportMenu = require("TGSRR/Run/ExportMenu")
 
 TGSRR = TGSRR or {}
@@ -526,6 +527,7 @@ initialize = function()
     FishCaughtTracker.initialize(run, player)
     GeneratorRepairTracker.initialize(run, player)
     InjuryTracker.initialize(run, player)
+    DeathEvidence.initialize(run, player)
     local literatureReady, literatureError =
         LiteratureTracker.initialize(run, player, created)
     if not literatureReady then
@@ -578,7 +580,8 @@ end)
 
 Events.OnPlayerDeath.Add(function(player)
     if not Identity.isRatRaceChallenge() then return end
-    local recorded, result = TerminalState.markDeceased(player)
+    if player ~= getSpecificPlayer(0) then return end
+    local recorded, result = TerminalState.markDeceased(player, "death_callback")
     if not recorded then
         print("[TGSRR Run] Failed to record terminal death state: "
             .. tostring(result))

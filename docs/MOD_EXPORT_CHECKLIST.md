@@ -103,6 +103,58 @@ and inactivity thresholds are policies, not existing TGSRR definitions.
   first statistics-page questions from existing evidence, then approve a small
   explicit shortlist of additional collectors.
 
+## Terminal death evidence first slice (21 November 2026)
+
+- Implemented for 42.22; tested in-game examples are in `MOD_NOW.md`. `DeathEvidence`
+  listens to `OnPlayerGetDamage` only for the active tracked player and retains
+  the latest positive finite amount per source, up to 32 sources, within ten
+  real-time seconds. Amounts are individual callback values, not cumulative
+  damage or a guaranteed decomposition of terminal health loss. No hit events
+  or continuous positions are appended to the ledger.
+- `OnPlayerDeath` captures tile XYZ, optional building ID and registered
+  outpost/landmark, plus `isKilledByFall()` and `isDeathDragDown()`. The existing
+  terminal event and export projection carry the identical versioned snapshot.
+  Fall/drag-down flags select an explicit classification; conflicting flags
+  remain mixed. Otherwise the most recent source is suspected, or unknown if
+  absent/stale. Other recent sources retain their ages and callback order.
+- Capture context distinguishes the death callback from post-death UI recovery.
+  Recovery does not reconstruct recent damage. Missing coordinates and flags
+  remain unknown; repeated exports do not overwrite the successful capture.
+  The ten-second window is not complete across reloads, initialization or
+  recovery; no old damage history is invented. Pauses count toward real time.
+- Website validation accepts older exports with no death evidence, rejects
+  malformed/mismatched observations, and normalizes only approved evidence into
+  `RunDeathSummary` and `RunDeathDamage`. Pending submissions cannot change those
+  rows. Region mapping and public death statistics remain future presentation work.
+- Source verification: installed build `26486631`, decompile job 17.
+  `IsoPlayer.OnDeath` emits the local-player callback before vehicle exit.
+  `IsoGameCharacter` publicly exposes both terminal flags through its exposed
+  class. `BodyDamage.Update` can emit multiple damage types after a combined
+  reduction, so event order is not proof of cause. `BaseVehicle.damagePlayers`
+  provides `CARCRASHDAMAGE` on its non-client path; multiplayer coverage is not
+  established. `CARHITDAMAGE` is separate. No speed-drop heuristic is used.
+
+In-game validation, using disposable local test runs:
+
+1. Start with a fatal fall: check `console.txt` for `[TGSRR Run] Death evidence`,
+   `cause=fall`, `certainty=explicit_flag`, and the correct landing XYZ.
+2. Trigger zombie drag-down and inspect the explicit flag. Ordinary zombie
+   attacks may remain unknown or show a suspected secondary mechanism; a bite
+   or nearby zombie alone must not become a confirmed cause.
+3. Test fire, bleeding and zombie infection separately. Compare the observed
+   damage callbacks with the suspected source and its age at death.
+4. Test mixed damage, such as burning while bleeding. Preserve both sources;
+   the last callback must remain labelled suspected, never certain.
+5. Test a vehicle-occupant crash separately from being struck by a vehicle.
+   Verify the single-player event paths before making multiplayer claims.
+6. Exercise cancellation/reload, a stale damage window, and repeated final
+   exports. Missing recent evidence stays unknown and the first successful
+   terminal snapshot remains unchanged. Check an outpost/landmark and an
+   unregistered location, including a nonzero floor or basement when possible.
+7. Submit the final export locally, inspect terminal evidence, and approve it.
+   Confirm normalized values appear only after approval. This does not require
+   publishing a Workshop update or modifying hosted DEV data.
+
 ## Status definitions
 
 - 🟢 **Implemented**: TGSRR already collects or persists the underlying canonical information. This does not by itself mean the final submission exporter is complete.
@@ -120,6 +172,7 @@ The `Contract` scope contains the agreed export contract. `Team request` contain
 
 | Scope | Data | Status | Notes |
 |---|---|---|---|
+| Team request | Death location and initial cause evidence | 🟢 Implemented | 42.22 records optional terminal XYZ/building/registered location, fatal-fall and drag-down flags, and the latest observation per recent damage source. Explicit flags take priority; otherwise the last source within ten real-time seconds is only suspected. One schema-1 snapshot is bound to the terminal event and projection, validated on import and normalized on approval. Missing older evidence remains unknown. In-game event ordering and coverage validation remain outstanding; see the first-slice checklist above. |
 | Team request | Daily and run-wide outdoor temperature extremes | 🟢 Implemented | `outdoorTemperature` carries sampled minimum/maximum Celsius and each observation's UTC, world age, time of day and one-based calendar date. Global outdoor weather is sampled at initialization and every game minute regardless of player location. Completed days seal their extremes; the projection includes active-day and independent run-wide records. Existing history is partial, ties preserve first occurrence and old omissions remain unknown. Desktop collection and export round trips pass; website approval normalizes the data and presents a temperature chart. In-game verification remains outstanding. |
 | Contract | Character name | 🟢 Implemented | Starting and current character metadata are captured; the name is presentation metadata, not the run identity. |
 | Contract | Occupation | 🟢 Implemented | The raw Project Zomboid profession ID is captured immutably in `character.starting.professionId` and observed again in `character.current.professionId`. Localized occupation names are left to the website. |

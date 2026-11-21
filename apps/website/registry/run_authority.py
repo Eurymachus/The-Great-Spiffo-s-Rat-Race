@@ -2,6 +2,8 @@ from zomboid_catalogue.models import CatalogueEntry, MapLocationVersion
 from zomboid_catalogue.resolver import resolve_identifier
 
 from .models import (
+    RunDeathSummary,
+    RunDeathDamage,
     RunTemperatureSummary,
     RunCharacter,
     RunCharacterTrait,
@@ -19,6 +21,7 @@ from .models import (
     RunWeaponKill,
 )
 from .temperature import temperature_fields
+from .death_evidence import death_fields
 
 
 DAILY_MAP_METRICS = (
@@ -494,6 +497,17 @@ def refresh_initial_run_authority(
     run, projection, events=None, *, previous_event_sequence=0
 ):
     character_projection = _snapshot(projection.get("character"))
+    evidence = projection.get("deathEvidence")
+    if evidence is None:
+        RunDeathSummary.objects.filter(run=run).delete()
+    else:
+        death, _ = RunDeathSummary.objects.update_or_create(run=run, defaults=death_fields(evidence))
+        death.recent_damage.all().delete()
+        RunDeathDamage.objects.bulk_create([
+            RunDeathDamage(summary=death, source=item["source"], amount=item["amount"],
+                           age_milliseconds=item["ageMilliseconds"], observation_order=index)
+            for index, item in enumerate(evidence["recentDamage"])
+        ])
     starting = _snapshot(character_projection.get("starting"))
     current = _snapshot(character_projection.get("current"))
 

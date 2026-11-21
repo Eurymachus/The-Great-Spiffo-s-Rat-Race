@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from .temperature import temperature_fields
+from .death_evidence import canonical_death_evidence
 
 
 PREFIX = "TGSRR1.LZ1."
@@ -703,6 +704,15 @@ def decode_run_export(value, *, block_cache=None):
         ):
             raise InvalidRunExport("The deceased run has incomplete terminal evidence.")
         terminal_event = terminal_events[0]
+        evidence = projection.get("deathEvidence")
+        if "deathEvidence" in projection or "deathEvidence" in terminal_event["payload"]:
+            try:
+                projected_death = canonical_death_evidence(evidence)
+                recorded_death = canonical_death_evidence(terminal_event["payload"].get("deathEvidence"))
+            except (ValueError, TypeError, OverflowError) as exc:
+                raise InvalidRunExport("The export contains invalid death evidence.") from exc
+            if projected_death != recorded_death:
+                raise InvalidRunExport("The death evidence does not match its terminal event.")
         if (
             terminal_event["payload"].get("reason") != "deceased"
             or terminal_event["sequence"] != ended_sequence
@@ -719,6 +729,7 @@ def decode_run_export(value, *, block_cache=None):
             "endedUtc",
             "endedWorldAgeHours",
             "endedEventSequence",
+            "deathEvidence",
         )
     ):
         raise InvalidRunExport("The active run contains terminal projection fields.")
