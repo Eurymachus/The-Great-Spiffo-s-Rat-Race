@@ -1,3 +1,4 @@
+local DistanceSnapshot = require("TGSRR/Run/DistanceSnapshot")
 local Identity = require("TGSRR/Run/Identity")
 local SkillSnapshot = require("TGSRR/Run/SkillSnapshot")
 local WeaponKillSnapshot = require("TGSRR/Run/WeaponKillSnapshot")
@@ -28,6 +29,7 @@ function DailySnapshot.current(player, run)
         skills = SkillSnapshot.totals(player),
         weaponKills = WeaponKillSnapshot.copy(run and run.weaponKills),
         fireDeaths = math.max(0, tonumber(run and run.fireDeaths) or 0),
+        distanceByModeMeters = DistanceSnapshot.copy(run and run.distanceByModeMeters),
         distanceTravelledMeters =
             math.max(0, tonumber(run and run.distanceTravelledMeters) or 0),
         brokenWeapons =
@@ -106,6 +108,8 @@ function DailySnapshot.active(run, player)
             current.distanceTravelledMeters
                 - (tonumber(baseline.distanceTravelledMeters) or 0)),
         distancePartial = baseline.distancePartial == true,
+        distanceByModeDeltas = DistanceSnapshot.delta(current.distanceByModeMeters, baseline.distanceByModeMeters),
+        distanceModesPartial = baseline.distanceModesPartial == true or nil,
         brokenWeaponDeltas =
             DailySnapshot.deltas(current.brokenWeapons, baseline.brokenWeapons),
         brokenWeaponsPartial = baseline.brokenWeaponsPartial == true,

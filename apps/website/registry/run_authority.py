@@ -44,6 +44,7 @@ ACTIVE_PARTIAL_FLAGS = {
     "weaponKillsPartial": "weapon_kills",
     "fireDeathsPartial": "fire_deaths",
     "distancePartial": "distance",
+    "distanceModesPartial": "distanceModes",
     "brokenWeaponsPartial": "broken_weapons",
     "animalsSlaughteredPartial": "animals_slaughtered",
     "animalsTrappedPartial": "animals_trapped",
@@ -205,6 +206,12 @@ def _daily_record_defaults(snapshot, *, calendar=None, observed=None, active=Fal
         ),
         "fire_death_delta": int(snapshot.get("fireDeathDelta") or 0),
         "distance_delta_meters": float(snapshot.get("distanceDeltaMeters") or 0),
+        **{
+            f"distance_{field}_meters": (
+                float(snapshot["distanceByModeDeltas"].get(mode, 0))
+                if "distanceByModeDeltas" in snapshot else None
+            ) for mode, field in (("onFoot", "on_foot"), ("driver", "driver"))
+        },
         "butter_produced_delta": int(snapshot.get("butterProducedDelta") or 0),
         "calories_consumed_delta": float(
             snapshot.get("caloriesConsumedDelta") or 0
@@ -343,6 +350,12 @@ def _refresh_statistic_authority(run, projection):
         unit="meter",
         secondary_key="rejectedSamples",
     )
+    distance = _snapshot(projection.get("distance"))
+    if "byModeMeters" in distance:
+        for mode, kind in (("onFoot", RunStatisticSummary.Kind.DISTANCE_ON_FOOT),
+                           ("driver", RunStatisticSummary.Kind.DISTANCE_DRIVER)):
+            summary(kind, {"meters": distance["byModeMeters"].get(mode, 0),
+                           "partial": distance.get("modesPartial", False)}, "meters", unit="meter")
     summary(
         RunStatisticSummary.Kind.NIMBLE_STANCE,
         projection.get("nimbleStance"),

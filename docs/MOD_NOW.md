@@ -1,5 +1,57 @@
 # Mod: Current Focus
 
+## Travel mode distance (21 November 2026)
+
+- Replaced `OnPlayerMove` sampling with a constant-memory `OnTick` collector.
+  Java build 26486631 emits the movement event from `justMoved`; vehicle
+  occupants have their positions updated separately, so the old collector
+  did not reliably measure vehicle routes.
+- Store independent on-foot and driving metres alongside the total.
+  Use `getVehicle()` and exposed `BaseVehicle.isDriver(player)` (also called
+  by vanilla vehicle UI/actions). No route history or per-movement ledger.
+- Stationary ticks skip square roots. Moving ticks use squared plausibility
+  checks, scaled for game speed; reject steps above 50 tiles. Reset the spatial
+  baseline on vehicle/role changes, reloads, invalid coordinates and gaps over
+  one real second. Transition intervals are deliberately omitted. These are
+  sampled planar distances, not guaranteed exact paths or teleport detection.
+- Persist two counters and export cumulative values plus daily deltas.
+  Approval stores two typed statistic summaries and nullable daily metres.
+  Older cumulative mode coverage is partial; absent historical daily breakdowns
+  remain unknown. Migration 0073 adds daily fields and summary choices.
+- Validation: 94 website tests passed, followed by three focused distance tests
+  after daily-total validation was added. Lua collector/daily/reading regressions,
+  actual Lua format-4 to Python decoding, syntax and prohibited-global scans
+  pass. Migration 0073 applied locally. Both Team Test copies regenerated and
+  all 612 mod files verified, preserving unlisted metadata. No Workshop upload.
+- In-game test run `rr-1795272441-1795272441421-553973-256261`:
+  first walk exported 10.569395346465976 m on foot and zero driving (Twist
+  displayed 10 m; this comparison is not a measured-route accuracy check).
+  Further seated driving increased driving from 147.12007339899972 to
+  185.68511079314385 m while on-foot stayed exactly 39.974607383098984 m.
+  After exiting, driving reached 186.13080273046808 m and walking reached
+  53.26266770324388 m. The owner confirmed the extra 0.44569193732423 m
+  driving was the car rolling to a stop after unpausing.
+- Save/reload without movement preserved both counters exactly and retained
+  zero rejected samples. The next export sealed day 1 at 54.69581603499061 m
+  on foot and 186.13080273046808 m driving. Active day 2 had
+  1.3057826709771234 m on foot and zero driving, with cumulative on-foot
+  56.00159870596773 m. All inspected exports passed website validation;
+  cumulative/daily values agree within ordinary floating-point precision.
+- Confirmed in game: foot/driver separation, persistence and daily rollover.
+  Known-length route accuracy, fast-forward and deliberate teleport rejection
+  remain separate acceptance checks. Existing desktop tests cover rejection.
+- In-game acceptance: walk/run a route, drive a route, change
+  seats, exit, pause, save/reload, fast-forward and cross midnight. Export after
+  each phase and verify only the appropriate category grows, the total agrees
+  on a new run, and stationary/transition/teleport movements add no false jumps.
+  Non-driver seats are excluded from both categories and the tracked total.
+  Passenger statistics were removed at the owner's request for the solo challenge.
+  Migration 0074 removes the unused daily field and summary choice. Focused
+  website/Lua tests and Lua-to-Python export checks pass for the two-category
+  contract; both local Team Test copies were regenerated and verified again.
+
+
+
 ## Terminal death evidence (21 November 2026)
 
 - Further infected-fall export validated: run

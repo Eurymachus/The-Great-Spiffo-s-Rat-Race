@@ -1,3 +1,4 @@
+local DistanceSnapshot = require("TGSRR/Run/DistanceSnapshot")
 local Identity = require("TGSRR/Run/Identity")
 local Recorder = require("TGSRR/Run/Recorder")
 local DailySnapshot = require("TGSRR/Run/DailySnapshot")
@@ -65,6 +66,7 @@ local function completedDay(current, previousState, dayIndex)
         deltas(current.weaponKills, previousState.weaponKills))
     addDelta(result, "fireDeathDelta",
         current.fireDeaths - (tonumber(previousState.fireDeaths) or 0))
+    result.distanceByModeDeltas = DistanceSnapshot.delta(current.distanceByModeMeters, previousState.distanceByModeMeters)
     addDelta(result, "distanceDeltaMeters", math.max(0,
         current.distanceTravelledMeters
             - (tonumber(previousState.distanceTravelledMeters) or 0)))
@@ -117,6 +119,7 @@ local function completedDay(current, previousState, dayIndex)
         { "weaponKills", "weaponKillsPartial" },
         { "fireDeaths", "fireDeathsPartial" },
         { "distance", "distancePartial" },
+        { "distanceModes", "distanceModesPartial" },
         { "brokenWeapons", "brokenWeaponsPartial" },
         { "animalsSlaughtered", "animalsSlaughteredPartial" },
         { "animalsTrapped", "animalsTrappedPartial" },
@@ -183,6 +186,8 @@ local function beginDay(initial)
         fireDeathsPartial =
             initial == true and activeRun.fireDeathsPartial == true,
         distanceTravelledMeters = current.distanceTravelledMeters,
+        distanceByModeMeters = DistanceSnapshot.copy(current.distanceByModeMeters),
+        distanceModesPartial = initial == true and activeRun.distanceModesPartial == true,
         distancePartial =
             initial == true and activeRun.distanceTravelledPartial == true,
         brokenWeapons = current.brokenWeapons,

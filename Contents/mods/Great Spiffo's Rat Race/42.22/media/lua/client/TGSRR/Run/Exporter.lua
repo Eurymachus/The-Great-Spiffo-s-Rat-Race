@@ -1,3 +1,4 @@
+local DistanceSnapshot = require("TGSRR/Run/DistanceSnapshot")
 local Identity = require("TGSRR/Run/Identity")
 local TemperatureSnapshot = require("TGSRR/Run/TemperatureSnapshot")
 local Ledger = require("TGSRR/Run/Ledger")
@@ -326,6 +327,10 @@ local function verifyReadback(decoded, ledger, projection, verifyBodies)
         if reason then return false, reason end
     end
     for _, entry in ipairs({
+        { "distance.byModeMeters", actual.distance.byModeMeters, projection.distance.byModeMeters },
+        { "distance.modesPartial", actual.distance.modesPartial, projection.distance.modesPartial },
+        { "activeDay.distanceByModeDeltas", actual.activeDay.distanceByModeDeltas, projection.activeDay.distanceByModeDeltas },
+        { "activeDay.distanceModesPartial", actual.activeDay.distanceModesPartial, projection.activeDay.distanceModesPartial },
         { "outdoorTemperature", actual.outdoorTemperature, projection.outdoorTemperature },
         { "activeDay.outdoorTemperature", actual.activeDay.outdoorTemperature,
             projection.activeDay.outdoorTemperature },
@@ -465,6 +470,8 @@ function Exporter.generate(run, work, options)
         locations = LocationSnapshot.observe(run),
         milestones = milestones,
         distance = {
+            byModeMeters = DistanceSnapshot.copy(run.distanceByModeMeters),
+            modesPartial = run.distanceModesPartial == true or nil,
             unit = "meter",
             travelledMeters = math.max(0,
                 tonumber(run.distanceTravelledMeters) or 0),

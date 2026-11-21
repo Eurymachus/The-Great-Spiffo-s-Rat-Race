@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from .temperature import temperature_fields
 from .death_evidence import canonical_death_evidence
+from .distance import validate_distance
 
 
 PREFIX = "TGSRR1.LZ1."
@@ -661,6 +662,10 @@ def decode_run_export(value, *, block_cache=None):
         events.append(event)
     if previous_hash != event_hash:
         raise InvalidRunExport("The export ledger hash does not match its events.")
+    try:
+        validate_distance(projection, events)
+    except ValueError as exc:
+        raise InvalidRunExport(str(exc)) from exc
     if projection["schema"] >= 2 and not _validate_outpost_lifecycle_history(
         projection, events
     ):

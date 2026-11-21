@@ -1,74 +1,70 @@
+local Recorder = require("TGSRR/Run/Recorder")
 local DistanceTracker = {}
+local activeRun, activePlayer
+local previousX, previousY, previousTimestamp, previousVehicle, previousMode
 
-local MAX_SPEED_TILES_PER_SECOND = 60
-local MIN_ALLOWED_STEP_TILES = 5
-local MAX_ALLOWED_STEP_TILES = 50
-
-local activeRun = nil
-local activePlayer = nil
-local previousX = nil
-local previousY = nil
-local previousTimestamp = nil
-
-local function timestampMilliseconds()
-    if getTimestampMs then return tonumber(getTimestampMs()) end
-    return nil
+local function finite(value)
+    return type(value) == "number" and value == value
+        and value > -math.huge and value < math.huge
 end
 
-local function resetSample(player)
-    previousX = tonumber(player and player:getX()) or nil
-    previousY = tonumber(player and player:getY()) or nil
-    previousTimestamp = timestampMilliseconds()
-end
-
-local function allowedStep(now)
-    if not now or not previousTimestamp or now <= previousTimestamp then
-        return MIN_ALLOWED_STEP_TILES
-    end
-    local elapsedSeconds = (now - previousTimestamp) / 1000
-    return math.min(MAX_ALLOWED_STEP_TILES,
-        math.max(MIN_ALLOWED_STEP_TILES,
-            elapsedSeconds * MAX_SPEED_TILES_PER_SECOND))
+local function mode(player)
+    local vehicle = player:getVehicle()
+    if not vehicle then return "onFoot", nil end
+    return vehicle:isDriver(player) and "driver" or nil, vehicle
 end
 
 function DistanceTracker.sample(player, now)
     if not activeRun or player ~= activePlayer then return end
-    local x = tonumber(player:getX())
-    local y = tonumber(player:getY())
-    now = tonumber(now) or timestampMilliseconds()
-    if not x or not y or not previousX or not previousY then
-        resetSample(player)
-        return
+    now = now or getTimestampMs()
+    local x, y = player:getX(), player:getY()
+    local currentMode, vehicle = mode(player)
+    local elapsed = previousTimestamp and now - previousTimestamp or 0
+    if activeRun.lifecycle == "active" and Recorder.isActive()
+            and finite(x) and finite(y) and previousX and previousY
+            and currentMode and currentMode == previousMode and vehicle == previousVehicle
+            and elapsed >= 0 and elapsed <= 1000 then
+        local dx, dy = x - previousX, y - previousY
+        local squared = dx * dx + dy * dy
+        if squared > 0 then
+            -- Tick sampling preserves bends without allocations or a position trail.
+            -- Scale the plausibility bound for accelerated simulation, not totals.
+            local speed = math.max(1, getGameTime():getMultiplier())
+            local limit = math.min(50, math.max(5, elapsed * 0.06 * speed))
+            if squared <= limit * limit then
+                local distance = math.sqrt(squared)
+                activeRun.distanceTravelledMeters = activeRun.distanceTravelledMeters + distance
+                local totals = activeRun.distanceByModeMeters
+                totals[currentMode] = totals[currentMode] + distance
+            else
+                activeRun.distanceRejectedSamples = activeRun.distanceRejectedSamples + 1
+            end
+        end
     end
-
-    local dx = x - previousX
-    local dy = y - previousY
-    local distance = math.sqrt(dx * dx + dy * dy)
-    if distance > 0 and distance <= allowedStep(now) then
-        activeRun.distanceTravelledMeters =
-            math.max(0, tonumber(activeRun.distanceTravelledMeters) or 0)
-                + distance
-    elseif distance > 0 then
-        activeRun.distanceRejectedSamples =
-            math.max(0, math.floor(
-                tonumber(activeRun.distanceRejectedSamples) or 0)) + 1
-    end
-
-    previousX, previousY, previousTimestamp = x, y, now
+    previousX = finite(x) and x or nil
+    previousY = finite(y) and y or nil
+    previousTimestamp, previousMode, previousVehicle = now, currentMode, vehicle
 end
 
-function DistanceTracker.initialize(run, player)
-    activeRun = run
-    activePlayer = player
-    resetSample(player)
+function DistanceTracker.initialize(run, player, created)
+    activeRun, activePlayer = run, player
+    if not run.distanceByModeMeters then
+        run.distanceByModeMeters = { onFoot = 0, driver = 0 }
+        run.distanceModesPartial = created ~= true or run.bootstrapped == true
+        if run.dailyState then run.dailyState.distanceModesPartial = true end
+    end
+    previousX, previousY, previousTimestamp, previousVehicle, previousMode = nil, nil, nil, nil, nil
+    DistanceTracker.sample(player)
 end
 
 function DistanceTracker.reset()
-    activeRun = nil
-    activePlayer = nil
-    previousX, previousY, previousTimestamp = nil, nil, nil
+    activeRun, activePlayer = nil, nil
+    previousX, previousY, previousTimestamp, previousVehicle, previousMode = nil, nil, nil, nil, nil
 end
 
-Events.OnPlayerMove.Add(DistanceTracker.sample)
+function DistanceTracker.onTick()
+    if activePlayer then DistanceTracker.sample(activePlayer) end
+end
 
+Events.OnTick.Add(DistanceTracker.onTick)
 return DistanceTracker

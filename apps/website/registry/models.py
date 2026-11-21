@@ -976,6 +976,8 @@ class RunDailyRecord(OutdoorTemperatureFields):
     weight_kilograms = models.FloatField(null=True, blank=True)
     fire_death_delta = models.BigIntegerField(default=0)
     distance_delta_meters = models.FloatField(default=0)
+    distance_on_foot_meters = models.FloatField(null=True, blank=True)
+    distance_driver_meters = models.FloatField(null=True, blank=True)
     butter_produced_delta = models.BigIntegerField(default=0)
     calories_consumed_delta = models.FloatField(default=0)
     generator_repair_delta = models.BigIntegerField(default=0)
@@ -1061,6 +1063,8 @@ class RunStatisticSummary(models.Model):
     class Kind(models.TextChoices):
         WEIGHT = "weight", "Weight"
         DISTANCE = "distance", "Distance travelled"
+        DISTANCE_ON_FOOT = "distance_on_foot", "Distance on foot"
+        DISTANCE_DRIVER = "distance_driver", "Distance as driver"
         NIMBLE_STANCE = "nimble_stance", "Nimble stance movement"
         ACTIVE_GAMEPLAY = "active_gameplay", "Active gameplay"
         BROKEN_WEAPONS = "broken_weapons", "Broken weapons"
