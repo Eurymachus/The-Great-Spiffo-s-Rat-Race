@@ -63,10 +63,18 @@
 - Keep this slice simple: no recipe/portioning marker propagation, cooking-XP
   inference, appliance scanning or per-item export ledger. New items created by
   slicing or transformations may count separately on later collection.
+- In-game collection and storage/retrieval test confirmed on 22 November,
+  run `rr-1795375945-1795375945361-908624-308765`: collecting one cooked
+  fish fillet records `Base.FishFillet = 1` in cumulative items and the day-1
+  delta. After the owner stored and retrieved that same fillet, both values
+  remain exactly 1. Both exports pass validation, confirming no double count
+  on this storage/retrieval path.
 - Desktop collector, daily rollover/reinitialization and website validation tests
-  pass. In-game transfer, whole-bag pickup, save/reload and midnight acceptance
-  remain pending. Both local Team Test copies updated and all 614 mod files
-  verified on 21 November. Workshop metadata preserved; no upload.
+  pass. Whole-bag pickup, save/reload, midnight rollover, raw/burnt exclusions
+  and collection of a second distinct item remain outstanding in-game checks.
+  Team Test updated and all 614 mod files verified on 21 November. The C: and
+  E: profile paths refer to the same physical package. Metadata preserved;
+  no Workshop upload.
 
 
 ## Travel mode distance (21 November 2026)
