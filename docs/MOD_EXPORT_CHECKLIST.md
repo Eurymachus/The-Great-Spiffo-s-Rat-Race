@@ -36,6 +36,12 @@
   This confirms repeat Basil harvesting from one planting and daily rollover.
   Seed-bearing yield separation, cancellation and save/reload remain separate
   outstanding in-game checks.
+- Terminal-export test confirmed on 22 November in the same run:
+  projection lifecycle and `run.ended` event sequence 7 both report `deceased`.
+  Export validation passes. Farming totals remain 3 plantings, 4 harvests and
+  13 produce items; sealed day 1 and active day 2 counts remain unchanged and
+  agree with cumulative totals. This verifies farming evidence survives the
+  death/terminal export, not save/reload or attempted post-death collection.
 - Team Test refreshed on 22 November; all 616 mod files verified against source.
   The C: and E: profile paths are aliases for the same physical package,
   not two independent copies. Workshop metadata preserved; no upload.
