@@ -23,6 +23,7 @@ from .models import (
 from .temperature import temperature_fields
 from .death_evidence import death_fields
 from .cooked_food import items_counts
+from .farming import crop_counts
 
 
 DAILY_MAP_METRICS = (
@@ -39,6 +40,9 @@ DAILY_MAP_METRICS = (
     ("milkCollectedDeltas", RunDailyMetric.Kind.MILK_COLLECTED, CatalogueEntry.Kind.FLUID),
     ("fluidConsumedDeltas", RunDailyMetric.Kind.FLUID_CONSUMED, CatalogueEntry.Kind.FLUID),
     ("cookedFoodItemsDeltas", RunDailyMetric.Kind.COOKED_FOOD, CatalogueEntry.Kind.ITEM),
+    ("farmingPlantedDeltas", RunDailyMetric.Kind.FARMING_PLANTED, None),
+    ("farmingHarvestedDeltas", RunDailyMetric.Kind.FARMING_HARVESTED, None),
+    ("farmingProduceDeltas", RunDailyMetric.Kind.FARMING_PRODUCE, CatalogueEntry.Kind.ITEM),
     ("fishCaughtDeltas", RunDailyMetric.Kind.FISH_CAUGHT, CatalogueEntry.Kind.ITEM),
 )
 
@@ -55,6 +59,7 @@ ACTIVE_PARTIAL_FLAGS = {
     "milkCollectedPartial": "milk_collected",
     "butterProducedPartial": "butter_produced",
     "cookedFoodPartial": "cookedFood",
+    "farmingPartial": "farming",
     "fishCaughtPartial": "fish_caught",
     "injuriesPartial": "injuries",
     "fluidConsumedPartial": "fluid_consumed",
@@ -184,6 +189,8 @@ def _daily_record_defaults(snapshot, *, calendar=None, observed=None, active=Fal
         ]
     if "cookedFoodItemsDeltas" not in snapshot:
         partial_metrics = [*partial_metrics, "cookedFood"]
+    if any(field not in snapshot for field in ("farmingPlantedDeltas", "farmingHarvestedDeltas", "farmingProduceDeltas")):
+        partial_metrics = [*partial_metrics, "farming"]
     return {
         **temperature_fields(snapshot.get("outdoorTemperature")),
         "calendar_year": calendar.get("year"),
@@ -477,6 +484,17 @@ def _refresh_statistic_authority(run, projection):
         for item_id, count in counts.items():
             metric(target, RunStatisticMetric.Dimension.ITEM, item_id, count,
                    primary_kind=CatalogueEntry.Kind.ITEM)
+
+    farming = projection.get("farming")
+    if isinstance(farming, dict):
+        for key, kind in (("planted", RunStatisticSummary.Kind.FARMING_PLANTED),
+                          ("harvested", RunStatisticSummary.Kind.FARMING_HARVESTED),
+                          ("produce", RunStatisticSummary.Kind.FARMING_PRODUCE)):
+            counts = (items_counts if key == "produce" else crop_counts)(farming[key])
+            target = summary(kind, {"total": sum(counts.values()), "partial": farming.get("partial", False)}, "total")
+            for raw_id, count in counts.items():
+                metric(target, RunStatisticMetric.Dimension.ITEM if key == "produce" else RunStatisticMetric.Dimension.CROP, raw_id, count,
+                       primary_kind=CatalogueEntry.Kind.ITEM if key == "produce" else None)
 
     fish_source = _snapshot(projection.get("fishCaught"))
     fish = summary(RunStatisticSummary.Kind.FISH_CAUGHT, fish_source, "total")

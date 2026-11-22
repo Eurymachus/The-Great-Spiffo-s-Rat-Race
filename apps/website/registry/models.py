@@ -1012,6 +1012,9 @@ class RunDailyMetric(models.Model):
         MILK_COLLECTED = "milk_collected", "Milk collected"
         FLUID_CONSUMED = "fluid_consumed", "Fluid consumed"
         COOKED_FOOD = "cooked_food", "Cooked food collected"
+        FARMING_PLANTED = "farming_planted", "Plots sown"
+        FARMING_HARVESTED = "farming_harvested", "Harvest actions"
+        FARMING_PRODUCE = "farming_produce", "Harvested produce"
         FISH_CAUGHT = "fish_caught", "Fish caught"
         INJURY = "injury", "Injury"
         ZOMBIE_ASSOCIATED_INJURY = (
@@ -1078,6 +1081,9 @@ class RunStatisticSummary(models.Model):
         CALORIES_CONSUMED = "calories_consumed", "Calories consumed"
         BUTTER_PRODUCED = "butter_produced", "Butter produced"
         COOKED_FOOD = "cooked_food", "Cooked food collected"
+        FARMING_PLANTED = "farming_planted", "Plots sown"
+        FARMING_HARVESTED = "farming_harvested", "Harvest actions"
+        FARMING_PRODUCE = "farming_produce", "Harvested produce"
         FISH_CAUGHT = "fish_caught", "Fish caught"
         INJURIES = "injuries", "Injuries"
         ZOMBIE_ASSOCIATED_INJURIES = (
@@ -1108,6 +1114,7 @@ class RunStatisticSummary(models.Model):
 
 class RunStatisticMetric(models.Model):
     class Dimension(models.TextChoices):
+        CROP = "crop", "Crop"
         ITEM = "item", "Item"
         ANIMAL = "animal", "Animal"
         TRAP = "trap", "Trap"

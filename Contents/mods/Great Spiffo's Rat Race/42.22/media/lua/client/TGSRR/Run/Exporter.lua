@@ -1,6 +1,7 @@
 local DistanceSnapshot = require("TGSRR/Run/DistanceSnapshot")
 local Identity = require("TGSRR/Run/Identity")
 local CookedFoodSnapshot = require("TGSRR/Run/CookedFoodSnapshot")
+local FarmingSnapshot = require("TGSRR/Run/FarmingSnapshot")
 local TemperatureSnapshot = require("TGSRR/Run/TemperatureSnapshot")
 local Ledger = require("TGSRR/Run/Ledger")
 local ExportCodec = require("TGSRR/Run/ExportCodec")
@@ -333,10 +334,19 @@ local function verifyReadback(decoded, ledger, projection, verifyBodies)
         { "activeDay.distanceByModeDeltas", actual.activeDay.distanceByModeDeltas, projection.activeDay.distanceByModeDeltas },
         { "activeDay.distanceModesPartial", actual.activeDay.distanceModesPartial, projection.activeDay.distanceModesPartial },
         { "cookedFood", actual.cookedFood, projection.cookedFood },
+        { "farming", actual.farming, projection.farming },
         { "activeDay.cookedFoodItemsDeltas", actual.activeDay.cookedFoodItemsDeltas,
             projection.activeDay.cookedFoodItemsDeltas },
+        { "activeDay.farmingPlantedDeltas", actual.activeDay.farmingPlantedDeltas,
+            projection.activeDay.farmingPlantedDeltas },
+        { "activeDay.farmingHarvestedDeltas", actual.activeDay.farmingHarvestedDeltas,
+            projection.activeDay.farmingHarvestedDeltas },
+        { "activeDay.farmingProduceDeltas", actual.activeDay.farmingProduceDeltas,
+            projection.activeDay.farmingProduceDeltas },
         { "activeDay.cookedFoodPartial", actual.activeDay.cookedFoodPartial,
             projection.activeDay.cookedFoodPartial },
+        { "activeDay.farmingPartial", actual.activeDay.farmingPartial,
+            projection.activeDay.farmingPartial },
         { "outdoorTemperature", actual.outdoorTemperature, projection.outdoorTemperature },
         { "activeDay.outdoorTemperature", actual.activeDay.outdoorTemperature,
             projection.activeDay.outdoorTemperature },
@@ -473,6 +483,7 @@ function Exporter.generate(run, work, options)
         },
         townVisits = TownSnapshot.observe(run),
         cookedFood = CookedFoodSnapshot.observe(run),
+        farming = FarmingSnapshot.observe(run),
         literature = LiteratureSnapshot.observe(run),
         locations = LocationSnapshot.observe(run),
         milestones = milestones,

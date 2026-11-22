@@ -91,6 +91,18 @@ local function completedDay(current, previousState, dayIndex)
         result.cookedFoodItemsDeltas = deltas(
             current.cookedFoodItems, previousState.cookedFoodItems)
     end
+    if current.farmingPlanted then
+        result.farmingPlantedDeltas = deltas(
+            current.farmingPlanted, previousState.farmingPlanted)
+    end
+    if current.farmingHarvested then
+        result.farmingHarvestedDeltas = deltas(
+            current.farmingHarvested, previousState.farmingHarvested)
+    end
+    if current.farmingProduce then
+        result.farmingProduceDeltas = deltas(
+            current.farmingProduce, previousState.farmingProduce)
+    end
     addDeltas(result, "fishCaughtDeltas",
         deltas(current.fishCaught, previousState.fishCaught))
     addDeltas(result, "injuryDeltas",
@@ -132,6 +144,7 @@ local function completedDay(current, previousState, dayIndex)
         { "milkCollected", "milkCollectedPartial" },
         { "butterProduced", "butterProducedPartial" },
         { "cookedFood", "cookedFoodPartial" },
+        { "farming", "farmingPartial" },
         { "fishCaught", "fishCaughtPartial" },
         { "injuries", "injuriesPartial" },
         { "fluidConsumed", "fluidConsumedPartial" },
@@ -217,8 +230,13 @@ local function beginDay(initial)
         butterProducedPartial =
             initial == true and activeRun.butterProducedPartial == true,
         cookedFoodItems = current.cookedFoodItems,
+        farmingPlanted = current.farmingPlanted,
+        farmingHarvested = current.farmingHarvested,
+        farmingProduce = current.farmingProduce,
         cookedFoodPartial = initial == true
             and activeRun.cookedFood and activeRun.cookedFood.partial == true or nil,
+        farmingPartial = initial == true
+            and activeRun.farming and activeRun.farming.partial == true or nil,
         fishCaught = current.fishCaught,
         fishCaughtPartial =
             initial == true and activeRun.fishCaughtPartial == true,

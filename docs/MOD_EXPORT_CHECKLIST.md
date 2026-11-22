@@ -1,5 +1,37 @@
 # Mod: Export Data Checklist
 
+## Farming statistics (21 November 2026)
+
+- Implemented in 42.22: verified ploughed-to-seeded sowings and successful
+  harvests by raw crop key, plus actual harvested produce by full item type.
+  Credit follows the local harvester, regardless of vanilla plant owner.
+- Successful completion and authoritative plant-state changes are required;
+  cancelled/foreign/stopped-run actions and duplicate callbacks do not count.
+  Regrowth harvests count again. Seed consumption alone does not prove sowing.
+- Harvest-only before/after output counts are capped by the observed vanilla
+  yield roll. This excludes extra seeds even where seedName and vegetableName
+  are the same item (corn, peppers, barley). Extra produce is included; seed-only
+  items and ordinary looting are excluded. No yield reroll or per-tick scanning.
+- `farming` exports independent cumulative `planted`, `harvested` and `produce`
+  maps, schema 1 and partial coverage. Daily maps are `farmingPlantedDeltas`,
+  `farmingHarvestedDeltas`, `farmingProduceDeltas`. Approval stores separate
+  summaries and crop/item dimensions. Existing saves have partial coverage.
+- Installed vanilla-action/harvest Lua tests, daily rollover/reload regressions,
+  23 focused website tests, syntax and prohibited-global checks pass.
+- In-game test confirmed on 22 November, run
+  `rr-1795374245-1795374245421-744936-711157`: three plantings,
+  Basil 1, BellPepper 1 and BlackSage 1. Subsequent export records one Basil
+  harvest and four `Base.Basil` produce items; planting counts remain unchanged.
+  Both exports pass website validation; cumulative and day-1 deltas agree.
+  Harvest was tested after debug-assisted crop growth. This confirms capture,
+  not natural growth timing. Seed-bearing/regrowth harvests, cancellation,
+  save/reload and midnight remain outstanding in-game acceptance checks.
+- Team Test refreshed on 22 November; all 616 mod files verified against source.
+  The C: and E: profile paths are aliases for the same physical package,
+  not two independent copies. Workshop metadata preserved; no upload.
+  The earlier export lacked farming coverage because the package was stale.
+
+
 ## Cooked food collected (21 November 2026)
 
 - Implemented in 42.22: successful solo transfers and ground pickups into the

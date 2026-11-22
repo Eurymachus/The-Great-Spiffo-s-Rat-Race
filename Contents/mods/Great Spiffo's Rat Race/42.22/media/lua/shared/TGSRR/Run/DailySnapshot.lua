@@ -14,6 +14,7 @@ local FishCaughtSnapshot = require("TGSRR/Run/FishCaughtSnapshot")
 local TemperatureSnapshot = require("TGSRR/Run/TemperatureSnapshot")
 
 local CookedFoodSnapshot = require("TGSRR/Run/CookedFoodSnapshot")
+local FarmingSnapshot = require("TGSRR/Run/FarmingSnapshot")
 
 local DailySnapshot = {}
 
@@ -50,6 +51,12 @@ function DailySnapshot.current(player, run)
             math.max(0, math.floor(tonumber(run and run.butterProduced) or 0)),
         cookedFoodItems = run and run.cookedFood
             and CookedFoodSnapshot.copy(run.cookedFood.items) or nil,
+        farmingPlanted = run and run.farming
+            and FarmingSnapshot.copy(run.farming.planted) or nil,
+        farmingHarvested = run and run.farming
+            and FarmingSnapshot.copy(run.farming.harvested) or nil,
+        farmingProduce = run and run.farming
+            and FarmingSnapshot.copy(run.farming.produce) or nil,
         fishCaught = FishCaughtSnapshot.copy(run and run.fishCaught),
         injuries = InjurySnapshot.copy(run and run.injuries),
         zombieAssociatedInjuries =
@@ -139,7 +146,14 @@ function DailySnapshot.active(run, player)
         butterProducedPartial = baseline.butterProducedPartial == true,
         cookedFoodItemsDeltas = current.cookedFoodItems
             and DailySnapshot.deltas(current.cookedFoodItems, baseline.cookedFoodItems) or nil,
+        farmingPlantedDeltas = current.farmingPlanted
+            and DailySnapshot.deltas(current.farmingPlanted, baseline.farmingPlanted) or nil,
+        farmingHarvestedDeltas = current.farmingHarvested
+            and DailySnapshot.deltas(current.farmingHarvested, baseline.farmingHarvested) or nil,
+        farmingProduceDeltas = current.farmingProduce
+            and DailySnapshot.deltas(current.farmingProduce, baseline.farmingProduce) or nil,
         cookedFoodPartial = baseline.cookedFoodPartial == true or nil,
+        farmingPartial = baseline.farmingPartial == true or nil,
         fishCaughtDeltas =
             DailySnapshot.deltas(current.fishCaught, baseline.fishCaught),
         fishCaughtPartial = baseline.fishCaughtPartial == true,
