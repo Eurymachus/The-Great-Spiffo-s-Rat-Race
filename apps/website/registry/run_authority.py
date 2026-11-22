@@ -21,7 +21,7 @@ from .models import (
     RunWeaponKill,
 )
 from .temperature import temperature_fields
-from .death_evidence import death_fields
+from .death_evidence import death_fields, sickness_fields
 from .cooked_food import items_counts
 from .farming import crop_counts
 
@@ -553,7 +553,8 @@ def refresh_initial_run_authority(
         death.recent_damage.all().delete()
         RunDeathDamage.objects.bulk_create([
             RunDeathDamage(summary=death, source=item["source"], amount=item["amount"],
-                           age_milliseconds=item["ageMilliseconds"], observation_order=index)
+                           age_milliseconds=item["ageMilliseconds"], observation_order=index,
+                           **sickness_fields(item))
             for index, item in enumerate(evidence["recentDamage"])
         ])
     starting = _snapshot(character_projection.get("starting"))

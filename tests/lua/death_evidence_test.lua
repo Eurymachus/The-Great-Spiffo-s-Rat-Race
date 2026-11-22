@@ -2,11 +2,14 @@ local root = "Contents/mods/Great Spiffo's Rat Race/42.22/media/lua/"
 package.path = root .. "client/?.lua;" .. root .. "shared/?.lua;" .. package.path
 assert(loadfile(root .. "client/TGSRR/Run/Runtime.lua"))
 assert(loadfile(root .. "client/TGSRR/Run/Exporter.lua"))
-local now, callback = 100000, nil
+local now, callback, update = 100000, nil, nil
+local dead, hypo, thermal = false, 0, 0
+MoodleType = {HYPOTHERMIA="hypothermia"}
 function getTimestampMs() return now end
 function getTimestamp() return math.floor(now / 1000) end
 function getGameTime() return { getWorldAgeHours = function() return 12 end } end
-Events = { OnPlayerGetDamage = { Add = function(fn) callback = fn end } }
+Events = { OnPlayerGetDamage = { Add = function(fn) callback = fn end },
+    OnPlayerUpdate = {Add = function(fn) update = fn end} }
 package.preload["TGSRR/Run/StartingLocation"] = function()
     return { observe = function(player, utc, age, partial)
         return { x = math.floor(player:getX()), y = math.floor(player:getY()),
@@ -14,9 +17,17 @@ package.preload["TGSRR/Run/StartingLocation"] = function()
             worldAgeHours = age, partial = partial }
     end }
 end
+CharacterStat = {FOOD_SICKNESS="food", POISON="poison"}
+local food, poison, corpse, wound = 75, 12, 0.01, 4
 local player = {
+    isDead = function() return dead end,
+    getMoodles = function() return {getMoodleLevel = function() return hypo end} end,
+    getStats = function() return {get=function(_, stat) return stat == "food" and food or poison end} end,
+    getCorpseSicknessRate = function() return corpse end,
     getBodyDamage = function(self)
-        return { isInfected = function() return self.infected == true end }
+        return { isInfected = function() return self.infected == true end,
+            getGeneralWoundInfectionLevel = function() return wound end,
+            getColdDamageStage = function() return thermal end }
     end,
     getX = function() return 12.8 end, getY = function() return -1.2 end,
     getZ = function() return 0 end,
@@ -26,10 +37,56 @@ local player = {
 local run = { runId = "test-death", lifecycle = "active" }
 local Evidence = require("TGSRR/Run/DeathEvidence")
 Evidence.initialize(run, player)
-assert(callback)
+assert(callback and update)
+hypo, thermal = 4, 0.9
+update(player)
+now = now + 25
+dead, hypo, thermal = true, 0, 1
+update(player) -- Death-cleared moodles must not replace the living sample.
+local frozen = Evidence.capture(player, "death_callback")
+assert(frozen.lastLivingThermal.hypothermiaLevel == 4)
+assert(frozen.lastLivingThermal.damageStage == 0.9)
+assert(frozen.lastLivingThermal.ageMilliseconds == 25)
+assert(frozen.lastLivingThermal.observedUtc == 100)
+assert(frozen.thermalDamageStageAtDeath == 1 and frozen.cause == "hypothermia" and frozen.certainty == "fatal_threshold")
+assert(Evidence.capture(player, "recovery").lastLivingThermal == nil)
+thermal = 0.99
+assert(Evidence.capture(player, "death_callback").cause == "unknown")
+thermal = 1
+now = now + 1000
+assert(Evidence.capture(player, "death_callback").cause == "unknown")
+now = now - 1000
+player.fall = true
+assert(Evidence.capture(player, "death_callback").cause == "fall")
+player.fall = false
+callback(player, "BLEEDING", 0.1)
+assert(Evidence.capture(player, "death_callback").cause == "BLEEDING")
+dead, hypo, thermal = false, 0, 0
+update(player) -- Genuine recovery must overwrite the previous level.
+assert(Evidence.capture(player, "death_callback").lastLivingThermal.hypothermiaLevel == 0)
+hypo=4; update({})
+assert(Evidence.capture(player, "death_callback").lastLivingThermal.hypothermiaLevel == 0)
+now = now - 100
+assert(Evidence.capture(player, "death_callback").lastLivingThermal == nil)
+now = now + 100
+Evidence.initialize(run, player)
+assert(frozen.lastLivingThermal.hypothermiaLevel == 4)
+dead=true; Evidence.initialize(run, player)
+assert(Evidence.capture(player, "death_callback").lastLivingThermal == nil)
+dead, hypo = false, 0; Evidence.initialize(run, player)
 callback({}, "FIRE", 1) -- Other players cannot supply this run's evidence.
 callback(player, "POISON", 0)
 assert(Evidence.capture(player, "death_callback").cause == "unknown")
+callback(player, "SICK", 1)
+local sick = Evidence.capture(player, "death_callback")
+assert(sick.cause == "SICK" and sick.sickness.foodSickness == 75)
+assert(sick.recentDamage[1].sickness.poison == 12)
+food, poison, corpse, wound = 80, 0, 0, 0
+local changed = Evidence.capture(player, "death_callback")
+assert(changed.sickness.poison == 0 and changed.recentDamage[1].sickness.poison == 12)
+assert(changed.recentDamage[1].sickness.foodSickness == 75)
+assert(Evidence.capture(player, "recovery").sickness == nil)
+Evidence.initialize(run, player)
 callback(player, "FIRE", 2)
 now = now + 10
 callback(player, "BLEEDING", 0.2)

@@ -719,6 +719,16 @@ class RunStartingLocation(models.Model):
 
 
 class RunDeathSummary(models.Model):
+    last_living_hypothermia_level = models.PositiveSmallIntegerField(null=True, blank=True)
+    last_living_thermal_damage_stage = models.FloatField(null=True, blank=True)
+    last_living_thermal_utc = models.PositiveBigIntegerField(null=True, blank=True)
+    last_living_thermal_world_age_hours = models.FloatField(null=True, blank=True)
+    last_living_thermal_age_milliseconds = models.PositiveBigIntegerField(null=True, blank=True)
+    thermal_damage_stage_at_death = models.FloatField(null=True, blank=True)
+    food_sickness = models.FloatField(null=True, blank=True)
+    poison = models.FloatField(null=True, blank=True)
+    corpse_sickness_rate = models.FloatField(null=True, blank=True)
+    wound_infection_level = models.FloatField(null=True, blank=True)
     run = models.OneToOneField(ChallengeRun, on_delete=models.CASCADE, related_name="death_summary")
     schema = models.PositiveSmallIntegerField()
     capture_context = models.CharField(max_length=24)
@@ -740,6 +750,10 @@ class RunDeathSummary(models.Model):
 
 
 class RunDeathDamage(models.Model):
+    food_sickness = models.FloatField(null=True, blank=True)
+    poison = models.FloatField(null=True, blank=True)
+    corpse_sickness_rate = models.FloatField(null=True, blank=True)
+    wound_infection_level = models.FloatField(null=True, blank=True)
     summary = models.ForeignKey(RunDeathSummary, on_delete=models.CASCADE, related_name="recent_damage")
     source = models.CharField(max_length=64)
     amount = models.FloatField()

@@ -1,5 +1,90 @@
 # Mod: Current Focus
 
+## Fatal hypothermia classification (22 November 2026)
+
+- In-game schema-2 test passed: run
+  `rr-1795376883-1795376883592-179324-866099` exported cause hypothermia,
+  certainty fatal_threshold, living hypothermia level 4 and thermal stage
+  0.9998327493667603 observed 3 ms before death, with terminal stage 1.
+  No recent damage, fall/drag-down or zombie infection; all sickness values zero.
+  The original export passes website validation and retains all supporting data.
+
+- Death-evidence schema 2 classifies hypothermia with fatal_threshold certainty
+  when the last living sample is level 4, at most 1000 real milliseconds old,
+  with thermal stage strictly between 0 and 1, and stage at death exactly 1.
+  Explicit fall/drag-down flags take priority; any retained recent damage source
+  prevents this classification. Supporting thermal/sickness readings are retained.
+- Lua and website enforce the same rule. Schema-1 exports retain their original
+  classification, including the previous cold test labelled unknown. No immutable
+  export is rewritten and no database migration is needed for the classification.
+- Runtime evidence run rr-1795375945-1795375945361-908624-308765: living level 4,
+  thermal stage 0.9999433159828186, age 2 ms, terminal stage 1, no damage callbacks
+  and no fall/drag-down flags. The new validator classifies a copied evidence
+  object as hypothermia; the original file remains unchanged and valid.
+- All 88 focused website/export tests and Lua regressions pass, including stale
+  observations, subfatal stage and conflicting causes. Lua schema-2 export decoding
+  and prohibited-global checks pass. Team Test regenerated; all 616 mod files
+  and unlisted metadata verified. Restart PZ and start another test run: existing
+  terminal evidence is immutable. No Workshop upload or commit performed.
+
+
+## Last living thermal evidence (22 November 2026)
+
+- Cache hypothermia level, thermal damage stage, UTC, world age and real-time
+  observation timestamp on initialization and local `OnPlayerUpdate`, only while
+  the tracked player is alive and the run active. Updating to zero records actual
+  recovery. Dead updates cannot overwrite the last living state after moodle reset.
+- Constant-memory scalar cache; no per-update tables, world scans or ledger.
+  Reset on initialization/recovery; no old-session readings are reconstructed.
+  Actual death exports optional `lastLivingThermal` with hypothermiaLevel,
+  damageStage, observedUtc, observedWorldAgeHours and ageMilliseconds. Omit the
+  cached observation on backwards real-time clock changes. Retain its age rather
+  than claiming it is an exact death-time measurement.
+- Independently capture `thermalDamageStageAtDeath` through the exposed
+  BodyDamage.getColdDamageStage. It can differ from the last living stage.
+  Thermal evidence does not alter suspected cause, fall/drag-down or infection
+  flags. Recovery captures omit thermal observations. Missing old data is unknown.
+- Website validates ranges, context and event/projection identity and normalizes
+  six nullable death-summary fields. Migration 0080 applied locally.
+- All 87 focused website/export tests pass. Lua regression checks death-cleared
+  moodles, genuine recovery, other-player exclusion, reload reset, clock rollback
+  and snapshot immutability. Lua-to-Python export and prohibited-global scans pass.
+- Team Test regenerated with both sickness and thermal changes; all 616 mod files
+  verified, including metadata substitutions and the C: alias of the E: package.
+  No Workshop upload. Fully restart PZ before runtime acceptance: cold while
+  alive, recovery to level zero, death while cold, and an unexposed control.
+  Verify cached age/level/stage and terminal stage; cause remains independent.
+
+
+## Supporting sickness evidence (22 November 2026)
+
+- Added optional `sickness` readings to terminal death evidence: foodSickness,
+  poison, corpseSicknessRate and woundInfectionLevel. Also retain a separate
+  snapshot on the latest SICK/POISON damage observation in the bounded window.
+  Values do not change the suspected cause, explicit flags or infection flag.
+- Uses exposed Stats.get(CharacterStat.FOOD_SICKNESS/POISON),
+  IsoGameCharacter.getCorpseSicknessRate and BodyDamage.getGeneralWoundInfectionLevel.
+  FOOD_SICKNESS is shared by corpse exposure, poisoning and other inputs.
+  Current corpse rate and poison burden cannot reconstruct earlier causes.
+- Capture only at actual death callbacks, never infer readings during recovery.
+  Missing older observations remain nullable. Export validation checks numeric
+  ranges, complete field sets, permitted context and event/projection agreement.
+  Approval stores typed values on death summary and recent damage rows.
+- Migration 0079 applied locally. All 86 focused death/export tests, Lua snapshot
+  regression, actual Lua-to-Python export decoding and prohibited-global scans
+  pass. Team Test now includes these fields; in-game validation remains outstanding.
+- Cold investigation (build 26486631): Thermoregulator.updateThermalDamage
+  accumulates severe cold exposure; BodyDamage.UpdateTemperatureState caps
+  health at 100 - coldDamageStage * 100 and sets health to zero at stage 1.
+  This path emits no OnPlayerGetDamage event. Existing cause tracking cannot
+  identify it reliably. The same stage is fed by heat damage (normally capped
+  at 0.3), so it should be described as thermal evidence, not an unconditional
+  cold-death flag. Thermal/body-temperature terminal capture is not implemented
+  by this sickness change.
+
+
+
+
 ## Farming statistics (21 November 2026)
 
 - Implemented in 42.22: verified ploughed-to-seeded sowings and successful

@@ -40,6 +40,116 @@ def terminal_export(value, *, event_evidence=None):
 
 
 class DeathEvidenceTests(TestCase):
+    def test_fatal_hypothermia_threshold_and_legacy_classification(self):
+        value = evidence()
+        value.update(schema=2, recentDamage=[], lastDamageSource="",
+                     cause="hypothermia", certainty="fatal_threshold",
+                     thermalDamageStageAtDeath=1,
+                     lastLivingThermal={"hypothermiaLevel": 4, "damageStage": 0.999943,
+                         "observedUtc": 1784800000, "observedWorldAgeHours": 1, "ageMilliseconds": 2})
+        decoded = decode_run_export(terminal_export(value))
+        self.assertEqual(death_fields(decoded.projection["deathEvidence"])["cause"], "hypothermia")
+        for key, bad in (("hypothermiaLevel", 3), ("ageMilliseconds", 1001),
+                         ("damageStage", 0), ("damageStage", 1)):
+            other = deepcopy(value); other["lastLivingThermal"][key] = bad
+            with self.subTest(key=key), self.assertRaises(InvalidRunExport):
+                decode_run_export(terminal_export(other))
+        other = deepcopy(value); other["thermalDamageStageAtDeath"] = 0.999
+        with self.assertRaises(InvalidRunExport): decode_run_export(terminal_export(other))
+        other = deepcopy(value); other.update(killedByFall=True, cause="fall", certainty="explicit_flag")
+        decode_run_export(terminal_export(other))
+        other = deepcopy(value); other.update(recentDamage=[{"source":"BLEEDING", "amount":1, "ageMilliseconds":0}],
+                                              lastDamageSource="BLEEDING", cause="BLEEDING", certainty="suspected")
+        decode_run_export(terminal_export(other))
+        value.update(schema=1, cause="unknown", certainty="unknown")
+        decode_run_export(terminal_export(value))
+        value["schema"] = 2
+        with self.assertRaises(InvalidRunExport): decode_run_export(terminal_export(value))
+
+    def test_last_living_thermal_snapshot_and_terminal_stage_are_independent(self):
+        value = evidence()
+        value["lastLivingThermal"] = {"hypothermiaLevel": 4, "damageStage": 0.9,
+            "observedUtc": 1784800000, "observedWorldAgeHours": 0.99, "ageMilliseconds": 25}
+        value["thermalDamageStageAtDeath"] = 1
+        decoded = decode_run_export(terminal_export(value))
+        self.assertEqual(decoded.projection["deathEvidence"]["cause"], "BLEEDING")
+        run = ChallengeRun.objects.create(run_id="thermal-authority", export_format=4,
+            generated_at=datetime.now(timezone.utc), event_hash="0" * 64)
+        refresh_initial_run_authority(run, decoded.projection, decoded.events)
+        death = run.death_summary
+        self.assertEqual(death.last_living_hypothermia_level, 4)
+        self.assertEqual(death.last_living_thermal_damage_stage, 0.9)
+        self.assertEqual(death.last_living_thermal_age_milliseconds, 25)
+        self.assertEqual(death.thermal_damage_stage_at_death, 1)
+        altered = deepcopy(value)
+        altered["lastLivingThermal"]["hypothermiaLevel"] = 0
+        with self.assertRaises(InvalidRunExport):
+            decode_run_export(terminal_export(value, event_evidence=altered))
+        for key, bad in (("hypothermiaLevel", 5), ("hypothermiaLevel", True),
+                         ("hypothermiaLevel", 1.5), ("damageStage", 1.1),
+                         ("ageMilliseconds", -1), ("observedUtc", "1"),
+                         ("observedWorldAgeHours", float("nan"))):
+            bad_value = deepcopy(value); bad_value["lastLivingThermal"][key] = bad
+            with self.subTest(key=key, bad=bad), self.assertRaises(ValueError):
+                death_fields(bad_value)
+        old = decode_run_export(terminal_export(evidence()))
+        refresh_initial_run_authority(run, old.projection, old.events)
+        death.refresh_from_db()
+        self.assertIsNone(death.last_living_hypothermia_level)
+        self.assertIsNone(death.thermal_damage_stage_at_death)
+        value.update(captureContext="recovery", recentDamage=[], lastDamageSource="", cause="unknown", certainty="unknown")
+        with self.assertRaises(ValueError): death_fields(value)
+
+
+    def test_sickness_context_is_independent_and_normalized(self):
+        value = evidence()
+        value["sickness"] = {"foodSickness": 80, "poison": 0,
+                             "corpseSicknessRate": 0.01, "woundInfectionLevel": 4}
+        value["recentDamage"][0].update(source="SICK", sickness={
+            "foodSickness": 75, "poison": 12, "corpseSicknessRate": 0, "woundInfectionLevel": 0})
+        decoded = decode_run_export(terminal_export(value))
+        self.assertEqual(decoded.projection["deathEvidence"]["cause"], "BLEEDING")
+        run = ChallengeRun.objects.create(run_id="sickness-authority", export_format=4,
+            generated_at=datetime.now(timezone.utc), event_hash="0" * 64)
+        for _ in range(2):
+            refresh_initial_run_authority(run, decoded.projection, decoded.events)
+        death = run.death_summary
+        self.assertEqual(death.food_sickness, 80)
+        self.assertEqual(death.poison, 0)
+        self.assertEqual(death.recent_damage.get(source="SICK").poison, 12)
+        self.assertIsNone(death.recent_damage.get(source="BLEEDING").poison)
+        other = deepcopy(value)
+        other["sickness"]["poison"] = 1
+        with self.assertRaises(InvalidRunExport):
+            decode_run_export(terminal_export(value, event_evidence=other))
+        other = deepcopy(value)
+        other["recentDamage"][0]["sickness"]["poison"] = 1
+        with self.assertRaises(InvalidRunExport):
+            decode_run_export(terminal_export(value, event_evidence=other))
+        old = decode_run_export(terminal_export(evidence()))
+        refresh_initial_run_authority(run, old.projection, old.events)
+        death.refresh_from_db()
+        self.assertIsNone(death.food_sickness)
+
+    def test_rejects_invalid_sickness_and_recovery_context(self):
+        for bad in (None, [], {}, {"foodSickness": 1}):
+            value = evidence(); value["sickness"] = bad
+            with self.subTest(bad=bad), self.assertRaises(InvalidRunExport):
+                decode_run_export(terminal_export(value))
+        for key in ("foodSickness", "poison", "corpseSicknessRate", "woundInfectionLevel"):
+            for bad in (-1, True, "1", float("inf"), float("nan")):
+                value = evidence()
+                value["sickness"] = dict.fromkeys(("foodSickness", "poison", "corpseSicknessRate", "woundInfectionLevel"), 0)
+                value["sickness"][key] = bad
+                with self.subTest(key=key, bad=bad), self.assertRaises(ValueError):
+                    death_fields(value)
+        value = evidence()
+        value.update(captureContext="recovery", recentDamage=[], lastDamageSource="", cause="unknown", certainty="unknown")
+        value.pop("location")
+        value["sickness"] = dict.fromkeys(("foodSickness", "poison", "corpseSicknessRate", "woundInfectionLevel"), 0)
+        with self.assertRaises(ValueError): death_fields(value)
+
+
     def test_infection_is_nullable_independent_context_and_integrity_checked(self):
         value = evidence()
         self.assertIsNone(death_fields(value)["infected_at_death"])

@@ -26,8 +26,53 @@ def _text(value, maximum, *, empty=True):
     return value
 
 
+SICKNESS_FIELDS = {
+    "foodSickness": ("food_sickness", 100),
+    "poison": ("poison", 100),
+    "corpseSicknessRate": ("corpse_sickness_rate", 1e308),
+    "woundInfectionLevel": ("wound_infection_level", 100),
+}
+
+
+def sickness_fields(container):
+    if "sickness" not in container:
+        return {field: None for field, _ in SICKNESS_FIELDS.values()}
+    value = container["sickness"]
+    if not isinstance(value, dict) or set(value) != set(SICKNESS_FIELDS):
+        raise ValueError("Invalid sickness evidence fields.")
+    return {field: _number(value[key], 0, maximum)
+            for key, (field, maximum) in SICKNESS_FIELDS.items()}
+
+
+THERMAL_FIELDS = {
+    "hypothermiaLevel": ("last_living_hypothermia_level", 4, True),
+    "damageStage": ("last_living_thermal_damage_stage", 1, False),
+    "observedUtc": ("last_living_thermal_utc", 2**63 - 1, True),
+    "observedWorldAgeHours": ("last_living_thermal_world_age_hours", 1e12, False),
+    "ageMilliseconds": ("last_living_thermal_age_milliseconds", 2**63 - 1, True),
+}
+
+
+def thermal_fields(evidence):
+    result = {field: None for field, _, _ in THERMAL_FIELDS.values()}
+    result["thermal_damage_stage_at_death"] = None
+    if "lastLivingThermal" in evidence or "thermalDamageStageAtDeath" in evidence:
+        if evidence.get("captureContext") != "death_callback":
+            raise ValueError("Recovery cannot reconstruct thermal observations.")
+    if "thermalDamageStageAtDeath" in evidence:
+        result["thermal_damage_stage_at_death"] = _number(evidence["thermalDamageStageAtDeath"], 0, 1)
+    if "lastLivingThermal" in evidence:
+        value = evidence["lastLivingThermal"]
+        if not isinstance(value, dict) or set(value) != set(THERMAL_FIELDS):
+            raise ValueError("Invalid last living thermal observation.")
+        for key, (field, maximum, integer) in THERMAL_FIELDS.items():
+            number = _number(value[key], 0, maximum, integer=integer)
+            result[field] = int(number) if integer else number
+    return result
+
+
 def death_fields(evidence):
-    if not isinstance(evidence, dict) or type(evidence.get("schema")) is not int or evidence["schema"] != 1:
+    if not isinstance(evidence, dict) or type(evidence.get("schema")) is not int or evidence["schema"] not in (1, 2):
         raise ValueError("Unsupported death evidence schema.")
     context = evidence.get("captureContext")
     if context not in ("death_callback", "recovery"):
@@ -37,6 +82,8 @@ def death_fields(evidence):
     for key in ("killedByFall", "deathDragDown", "infectedAtDeath"):
         if key in evidence and type(evidence[key]) is not bool:
             raise ValueError("Invalid terminal flag.")
+    if context == "recovery" and "sickness" in evidence:
+        raise ValueError("Recovery cannot reconstruct sickness at death.")
     if context == "recovery" and "infectedAtDeath" in evidence:
         raise ValueError("Recovery cannot reconstruct infection at death.")
     if ("killedByFall" in evidence) != ("deathDragDown" in evidence):
@@ -53,6 +100,9 @@ def death_fields(evidence):
         if source in sources:
             raise ValueError("Duplicate damage source.")
         sources.add(source)
+        if "sickness" in item and source not in ("SICK", "POISON"):
+            raise ValueError("Unexpected sickness damage context.")
+        sickness_fields(item)
         _number(item.get("amount"), 0, 1e308)
         if item["amount"] <= 0:
             raise ValueError("Non-positive damage observation.")
@@ -63,6 +113,14 @@ def death_fields(evidence):
         raise ValueError("Last damage source does not match observations.")
     if context == "recovery" and recent:
         raise ValueError("Recovery cannot reconstruct recent damage.")
+    thermal = thermal_fields(evidence)
+    living = evidence.get("lastLivingThermal")
+    fatal_hypothermia = (
+        evidence["schema"] >= 2 and living is not None
+        and living["hypothermiaLevel"] == 4 and living["ageMilliseconds"] <= 1000
+        and 0 < living["damageStage"] < 1
+        and evidence.get("thermalDamageStageAtDeath") == 1 and not last_source
+    )
     fall, drag = evidence.get("killedByFall"), evidence.get("deathDragDown")
     if fall and drag:
         cause, certainty = "mixed", "conflicting_flags"
@@ -70,6 +128,8 @@ def death_fields(evidence):
         cause, certainty = "fall", "explicit_flag"
     elif drag:
         cause, certainty = "zombie_drag_down", "explicit_flag"
+    elif fatal_hypothermia:
+        cause, certainty = "hypothermia", "fatal_threshold"
     elif last_source:
         cause, certainty = last_source, "suspected"
     else:
@@ -77,7 +137,9 @@ def death_fields(evidence):
     if evidence.get("cause") != cause or evidence.get("certainty") != certainty:
         raise ValueError("Cause classification does not match evidence.")
     result = {
-        "schema": 1, "capture_context": context, "cause": cause,
+        **sickness_fields(evidence),
+        **thermal,
+        "schema": evidence["schema"], "capture_context": context, "cause": cause,
         "certainty": certainty, "last_damage_source": last_source,
         "killed_by_fall": fall, "death_drag_down": drag,
         "infected_at_death": evidence.get("infectedAtDeath"),
