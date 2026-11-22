@@ -24,8 +24,18 @@
   harvest and four `Base.Basil` produce items; planting counts remain unchanged.
   Both exports pass website validation; cumulative and day-1 deltas agree.
   Harvest was tested after debug-assisted crop growth. This confirms capture,
-  not natural growth timing. Seed-bearing/regrowth harvests, cancellation,
-  save/reload and midnight remain outstanding in-game acceptance checks.
+  not natural growth timing.
+- Repeat-harvest and daily-rollover test confirmed on 22 November in the same
+  run: cumulative plantings remain Basil 1, BellPepper 1 and BlackSage 1.
+  Harvests are Basil 2, BellPepper 1 and BlackSage 1; produce totals are
+  `Base.Basil` 8, `Base.BellPepper` 2 and `Base.BlackSage` 3.
+  Sealed day 1 contains both Basil harvests and the BlackSage harvest (11
+  produce items); active day 2 contains the BellPepper harvest (2 items),
+  with no new plantings. The export passes validation and daily sums exactly
+  match the independent cumulative totals: 3 plantings, 4 harvests, 13 items.
+  This confirms repeat Basil harvesting from one planting and daily rollover.
+  Seed-bearing yield separation, cancellation and save/reload remain separate
+  outstanding in-game checks.
 - Team Test refreshed on 22 November; all 616 mod files verified against source.
   The C: and E: profile paths are aliases for the same physical package,
   not two independent copies. Workshop metadata preserved; no upload.
