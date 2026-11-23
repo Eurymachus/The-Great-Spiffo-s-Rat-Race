@@ -6,6 +6,24 @@ TGSRR_SoundDebug = TGSRR_SoundDebug or {}
 local TGSRR_ChallengeContext = require("TGSRR/Challenge/Context")
 
 local ENABLE_SOUND_DEBUG_UI = true
+local POSITION_FILE = "TGSRR/SoundDebugWindow.ini"
+
+local function loadPosition()
+    local reader = getFileReader(POSITION_FILE, false)
+    if not reader then return nil end
+    local position = {}
+    while true do
+        local line = reader:readLine()
+        if line == nil then break end
+        local key, value = line:match("^%s*(.-)%s*=%s*(.-)%s*$")
+        if key == "x" or key == "y" then
+            position[key] = tonumber(value)
+        end
+    end
+    reader:close()
+    if not position.x or not position.y then return nil end
+    return position
+end
 
 local function TGSRR_SoundDebug_IsDebugAllowed()
     return ENABLE_SOUND_DEBUG_UI
@@ -1253,10 +1271,12 @@ local function resolvePendingSounds()
 end
 
 function TGSRRSoundDebugUI:savePosition()
-    local data = ModData.getOrCreate("TGSRRSoundDebugUI")
-
-    data.x = self:getX()
-    data.y = self:getY()
+    local writer = getFileWriter(POSITION_FILE, true, false)
+    if not writer then return end
+    writer:write("[Window]\n")
+    writer:write("x=" .. tostring(math.floor(self:getX())) .. "\n")
+    writer:write("y=" .. tostring(math.floor(self:getY())) .. "\n")
+    writer:close()
 end
 
 function TGSRRSoundDebugUI:onFilterChanged(index, selected, filterKey)
@@ -2079,8 +2099,9 @@ function TGSRR_SoundDebug.onCreatePlayer(playerNum, player)
 
     local saved = ModData.getOrCreate("TGSRRSoundDebugUI")
 
-    local x = tonumber(saved.x) or 20
-    local y = tonumber(saved.y) or 300
+    local position = loadPosition() or saved
+    local x = tonumber(position.x) or 20
+    local y = tonumber(position.y) or 300
 
     x = clamp(
         x,
