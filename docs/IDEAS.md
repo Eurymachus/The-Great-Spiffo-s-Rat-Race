@@ -406,6 +406,60 @@ untested.
   Verify the placement and collection APIs before implementation.
 - Parked proposal only; capturing this note does not authorize implementation.
 
+## Hourly community statistics aggregation (20 November 2026)
+
+- Parked approach: a supervised website worker job prepares community
+  statistics approximately hourly from eligible, approved, normalized run
+  records. The statistics page reads prepared results and displays their
+  last successful update time instead of recalculating on every request.
+- Approval updates run authority and marks aggregates as needing refresh.
+  Start with a full rebuild, counting each run once from its current approved
+  state. Repeated submissions must not add duplicate contributions. Approval
+  corrections, eligibility changes and exclusions must remove obsolete
+  contributions on the next refresh.
+- Publish a complete snapshot atomically only after successful calculation;
+  retain the previous successful snapshot if a job fails. Prevent overlapping
+  refreshes. Skip unchanged work where possible, while refreshing any
+  time-dependent measures even without new submissions.
+- Candidate results include totals, distributions, character builds, weapon
+  breakdowns, milestone timings and records. Define supported mode, rules/build
+  and other filters before choosing snapshot dimensions. Store sample sizes
+  and tracking coverage with results; missing evidence must not become zero.
+- Prefer normalized database authority over repeatedly decoding exports.
+  Reusable compressed export blocks reduce repeated encoding and verification,
+  but do not eliminate collector, storage or aggregation costs. Continue using
+  compact cumulative and daily data rather than unnecessary per-action logs.
+- Consider incremental/category-specific rebuilds only if measured workload
+  warrants them. No scheduler, aggregate schema or page is approved by this note.
+- Refined implementation preference: persist versioned snapshots in ordinary
+  database summary tables, shared by all web processes and retained across
+  restarts. Aggregate counts, sums and grouped distributions in the database;
+  avoid loading all run records into application memory. Measure query cost
+  before choosing indexes or incremental maintenance.
+- Maintain a monotonically increasing source revision per affected scope,
+  updated transactionally with approvals, corrections, exclusions or deletions.
+  Build from a consistent source view and record its revision. Changes arriving
+  during a build must remain pending rather than being cleared by publication.
+  Initially rebuild each affected challenge/season in full, preserving exact
+  distinct counts, medians and records when old contributions change.
+- Filter delivery: precompute a small defined set of common scopes, not every
+  possible combination. The browser requests the selected filtered summary;
+  serve a prepared result where available. Less common supported combinations
+  may use bounded server-side aggregation with a cache keyed by canonical
+  filters, source revision and calculation version. Define whether these read
+  the published generation or current approved authority, and expose matching
+  freshness information rather than silently mixing generations.
+- Browser-only filtering is appropriate for presentation or for complete
+  downloaded summaries that can answer the question exactly. Do not send every
+  run to the browser or combine marginal summaries to invent intersections.
+  Medians, distinct participants and overlapping groups cannot generally be
+  combined from simple totals or averages. Reuse cached responses for repeated
+  selections; changing a filter need not trigger a new calculation every time.
+- Next focus: review and fill selected gaps in per-run gathered data first,
+  using the statistics readiness audit in `MOD_EXPORT_CHECKLIST.md`. Individual
+  collectors and counting rules still need selection and verification; this
+  does not approve every candidate in the audit.
+
 ## Leisure reading and media feasibility (21 November 2026)
 
 Status: literature counts approved and implemented on 21 November; see
