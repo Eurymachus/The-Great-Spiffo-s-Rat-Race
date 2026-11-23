@@ -244,37 +244,6 @@ local function setRecordPosition(record, building)
     record.y2 = building.getY2 and building:getY2() or record.y1 + 1
 end
 
-local function buildingLogDetails(building, record)
-    local key = buildingKey(building) or "unknown"
-    local x1 = record and record.x1
-        or (building and building.getX and building:getX())
-    local y1 = record and record.y1
-        or (building and building.getY and building:getY())
-    local x2 = record and record.x2
-        or (building and building.getX2 and building:getX2())
-    local y2 = record and record.y2
-        or (building and building.getY2 and building:getY2())
-    local x = record and record.x or x1
-    local y = record and record.y or y1
-    local z = record and record.z or 0
-    local expiry = record and record.expiryDay or "none"
-    return "id=" .. tostring(key)
-        .. " anchor=" .. tostring(x) .. "," .. tostring(y)
-        .. "," .. tostring(z)
-        .. " bounds=" .. tostring(x1) .. "," .. tostring(y1)
-        .. "-" .. tostring(x2) .. "," .. tostring(y2)
-        .. " expiryDay=" .. tostring(expiry)
-end
-
-local function logBuildingResult(result, source, building, record, chunk,
-        detail)
-    local chunkText = chunk and (" chunk=" .. tostring(chunk)) or ""
-    local detailText = detail and (" " .. tostring(detail)) or ""
-    print("[TGSRR Alarms] " .. tostring(result)
-        .. " source=" .. tostring(source) .. chunkText .. " "
-        .. buildingLogDetails(building, record) .. detailText)
-end
-
 local function claimBuilding(building, config, data)
     if not building then return false end
     local key = buildingKey(building)
@@ -366,12 +335,6 @@ function Runtime.capture()
         end
     end)
 
-    if pending > 0 or rangeChanged then
-        print("[TGSRR Alarms] Snapshotted " .. tostring(pending)
-            .. " successful vanilla alarm rolls; custom range "
-            .. tostring(config.minimum) .. "-" .. tostring(config.maximum)
-            .. " days after power shutoff.")
-    end
     if pending > 0 or rangeChanged then recordsChanged() end
     return true, pending
 end
@@ -404,22 +367,13 @@ function Runtime.onLoadChunk(chunk, deferredRescan)
         local key = buildingKey(building)
         if not key or seen[key] == true then return end
         seen[key] = true
-        local recordBefore = data.buildings[key]
         local claimed, result = claimBuilding(building, config, data)
-        local source = deferredRescan == true and "LoadChunk-rescan"
-            or "LoadChunk"
-        local chunkName = chunkWX and chunkWY
-            and (tostring(chunkWX) .. "," .. tostring(chunkWY)) or nil
         if claimed then
             pendingChunkClaims[key] = nil
             captured = captured + 1
-            logBuildingResult("CLAIMED", source, building,
-                data.buildings[key], chunkName)
         elseif result == "nullified" then
             pendingChunkClaims[key] = nil
             removed = removed + 1
-            logBuildingResult("NULLIFIED", source, building,
-                recordBefore, chunkName)
         elseif result == "partially_streamed" then
             -- LoadChunk discovered this candidate, but one or more overlapping
             -- chunks are not visible through BuildingDef:isFullyStreamedIn()
@@ -465,14 +419,6 @@ function Runtime.onLoadChunk(chunk, deferredRescan)
         end
     end
 
-    if captured > 0 then
-        print("[TGSRR Alarms] Claimed " .. tostring(captured)
-            .. " surviving vanilla alarms from a loaded chunk.")
-    end
-    if removed > 0 then
-        print("[TGSRR Alarms] LoadChunk validation removed "
-            .. tostring(removed) .. " vanilla-nullified alarms.")
-    end
     if captured > 0 or removed > 0 or queued > 0 then recordsChanged() end
     return true, captured
 end
@@ -509,32 +455,19 @@ local function processPendingChunkClaims()
         if not record or record.pending ~= true then
             pendingChunkClaims[key] = nil
         else
-            local recordBefore = record
             local claimed, result = claimBuilding(building, config, data)
             if claimed then
                 pendingChunkClaims[key] = nil
                 claimedCount = claimedCount + 1
-                logBuildingResult("CLAIMED", "deferred-validation",
-                    building, data.buildings[key])
             elseif result == "nullified" then
                 pendingChunkClaims[key] = nil
                 removedCount = removedCount + 1
-                logBuildingResult("NULLIFIED", "deferred-validation",
-                    building, recordBefore)
             elseif result ~= "partially_streamed" then
                 pendingChunkClaims[key] = nil
             end
         end
     end
 
-    if claimedCount > 0 then
-        print("[TGSRR Alarms] Deferred LoadChunk validation claimed "
-            .. tostring(claimedCount) .. " surviving vanilla alarms.")
-    end
-    if removedCount > 0 then
-        print("[TGSRR Alarms] Deferred LoadChunk validation removed "
-            .. tostring(removedCount) .. " vanilla-nullified alarms.")
-    end
     if claimedCount > 0 or removedCount > 0 then recordsChanged() end
 end
 
@@ -551,7 +484,6 @@ function Runtime.clearSpawnBuilding(player, square)
     building:setAlarmed(false)
     recordsChanged()
 
-    logBuildingResult("EXCLUDED", "starting-building", building, nil)
     return true
 end
 
@@ -603,15 +535,6 @@ function Runtime.tryTrigger(building, preferredRoom, cause, triggerSquare)
     recordsChanged()
     local roomDef = roomDefFor(building, preferredRoom)
     local fired = forceVanillaAlarm(building, roomDef)
-    if fired then
-        local x = triggerSquare and triggerSquare:getX() or "unknown"
-        local y = triggerSquare and triggerSquare:getY() or "unknown"
-        local z = triggerSquare and triggerSquare:getZ() or "unknown"
-        logBuildingResult("TRIGGERED", "custom-decay", building, record, nil,
-            "cause=" .. tostring(cause or "unknown")
-                .. " triggerAt=" .. tostring(x) .. "," .. tostring(y)
-                .. "," .. tostring(z))
-    end
     return fired
 end
 
@@ -742,16 +665,12 @@ function Runtime.debugToggleGrid()
         local original = debugOriginalElecModifier
         debugOriginalElecModifier = nil
         setElectricityShutoffDay(original)
-        print("[TGSRR Alarms] Debug electricity override restored to day "
-            .. tostring(original) .. ".")
         return false, original
     end
 
     debugOriginalElecModifier = powerShutoffDay()
     local forced = math.ceil(worldAgeDays()) + 1
     setElectricityShutoffDay(forced)
-    print("[TGSRR Alarms] Debug electricity override enabled through day "
-        .. tostring(forced) .. ".")
     return true, forced
 end
 
@@ -793,8 +712,6 @@ local function reconcileRoomNullifiers()
             if populated or (state.before == nil and not building:isAlarmed()) then
                 root().buildings[key] = nil
                 recordsChanged()
-                logBuildingResult("NULLIFIED", "room-population",
-                    building, record)
             end
         end
     end
@@ -873,51 +790,6 @@ end
 local pendingWindowChanges = {}
 local WINDOW_WATCH_TIMEOUT_TICKS = 3600
 
-local function alarmHitDebugEnabled()
-    return isDebugEnabled and isDebugEnabled()
-end
-
-local function alarmHitDetails(target, character, weapon)
-    local square = target and target.getSquare and target:getSquare() or nil
-    local indoor = target and target.getIndoorSquare
-        and target:getIndoorSquare() or nil
-    local isoBuilding = indoor and indoor:getBuilding()
-        or (square and square:getBuilding()) or nil
-    local building = isoBuilding and isoBuilding:getDef() or nil
-    local targetType = "other"
-    if instanceof and target then
-        if instanceof(target, "IsoWindow") then
-            targetType = "IsoWindow"
-        elseif instanceof(target, "IsoBarricade") then
-            targetType = "IsoBarricade"
-        elseif instanceof(target, "IsoThumpable") then
-            targetType = "IsoThumpable"
-        end
-    end
-    local actor = "unknown"
-    if character then
-        actor = character.isZombie and character:isZombie()
-            and "zombie" or "player"
-    end
-    local weaponName = weapon and weapon.getFullType
-        and weapon:getFullType() or "none"
-    return "targetType=" .. targetType
-        .. " objectName=" .. tostring(target and target.getObjectName
-            and target:getObjectName() or "unknown")
-        .. " at=" .. tostring(square and square:getX() or "unknown")
-        .. "," .. tostring(square and square:getY() or "unknown")
-        .. "," .. tostring(square and square:getZ() or "unknown")
-        .. " building=" .. tostring(buildingKey(building) or "none")
-        .. " actor=" .. actor .. " weapon=" .. tostring(weaponName)
-end
-
-local function logAlarmHit(stage, target, character, weapon, decision)
-    if not alarmHitDebugEnabled() then return end
-    print("[TGSRR Alarms] HIT stage=" .. tostring(stage) .. " "
-        .. alarmHitDetails(target, character, weapon)
-        .. " decision=" .. tostring(decision))
-end
-
 local function watchWindow(window, condition, character,
         requiresSmashSuccess)
     if not window or not instanceof or not instanceof(window, "IsoWindow") then
@@ -985,8 +857,6 @@ local function patchWindowActions()
                 -- AttackCollisionCheck. A cancelled action may leave this
                 -- watcher briefly, but can never satisfy the success gate.
                 watchWindow(window, "destroyed", self.character, true)
-                logAlarmHit("smash-action", window, self.character, nil,
-                    "watch-vanilla-success")
             end
             return result
         end
@@ -1015,8 +885,6 @@ end
 local function onWeaponHitThumpable(character, weapon, target)
     if not authoritative() or not target or not instanceof then return end
     if not instanceof(target, "IsoWindow") then
-        logAlarmHit("received", target, character, weapon,
-            "ignored-non-window")
         return
     end
     if character and character.isZombie and character:isZombie()
@@ -1029,17 +897,11 @@ local function onWeaponHitThumpable(character, weapon, target)
             conditions.destroyedRequiresSmashSuccess = nil
             conditions.destroyedSmashSucceeded = nil
         end
-        logAlarmHit("received", target, character, weapon,
-            "ignored-zombie-lore")
         return
     end
     if target:isDestroyed() then
-        logAlarmHit("received", target, character, weapon,
-            "ignored-already-destroyed")
         return
     end
-    logAlarmHit("received", target, character, weapon,
-        "watch-destruction")
     watchWindow(target, "destroyed", character, false)
 end
 
@@ -1069,8 +931,6 @@ local function onWeaponSwingHitPoint(character, weapon)
                     if object and instanceof(object, "IsoWindow")
                             and not object:isDestroyed() then
                         watchDirectCombatWindow(object, character)
-                        logAlarmHit("melee-snapshot", object, character,
-                            weapon, "watch-direct-combat")
                     end
                 end
             end
@@ -1093,13 +953,8 @@ local function inspectWindowChanges()
             -- tick, then discard the candidate so a later zombie smash
             -- cannot be attributed to this player attack.
             if window:isDestroyed() then
-                logAlarmHit("resolved", window, character, nil,
-                    "destroyed-by-direct-combat")
                 triggerBesideWindow(window,
                     "window-destroyed direct-combat")
-            else
-                logAlarmHit("resolved", window, character, nil,
-                    "direct-combat-no-destruction")
             end
         end
 
@@ -1145,15 +1000,9 @@ local function inspectWindowChanges()
                 conditions.destroyedRequiresSmashSuccess = nil
                 conditions.destroyedSmashSucceeded = nil
                 if not requiresSuccess or smashedByOwner then
-                    logAlarmHit("resolved", window, character, nil,
-                        "destroyed-after-" .. tostring(destroyedTicks)
-                            .. "-ticks")
                     triggerBesideWindow(window,
                         "window-destroyed watcherTicks="
                             .. tostring(destroyedTicks))
-                else
-                    logAlarmHit("resolved", window, character, nil,
-                        "ignored-without-vanilla-smash-success")
                 end
             elseif destroyedTicks >= WINDOW_WATCH_TIMEOUT_TICKS then
                 local character = conditions.destroyedCharacter
@@ -1161,8 +1010,6 @@ local function inspectWindowChanges()
                 conditions.destroyedCharacter = nil
                 conditions.destroyedRequiresSmashSuccess = nil
                 conditions.destroyedSmashSucceeded = nil
-                logAlarmHit("resolved", window, character, nil,
-                    "timeout-not-destroyed")
             else
                 conditions.destroyed = destroyedTicks + 1
             end

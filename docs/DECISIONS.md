@@ -1300,3 +1300,10 @@ conflicting claims. A fresh moderator decision is required.
   Recording these notes authorizes no code cleanup, data reset, migration
   application, commit or deployment. Clean initial production and subsequent
   RR 1.0 spreadsheet handover remain unchanged.
+
+## 2026-11-23 - Keep alarm hints out of logs
+
+- Do not log alarm locations, building IDs, bounds, state, expiry or nearby
+  counts in normal or debug mode. Chunk summaries can also reveal nearby alarms.
+- Remove alarm discovery, validation, trigger, hit and debug teleport traces
+  from the active 42.22 implementation. Alarm mechanics remain unchanged.

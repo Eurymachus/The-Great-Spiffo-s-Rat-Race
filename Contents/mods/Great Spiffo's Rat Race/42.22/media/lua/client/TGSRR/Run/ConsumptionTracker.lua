@@ -62,10 +62,6 @@ local function recordFluid(character, typeId, liters, route)
     activeRun.fluidConsumedTotal =
         math.max(0, tonumber(activeRun.fluidConsumedTotal) or 0)
             + liters
-    if isDebugEnabled and isDebugEnabled() then
-        print("[TGSRR Consumption] Drank " .. tostring(liters)
-            .. " L " .. typeId .. " (" .. tostring(route) .. ")")
-    end
     return true
 end
 
@@ -78,10 +74,6 @@ local function recordCalories(character, calories, route)
     activeRun.caloriesConsumed =
         math.max(0, tonumber(activeRun.caloriesConsumed) or 0)
             + calories
-    if isDebugEnabled and isDebugEnabled() then
-        print("[TGSRR Consumption] Consumed " .. tostring(calories)
-            .. " kcal (" .. tostring(route) .. ")")
-    end
     return true
 end
 

@@ -233,22 +233,6 @@ function TGSRRAlarmDebugWindow:onTeleport()
     local targetX = record.x + 0.5
     local targetY = record.y + 0.5
     local targetZ = record.z or 0
-    local chunkState = record.totalChunks ~= nil
-        and (tostring(record.loadedChunks) .. "/"
-            .. tostring(record.totalChunks)) or "unavailable"
-    print("[TGSRR Alarms] TELEPORT source=debug-ui"
-        .. " id=" .. tostring(record.key)
-        .. " from=" .. tostring(math.floor(player:getX())) .. ","
-        .. tostring(math.floor(player:getY())) .. ","
-        .. tostring(math.floor(player:getZ()))
-        .. " target=" .. tostring(targetX) .. ","
-        .. tostring(targetY) .. "," .. tostring(targetZ)
-        .. " bounds=" .. tostring(record.x1) .. ","
-        .. tostring(record.y1) .. "-" .. tostring(record.x2) .. ","
-        .. tostring(record.y2)
-        .. " expiryDay=" .. tostring(record.expiryDay or "none")
-        .. " pending=" .. tostring(record.pending == true)
-        .. " chunksBefore=" .. chunkState)
     player:teleportTo(targetX, targetY, targetZ)
     self.teleportLockKey = tostring(record.key)
     self.teleportButton:setEnable(false)
