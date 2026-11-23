@@ -1,5 +1,166 @@
 # Production Deployment Contract
 
+## Required RR 2 launch gate: consolidate the data contract (21 November 2026)
+
+Before the first live Rat Race 2 rollout, simplify the mod and website together
+onto one supported launch schema. Earlier RR 2 development formats are not a
+permanent compatibility obligation. This gate is pending, not completed.
+The wider cleanup is audit-only during active development; implementation waits
+until the code has settled. Launch admits fresh challenge runs and explicitly
+approved rollbacks of tracked checkpoints. Rollback approval, lineage and
+integrity protections are distinct from partial collector coverage. Arbitrary
+mid-save bootstrap is not a supported launch entry path.
+
+Initial deployment starts with a clean production database, initialized through
+the launch migrations and required setup/approved seed data. Do not clone a
+development or staging database or carry over test runs, submissions, claims or
+rehearsal imports. Both RR 1.0 and RR 2 challenge-run datasets are empty at
+deployment. Import the real RR 1.0 results only AFTER deployment and its readiness
+checks, when the team selects the spreadsheet handover date. Preserve the source
+spreadsheets until that import is verified. The handover does not close RR 1.0.
+
+- Freeze and document one launch data contract shared by collection, persistence,
+  export, validation and approved-run normalization. Remove redundant section
+  schema fields and obsolete development decoders, conversion paths, missing-field
+  fallbacks and compatibility-only tests. Keep validation of the launch contract.
+- Retain explicit version identification so unsupported input is rejected clearly.
+  Any distinct package/event version that remains must serve a documented encoding
+  or integrity purpose, not imply support for multiple historical data contracts.
+  Do not renumber an incompatible format to an identifier already used by test
+  exports, which would make them indistinguishable from launch data.
+- Reset RR 2 development runs, submissions, derived authority and disposable
+  caches through an explicitly scoped rollout procedure. Inventory targets and
+  any retained test evidence first; do not treat this as a whole-database wipe.
+  Preserve Rat Race 1.0 import/claim/update functionality and maintenance support.
+  Protection of RR 1.0 records, accounts, site content and unrelated production
+  data applies once those records exist after deployment; it does not require
+  carrying development records into the clean initial database. Database migration history needs
+  its own safe deployment treatment; a schema reset does not mean deleting it.
+- Keep coverage flags required for genuinely incomplete observations during
+  supported operation, plus recovery and integrity safeguards. Remove only
+  compatibility that exists solely for obsolete development data.
+- Prove a fresh launch run can save/reload, export, import, receive approval and
+  populate cumulative/daily authority. Verify obsolete development exports are
+  rejected clearly, reset scope is correct and preserved data remains intact.
+  Update fixtures, contract documentation and deployment/rollback instructions.
+
+The policy is approved for final rollout. Recording it does not execute a reset
+or authorize deleting current data now. See the matching decision in `DECISIONS.md`.
+
+## Deferred final contract audit and cleanup (22 November 2026)
+
+Timing: continue developing and testing until the owner confirms the final
+mod/export contract is settled. Then run a fresh audit against that code, perform
+coordinated cleanup, and complete launch acceptance. Do not start wider cleanup
+from this inventory now. Entertainment is a separately authorized workstream;
+recheck its finished contract without duplicating its implementation.
+
+### Provisional audit inventory
+
+Paths below are relative to the repository root. Lua run modules live beneath
+`Contents/mods/Great Spiffo's Rat Race/42.22/media/lua/`, in client or shared
+`TGSRR/Run/`. Findings describe the inspected development worktree, not a promise
+that these branches remain present at final audit.
+
+- Export acceptance: `ExportCodec.lua` accepts legacy format 3;
+  `apps/website/registry/run_exports.py` accepts formats 3/4 and projection schemas
+  1/2, with schema-dependent outpost validation. Retire obsolete acceptance paths
+  together. Use a previously unused identifier for the incompatible launch
+  contract, rather than making old test exports indistinguishable from launch.
+- Saved state: `Identity.lua` automatically removes incompatible development
+  state, supports mid-save bootstrap, and introduces missing collector counters
+  with partial flags. Review `Runtime.lua`, `DevelopmentResetPrompt.lua` and
+  `tests/lua/development_reset_test.lua` together. Reject unsupported saved state
+  instead of silently restarting a partial run. Preserve fresh initialization
+  and separately approved rollback/recovery handling.
+- Collector compatibility: trace `DistanceTracker.lua`, `CookedFoodTracker.lua`,
+  `FarmingTracker.lua` and the other collector initializers, then `DayTracker.lua`,
+  `DailySnapshot.lua`, `Exporter.lua` and website `run_authority.py`. Remove
+  obsolete missing-baseline initialization, bootstrap-only partial flags and
+  historical missing-section/daily-map fallbacks. Fresh launch collectors must
+  initialize their required state; missing required persisted state must not be
+  silently accepted as zero or partial. Trace each flag before removing it.
+- Nested schemas: assess cooked food, farming, literature, generator knowledge,
+  locations, milestones, temperature, chosen region and death evidence. Remove
+  redundant versions across producers, validators and normalized database fields.
+  `death_evidence.py` retained schema-1 classification alongside schema 2 at audit;
+  keep the final agreed classifier rather than historical classification branches.
+  Review `chosen_region_schema`, death-summary `schema` and root contract
+  provenance deliberately, not by indiscriminately deleting version columns.
+- Tests: replace general format-3/schema-1 builders in `test_run_exports.py` and
+  codec self-test fixtures with actual launch-contract fixtures. Retain
+  `testdata/format3_event2_projection1.txt` only if useful for explicit rejection
+  coverage. Review distance, death, bootstrap and collector compatibility tests.
+  No separate general-purpose RR 2 export converter was found in inspected paths;
+  most compatibility was in parallel decoders, defaults and initialization.
+- Documentation: reconcile `RUN_EXPORT_AUTHORITY_CONTRACT.md`,
+  `MOD_EXPORT_CHECKLIST.md` and current-focus notes with the settled contract.
+  Older format descriptions and historical acceptance statements are not the
+  final launch specification.
+
+### Preserve separately from obsolete compatibility
+
+- Approved rollback authorization, checkpoint lineage, recovery decisions,
+  superseded evidence, ledger continuity and integrity checks. A rollback is not
+  a reason to label collectors as having partial historical coverage.
+- Checksums, ordered block boundaries, immutable submissions, atomic approval,
+  exact-prefix verification, cache rebuilding and complete authority rebuilding
+  when continuity cannot be established. These remain operational safeguards.
+- Event, block/package, file, recovery and cache identifiers that serve distinct
+  encoding or integrity purposes. Document their purpose without retaining
+  multiple historical data contracts.
+- Observation-specific unknowns, such as unavailable last-living thermal evidence,
+  and supported recovery observations that cannot reconstruct death-time readings.
+  Review these individually. Preserve intentional sparse zero/false semantics,
+  Lua empty-table encoding, raw identifiers and catalogue registry provenance.
+- RR 1.0 import, claim, participant-update and maintenance functionality, with
+  source spreadsheets retained until the later handover import is verified.
+
+### Migration and reset complications
+
+- Registry migration 0029 loads `data/legacy_hall_of_fame.json` into an obsolete
+  table; 0032 deletes that table and creates the current legacy-run models without
+  transferring those rows. This is a historical packaged-file dependency and
+  unnecessary transient work, not evidence that fresh migration leaves RR 1.0 runs.
+- Migration 0047 imports current application code for historical preapproval
+  backfilling, after an empty-submission guard. Removing old decoders can affect
+  populated upgrade paths even where fresh installation skips that work.
+- Coverage backfills and the passenger-distance add/remove sequence need not be
+  deleted merely because launch starts clean. Decide migration history treatment
+  separately, preserving applied dependency nodes and documenting supported
+  upgrade/rollback paths. At audit, the 0075 merge depended on entertainment and
+  0080; recheck the actual graph after concurrent changes. Numeric order alone
+  does not establish execution order. Do not blindly erase or renumber migrations.
+- Any separately authorized development reset must inventory run submissions,
+  evidence revisions, run-owned authority, submission/block links, shared verified
+  block caches and local ledger/recovery files, including retained test evidence.
+  It must not become a whole-database wipe. A development reset is not required
+  to populate the independently created clean production database.
+
+### Implementation and acceptance order after the contract settles
+
+1. Re-audit the settled code and agree a field-by-field contract matrix covering
+   required state, sparse defaults, observation-specific unknowns and rollback
+   evidence. This is the recommended first action when the cleanup gate opens.
+2. Coordinate saved-state validation, exporters, website decoders, normalization
+   and any necessary model changes. Remove obsolete acceptance, bootstrap paths,
+   redundant nested versions and compatibility-only tests together.
+3. Prove a fresh run saves/reloads, exports active and deceased states, imports,
+   receives approval and populates cumulative and daily authority. Test approved
+   rollback evidence, unauthorized rollback rejection, corruption handling and
+   clear rejection of obsolete development saves/exports. Desktop tests alone
+   do not prove in-game lifecycle behavior.
+4. Verify the chosen launch migrations and approved setup/seed data on a fresh
+   database, with zero RR 1.0/RR 2 challenge runs, submissions, claims or rehearsal
+   imports. Rehearse RR 1.0 import/claim/update outside production. Verify readiness
+   and document application/database rollback compatibility before deployment.
+5. Deploy clean production and complete readiness checks. Import real RR 1.0
+   results only at the subsequently agreed spreadsheet handover. Preserve both
+   editions' real records and unrelated production data once they exist.
+
+These notes record audit findings and future acceptance requirements only. They
+do not execute or authorize a current reset, migration application or deployment.
+
 ## OSWALD Cloudflare Tunnel maintenance (26 October 2026)
 
 The host's shared tunnel connector was upgraded from **2026.7.3** to

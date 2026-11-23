@@ -405,3 +405,114 @@ untested.
   persist across saves/reloads, and never respawn an item after collection.
   Verify the placement and collection APIs before implementation.
 - Parked proposal only; capturing this note does not authorize implementation.
+
+## Leisure reading and media feasibility (21 November 2026)
+
+Status: literature counts approved and implemented on 21 November; see
+`MOD_NOW.md` and `DECISIONS.md`. Store exact item-type counts under
+`entertainment.literature`, including rereads, without titles. This preserves
+subtypes for later aggregation, including paperbacks separately from books.
+TV/VHS and title history remain outside implementation scope. Count a successful
+game reading action, not an item acquired, action started or human attention.
+
+### Original product recommendation (superseded by the decision above)
+
+- Lead with simple counts such as books, comics and magazines read for fun.
+  Repeated completed readings count again; interrupted actions do not.
+- Titles are useful only for an explicit feature such as unique titles read,
+  first reads versus rereads, or a personal reading history. They are not needed
+  for ordinary category totals or community comparisons of reading activity.
+- If unique/repeat statistics are wanted, retain raw content identity internally
+  and a bounded per-content summary. Do not export every reading as a ledger
+  event or build a public title catalogue merely because identifiers exist.
+  Otherwise category counters alone are the smaller first slice.
+- Completion counts do not measure equal effort: item durations differ. Avoid
+  presenting them as pages read, reading time or challenge points.
+
+### Evidence and build provenance
+
+Static inspection used installed Build 42.22.2, Steam build `26486631`, and
+matching marker in `tgsrr_decompiled/build-26486631-job-17`. Paths below are
+relative to the Project Zomboid installation, with Java paths relative to that
+decompile. Static evidence does not certify runtime callback ordering or effects.
+
+- Existing `42.22/media/lua/client/TGSRR/Run/LiteratureTracker.lua` admits only
+  skill books and recipe literature. Its successful `ISReadABook.complete()`
+  wrapper and full-item-type summaries cannot simply be extended unchanged to
+  leisure titles. `LiteratureSnapshot.lua` exports that filtered state.
+- `media/lua/shared/TimedActions/ISReadABook.lua`: start/update/stop/perform/complete
+  expose action lifecycle. `perform()` already mutates title-read state; capture
+  pre-action state before it and validate completion deduplication/order. Positive
+  page progress uses character state keyed by full item type. Other items use a
+  nominal five-page duration. Neither establishes universal per-title resumability.
+- `zombie/scripting/logic/ItemCodeOnCreate.java`: entertainment books use a book
+  translation key in `modData.literatureTitle`; comics use a series key with an
+  optional issue suffix; dated magazines use publication/month/year. Preserve full
+  item type separately. `modData.printMedia.id` identifies separate print content.
+  Localized names are labels, not identity. Untitled content supports action
+  counts without invented unique titles. Explicit classification must exclude
+  photographs and other unrelated literature-like items.
+- `zombie/characters/IsoGameCharacter.java`: `isLiteratureRead()` tests the
+  sandbox literature cooldown, not lifetime uniqueness. The persisted title map
+  records a day and updates on eligible rereading, not every action or the original
+  completion. Existing-state baselines cannot recover first times or repeat counts.
+- `zombie/radio/media/MediaData.java` and `RecordedMedia.java`: use stable media
+  IDs and line GUIDs rather than numeric indexes or translated titles.
+  `hasListenedToAll(player, media)` requires every line known and nonzero lines.
+  Vanilla `media/lua/client/ISUI/ISLiteratureUI.lua` uses this check. Player known
+  lines persist, but have no first-learning timestamps or repeat counts. All lines
+  learned can accumulate across playbacks; it does not prove one full viewing.
+- `zombie/radio/devices/DeviceData.java`: playback starts at line zero. Save/load
+  retains inserted media, but does not serialize playback position. Device
+  playback/stop alone cannot prove character exposure or completion.
+- `media/lua/shared/RadioCom/ISRadioInteractions.lua`: eligible world-device
+  interaction checks living/awake player, same floor, axis-aligned +/-5-tile
+  range and matching indoor/outdoor status. New GUIDs become known before effect
+  application; already-known GUIDs return early. Per-player/per-code effect
+  cooldown is 30 multiplier-decremented units. Media XP cutoff may prevent XP
+  while a line becomes known. XP/mood changes are not reliable exposure counters.
+- `zombie/iso/objects/IsoWaveSignal.java`: powered, positive-volume devices emit
+  `OnDeviceText` when codes are non-null. Deaf/visibility checks occur in text
+  rendering, not in the above interaction eligibility function. Rendering volume
+  range and fixed interaction range differ. Do not assume hearing, walls or line
+  of sight have identical learning and display semantics; probe them in-game.
+- `zombie/radio/scripting/RadioChannel.java`: live transmissions have null line
+  GUIDs. Channel GUID and airing broadcast ID are available, but correlating them
+  to received text is inference, complicated by adverts, boundaries, duplicate
+  devices and channel changes. No per-character completed-live-program history
+  was established. Keep live-TV completion outside the initial scope.
+- `zombie/Lua/LuaManager.java`, `Exposer`: relevant character, literature,
+  device, recorded-media and radio-script classes are registered. Proposed
+  getters are public; reading, literature UI and radio debug UI supply vanilla
+  call sites. Protected playback fields are not a proposed Lua API.
+- Prior originating investigation of PZCommunityRank Workshop `3746228308`
+  found a generic `ISReadABook.perform` books counter without category, title or
+  completion checks in its wrapper, and no TV/VHS collector. It is not proof of
+  the richer semantics above; external sources remain read-only.
+
+### Contract, cost and validation implications
+
+- Independently maintain cumulative counts and sparse daily deltas. If retaining
+  content detail, keep first observed completion evidence once and bounded
+  counts/latest state per content, not per-page or per-tick exported logs.
+- Baseline-known content has unknown original times. Record collector start,
+  schema/build and partial coverage; never turn missing history into zero or
+  invent daily completions from baseline state. Active action references do not
+  survive reload; define interrupted/recovered sessions explicitly.
+- Collection, export validation, approved-run normalization and presentation
+  must evolve together. The November 20 audit in `MOD_EXPORT_CHECKLIST.md`
+  identifies missing dedicated literature authority. Pending submissions must
+  not affect statistics; preserve raw IDs and immutable submission evidence.
+- Reading hooks have low event-driven cost. Title state scales with distinct
+  content, so custom/generated identities need bounds and overflow disclosure.
+  A later VHS learning collector could cache GUID-to-media mappings and inspect
+  affected media on events instead of scanning every tape every tick. Repeat
+  viewing and live-program completion remain unproven features.
+- Focused runtime plan: complete/cancel/reload reading; duplicate title copies;
+  different comic issues; cooldown rereads; instant actions; positive-page and
+  non-page items. Verify action order, exactly-once counting and daily rollover.
+- Later media probes: partial tape/restart/reload; known content; muted/off
+  devices; range/floor/indoor boundaries; sleep; Deaf/visibility; XP cutoff;
+  duplicate TVs and channel changes. Compare event observations, persisted
+  character state and actual benefits. No in-game validation was performed in
+  this feasibility investigation.

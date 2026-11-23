@@ -1,3 +1,4 @@
+from copy import deepcopy
 import base64
 import hashlib
 from datetime import datetime, timezone
@@ -38,6 +39,16 @@ from .run_exports import InvalidRunExport, decode_run_export
 from .run_review import build_run_review, capture_preapproval_assessment
 
 
+def current_entertainment_fixture(projection):
+    """Give unrelated test projections the required current collector baseline."""
+    projection = deepcopy(projection)
+    if isinstance(projection, dict):
+        projection.setdefault("entertainment", {"literature": {}})
+        if isinstance(projection.get("activeDay"), dict):
+            projection["activeDay"].setdefault("entertainmentLiteratureDeltas", {})
+    return projection
+
+
 def frame(value):
     value = value if isinstance(value, bytes) else str(value).encode()
     return str(len(value)).encode() + b":" + value
@@ -75,6 +86,9 @@ def event_body(
     utc=None,
     world_age_hours=None,
 ):
+    payload = deepcopy(payload)
+    if event_type == "day.started" and isinstance(payload.get("completedDay"), dict):
+        payload["completedDay"].setdefault("entertainmentLiteratureDeltas", {})
     return b"".join(
         (
             tagged("v", event_schema),
@@ -160,7 +174,7 @@ def make_block_export_from_bodies(
         "generatedUtc": generated_at,
         "eventSequence": len(bodies),
         "eventHash": previous_hash,
-        "projection": projection,
+        "projection": current_entertainment_fixture(projection),
         "eventBlocks": descriptors,
     })
     manifest_checksum = hashlib.sha256(manifest).hexdigest()
@@ -234,7 +248,7 @@ def make_export(
         bodies,
         run_id=run_id,
         generated_at=generated_at,
-        projection_bytes=canonical_value(projection),
+        projection_bytes=canonical_value(current_entertainment_fixture(projection)),
     )
 
 
@@ -487,78 +501,10 @@ class RunExportCodecTests(TestCase):
                 )
             )
 
-    def test_decodes_real_current_contract_export(self):
-        fixture = (
-            Path(__file__).with_name("testdata")
-            / "format3_event2_projection1.txt"
-        )
-
-        decoded = decode_run_export(fixture.read_text(encoding="utf-8"))
-
-        self.assertEqual(decoded.format, 3)
-        self.assertEqual(
-            decoded.run_id,
-            "rr-1785152260-1785152260039-225317-444485",
-        )
-        self.assertEqual(decoded.event_sequence, 21)
-        self.assertEqual(
-            decoded.event_hash,
-            "08a2fc2c61ac86b72d6e8234acc12bc080e156ffb5e01a7d96e36c627d8eca43",
-        )
-        self.assertEqual(
-            decoded.checksum,
-            "ab96abe36f137b2376549f2731f8140044217a97fb1868495cd836df40188d0a",
-        )
-        self.assertEqual({event["schema"] for event in decoded.events}, {2})
-        self.assertEqual(decoded.projection["schema"], 1)
-        self.assertEqual(
-            decoded.projection["challenge"],
-            {
-                "id": "TGSRR",
-                "gameMode": "The Great Spiffo's Rat Race",
-            },
-        )
-        self.assertEqual(decoded.current_kills, 6124)
-        self.assertEqual(len(decoded.projection["skills"]), 35)
-        self.assertEqual(len(decoded.projection["outposts"]), 13)
-        self.assertEqual(len(decoded.projection["townVisits"]["towns"]), 12)
-        self.assertEqual(
-            decoded.events[-1]["payload"]["challenge"]["id"],
-            "TGSRR",
-        )
-        expected_contract_sections = {
-            "activeDay",
-            "activeGameplay",
-            "activeMods",
-            "animalBirths",
-            "animalsSlaughtered",
-            "animalsTrapped",
-            "brokenWeapons",
-            "butterProduced",
-            "challenge",
-            "challengeProgress",
-            "character",
-            "currentKills",
-            "distance",
-            "fireDeaths",
-            "fishCaught",
-            "generatorKnowledge",
-            "injuries",
-            "literature",
-            "locations",
-            "milestones",
-            "milkCollected",
-            "nimbleStance",
-            "outposts",
-            "recovery",
-            "schema",
-            "skills",
-            "townVisits",
-            "weaponKills",
-            "weight",
-            "zombieKillTypes",
-        }
-        self.assertEqual(set(decoded.projection), expected_contract_sections)
+    def test_rejects_development_export_without_entertainment(self):
+        fixture = Path(__file__).with_name("testdata") / "format3_event2_projection1.txt"
+        with self.assertRaisesMessage(InvalidRunExport, "Invalid entertainment snapshot"):
+            decode_run_export(fixture.read_text(encoding="utf-8"))
 
     def test_decodes_and_verifies_format_three_export(self):
         decoded = decode_run_export(make_export())

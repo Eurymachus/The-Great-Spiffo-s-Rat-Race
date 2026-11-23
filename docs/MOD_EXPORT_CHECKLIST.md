@@ -1,5 +1,6 @@
 # Mod: Export Data Checklist
 
+
 ## Farming statistics (21 November 2026)
 
 - Implemented in 42.22: verified ploughed-to-seeded sowings and successful
@@ -76,6 +77,35 @@
   E: profile paths refer to the same physical package. Metadata preserved;
   no Workshop upload.
 
+## Leisure reading counts (21 November 2026)
+
+- 42.22 collects successful single-player `ISReadABook.complete()` actions for
+  173 reviewed vanilla item types: entertainment books and paperbacks, comics,
+  magazines, crosswords and word searches. Separate actions rereading the same
+  item count again; duplicate completion callbacks do not. Titles are not stored.
+- Projection: `entertainment = {literature = {[fullItemType] = count}}`.
+  Zero entries are sparse. Lua's canonical codec represents an empty table as
+  `[]`; the website accepts that as a known empty count map. No section schema
+  or partial flag remains after the 22 November cleanup.
+- Active/completed days carry `entertainmentLiteratureDeltas`, including an empty
+  map for tracked zero days. Entertainment partial flags at any level are rejected.
+  Fresh starts and approved tracked-checkpoint rollbacks are the launch contract;
+  there is no bootstrap/backfill path for entertainment.
+- Approval writes `entertainment_literature` summary/item dimensions and daily
+  item metrics, preserving raw IDs with catalogue resolution where available.
+  Repeated approval replaces current authority without adding duplicate counts.
+  Cumulative counts are not reconstructed from daily history. No public UI added.
+- Validation requires unversioned entertainment and day counts, bounded item IDs,
+  nonnegative integer counts, and that observed daily sums do not exceed independent cumulative
+  counts. Migration 0070 adds model choices; 0071 is retained only as an empty
+  applied dependency node. Its development-history backfill was removed on
+  22 November. No historical records are changed by this cleanup.
+- Runtime acceptance pending: normal and instant completion, cancellation,
+  rereads during/after cooldown, crossword/word-search consumption, books versus
+  paperbacks, exclusion of skill/recipe literature and notebooks, reload,
+  midnight rollover, stopped/deceased runs and another player's actions.
+- This supplements the historical November 20 audit below; the existing skill
+  literature collector and its normalization gap remain separate.
 
 ## Purpose
 

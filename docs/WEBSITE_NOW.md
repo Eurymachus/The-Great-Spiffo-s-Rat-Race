@@ -1167,14 +1167,25 @@ runs, submissions, credentials, notifications, or operational state.
 
 ### Before launch
 
+- Wider contract cleanup is deferred until the owner confirms the mod/export
+  contract is settled. Then re-audit current code before coordinated cleanup.
+  Launch supports fresh runs and explicitly approved tracked-checkpoint rollbacks,
+  not mid-save bootstrap. The concrete audit inventory and acceptance order are
+  in `PRODUCTION_DEPLOYMENT.md`, Deferred final contract audit and cleanup.
+- Required RR 2 gate: consolidate mod and website onto one supported launch data
+  schema and retire obsolete development compatibility. Perform a scoped RR 2
+  development-data reset and deploy a clean production database with required
+  setup/approved seed data, without development or staging records. Follow
+  `PRODUCTION_DEPLOYMENT.md`, Required RR 2 launch gate (21 November 2026).
 - Complete the agreed submission review and audit policy and its three distinct
   administration areas, including automatic-approval eligibility and safeguards.
 - Complete retention automation and the final privacy review.
 - Run a production-shaped acceptance test across registration, account,
   submission, moderation, rankings, Rules, Mods, and Exploits.
 - Test the full legacy import, claim, and participant-update journey with a
-  representative export. Keep production legacy data empty until the team
-  chooses its spreadsheet handover date.
+  representative export outside production. At initial deployment, both RR 1.0
+  and RR 2 challenge-run datasets must be empty. Import real RR 1.0 results only
+  after deployment/readiness checks and the agreed spreadsheet handover date.
 - Replace any remaining development-only navigation or gallery records before
   launch.
 

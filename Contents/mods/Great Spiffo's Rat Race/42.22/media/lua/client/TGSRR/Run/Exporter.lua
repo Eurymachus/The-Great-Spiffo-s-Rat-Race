@@ -1,5 +1,6 @@
 local DistanceSnapshot = require("TGSRR/Run/DistanceSnapshot")
 local Identity = require("TGSRR/Run/Identity")
+local EntertainmentSnapshot = require("TGSRR/Run/EntertainmentSnapshot")
 local CookedFoodSnapshot = require("TGSRR/Run/CookedFoodSnapshot")
 local FarmingSnapshot = require("TGSRR/Run/FarmingSnapshot")
 local TemperatureSnapshot = require("TGSRR/Run/TemperatureSnapshot")
@@ -333,8 +334,11 @@ local function verifyReadback(decoded, ledger, projection, verifyBodies)
         { "distance.modesPartial", actual.distance.modesPartial, projection.distance.modesPartial },
         { "activeDay.distanceByModeDeltas", actual.activeDay.distanceByModeDeltas, projection.activeDay.distanceByModeDeltas },
         { "activeDay.distanceModesPartial", actual.activeDay.distanceModesPartial, projection.activeDay.distanceModesPartial },
+        { "entertainment", actual.entertainment, projection.entertainment },
         { "cookedFood", actual.cookedFood, projection.cookedFood },
         { "farming", actual.farming, projection.farming },
+        { "activeDay.entertainmentLiteratureDeltas", actual.activeDay.entertainmentLiteratureDeltas,
+            projection.activeDay.entertainmentLiteratureDeltas },
         { "activeDay.cookedFoodItemsDeltas", actual.activeDay.cookedFoodItemsDeltas,
             projection.activeDay.cookedFoodItemsDeltas },
         { "activeDay.farmingPlantedDeltas", actual.activeDay.farmingPlantedDeltas,
@@ -482,6 +486,7 @@ function Exporter.generate(run, work, options)
             partial = run.zombieKillTypesPartial == true,
         },
         townVisits = TownSnapshot.observe(run),
+        entertainment = EntertainmentSnapshot.observe(run),
         cookedFood = CookedFoodSnapshot.observe(run),
         farming = FarmingSnapshot.observe(run),
         literature = LiteratureSnapshot.observe(run),

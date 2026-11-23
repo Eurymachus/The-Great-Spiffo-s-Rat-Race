@@ -1,0 +1,122 @@
+from datetime import datetime, timezone
+
+from django.test import TestCase
+
+from .entertainment import validate_entertainment
+from .models import ChallengeRun, RunDailyMetric, RunStatisticSummary
+from .run_authority import refresh_initial_run_authority
+from .run_exports import InvalidRunExport, decode_run_export
+from .test_run_exports import make_export
+
+
+def projection(counts=None):
+    return {
+        "schema": 1, "currentKills": 42, "character": {},
+        "entertainment": {"literature": counts if counts is not None else {
+            "Base.Book_Art": 3, "Base.Paperback_Art": 2, "Base.MagazineCrossword": 1,
+        }},
+        "activeDay": {"dayIndex": 2, "entertainmentLiteratureDeltas": {"Base.Book_Art": 1}},
+    }
+
+
+class EntertainmentTests(TestCase):
+    def test_missing_and_versioned_entertainment_are_rejected(self):
+        for missing in ("entertainment", "daily"):
+            value = projection()
+            if missing == "entertainment":
+                del value["entertainment"]
+            else:
+                del value["activeDay"]["entertainmentLiteratureDeltas"]
+            with self.assertRaises(ValueError):
+                validate_entertainment(value, [])
+        value = projection()
+        value["entertainment"]["schema"] = 1
+        with self.assertRaises(InvalidRunExport):
+            decode_run_export(make_export(projection=value))
+
+    def test_decode_preserves_raw_item_ids_without_titles(self):
+        value = projection()
+        decoded = decode_run_export(make_export(projection=value))
+        self.assertEqual(decoded.projection["entertainment"], value["entertainment"])
+
+    def test_empty_lua_tables_and_known_zero_are_accepted(self):
+        for counts in ({}, []):
+            value = projection(counts)
+            value["activeDay"]["entertainmentLiteratureDeltas"] = counts
+            decode_run_export(make_export(projection=value))
+
+    def test_rejects_invalid_counts_ids_and_metadata(self):
+        for counts in ({"Base.Book": -1}, {"Base.Book": True}, {"Base.Book": 0.5},
+                       {"Base.Book": 2**53}, {"Translated book title": 1}, [1], None):
+            value = projection()
+            value["entertainment"]["literature"] = counts
+            with self.subTest(counts=counts), self.assertRaises(InvalidRunExport):
+                decode_run_export(make_export(projection=value))
+        for key, bad in (("schema", True), ("schema", 2), ("partial", "false"), ("titles", [])):
+            value = projection()
+            value["entertainment"][key] = bad
+            with self.subTest(key=key), self.assertRaises(InvalidRunExport):
+                decode_run_export(make_export(projection=value))
+
+    def test_daily_history_cannot_exceed_independent_cumulative_counts(self):
+        value = projection()
+        specs = [("day.started", {"dayIndex": 2, "completedDay": {
+            "dayIndex": 1, "entertainmentLiteratureDeltas": {"Base.Book_Art": 3},
+        }})]
+        with self.assertRaises(InvalidRunExport):
+            decode_run_export(make_export(projection=value, event_specs=specs))
+        value["entertainment"]["literature"]["Base.Book_Art"] = 5
+        decode_run_export(make_export(projection=value, event_specs=specs))
+        del value["entertainment"]
+        with self.assertRaises(ValueError):
+            validate_entertainment(value, [])
+
+    def test_approval_normalizes_item_dimensions_and_replaces_without_duplicates(self):
+        run = ChallengeRun.objects.create(run_id="entertainment-authority", export_format=4,
+                                         generated_at=datetime.now(timezone.utc), event_hash="0" * 64)
+        value = projection()
+        specs = [("day.started", {"dayIndex": 2, "completedDay": {
+            "dayIndex": 1, "entertainmentLiteratureDeltas": {"Base.Book_Art": 2},
+        }})]
+        decoded = decode_run_export(make_export(projection=value, event_specs=specs))
+        # Decoding alone cannot change approved authority.
+        self.assertFalse(run.statistic_summaries.exists())
+        for _ in range(2):
+            refresh_initial_run_authority(run, decoded.projection, decoded.events)
+        summary = run.statistic_summaries.get(kind=RunStatisticSummary.Kind.ENTERTAINMENT_LITERATURE)
+        self.assertEqual(summary.value, 6)
+        self.assertFalse(summary.partial)
+        self.assertEqual(dict(summary.metrics.values_list("raw_primary_id", "value")), value["entertainment"]["literature"])
+        rows = RunDailyMetric.objects.filter(daily_record__run=run, kind=RunDailyMetric.Kind.ENTERTAINMENT_LITERATURE)
+        self.assertEqual(sorted(rows.values_list("value", flat=True)), [1, 2])
+        for day in run.daily_records.all():
+            self.assertNotIn("entertainment", day.partial_metrics)
+    def test_zero_summary(self):
+        run = ChallengeRun.objects.create(run_id="entertainment-partial", export_format=4,
+                                         generated_at=datetime.now(timezone.utc), event_hash="0" * 64)
+        value = projection([])
+        value["activeDay"].update(entertainmentLiteratureDeltas=[])
+        refresh_initial_run_authority(run, value, [])
+        summary = run.statistic_summaries.get(kind=RunStatisticSummary.Kind.ENTERTAINMENT_LITERATURE)
+        self.assertEqual(summary.value, 0)
+        self.assertFalse(summary.partial)
+        self.assertFalse(summary.metrics.exists())
+        self.assertNotIn("entertainment", run.daily_records.get().partial_metrics)
+
+    def test_partial_flags_are_rejected_at_all_levels(self):
+        for flag in (True, False):
+            value = projection()
+            value["entertainment"]["partial"] = flag
+            with self.assertRaises(InvalidRunExport):
+                decode_run_export(make_export(projection=value))
+            value = projection()
+            value["activeDay"]["entertainmentPartial"] = flag
+            with self.assertRaises(InvalidRunExport):
+                decode_run_export(make_export(projection=value))
+        value = projection()
+        specs = [("day.started", {"dayIndex": 2, "completedDay": {
+            "dayIndex": 1, "partialMetrics": ["entertainment"],
+            "entertainmentLiteratureDeltas": {},
+        }})]
+        with self.assertRaises(InvalidRunExport):
+            decode_run_export(make_export(projection=value, event_specs=specs))

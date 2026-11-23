@@ -23,6 +23,7 @@ from .models import (
 )
 from .temperature import temperature_fields
 from .death_evidence import death_fields, sickness_fields, wound_rows
+from .entertainment import literature_counts
 from .cooked_food import items_counts
 from .farming import crop_counts
 
@@ -40,6 +41,7 @@ DAILY_MAP_METRICS = (
     ("animalPetDeltas", RunDailyMetric.Kind.ANIMAL_PET, CatalogueEntry.Kind.ANIMAL),
     ("milkCollectedDeltas", RunDailyMetric.Kind.MILK_COLLECTED, CatalogueEntry.Kind.FLUID),
     ("fluidConsumedDeltas", RunDailyMetric.Kind.FLUID_CONSUMED, CatalogueEntry.Kind.FLUID),
+    ("entertainmentLiteratureDeltas", RunDailyMetric.Kind.ENTERTAINMENT_LITERATURE, CatalogueEntry.Kind.ITEM),
     ("cookedFoodItemsDeltas", RunDailyMetric.Kind.COOKED_FOOD, CatalogueEntry.Kind.ITEM),
     ("farmingPlantedDeltas", RunDailyMetric.Kind.FARMING_PLANTED, None),
     ("farmingHarvestedDeltas", RunDailyMetric.Kind.FARMING_HARVESTED, None),
@@ -473,6 +475,18 @@ def _refresh_statistic_authority(run, projection):
         "count",
         raw_reference_id="Base.Butter",
     )
+
+    entertainment = projection.get("entertainment")
+    if isinstance(entertainment, dict):
+        counts = literature_counts(entertainment["literature"])
+        target = summary(
+            RunStatisticSummary.Kind.ENTERTAINMENT_LITERATURE,
+            {"total": sum(counts.values())},
+            "total", unit="completed_reading_action",
+        )
+        for item_id, count in counts.items():
+            metric(target, RunStatisticMetric.Dimension.ITEM, item_id, count,
+                   primary_kind=CatalogueEntry.Kind.ITEM)
 
     cookedFood = projection.get("cookedFood")
     if isinstance(cookedFood, dict):

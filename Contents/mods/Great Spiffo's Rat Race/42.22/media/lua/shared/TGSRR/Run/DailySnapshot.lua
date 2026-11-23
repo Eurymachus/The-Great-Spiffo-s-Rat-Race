@@ -13,6 +13,7 @@ local FluidConsumedSnapshot = require("TGSRR/Run/FluidConsumedSnapshot")
 local FishCaughtSnapshot = require("TGSRR/Run/FishCaughtSnapshot")
 local TemperatureSnapshot = require("TGSRR/Run/TemperatureSnapshot")
 
+local EntertainmentSnapshot = require("TGSRR/Run/EntertainmentSnapshot")
 local CookedFoodSnapshot = require("TGSRR/Run/CookedFoodSnapshot")
 local FarmingSnapshot = require("TGSRR/Run/FarmingSnapshot")
 
@@ -49,6 +50,8 @@ function DailySnapshot.current(player, run)
             MilkSnapshot.copy(run and run.milkCollected),
         butterProduced =
             math.max(0, math.floor(tonumber(run and run.butterProduced) or 0)),
+        entertainmentLiterature = run and run.entertainment
+            and EntertainmentSnapshot.copy(run.entertainment.literature) or nil,
         cookedFoodItems = run and run.cookedFood
             and CookedFoodSnapshot.copy(run.cookedFood.items) or nil,
         farmingPlanted = run and run.farming
@@ -144,6 +147,8 @@ function DailySnapshot.active(run, player)
             - math.max(0, math.floor(
                 tonumber(baseline.butterProduced) or 0)),
         butterProducedPartial = baseline.butterProducedPartial == true,
+        entertainmentLiteratureDeltas = current.entertainmentLiterature
+            and DailySnapshot.deltas(current.entertainmentLiterature, baseline.entertainmentLiterature) or nil,
         cookedFoodItemsDeltas = current.cookedFoodItems
             and DailySnapshot.deltas(current.cookedFoodItems, baseline.cookedFoodItems) or nil,
         farmingPlantedDeltas = current.farmingPlanted

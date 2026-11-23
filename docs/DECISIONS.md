@@ -1202,3 +1202,101 @@ conflicting claims. A fresh moderator decision is required.
   and earlier-craft handling remain open. The Brazilian challenge's 20 weapons
   and 10 tools have not been adopted.
 - Implementation and individual-item provenance verification remain pending.
+
+## 2026-11-21 - Count leisure reading by stable item type
+
+- Collect completed leisure-reading actions including rereads; exclude titles,
+  individual copy identities and per-read event logs. Do not infer unique content.
+- Preserve counts keyed by exact PZ full item type, such as `Base.Book_Art` and
+  `Base.Paperback_Art`, under `entertainment.literature`. These language-independent
+  IDs support later category aggregation and translated presentation. Do not
+  collapse stored evidence into five category totals. Paperbacks remain distinct.
+- Include reviewed entertainment books/paperbacks, comics, magazines, crosswords
+  and word searches. Exclude skill books, recipe literature and other print media.
+  Broad `base:literature`, `base:magazine` tags and `Base.Book*` prefixes alone are
+  insufficient classification. Unknown mod types need explicit future review.
+- Maintain independent cumulative counts and sparse daily deltas, normalized
+  into approved-run authority. Missing old coverage is unknown, never zero.
+  Reading duration/effort and human attention are not implied by completion counts.
+- TV/VHS collection and title histories remain outside this implementation.
+
+## 2026-11-21 - Consolidate RR 2 to one launch schema before live rollout
+
+- Mandatory final rollout gate: simplify the mod and website together to one
+  supported launch data contract, with a scoped reset of RR 2 development data.
+  Obsolete development exports/saves do not require ongoing compatibility.
+- Remove redundant section versions and compatibility-only decoders, conversions,
+  fallbacks and tests. Retain explicit version identification, launch-contract
+  validation, and justified encoding/integrity versions without reusing an old
+  identifier for an incompatible structure.
+- This supersedes earlier requirements to retain format-3/schema-1 RR 2 evidence
+  indefinitely, including the 16 August decision. Existing compatibility can
+  remain during development until this coordinated launch gate is completed.
+- Preserve real Rat Race 1.0 history and maintenance support, accounts, site
+  content, configuration and unrelated production records. Inventory reset targets
+  and any evidence to retain; do not erase database migration history blindly.
+- Preserve partial-coverage indicators needed during normal supported operation,
+  recovery and integrity checks. They are not all legacy compatibility.
+- `PRODUCTION_DEPLOYMENT.md` defines the required acceptance checks. No current
+  data deletion or compatibility removal is performed by recording this policy.
+
+### Initial deployment and RR 1.0 import order (21 November 2026)
+
+- Initial production deployment starts with a clean database, created through
+  launch migrations and required setup/approved seed data. Do not clone the
+  development/staging database or retain test runs, submissions, claims or
+  rehearsal imports. RR 1.0 and RR 2 challenge-run datasets are empty at deployment.
+- Import real RR 1.0 results only after deployment and readiness verification,
+  at the team's agreed spreadsheet handover. Retain source spreadsheets until
+  the import is verified. RR 1.0 does not close at handover.
+- Earlier preservation wording protects RR 1.0 functionality/source evidence
+  and records once imported, plus subsequent production data. It does not require
+  preloading RR 1.0 results or carrying development records into the clean launch.
+- This clarifies the rollout policy only; no database reset or import occurs now.
+
+## 2026-11-22 - Simplify entertainment now; audit wider launch cleanup separately
+
+- Entertainment has no separate schema version. Current exports must provide
+  its literature counts and tracked daily maps. Reject obsolete development
+  versions and missing collector state rather than backfilling compatibility.
+- Preserve genuine bootstrap partial coverage and the current encoder's empty
+  table representation. Exact item-type counts and rereading semantics stay intact.
+- Keep the applied 0071 migration dependency node as a no-op; remove its legacy
+  history transformation without resetting or rewriting current database records.
+- A separate chat audits wider launch cleanup only. No broad implementation,
+  migration consolidation, reset, deletion or deployment is authorized by that
+  audit. The coordinated clean-launch policy remains unchanged.
+
+## 2026-11-22 - Fresh launch runs and approved rollbacks; no entertainment partial flag
+
+- Launch supports fresh challenge runs and explicitly approved rollbacks only.
+  A tracked checkpoint rollback is a recovery/integrity operation, not a partial
+  collector baseline. Preserve its approval, lineage and superseded-evidence
+  safeguards; no arbitrary mid-save bootstrap is part of the launch contract.
+- Remove entertainment partial fields now from persistent state, cumulative and
+  daily exports, validation and normalization. Reject obsolete partial fields
+  instead of treating them as current evidence. No database reset is requested.
+- This supersedes earlier entertainment bootstrap/partial retention guidance.
+  The wider cleanup chat remains audit-only. Implement its eventual cleanup once
+  the code has settled, rather than starting broad changes during development.
+
+## 2026-11-22 - Freeze the final contract before wider audit and cleanup
+
+- Continue development and testing until the owner confirms: this is the final
+  mod/export contract. Then audit the settled implementation again, perform the
+  coordinated cleanup, and verify the complete launch journey before deployment.
+- The earlier audit is provisional evidence, not a frozen implementation plan.
+  Recheck file references, migration dependencies and concurrent changes. Keep
+  entertainment's separately authorized cleanup separate from wider work.
+- Fresh runs and explicitly approved tracked-checkpoint rollbacks are the only
+  supported launch paths. Remove obsolete bootstrap and missing-collector
+  compatibility after tracing its producers and consumers. Rollbacks do not
+  justify retaining collector partial-history flags. Preserve rollback approval,
+  lineage, superseded evidence and integrity/recovery protections independently.
+- Observation-specific unknowns, sparse zero/false encoding and catalogue
+  provenance require individual assessment; they are not automatically legacy.
+  This narrows the earlier general partial-coverage retention guidance.
+- The detailed deferred audit inventory is in `PRODUCTION_DEPLOYMENT.md`.
+  Recording these notes authorizes no code cleanup, data reset, migration
+  application, commit or deployment. Clean initial production and subsequent
+  RR 1.0 spreadsheet handover remain unchanged.

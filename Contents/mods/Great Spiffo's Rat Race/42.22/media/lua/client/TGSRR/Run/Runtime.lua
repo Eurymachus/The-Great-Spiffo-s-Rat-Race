@@ -18,6 +18,7 @@ local PendingTraitSelection = require("TGSRR/Run/PendingTraitSelection")
 local ModSnapshot = require("TGSRR/Run/ModSnapshot")
 local WeaponKillTracker = require("TGSRR/Run/WeaponKillTracker")
 local TownTracker = require("TGSRR/Run/TownTracker")
+local EntertainmentTracker = require("TGSRR/Run/EntertainmentTracker")
 local CookedFoodTracker = require("TGSRR/Run/CookedFoodTracker")
 local FarmingTracker = require("TGSRR/Run/FarmingTracker")
 local LiteratureTracker = require("TGSRR/Run/LiteratureTracker")
@@ -512,6 +513,7 @@ initialize = function()
             return
         end
     end
+    EntertainmentTracker.initialize(run, player, created)
     CookedFoodTracker.initialize(run, player, created)
     FarmingTracker.initialize(run, player, created)
     WeaponKillTracker.initialize(run, player)

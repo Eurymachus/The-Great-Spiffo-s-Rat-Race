@@ -62,6 +62,20 @@ Runtime evidence (exports under the local TGSRR Runs directory):
   Team Test contains the runtime-tested code; 617 mod files were compared with
   source. No gameplay changes were needed during closeout review.
 
+## Entertainment coverage simplification (22 November 2026)
+
+- Entertainment no longer stores or exports partial flags, including daily flags.
+  Website validation rejects those obsolete fields and normalized entertainment
+  summaries use complete coverage. Exact item counts and rereads are unchanged.
+- Launch supports fresh runs and explicitly approved rollbacks only. Bootstrap
+  starts are rejected by this collector; restored tracked checkpoints retain
+  their counters. Rollback approval/recovery/integrity handling remains separate
+  and unchanged. No broad rollout reset or recovery implementation occurred here.
+- The wider cleanup chat has been updated: audit only now; implementation waits
+  until the code has settled. Review other bootstrap/partial paths under that
+  policy without removing approved rollback safeguards.
+
+
 ## Fatal hypothermia classification (22 November 2026)
 
 - In-game schema-2 test passed: run
@@ -146,7 +160,6 @@ Runtime evidence (exports under the local TGSRR Runs directory):
 
 
 
-
 ## Farming statistics (21 November 2026)
 
 - Implemented in 42.22: verified ploughed-to-seeded sowings and successful
@@ -223,7 +236,6 @@ Runtime evidence (exports under the local TGSRR Runs directory):
   E: profile paths refer to the same physical package. Metadata preserved;
   no Workshop upload.
 
-
 ## Travel mode distance (21 November 2026)
 
 - Replaced `OnPlayerMove` sampling with a constant-memory `OnTick` collector.
@@ -275,6 +287,65 @@ Runtime evidence (exports under the local TGSRR Runs directory):
   contract; both local Team Test copies were regenerated and verified again.
 
 
+## Required final rollout simplification (21 November 2026)
+
+- Timing confirmed 22 November: stay the course while developing and testing.
+  Once the owner confirms the final mod/export contract is settled, perform a
+  fresh audit of the settled code, then coordinated cleanup and launch acceptance.
+  The current audit is a checklist, not authorization to implement wider cleanup.
+  See `PRODUCTION_DEPLOYMENT.md`, Deferred final contract audit and cleanup.
+- Before RR 2 goes live, consolidate mod and website onto one supported launch
+  data schema, remove obsolete development compatibility and redundant section
+  versions, and reset RR 2 development data within an inventoried scope.
+- Preserve RR 1.0, unrelated website data and genuine operational coverage and
+  integrity safeguards. No reset is being executed now. The mandatory gate and
+  acceptance checks are in `PRODUCTION_DEPLOYMENT.md`; policy is in `DECISIONS.md`.
+- Initial production deployment uses a clean database with required setup/seed
+  data and no challenge runs. Real RR 1.0 results are imported after deployment
+  and readiness checks at the agreed spreadsheet handover. Preserving RR 1.0
+  means preserving its functionality/source evidence, then its imported records;
+  it does not mean retaining development or rehearsal data at launch.
+
+## Entertainment contract cleanup (22 November 2026)
+
+- Removed the separate entertainment schema from saved collector state and export.
+  Current structure is `entertainment = {literature = {[fullItemType] = count}}`. Titles and per-read events remain excluded.
+- Removed collector backfill on old saves and missing-day normalization. Older
+  schema-bearing states and exports without current entertainment/day fields are
+  rejected; start a new development run. Entertainment partial support was
+  subsequently removed as recorded below.
+- Migration 0071 keeps its already-applied dependency name but has no operations;
+  no historical backfill is executed on a clean deployment. No database reset or
+  retroactive rewriting was performed. Wider migration simplification is for the
+  separate read-only launch audit, not this change.
+- Validation: 95 website/export/death/entertainment tests pass, alongside the
+  installed vanilla-action Lua regression, populated/empty format-4 Lua-to-Python
+  roundtrips, changed-file syntax, migration consistency and prohibited-global
+  scans. No in-game test, package refresh or deployment was performed here.
+
+## Leisure reading counts (21 November 2026)
+
+- Owner approved completion counts including rereads, with no titles. Subsequent
+  clarification selected exact PZ item types under `entertainment.literature`,
+  allowing category aggregation later without losing subtype detail. Paperbacks
+  remain distinguishable from books.
+- Implemented in 42.22: reviewed leisure books/paperbacks, comics, magazines,
+  crosswords and word searches; successful local single-player completion only.
+  Skill/recipe literature and unreviewed types are excluded. Counts persist in
+  run ModData and export as cumulative counts plus sparse daily deltas.
+- Website validation and approved-run item metrics support the new family;
+  migration 0070 adds statistic choices. The 22 November cleanup above supersedes
+  the initial legacy coverage support and migration 0071 backfill.
+  No title history, per-read ledger, TV/VHS tracking or new presentation UI.
+- In-game acceptance remains required: normal/instant actions, cancellation,
+  rereading inside/outside cooldown, puzzle consumption, save/reload and midnight.
+  Earlier feasibility evidence and source references remain in `IDEAS.md`.
+- Validation: vanilla-action Lua regression, daily rollover/reinitialization,
+  Lua format-4 to Python decoding (populated and empty counts), changed Lua
+  syntax, and prohibited-global scans pass. The 88-test export/approval/death
+  suite passed; all seven entertainment tests pass after adding legacy coverage
+  migration verification. Local migrations 0070/0071 are applied. No game smoke
+  test or Workshop/hosted deployment was performed.
 
 ## Terminal death evidence (21 November 2026)
 

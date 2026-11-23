@@ -87,6 +87,10 @@ local function completedDay(current, previousState, dayIndex)
     addDelta(result, "butterProducedDelta",
         current.butterProduced - math.max(0,
             math.floor(tonumber(previousState.butterProduced) or 0)))
+    if current.entertainmentLiterature then
+        result.entertainmentLiteratureDeltas = deltas(
+            current.entertainmentLiterature, previousState.entertainmentLiterature)
+    end
     if current.cookedFoodItems then
         result.cookedFoodItemsDeltas = deltas(
             current.cookedFoodItems, previousState.cookedFoodItems)
@@ -229,6 +233,7 @@ local function beginDay(initial)
         butterProduced = current.butterProduced,
         butterProducedPartial =
             initial == true and activeRun.butterProducedPartial == true,
+        entertainmentLiterature = current.entertainmentLiterature,
         cookedFoodItems = current.cookedFoodItems,
         farmingPlanted = current.farmingPlanted,
         farmingHarvested = current.farmingHarvested,
