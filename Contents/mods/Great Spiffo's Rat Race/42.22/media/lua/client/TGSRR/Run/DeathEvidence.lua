@@ -1,5 +1,7 @@
 local StartingLocation = require("TGSRR/Run/StartingLocation")
 
+local WoundEvidence = require("TGSRR/Run/WoundEvidence")
+
 local DeathEvidence = {}
 local WINDOW_MS = 10000
 local MAX_SOURCES = 32
@@ -55,6 +57,7 @@ end
 local function observeLivingThermal(player)
     if player ~= activePlayer or not activeRun or activeRun.lifecycle ~= "active"
         or player:isDead() then return end
+    WoundEvidence.observe(player)
     local body, moodles = player:getBodyDamage(), player:getMoodles()
     if not body or not moodles then return end
     -- Scalars only: retain the latest living sample, including recovery to level zero.
@@ -70,6 +73,8 @@ function DeathEvidence.initialize(run, player)
     recent, serial = {}, 0
     activeRun, activePlayer = run, player
     thermalLevel, thermalStage, thermalAt, thermalUtc, thermalWorldAge = nil, nil, nil, nil, nil
+    WoundEvidence.reset()
+    if player and not player:isDead() then WoundEvidence.observe(player, true) end
     observeLivingThermal(player)
     if not installed then
         Events.OnPlayerGetDamage.Add(observeDamage)
@@ -80,7 +85,7 @@ end
 
 function DeathEvidence.capture(player, context)
     local evidence = {
-        schema = 2,
+        schema = 4,
         captureContext = context or "recovery",
         recentWindowMilliseconds = WINDOW_MS,
         recentDamage = {},
@@ -98,7 +103,16 @@ function DeathEvidence.capture(player, context)
     evidence.killedByFall = player:isKilledByFall() == true
     evidence.deathDragDown = player:isDeathDragDown() == true
     if context == "death_callback" then
+        evidence.terminalWounds = WoundEvidence.observe(player, player ~= activePlayer)
         evidence.sickness = observeSickness(player)
+        local stats = player:getStats()
+        if stats then
+            -- Engine burden, not a count of doses or proof of fatal causation.
+            evidence.medication = {
+                sleepingPillsTaken = player:getSleepingPillsTaken(),
+                intoxication = stats:get(CharacterStat.INTOXICATION),
+            }
+        end
         local bodyDamage = player:getBodyDamage()
         if bodyDamage then
             evidence.infectedAtDeath = bodyDamage:isInfected() == true
@@ -137,18 +151,51 @@ function DeathEvidence.capture(player, context)
         and living.ageMilliseconds <= 1000 and living.damageStage > 0
         and living.damageStage < 1 and evidence.thermalDamageStageAtDeath == 1
         and evidence.lastDamageSource == ""
+    local fatalPills = evidence.medication and evidence.medication.sleepingPillsTaken >= 12
+    local pillsWithBleeding = false
+    if evidence.medication and evidence.medication.sleepingPillsTaken >= 10 then
+        for _, observation in ipairs(evidence.recentDamage) do
+            if observation.source == "BLEEDING" then
+                pillsWithBleeding = true
+                break
+            end
+        end
+    end
+    local competingPills = fatalPills and (evidence.killedByFall or evidence.deathDragDown
+        or evidence.lastDamageSource ~= "" or evidence.thermalDamageStageAtDeath == 1)
     -- Both flags remain available even if they conflict. Never invent a winner.
     if evidence.killedByFall and evidence.deathDragDown then
         evidence.cause, evidence.certainty = "mixed", "conflicting_flags"
+    elseif competingPills or pillsWithBleeding then
+        -- Competing observations do not establish which mechanism finished the death.
+        evidence.cause, evidence.certainty = "mixed", "competing_evidence"
     elseif evidence.killedByFall then
         evidence.cause, evidence.certainty = "fall", "explicit_flag"
     elseif evidence.deathDragDown then
         evidence.cause, evidence.certainty = "zombie_drag_down", "explicit_flag"
+    elseif fatalPills then
+        if evidence.killedByFall == false and evidence.deathDragDown == false
+            and evidence.thermalDamageStageAtDeath ~= nil then
+            evidence.cause, evidence.certainty = "sleeping_pills", "fatal_threshold"
+        end
     elseif fatalHypothermia then
         evidence.cause, evidence.certainty = "hypothermia", "fatal_threshold"
     elseif evidence.lastDamageSource ~= "" then
         evidence.cause = evidence.lastDamageSource
         evidence.certainty = "suspected"
+        if evidence.lastDamageSource == "BLEEDING"
+            and WoundEvidence.supportsZombieBleeding(evidence.terminalWounds) then
+            evidence.cause = "zombie_attack"
+        end
+        if evidence.lastDamageSource == "SICK" then
+            for _, observation in ipairs(evidence.recentDamage) do
+                if observation.source == "POISON" then
+                    -- Poison also raises sickness; retain callback order separately.
+                    evidence.cause = "POISON"
+                    break
+                end
+            end
+        end
     end
     return evidence
 end

@@ -1,5 +1,67 @@
 # Mod: Current Focus
 
+## Death-evidence closeout (23 November 2026)
+
+- Agreed solo scope is complete for this slice, not an exhaustive causal model.
+  No further in-game deaths are required for acceptance. Public presentation of
+  the normalized evidence is separate work. No upload or deployment.
+- Current schema 4 captures sleeping-pill burden/intoxication and terminal wound
+  evidence. Pill burden >=12 supports fatal_threshold only without competing
+  evidence; burden >=10 plus recent BLEEDING is mixed/competing_evidence.
+  Knox infection is captured independently at death, never inferred from cause.
+- BLEEDING with a currently bleeding, unbandaged bite or zombie-associated wound
+  becomes zombie_attack/suspected. Raw lastDamageSource remains BLEEDING.
+  Explicit drag-down takes priority over wound attribution; pill mixed rules
+  retain priority over individual flags, and conflicting fall/drag flags remain
+  mixed/conflicting_flags. Latest SICK with retained POISON is POISON/suspected.
+- Wound tracking covers bite, scratch, laceration and deep wound on the player's
+  17 body parts, with no world scan or growing hit ledger. Positive wound timers
+  preserve association through bandaging; healing removes it. Existing non-bite
+  wounds at initialization/reload have unknown provenance. An observed association
+  requires a zombie attacker, AttackDidDamage and attack-age <=1 character update.
+  These are contemporaneous clues, not a durable engine wound-source identity.
+  Bleeding time belongs to the body part, not uniquely to each wound on that part.
+- Death callbacks export terminalWounds; recovery omits them. Missing capture is
+  distinct from a captured empty list. Website validation checks terminal event /
+  projection agreement and classification; approved authority stores RunDeathWound
+  rows and RunDeathSummary.terminal_wounds_captured. Migrations 0081/0082 are applied
+  locally. Pending submissions do not publish normalized authority.
+
+Runtime evidence (exports under the local TGSRR Runs directory):
+
+| Run | Observed result |
+| --- | --- |
+| rr-1795383123-1795383123313-761329-423151 | sleeping_pills / fatal_threshold |
+| rr-1795383509-1795383509030-424972-161899 | sleeping_pills / fatal_threshold, infectedAtDeath=true |
+| rr-1795385527-1795385527413-831547-556872 | mixed / competing_evidence with pill burden and BLEEDING |
+| rr-1795386430-1795386430471-316143-351198 | CARCRASHDAMAGE / suspected, occupant crash |
+| rr-1795389558-1795389558433-343297-832613 | HUNGRY / suspected |
+| rr-1795389851-1795389851294-753547-850934 | THIRST / suspected |
+| rr-1795390005-1795390005415-895030-525396 | LOWWEIGHT / suspected |
+| rr-1795391035-1795391035421-559855-134157 | SICK / suspected |
+| rr-1795393094-1795393094785-703422-388431 | zombie_drag_down / explicit_flag; BLEEDING age21ms; Knox true; ten terminal wounds |
+| rr-1795393224-1795393224789-727116-225189 | zombie_attack / suspected; BLEEDING age5ms; Knox true; one unbandaged bleeding neck laceration with observed_zombie_attack association; drag-down false |
+
+- The two latest exports pass current website validation and agree with console
+  entries. Earlier fire/fall/drag-down/infection/hypothermia runtime evidence is
+  recorded below. Historical fixtures can fail current unrelated entertainment
+  validation; this is not a claim that every old whole export remains accepted.
+- Automated checks cover bandaging, healing, stale attacker, reload baseline,
+  medication/flag priorities, malformed evidence, export agreement and authority
+  replacement. In-game bandage/heal/reload controls remain untested and accepted
+  as deferred. Poison-to-sickness confirmation and delayed post-fall bleeding
+  tests were explicitly waived by the owner. Being struck by vehicles or weapons
+  is outside this solo challenge's agreed test scope.
+- Remaining limits: callback order is not proof of a fatal hit; the ten-second
+  window uses real time, including fast-forward and pauses. Expired poison
+  evidence leaves SICK unexplained. Mixed attribution is rule-specific, not a
+  general decomposition of all simultaneous damage. Presence of Knox, ordinary
+  wound infection or another condition at death does not establish cause.
+- Final checks: 96 focused website/export tests, both Lua suites, Lua-to-Python
+  evidence decoding, prohibited-global scans and migration drift checks passed.
+  Team Test contains the runtime-tested code; 617 mod files were compared with
+  source. No gameplay changes were needed during closeout review.
+
 ## Fatal hypothermia classification (22 November 2026)
 
 - In-game schema-2 test passed: run

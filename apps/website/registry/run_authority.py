@@ -4,6 +4,7 @@ from zomboid_catalogue.resolver import resolve_identifier
 from .models import (
     RunDeathSummary,
     RunDeathDamage,
+    RunDeathWound,
     RunTemperatureSummary,
     RunCharacter,
     RunCharacterTrait,
@@ -21,7 +22,7 @@ from .models import (
     RunWeaponKill,
 )
 from .temperature import temperature_fields
-from .death_evidence import death_fields, sickness_fields
+from .death_evidence import death_fields, sickness_fields, wound_rows
 from .cooked_food import items_counts
 from .farming import crop_counts
 
@@ -550,6 +551,10 @@ def refresh_initial_run_authority(
         RunDeathSummary.objects.filter(run=run).delete()
     else:
         death, _ = RunDeathSummary.objects.update_or_create(run=run, defaults=death_fields(evidence))
+        death.terminal_wounds.all().delete()
+        RunDeathWound.objects.bulk_create([
+            RunDeathWound(summary=death, **row) for row in wound_rows(evidence)
+        ])
         death.recent_damage.all().delete()
         RunDeathDamage.objects.bulk_create([
             RunDeathDamage(summary=death, source=item["source"], amount=item["amount"],

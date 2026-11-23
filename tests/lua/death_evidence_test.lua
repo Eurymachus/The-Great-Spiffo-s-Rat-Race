@@ -17,15 +17,22 @@ package.preload["TGSRR/Run/StartingLocation"] = function()
             worldAgeHours = age, partial = partial }
     end }
 end
-CharacterStat = {FOOD_SICKNESS="food", POISON="poison"}
+CharacterStat = {FOOD_SICKNESS="food", POISON="poison", INTOXICATION="intoxication"}
+local pills, intoxication = 0, 0
 local food, poison, corpse, wound = 75, 12, 0.01, 4
 local player = {
+    getAttackedBy = function() return nil end,
+    getSleepingPillsTaken = function() return pills end,
     isDead = function() return dead end,
     getMoodles = function() return {getMoodleLevel = function() return hypo end} end,
-    getStats = function() return {get=function(_, stat) return stat == "food" and food or poison end} end,
+    getStats = function() return {get=function(_, stat)
+        if stat == "intoxication" then return intoxication end
+        return stat == "food" and food or poison
+    end} end,
     getCorpseSicknessRate = function() return corpse end,
     getBodyDamage = function(self)
-        return { isInfected = function() return self.infected == true end,
+        return { getBodyParts = function() return {size=function() return 0 end} end,
+            isInfected = function() return self.infected == true end,
             getGeneralWoundInfectionLevel = function() return wound end,
             getColdDamageStage = function() return thermal end }
     end,
@@ -38,6 +45,53 @@ local run = { runId = "test-death", lifecycle = "active" }
 local Evidence = require("TGSRR/Run/DeathEvidence")
 Evidence.initialize(run, player)
 assert(callback and update)
+pills, intoxication = 12, 15
+local medication = Evidence.capture(player, "death_callback")
+assert(medication.medication.sleepingPillsTaken == 12)
+assert(medication.medication.intoxication == 15 and medication.cause == "sleeping_pills")
+assert(medication.schema == 4 and medication.certainty == "fatal_threshold")
+for _, count in ipairs({0, 9, 10, 11}) do
+    pills = count
+    assert(Evidence.capture(player, "death_callback").cause == "unknown")
+end
+pills, intoxication = 13, 0
+player.infected = true
+assert(Evidence.capture(player, "death_callback").cause == "sleeping_pills")
+player.infected = false
+player.fall = true
+assert(Evidence.capture(player, "death_callback").certainty == "competing_evidence")
+player.drag = true
+assert(Evidence.capture(player, "death_callback").certainty == "conflicting_flags")
+player.fall = false
+assert(Evidence.capture(player, "death_callback").certainty == "competing_evidence")
+player.drag = false
+thermal = 1 -- A terminal thermal threshold competes even without a fresh cold sample.
+assert(Evidence.capture(player, "death_callback").certainty == "competing_evidence")
+thermal = nil
+assert(Evidence.capture(player, "death_callback").cause == "unknown")
+thermal = 0
+callback(player, "BLEEDING", 0.1)
+local mixed = Evidence.capture(player, "death_callback")
+assert(mixed.cause == "mixed" and mixed.certainty == "competing_evidence")
+assert(mixed.lastDamageSource == "BLEEDING" and #mixed.recentDamage == 1)
+pills = 11
+assert(Evidence.capture(player, "death_callback").certainty == "competing_evidence")
+pills = 10
+callback(player, "THIRST", 0.1)
+assert(Evidence.capture(player, "death_callback").certainty == "competing_evidence")
+pills = 9
+assert(Evidence.capture(player, "death_callback").cause == "THIRST")
+pills = 10
+now = now + 10000
+assert(Evidence.capture(player, "death_callback").cause == "mixed")
+now = now + 1
+assert(Evidence.capture(player, "death_callback").cause == "unknown")
+now = now - 10001
+Evidence.initialize(run, player)
+assert(Evidence.capture(player, "recovery").medication == nil)
+pills, intoxication = 0, 0
+assert(Evidence.capture(player, "death_callback").medication.sleepingPillsTaken == 0)
+assert(medication.medication.sleepingPillsTaken == 12)
 hypo, thermal = 4, 0.9
 update(player)
 now = now + 25
@@ -80,6 +134,19 @@ assert(Evidence.capture(player, "death_callback").cause == "unknown")
 callback(player, "SICK", 1)
 local sick = Evidence.capture(player, "death_callback")
 assert(sick.cause == "SICK" and sick.sickness.foodSickness == 75)
+callback(player, "POISON", 0.5)
+callback(player, "SICK", 1)
+local poisoned = Evidence.capture(player, "death_callback")
+assert(poisoned.cause == "POISON" and poisoned.certainty == "suspected")
+assert(poisoned.lastDamageSource == "SICK" and #poisoned.recentDamage == 2)
+player.fall = true
+assert(Evidence.capture(player, "death_callback").cause == "fall")
+player.fall = false
+callback(player, "BLEEDING", 0.1)
+assert(Evidence.capture(player, "death_callback").cause == "BLEEDING")
+now = now + 10001
+callback(player, "SICK", 1)
+assert(Evidence.capture(player, "death_callback").cause == "SICK")
 assert(sick.recentDamage[1].sickness.poison == 12)
 food, poison, corpse, wound = 80, 0, 0, 0
 local changed = Evidence.capture(player, "death_callback")
@@ -159,9 +226,46 @@ local encoded = assert(ExportCodec.encode(run.runId, 110, { record }, record.has
 local decoded = assert(ExportCodec.decode(encoded))
 assert(EventCodec.canonicalPayload(decoded.projection.deathEvidence)
     == EventCodec.canonicalPayload(run.deathEvidence))
+-- Exercise terminal collection, classification and the actual export codec together.
+local oldBody = player.getBodyDamage
+local bandaged, woundBleeding = false, 5
+BodyPartType = {ToString=function(value) return value end}
+player.getBodyDamage = function(self)
+    local body = oldBody(self)
+    body.getBodyParts = function() return {size=function() return 1 end, get=function()
+        return {getType=function() return "ForeArm_L" end,
+            getBiteTime=function() return 10 end, getScratchTime=function() return 0 end,
+            getCutTime=function() return 0 end, getDeepWoundTime=function() return 0 end,
+            bandaged=function() return bandaged end, getBleedingTime=function() return woundBleeding end}
+    end} end
+    return body
+end
+player.fall, player.drag, player.infected = false, false, true
+dead, pills, thermal, hypo = false, 0, 0, 0
+run.lifecycle = "active"
+Evidence.initialize(run, player)
+callback(player, "BLEEDING", 0.1)
+local zombieBleeding = Evidence.capture(player, "death_callback")
+assert(zombieBleeding.cause == "zombie_attack" and zombieBleeding.certainty == "suspected")
+assert(zombieBleeding.lastDamageSource == "BLEEDING" and zombieBleeding.infectedAtDeath)
+assert(zombieBleeding.terminalWounds[1].zombieAssociation == "bite")
+bandaged = true
+assert(Evidence.capture(player, "death_callback").cause == "BLEEDING")
+bandaged, woundBleeding = false, 0
+assert(Evidence.capture(player, "death_callback").cause == "BLEEDING")
+woundBleeding, player.drag = 5, true
+assert(Evidence.capture(player, "death_callback").cause == "zombie_drag_down")
+pills = 10
+assert(Evidence.capture(player, "death_callback").certainty == "competing_evidence")
+assert(Evidence.capture(player, "recovery").terminalWounds == nil)
 if arg and arg[1] then
     local file = assert(io.open(arg[1], "wb"))
     file:write(encoded)
+    file:close()
+end
+if arg and arg[2] then
+    local file = assert(io.open(arg[2], "wb"))
+    file:write(EventCodec.canonicalPayload({medication, mixed, frozen, run.deathEvidence, zombieBleeding}))
     file:close()
 end
 print("death evidence tests passed")

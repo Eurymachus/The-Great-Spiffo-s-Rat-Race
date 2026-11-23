@@ -180,6 +180,20 @@ and inactivity thresholds are policies, not existing TGSRR definitions.
   first statistics-page questions from existing evidence, then approve a small
   explicit shortlist of additional collectors.
 
+## Death evidence acceptance update (23 November 2026)
+
+- The agreed solo death-evidence slice is accepted. See MOD_NOW.md's closeout
+  section for runtime IDs, current classification precedence and explicit limits.
+- Terminal medication and wound evidence are exported in the immutable death
+  snapshot. Approval normalizes medication on RunDeathSummary and wound records
+  on RunDeathWound. Missing wound capture remains distinct from zero wounds.
+- Zombie-associated bleeding is suspected originating-injury attribution, not
+  proof of an immediate fatal zombie hit. Drag-down remains explicit. Knox is
+  independent. Poison grouping requires retained POISON damage evidence.
+- Further in-game controls are deferred by agreement; no multiplayer, pedestrian
+  vehicle-hit or weapon-hit acceptance is claimed. Public statistics/UI and
+  hosted migration deployment are not included in this closeout.
+
 ## Terminal death evidence first slice (21 November 2026)
 
 - Implemented for 42.22; tested in-game examples are in `MOD_NOW.md`. `DeathEvidence`

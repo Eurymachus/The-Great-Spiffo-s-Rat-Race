@@ -71,8 +71,55 @@ def thermal_fields(evidence):
     return result
 
 
+def medication_fields(evidence):
+    result = {"sleeping_pills_taken": None, "intoxication_at_death": None}
+    if "medication" not in evidence:
+        return result
+    value = evidence["medication"]
+    if evidence.get("captureContext") != "death_callback":
+        raise ValueError("Recovery cannot reconstruct medication at death.")
+    if not isinstance(value, dict) or set(value) != {"sleepingPillsTaken", "intoxication"}:
+        raise ValueError("Invalid medication evidence fields.")
+    result["sleeping_pills_taken"] = int(_number(value["sleepingPillsTaken"], 0, 2**31 - 1, integer=True))
+    result["intoxication_at_death"] = _number(value["intoxication"], 0, 100)
+    return result
+
+
+
+def wound_rows(evidence):
+    if "terminalWounds" not in evidence:
+        return []
+    wounds = evidence["terminalWounds"]
+    if evidence.get("captureContext") != "death_callback":
+        raise ValueError("Recovery cannot reconstruct terminal wounds.")
+    if not isinstance(wounds, list) or len(wounds) > 68:
+        raise ValueError("Invalid terminal wounds.")
+    rows, seen = [], set()
+    for wound in wounds:
+        if not isinstance(wound, dict) or set(wound) != {
+            "injuryType", "bodyPart", "remainingTime", "bandaged", "bleedingTime", "zombieAssociation"
+        }:
+            raise ValueError("Invalid terminal wound fields.")
+        kind = wound["injuryType"]
+        part = _text(wound["bodyPart"], 32, empty=False)
+        origin = wound["zombieAssociation"]
+        if kind not in ("bite", "scratch", "laceration", "deep_wound"):
+            raise ValueError("Invalid terminal wound type.")
+        if origin not in ("bite", "observed_zombie_attack", "unknown") or ((kind == "bite") != (origin == "bite")):
+            raise ValueError("Invalid terminal wound association.")
+        if type(wound["bandaged"]) is not bool or (kind, part) in seen:
+            raise ValueError("Invalid or duplicate terminal wound.")
+        seen.add((kind, part))
+        remaining = _number(wound["remainingTime"], 0, 1e308)
+        if remaining <= 0:
+            raise ValueError("Terminal wound must still be present.")
+        rows.append(dict(injury_type=kind, body_part=part, remaining_time=remaining,
+                         bandaged=wound["bandaged"], bleeding_time=_number(wound["bleedingTime"], 0, 1e308),
+                         zombie_association=origin))
+    return rows
+
 def death_fields(evidence):
-    if not isinstance(evidence, dict) or type(evidence.get("schema")) is not int or evidence["schema"] not in (1, 2):
+    if not isinstance(evidence, dict) or type(evidence.get("schema")) is not int or evidence["schema"] not in (1, 2, 3, 4):
         raise ValueError("Unsupported death evidence schema.")
     context = evidence.get("captureContext")
     if context not in ("death_callback", "recovery"):
@@ -113,7 +160,9 @@ def death_fields(evidence):
         raise ValueError("Last damage source does not match observations.")
     if context == "recovery" and recent:
         raise ValueError("Recovery cannot reconstruct recent damage.")
+    wounds = wound_rows(evidence)
     thermal = thermal_fields(evidence)
+    medication = medication_fields(evidence)
     living = evidence.get("lastLivingThermal")
     fatal_hypothermia = (
         evidence["schema"] >= 2 and living is not None
@@ -122,22 +171,47 @@ def death_fields(evidence):
         and evidence.get("thermalDamageStageAtDeath") == 1 and not last_source
     )
     fall, drag = evidence.get("killedByFall"), evidence.get("deathDragDown")
+    fatal_pills = (evidence["schema"] >= 3
+                   and medication["sleeping_pills_taken"] is not None
+                   and medication["sleeping_pills_taken"] >= 12)
+    competing_pills = fatal_pills and (
+        fall or drag or last_source or evidence.get("thermalDamageStageAtDeath") == 1
+    )
+    pills_with_bleeding = (evidence["schema"] >= 4
+                          and medication["sleeping_pills_taken"] is not None
+                          and medication["sleeping_pills_taken"] >= 10
+                          and "BLEEDING" in sources)
     if fall and drag:
         cause, certainty = "mixed", "conflicting_flags"
+    elif competing_pills or pills_with_bleeding:
+        cause, certainty = "mixed", "competing_evidence"
     elif fall:
         cause, certainty = "fall", "explicit_flag"
     elif drag:
         cause, certainty = "zombie_drag_down", "explicit_flag"
+    elif fatal_pills:
+        if fall is False and drag is False and evidence.get("thermalDamageStageAtDeath") is not None:
+            cause, certainty = "sleeping_pills", "fatal_threshold"
+        else:
+            cause, certainty = "unknown", "unknown"
     elif fatal_hypothermia:
         cause, certainty = "hypothermia", "fatal_threshold"
     elif last_source:
-        cause, certainty = last_source, "suspected"
+        cause = "POISON" if last_source == "SICK" and "POISON" in sources else last_source
+        if last_source == "BLEEDING" and any(
+            not wound["bandaged"] and wound["bleeding_time"] > 0
+            and wound["zombie_association"] != "unknown" for wound in wounds
+        ):
+            cause = "zombie_attack"
+        certainty = "suspected"
     else:
         cause, certainty = "unknown", "unknown"
     if evidence.get("cause") != cause or evidence.get("certainty") != certainty:
         raise ValueError("Cause classification does not match evidence.")
     result = {
+        "terminal_wounds_captured": "terminalWounds" in evidence,
         **sickness_fields(evidence),
+        **medication,
         **thermal,
         "schema": evidence["schema"], "capture_context": context, "cause": cause,
         "certainty": certainty, "last_damage_source": last_source,

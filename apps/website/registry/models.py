@@ -719,6 +719,9 @@ class RunStartingLocation(models.Model):
 
 
 class RunDeathSummary(models.Model):
+    terminal_wounds_captured = models.BooleanField(default=False)
+    sleeping_pills_taken = models.PositiveIntegerField(null=True, blank=True)
+    intoxication_at_death = models.FloatField(null=True, blank=True)
     last_living_hypothermia_level = models.PositiveSmallIntegerField(null=True, blank=True)
     last_living_thermal_damage_stage = models.FloatField(null=True, blank=True)
     last_living_thermal_utc = models.PositiveBigIntegerField(null=True, blank=True)
@@ -747,6 +750,20 @@ class RunDeathSummary(models.Model):
     registry_version = models.PositiveIntegerField(null=True)
     location_captured_utc = models.PositiveBigIntegerField(null=True)
     location_world_age_hours = models.FloatField(null=True)
+
+
+class RunDeathWound(models.Model):
+    summary = models.ForeignKey(RunDeathSummary, on_delete=models.CASCADE, related_name="terminal_wounds")
+    injury_type = models.CharField(max_length=24)
+    body_part = models.CharField(max_length=32)
+    remaining_time = models.FloatField()
+    bandaged = models.BooleanField()
+    bleeding_time = models.FloatField()
+    zombie_association = models.CharField(max_length=24)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("summary", "injury_type", "body_part"),
+                                               name="unique_run_death_wound")]
 
 
 class RunDeathDamage(models.Model):

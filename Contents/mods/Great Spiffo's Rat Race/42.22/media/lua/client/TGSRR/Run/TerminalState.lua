@@ -45,6 +45,8 @@ function TerminalState.markDeceased(player, context)
     print("[TGSRR Run] Death evidence: cause=" .. evidence.cause
         .. " certainty=" .. evidence.certainty
         .. " infectedAtDeath=" .. tostring(evidence.infectedAtDeath)
+        .. " sleepingPillsTaken=" .. tostring(evidence.medication and evidence.medication.sleepingPillsTaken)
+        .. " intoxication=" .. tostring(evidence.medication and evidence.medication.intoxication)
         .. " lastDamageSource=" .. evidence.lastDamageSource
         .. " context=" .. evidence.captureContext
         .. " location=" .. (location and (tostring(location.x) .. ","

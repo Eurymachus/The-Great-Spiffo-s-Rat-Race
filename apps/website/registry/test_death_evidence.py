@@ -40,6 +40,226 @@ def terminal_export(value, *, event_evidence=None):
 
 
 class DeathEvidenceTests(TestCase):
+    def test_zombie_wounds_classification_and_authority(self):
+        value = evidence()
+        value.update(schema=4, cause="zombie_attack", infectedAtDeath=True,
+                     terminalWounds=[dict(injuryType="bite", bodyPart="ForeArm_L", remainingTime=10,
+                                          bandaged=False, bleedingTime=5, zombieAssociation="bite")])
+        decoded = decode_run_export(terminal_export(value))
+        self.assertTrue(death_fields(value)["infected_at_death"])
+        run = ChallengeRun.objects.create(run_id="wound-authority", export_format=4,
+                                         generated_at=datetime.now(timezone.utc), event_hash="0" * 64)
+        for _ in range(2):
+            refresh_initial_run_authority(run, decoded.projection, [])
+        summary = RunDeathSummary.objects.get(run=run)
+        self.assertTrue(summary.terminal_wounds_captured)
+        self.assertEqual(summary.terminal_wounds.count(), 1)
+        self.assertEqual(summary.terminal_wounds.get().zombie_association, "bite")
+        for kind, origin in (("scratch", "observed_zombie_attack"), ("laceration", "observed_zombie_attack")):
+            value["terminalWounds"][0].update(injuryType=kind, zombieAssociation=origin)
+            self.assertEqual(death_fields(value)["cause"], "zombie_attack")
+        for changes in ({"bandaged": True}, {"bleedingTime": 0}, {"zombieAssociation": "unknown"}):
+            other = deepcopy(value)
+            other["terminalWounds"][0].update(changes)
+            other["cause"] = "BLEEDING"
+            self.assertEqual(death_fields(other)["cause"], "BLEEDING")
+        value.update(deathDragDown=True, cause="zombie_drag_down", certainty="explicit_flag")
+        death_fields(value)
+        value.update(medication={"sleepingPillsTaken": 10, "intoxication": 0},
+                     cause="mixed", certainty="competing_evidence")
+        death_fields(value)
+        decoded.projection["deathEvidence"].pop("terminalWounds")
+        decoded.projection["deathEvidence"]["cause"] = "BLEEDING"
+        refresh_initial_run_authority(run, decoded.projection, [])
+        summary.refresh_from_db()
+        self.assertFalse(summary.terminal_wounds_captured)
+        self.assertFalse(summary.terminal_wounds.exists())
+
+    def test_wound_evidence_rejects_malformed_recovery_and_tampering(self):
+        value = evidence()
+        value["terminalWounds"] = [dict(injuryType="scratch", bodyPart="Head", remainingTime=1,
+                                      bandaged=False, bleedingTime=1, zombieAssociation="unknown")]
+        for key, replacement in (("bandaged", 0), ("remainingTime", 0), ("bleedingTime", -1),
+                                 ("zombieAssociation", "bite"), ("injuryType", "invented")):
+            other = deepcopy(value)
+            other["terminalWounds"][0][key] = replacement
+            with self.assertRaises(ValueError): death_fields(other)
+        other = deepcopy(value)
+        other["terminalWounds"] *= 2
+        with self.assertRaises(ValueError): death_fields(other)
+        other = deepcopy(value)
+        other["terminalWounds"][0]["remainingTime"] = 2
+        with self.assertRaises(InvalidRunExport):
+            decode_run_export(terminal_export(value, event_evidence=other))
+        value.update(captureContext="recovery", recentDamage=[], lastDamageSource="", cause="unknown", certainty="unknown")
+        value.pop("location")
+        with self.assertRaises(ValueError): death_fields(value)
+
+    def test_poison_sickness_grouping_retains_sources_and_uncertainty(self):
+        value = evidence()
+        value.update(schema=4, cause="POISON", certainty="suspected", lastDamageSource="SICK",
+                     recentDamage=[{"source": "POISON", "amount": 3, "ageMilliseconds": 10000},
+                                   {"source": "SICK", "amount": 5, "ageMilliseconds": 0}])
+        decoded = decode_run_export(terminal_export(value))
+        fields = death_fields(decoded.projection["deathEvidence"])
+        self.assertEqual(fields["cause"], "POISON")
+        self.assertEqual(fields["last_damage_source"], "SICK")
+        self.assertEqual(len(decoded.projection["deathEvidence"]["recentDamage"]), 2)
+        other = deepcopy(value); other["cause"] = "SICK"
+        with self.assertRaises(InvalidRunExport): decode_run_export(terminal_export(other))
+        other = deepcopy(value); other["certainty"] = "fatal_threshold"
+        with self.assertRaises(InvalidRunExport): decode_run_export(terminal_export(other))
+        other = deepcopy(value); other.update(killedByFall=True, cause="fall", certainty="explicit_flag")
+        decode_run_export(terminal_export(other))
+        other = deepcopy(value)
+        other.update(medication={"sleepingPillsTaken": 12, "intoxication": 0},
+                     cause="mixed", certainty="competing_evidence")
+        decode_run_export(terminal_export(other))
+        other = deepcopy(value)
+        other["recentDamage"].append({"source": "BLEEDING", "amount": 1, "ageMilliseconds": 0})
+        other.update(lastDamageSource="BLEEDING", cause="BLEEDING")
+        decode_run_export(terminal_export(other))
+        value["recentDamage"] = value["recentDamage"][1:]
+        value["cause"] = "SICK"
+        decode_run_export(terminal_export(value))
+
+    def test_schema_four_subfatal_pills_with_recent_bleeding(self):
+        for count in (10, 11, 12):
+            for age in (0, 10000):
+                value = evidence()
+                value.update(schema=4, cause="mixed", certainty="competing_evidence",
+                             medication={"sleepingPillsTaken": count, "intoxication": 0},
+                             recentDamage=[{"source": "BLEEDING", "amount": 0.02, "ageMilliseconds": age},
+                                           {"source": "THIRST", "amount": 0.01, "ageMilliseconds": 0}],
+                             lastDamageSource="THIRST")
+                with self.subTest(count=count, age=age):
+                    decode_run_export(terminal_export(value))
+                    value.update(cause="THIRST", certainty="suspected")
+                    with self.assertRaises(InvalidRunExport): decode_run_export(terminal_export(value))
+                    if count < 12:
+                        value["schema"] = 3
+                        decode_run_export(terminal_export(value))
+        for count, source in ((9, "BLEEDING"), (10, "FIRE"), (11, "THIRST")):
+            value = evidence()
+            value.update(schema=4, cause=source, certainty="suspected", lastDamageSource=source,
+                         recentDamage=[{"source": source, "amount": 1, "ageMilliseconds": 0}],
+                         medication={"sleepingPillsTaken": count, "intoxication": 15})
+            decode_run_export(terminal_export(value))
+        value.update(recentDamage=[], lastDamageSource="", cause="unknown", certainty="unknown")
+        decode_run_export(terminal_export(value))
+        value.pop("medication")
+        decode_run_export(terminal_export(value))
+
+    def test_schema_three_sleeping_pills_threshold_and_legacy(self):
+        value = evidence()
+        value.update(schema=3, recentDamage=[], lastDamageSource="",
+                     cause="sleeping_pills", certainty="fatal_threshold",
+                     thermalDamageStageAtDeath=0,
+                     medication={"sleepingPillsTaken": 12, "intoxication": 0})
+        for count in (12, 13):
+            for intoxication in (0, 10, 15, 100):
+                value["medication"].update(sleepingPillsTaken=count, intoxication=intoxication)
+                value["infectedAtDeath"] = True
+                decoded = decode_run_export(terminal_export(value))
+                self.assertEqual(death_fields(decoded.projection["deathEvidence"])["cause"], "sleeping_pills")
+        for count in (0, 9, 10, 11):
+            value["medication"]["sleepingPillsTaken"] = count
+            with self.subTest(count=count), self.assertRaises(InvalidRunExport):
+                decode_run_export(terminal_export(value))
+            other = deepcopy(value); other.update(cause="unknown", certainty="unknown")
+            decode_run_export(terminal_export(other))
+        value["medication"]["sleepingPillsTaken"] = 12
+        for schema in (1, 2):
+            other = deepcopy(value); other.update(schema=schema, cause="unknown", certainty="unknown")
+            decode_run_export(terminal_export(other))
+            other.update(cause="sleeping_pills", certainty="fatal_threshold")
+            with self.assertRaises(InvalidRunExport): decode_run_export(terminal_export(other))
+        for missing in (("medication",), ("thermalDamageStageAtDeath",), ("killedByFall", "deathDragDown")):
+            other = deepcopy(value)
+            for key in missing: del other[key]
+            with self.subTest(missing=missing), self.assertRaises(InvalidRunExport):
+                decode_run_export(terminal_export(other))
+            other.update(cause="unknown", certainty="unknown")
+            decode_run_export(terminal_export(other))
+
+    def test_sleeping_pills_competing_evidence_and_authority(self):
+        base = evidence()
+        base.update(schema=3, recentDamage=[], lastDamageSource="",
+                    cause="mixed", certainty="competing_evidence", thermalDamageStageAtDeath=0,
+                    medication={"sleepingPillsTaken": 12, "intoxication": 15})
+        competitors = [
+            {"killedByFall": True}, {"deathDragDown": True},
+            {"thermalDamageStageAtDeath": 1},
+            {"recentDamage": [{"source": "BLEEDING", "amount": 0.1, "ageMilliseconds": 10000}],
+             "lastDamageSource": "BLEEDING"},
+        ]
+        run = ChallengeRun.objects.create(run_id="pill-classification", export_format=4,
+            generated_at=datetime.now(timezone.utc), event_hash="0" * 64)
+        for competitor in competitors:
+            value = deepcopy(base); value.update(competitor)
+            decoded = decode_run_export(terminal_export(value))
+            refresh_initial_run_authority(run, decoded.projection, decoded.events)
+            run.death_summary.refresh_from_db()
+            self.assertEqual(run.death_summary.cause, "mixed")
+            self.assertEqual(run.death_summary.sleeping_pills_taken, 12)
+            value.update(cause="sleeping_pills", certainty="fatal_threshold")
+            with self.subTest(competitor=competitor), self.assertRaises(InvalidRunExport):
+                decode_run_export(terminal_export(value))
+        value = deepcopy(base)
+        value.update(killedByFall=True, deathDragDown=True, certainty="conflicting_flags")
+        decode_run_export(terminal_export(value))
+        value = deepcopy(base); value.update(cause="sleeping_pills", certainty="fatal_threshold")
+        decoded = decode_run_export(terminal_export(value))
+        refresh_initial_run_authority(run, decoded.projection, decoded.events)
+        run.death_summary.refresh_from_db()
+        self.assertEqual(run.death_summary.cause, "sleeping_pills")
+        self.assertEqual(run.death_summary.certainty, "fatal_threshold")
+
+    def test_medication_context_integrity_and_nullable_authority(self):
+        value = evidence()
+        value["medication"] = {"sleepingPillsTaken": 12, "intoxication": 15}
+        decoded = decode_run_export(terminal_export(value))
+        self.assertEqual(decoded.projection["deathEvidence"]["cause"], "BLEEDING")
+        run = ChallengeRun.objects.create(run_id="medication-authority", export_format=4,
+            generated_at=datetime.now(timezone.utc), event_hash="0" * 64)
+        refresh_initial_run_authority(run, decoded.projection, decoded.events)
+        self.assertEqual(run.death_summary.sleeping_pills_taken, 12)
+        self.assertEqual(run.death_summary.intoxication_at_death, 15)
+        for key in ("sleepingPillsTaken", "intoxication"):
+            altered = deepcopy(value)
+            altered["medication"][key] = 0
+            with self.assertRaises(InvalidRunExport):
+                decode_run_export(terminal_export(value, event_evidence=altered))
+        value["medication"] = {"sleepingPillsTaken": 0, "intoxication": 0}
+        self.assertEqual(death_fields(value)["sleeping_pills_taken"], 0)
+        old = decode_run_export(terminal_export(evidence()))
+        refresh_initial_run_authority(run, old.projection, old.events)
+        run.death_summary.refresh_from_db()
+        self.assertIsNone(run.death_summary.sleeping_pills_taken)
+        self.assertIsNone(run.death_summary.intoxication_at_death)
+
+    def test_rejects_invalid_medication_and_recovery(self):
+        for bad in (None, [], {}, {"sleepingPillsTaken": 1}):
+            value = evidence(); value["medication"] = bad
+            with self.subTest(bad=bad), self.assertRaises(InvalidRunExport):
+                decode_run_export(terminal_export(value))
+        for key, bad in (("sleepingPillsTaken", -1), ("sleepingPillsTaken", True),
+                         ("sleepingPillsTaken", 1.5), ("sleepingPillsTaken", 2**31),
+                         ("intoxication", -1), ("intoxication", 101),
+                         ("intoxication", True), ("intoxication", float("nan"))):
+            value = evidence()
+            value["medication"] = {"sleepingPillsTaken": 12, "intoxication": 15}
+            value["medication"][key] = bad
+            with self.subTest(key=key, bad=bad), self.assertRaises(ValueError):
+                death_fields(value)
+        value = evidence()
+        value.update(captureContext="recovery", recentDamage=[], lastDamageSource="",
+                     cause="unknown", certainty="unknown")
+        value.pop("location")
+        value["medication"] = {"sleepingPillsTaken": 0, "intoxication": 0}
+        with self.assertRaises(ValueError):
+            death_fields(value)
+
     def test_fatal_hypothermia_threshold_and_legacy_classification(self):
         value = evidence()
         value.update(schema=2, recentDamage=[], lastDamageSource="",
