@@ -12,7 +12,9 @@
   and leaderboard publishing are off. Staging mail is restricted to the owner's
   single approved recipient for signup/reset acceptance. Real verification mail,
   link activation and EuryDev sign-in succeeded; host status is verified/active.
-  A stale pending message on `/thanks/` was found and is being corrected.
+  The stale pending message on `/thanks/` is fixed on staging `d01eadb2`.
+  All 102 registration tests pass; host checks of both current and legacy
+  signup sessions show verified status with no-store caching. Live is unchanged.
 - Health, matching worker, unique process trees, static asset, retention preview
   and anonymous in-app browser checks pass. Synthetic signed-in Workshop/data
   download/permission checks and a staging web/worker restart also pass. Real
