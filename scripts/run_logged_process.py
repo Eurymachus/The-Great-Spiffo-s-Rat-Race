@@ -17,6 +17,7 @@ class Segments:
             raise ValueError('Log root must already exist.')
         self.label, self.limit = label, limit
         self.path, self.streams, self.size, self.day = None, {}, 0, None
+        self.started_at = None
 
     def close(self):
         if self.path is None:
@@ -24,7 +25,8 @@ class Segments:
         for stream in self.streams.values():
             stream.close()
         data = dict(format=FORMAT, kind='closed-routine-log',
-                    completed_at=utcnow().isoformat(), files=inventory(self.path))
+                    completed_at=utcnow().isoformat(), retention_started_at=self.started_at,
+                    files=inventory(self.path))
         (self.path / MANIFEST).write_text(json.dumps(data, indent=2), encoding='utf-8')
         self.path, self.streams = None, {}
 
@@ -39,6 +41,7 @@ class Segments:
                 protect(self.path)
                 self.streams = {name: (self.path / (name + '.log')).open('wb') for name in ('stdout', 'stderr')}
                 self.size, self.day = 0, today
+                self.started_at = utcnow().isoformat()
             portion, block = block[:self.limit - self.size], block[self.limit - self.size:]
             self.streams[stream].write(portion)
             self.streams[stream].flush()

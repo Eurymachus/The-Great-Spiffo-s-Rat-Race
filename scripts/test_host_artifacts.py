@@ -22,6 +22,8 @@ class ArtifactTests(unittest.TestCase):
         manifest = dict(format=artifacts.FORMAT, kind=kind,
                         completed_at=(self.now - timedelta(days=age)).isoformat(),
                         files=artifacts.inventory(target))
+        if kind == 'closed-routine-log':
+            manifest['retention_started_at'] = manifest['completed_at']
         (target / artifacts.MANIFEST).write_text(json.dumps(manifest))
         return target
 
@@ -53,6 +55,17 @@ class ArtifactTests(unittest.TestCase):
         (self.root / '.hold').touch()
         self.assertEqual(artifacts.expire(self.root, True, self.now), [])
         self.assertTrue(old.exists())
+
+    def test_log_age_uses_segment_open_time_and_requires_known_timing(self):
+        target = self.artifact('closed', 89, 'closed-routine-log')
+        marker = target / artifacts.MANIFEST
+        data = json.loads(marker.read_text())
+        data['retention_started_at'] = (self.now - timedelta(days=90, hours=1)).isoformat()
+        marker.write_text(json.dumps(data))
+        self.assertEqual(artifacts.eligible(self.root, self.now), [target])
+        del data['retention_started_at']
+        marker.write_text(json.dumps(data))
+        self.assertEqual(artifacts.eligible(self.root, self.now), [])
 
     def test_modified_or_added_content_blocks_entire_plan(self):
         old = self.artifact('old', 31)

@@ -35,7 +35,8 @@ require review. Startup diagnostics retain their existing log path.
 
 `scripts/host_artifacts.py expire --root <reviewed-root>` previews only. `--apply`
 deletes complete unchanged marked backup packages at 30 days and closed routine
-log packages at 90 days. Root/package `.hold` markers prevent expiry. Unknown,
+log packages at 90 days from segment opening, not closure. Legacy segments with
+unknown start times require review. Root/package `.hold` markers prevent expiry. Unknown,
 incomplete, modified or reparse-linked content is never silently deleted. Keep
 roots restricted and do not write into closed packages. A changed manifest/tree
 fails the run, requiring review instead of continuing destructive cleanup.
@@ -67,7 +68,7 @@ handling remain hosted acceptance gates.
 
 ## Verification
 
-Ten artifact tests cover preview/apply, age boundaries, holds, unknown/changed
+Eleven artifact tests cover preview/apply, segment-age boundaries, holds, unknown/changed
 content, reparse rejection, config parsing, password-file lifecycle and failed
 captures. Three logging tests cover output/exit preservation, rotation, active
 segment exclusion and ACL failure. A real Windows temporary-directory check

@@ -153,6 +153,14 @@ def eligible(root, now=None):
         stamp = datetime.fromisoformat(data['completed_at'])
         if stamp.tzinfo is None:
             raise ValueError('Artifact timestamp must have a timezone.')
+        if data['kind'] == 'closed-routine-log':
+            # Unknown legacy segment timing requires review, not guessed expiry.
+            if 'retention_started_at' not in data:
+                continue
+            start = datetime.fromisoformat(data['retention_started_at'])
+            if start.tzinfo is None or start > stamp:
+                raise ValueError('Invalid routine-log retention start.')
+            stamp = start
         days = 30 if data['kind'] == 'backup' else 90
         if stamp > now - timedelta(days=days):
             continue
