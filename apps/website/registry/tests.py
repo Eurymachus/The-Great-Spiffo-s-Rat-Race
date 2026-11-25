@@ -669,6 +669,22 @@ class LegacyDataImportTests(TestCase):
 
 
 class RegistrationTests(TestCase):
+    def test_signed_in_thanks_redirects_to_account_with_or_without_signup_session(self):
+        self.client.post(reverse("registry:register"), self.registration_data())
+        participant = Participant.objects.get(email="player@example.com")
+        self.client.get(reverse("registry:verify", kwargs={"token": create_verification_token(participant)}))
+        self.client.force_login(participant)
+        for has_signup_session in (True, False):
+            with self.subTest(has_signup_session=has_signup_session):
+                if not has_signup_session:
+                    session = self.client.session
+                    session.pop("registered_nickname", None)
+                    session.pop("registered_participant_id", None)
+                    session.save()
+                response = self.client.get(reverse("registry:thanks"))
+                self.assertRedirects(response, reverse("registry:account"), fetch_redirect_response=False)
+                self.assertIn("no-store", response.headers["Cache-Control"])
+
     def test_thanks_reflects_verification_in_another_browser(self):
         self.client.post(reverse("registry:register"), self.registration_data())
         participant = Participant.objects.get(email="player@example.com")

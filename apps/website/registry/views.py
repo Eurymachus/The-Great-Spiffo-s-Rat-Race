@@ -418,6 +418,8 @@ def register(request):
 
 @never_cache
 def thanks(request):
+    if request.user.is_authenticated:
+        return redirect("registry:account")
     nickname = request.session.get("registered_nickname")
     if not nickname:
         return redirect("registry:register")

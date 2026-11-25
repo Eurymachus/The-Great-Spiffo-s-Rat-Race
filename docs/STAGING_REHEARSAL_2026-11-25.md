@@ -105,6 +105,12 @@ only the old session nickname and static copy; it did not reread account status.
 The fix tracks the signup account ID, supports existing nickname-only sessions,
 checks current verification state and prevents caching of the confirmation page.
 Regression coverage includes verification in another browser and older sessions.
+The owner then clarified the navigation: signed-in visits to `/thanks/` should
+redirect to the account dashboard, including after login in another tab. The
+view now applies that redirect before reading signup session state. Signed-out
+visitors still see the current verification result. Normal login already defaults
+to the dashboard and preserves safe explicit destinations. No automatic
+cross-tab navigation is introduced; the redirect applies on the next request.
 Password-reset acceptance remains pending. Provider
 callbacks and the reconciled RR 1 claim/update handover remain separate gates.
 No wipe, live deployment, host reboot or retention deletion is authorized here.
