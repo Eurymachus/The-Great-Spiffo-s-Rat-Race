@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from operations import leaderboard_publish as publisher
@@ -50,28 +50,6 @@ class DailyLeaderboardTests(TestCase):
 
     def test_missing_optional_day_is_nil(self):
         self.assertEqual(publisher.lua({"day": None}), '{["day"]=nil}')
-
-    @patch.object(publisher, "build_ranking_table")
-    def test_snapshot_ranks_same_racer_separately_for_each_mode(self, rank):
-        official = ChallengeMode.objects.create(key="official", display_name="Official", display_order=1)
-        cdda = ChallengeMode.objects.create(key="cdda", display_name="CDDA", display_order=2)
-        row = {
-            "rank": 1, "racer": "Racer", "survivor": "Survivor", "completion": 10,
-            "kills": 25, "outposts_completed": 0, "maxed_skills": 0, "in_game_day": 2,
-        }
-        rankings = {official.pk: [row], cdda.pk: [{**row, "kills": 12}]}
-        rank.side_effect = lambda config: rankings.get(config["challenge_modes"][0], [])
-
-        rows = publisher.snapshot()
-
-        self.assertCountEqual(
-            [call.args[0]["challenge_modes"] for call in rank.call_args_list],
-            [[mode_id] for mode_id in ChallengeMode.objects.values_list("pk", flat=True)],
-        )
-        self.assertEqual(
-            [(row["modeKey"], row["modeName"], row["racer"], row["rank"], row["kills"]) for row in rows],
-            [("official", "Official", "Racer", 1, 25), ("cdda", "CDDA", "Racer", 1, 12)],
-        )
 
     def test_production_and_other_item_refused(self):
         with override_settings(STAGING_ENVIRONMENT=False), self.assertRaises(ValueError):
@@ -194,3 +172,27 @@ class DailyLeaderboardTests(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, Job.Status.QUEUED)
         steam.assert_not_called()
+
+
+class DailyLeaderboardSnapshotTests(TransactionTestCase):
+    # Snapshot opens its own REPEATABLE READ transaction. TestCase's surrounding
+    # transaction would already contain fixture queries, which PostgreSQL rejects.
+    @patch.object(publisher, "build_ranking_table")
+    def test_snapshot_ranks_same_racer_separately_for_each_mode(self, rank):
+        official = ChallengeMode.objects.create(key="official", display_name="Official", display_order=1)
+        cdda = ChallengeMode.objects.create(key="cdda", display_name="CDDA", display_order=2)
+        row = {
+            "rank": 1, "racer": "Racer", "survivor": "Survivor", "completion": 10,
+            "kills": 25, "outposts_completed": 0, "maxed_skills": 0, "in_game_day": 2,
+        }
+        rankings = {official.pk: [row], cdda.pk: [{**row, "kills": 12}]}
+        rank.side_effect = lambda config: rankings.get(config["challenge_modes"][0], [])
+        rows = publisher.snapshot()
+        self.assertCountEqual(
+            [call.args[0]["challenge_modes"] for call in rank.call_args_list],
+            [[mode_id] for mode_id in ChallengeMode.objects.values_list("pk", flat=True)],
+        )
+        self.assertEqual(
+            [(row["modeKey"], row["modeName"], row["racer"], row["rank"], row["kills"]) for row in rows],
+            [("official", "Official", "Racer", 1, 25), ("cdda", "CDDA", "Racer", 1, 12)],
+        )

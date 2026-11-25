@@ -85,7 +85,7 @@ class LeaderboardTests(TestCase):
             run=run,
             submitter=self.racer,
             status=RunSubmission.Status.APPROVED,
-            checksum=(str(int(suffix) + 1) * 64),
+            checksum=f"{int(suffix) + 1:064x}",
             raw_export=f"export-{suffix}",
             export_format=3,
             generated_at=recorded,
