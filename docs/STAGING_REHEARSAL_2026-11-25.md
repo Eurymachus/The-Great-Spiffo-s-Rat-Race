@@ -87,7 +87,13 @@ full form's minimum height, with Sign In first and responsive stacked actions.
 The signed-in form retains its own layout. Twenty-one focused Workshop and
 installation tests pass. Local browser startup exposed an existing missing
 `pages_page.required_release` column; that database was not migrated. Staging
-visual verification follows the requested Git transfer and release update.
+visual verification passed after the requested Git transfer and release update.
+Staging and OSWALD's clean dev checkout now use `98aa0de4`. The in-app browser
+confirmed compact desktop sizing, equal action styling, and stacked actions
+at a narrow phone viewport without horizontal dialog overflow. The viewport
+override was reset. Readiness and one web/worker tree each were verified again.
+No migrations or presentation reimport occurred for these UI updates. Live
+remained `6582cc4`, returning its construction-page HTTP 503.
 
 ## Remaining acceptance
 

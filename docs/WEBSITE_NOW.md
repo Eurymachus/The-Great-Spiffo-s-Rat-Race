@@ -2,7 +2,10 @@
 
 ## Staging rehearsal authorized and deployed (25 November 2026)
 
-- Staging now runs `f88086ed`, application-identical to the accepted `c9b7fead`.
+- Staging initially ran `f88086ed`, application-identical to accepted `c9b7fead`,
+  then received the modal fix through `98aa0de4`. OSWALD's dev checkout was
+  fast-forwarded too. Desktop and narrow phone browser checks pass; 21 focused
+  installation/Workshop tests passed for the UI and seed navigation changes.
   Protected paused-writer capture preceded migration; audited populated data
   counts were preserved. Live remains `6582cc4` behind its construction page.
 - Registration and Workshop requests are on for testing. RR 1 intake, RR 2
