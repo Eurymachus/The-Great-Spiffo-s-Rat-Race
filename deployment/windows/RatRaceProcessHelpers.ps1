@@ -57,6 +57,19 @@ function Get-RatRaceDeploymentProcessRoots {
     @($matches | Where-Object { $matchIds -notcontains $_.ParentProcessId })
 }
 
+function Assert-RatRaceDeploymentStopped {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$Processes,
+        [Parameter(Mandatory = $true)][string]$InstallationRoot,
+        [Parameter(Mandatory = $true)][string]$PythonExecutable
+    )
+    $activeRoots = @(Get-RatRaceDeploymentProcessRoots -Processes $Processes `
+        -InstallationRoot $InstallationRoot -PythonExecutable $PythonExecutable -Process Any)
+    if ($activeRoots.Count) {
+        throw "Stop this deployment's web and worker tasks and process trees before preparing migrations. No preparation was performed."
+    }
+}
+
 function Get-RatRaceProcessTreeIds {
     param(
         [Parameter(Mandatory = $true)][object[]]$Processes,

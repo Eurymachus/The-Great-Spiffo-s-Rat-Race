@@ -354,7 +354,13 @@ def import_presentation(package_path):
     Page.objects.all().delete()
     pages = {}
     for item in presentation["pages"]:
-        page = _validated(Page(**item["fields"]))
+        fields = dict(item["fields"])
+        # Older packages predate the editorial release field. Reimporting one
+        # must not silently reopen the known RR 2 pages after migration.
+        fields.setdefault("required_release", "rr2" if item["key"] in {
+            "challenge-rules", "current-leaderboard", "hall-of-fame", "exploits",
+        } else "")
+        page = _validated(Page(**fields))
         pages[item["key"]] = page
         for section_item in item["sections"]:
             section = _validated(PageSection(page=page, **section_item["fields"]))

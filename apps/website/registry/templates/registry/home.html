@@ -24,7 +24,7 @@
         {% if request.user.is_authenticated %}
             <a class="primary-link-button" href="{% url 'registry:account' %}">{{ site_homepage_account_button }}</a>
         {% else %}
-            <a class="primary-link-button" href="{% url 'registry:register' %}#sign-up">{{ site_homepage_primary_button }}</a>
+            {% if release_controls.registration %}<a class="primary-link-button" href="{% url 'registry:register' %}#sign-up">{{ site_homepage_primary_button }}</a>{% endif %}
             <a class="secondary-button" href="{% url 'registry:login' %}#sign-in">{{ site_homepage_secondary_link }}</a>
         {% endif %}
     </div>

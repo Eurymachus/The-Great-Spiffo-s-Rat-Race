@@ -5,6 +5,7 @@ from django.apps import apps
 from django.conf import settings
 from django.urls import reverse
 from urllib.parse import urlencode
+from config.release_controls import model_available
 
 
 class RatRaceAdminConfig(AdminConfig):
@@ -90,6 +91,8 @@ class RatRaceAdminSite(AdminSite):
             ("operations.ReferenceUpdateJob", "Reference jobs needing attention", {"status__in": ["failed", "authentication_required"]}, {"status__in": "failed,authentication_required"}),
         )
         for label, title, filters, query in definitions:
+            if not model_available(label):
+                continue
             model = apps.get_model(label)
             model_admin = self._registry.get(model)
             if not model_admin or not model_admin.has_view_permission(request):
@@ -107,7 +110,7 @@ class RatRaceAdminSite(AdminSite):
                 url = reverse("admin:registry_legacyrun_changelist")
                 query = {**query, "workspace": "claims" if label.endswith("Claim") else "updates", "_filters": "1"}
             queues.append({
-                "section": "rr2" if label in {"registry.RunSubmission", "registry.WorkshopMod"} else (
+                "section": "rr2" if label == "registry.RunSubmission" else (
                     "rr1" if label in {"registry.LegacyRunClaim", "registry.LegacyRunSubmission"}
                     else "shared"
                 ),
@@ -200,7 +203,7 @@ class RatRaceAdminSite(AdminSite):
 
     def app_index(self, request, app_label, extra_context=None):
         if app_label in {"registry", "operations"}:
-            app_list = super().get_app_list(request, app_label)
+            app_list = self.get_app_list(request, app_label)
             models_by_name = {
                 model["object_name"]: model
                 for app in app_list
@@ -215,6 +218,10 @@ class RatRaceAdminSite(AdminSite):
 
     def get_app_list(self, request, app_label=None):
         app_list = super().get_app_list(request, app_label)
+        for app in app_list:
+            app["models"] = [model for model in app["models"]
+                             if model_available(f"{app['app_label']}.{model['object_name']}")]
+        app_list = [app for app in app_list if app["models"]]
         for app in app_list:
             for model in app["models"]:
                 if model["object_name"] == "ChallengeRun":

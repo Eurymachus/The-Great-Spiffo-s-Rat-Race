@@ -2536,8 +2536,12 @@ class RegistrationTests(TestCase):
         self.assertEqual(
             [[queue["title"] for queue in section["queues"]]
              for section in response.context["dashboard_sections"][:2]],
-            [["2.0 submissions", "Mod submission reviews"], ["1.0 claims", "1.0 updates"]],
+            [["2.0 submissions"], ["1.0 claims", "1.0 updates"]],
         )
+        self.assertIn("Mod submission reviews", [
+            queue["title"] for section in response.context["dashboard_sections"]
+            if section["id"] == "shared" for queue in section["queues"]
+        ])
         self.assertContains(response, "1.0 claims")
         self.assertEqual(response.context["title"], "Dashboard")
         self.assertContains(response, 'class="admin-sidebar-home"')

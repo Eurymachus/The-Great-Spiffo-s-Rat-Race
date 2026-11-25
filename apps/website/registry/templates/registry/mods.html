@@ -8,16 +8,17 @@
     <div>
       <p class="account-dashboard-kicker">Challenge rules</p>
       <h2>Mods</h2>
-      <p>Search the current Rat Race rulings before adding a mod to your game.</p>
+      {% if release_controls.rr2 %}<p>Search the current Rat Race 2.0 rulings before adding a mod to your game.</p>
+      {% else %}<p>Submit and review mods for Rat Race 2.0, which is in development. Rat Race 1.0 continues under its own existing rules.</p>{% endif %}
     </div>
-    <button type="button" class="mods-submit-action mods-secondary-action" data-mod-submit-open>Submit for review</button>
+    {% if release_controls.workshop_submissions %}<button type="button" class="mods-submit-action mods-secondary-action" data-mod-submit-open>Submit for review</button>{% endif %}
   </header>
 
   {% for message in messages %}<p class="mods-status-message" role="status">{{ message }}</p>{% endfor %}
 
   <aside class="mods-guidance" aria-label="Mod eligibility guidance">
     <div>
-      <p>Only mods marked <strong>Allowed</strong> or <strong>Required</strong> in this catalogue may be used in a Rat Race run. <strong>Disallowed</strong> and unlisted mods cannot be used.</p>
+      <p>Only mods marked <strong>Allowed</strong> or <strong>Required</strong> in this catalogue may be used in a Rat Race 2.0 run. <strong>Disallowed</strong> and unlisted mods cannot be used.</p>
       <p>Not sure whether a mod qualifies? Read the rules, then submit it for review before using it.</p>
     </div>
     <button type="button" class="mods-secondary-action" data-mod-rules-open>More Info</button>
@@ -129,6 +130,7 @@
     </div>
   </dialog>
 
+  {% if release_controls.workshop_submissions %}
   <dialog class="mod-submit-modal mod-review-submit-modal" data-mod-submit-dialog{% if open_submission_modal %} data-open-on-load{% endif %} aria-labelledby="mod-submit-title">
     <header><div><p class="account-dashboard-kicker">Team review</p><h2 id="mod-submit-title">Submit a mod for review</h2></div><button type="button" class="mods-secondary-action" data-mod-submit-close>Close</button></header>
     <div class="mod-submit-content">
@@ -157,9 +159,10 @@
       </form>
       {% else %}
       <p>Sign in to your participant account to submit a mod for team review.</p>
-      <div class="mod-submit-auth-actions"><a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a><a class="dashboard-header-action" href="{% url 'registry:login' %}?next={% url 'registry:mods' %}">Sign In</a></div>
+      <div class="mod-submit-auth-actions">{% if release_controls.registration %}<a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a>{% endif %}<a class="dashboard-header-action" href="{% url 'registry:login' %}?next={% url 'registry:mods' %}">Sign In</a></div>
       {% endif %}
     </div>
   </dialog>
+{% endif %}
 </section>
 {% endblock %}

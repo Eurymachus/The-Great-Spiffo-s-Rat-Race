@@ -11,6 +11,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from config.release_controls import MESSAGES, enabled
 from django.core.exceptions import ValidationError
 from django.db import connection, transaction
 from django.utils import timezone
@@ -30,6 +31,8 @@ logger = logging.getLogger(__name__)
 
 
 def configuration():
+    if not enabled("rr2"):
+        raise ValueError(MESSAGES["rr2"])
     if not settings.LEADERBOARD_PUBLISH_ENABLED or not getattr(settings, "STAGING_ENVIRONMENT", False):
         raise ValueError("Leaderboard publication is enabled only on the DEV service.")
     if settings.LEADERBOARD_WORKSHOP_ID != TEST_ITEM_ID:
@@ -68,6 +71,8 @@ def enqueue(*, scheduled=False, now=None, force_upload=False):
 
 
 def tick():
+    if not enabled("rr2"):
+        return
     if not settings.LEADERBOARD_PUBLISH_ENABLED:
         return
     # An invalid deployment configuration must never take down the worker.
@@ -227,6 +232,8 @@ def reconcile(job_id):
 
 
 def publish(job):
+    if not enabled("rr2"):
+        raise ValueError(MESSAGES["rr2"])
     uploading = False
     try:
         executable, username, root = configuration()

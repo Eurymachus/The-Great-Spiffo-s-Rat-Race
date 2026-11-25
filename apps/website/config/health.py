@@ -13,6 +13,7 @@ from operations.runtime_state import (
     uses_database_runtime_state,
 )
 from operations.reference_paths import resolved_reference_paths
+from .release_controls import release_state
 
 
 def _database_ready():
@@ -35,6 +36,7 @@ def liveness(request):
         {
             "status": "alive",
             "release": settings.RELEASE_ID,
+            "features": release_state(),
         }
     )
 
@@ -72,6 +74,7 @@ def readiness(request):
             "status": "ready" if ready else "unavailable",
             "release": settings.RELEASE_ID,
             "checks": checks,
+            "features": release_state(),
         },
         status=200 if ready else 503,
     )

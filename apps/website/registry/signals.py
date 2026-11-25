@@ -1,5 +1,5 @@
 from django.contrib.auth.models import Group
-from django.db.models.signals import m2m_changed
+from django.db.models.signals import m2m_changed, pre_delete
 from django.dispatch import receiver
 
 from .models import Participant
@@ -13,6 +13,13 @@ STAFF_ROLE_NAMES = {
     "Branding Administrator",
     "Zomboid Integration",
 }
+
+
+@receiver(pre_delete, sender=Participant)
+def protect_participant_deletion(sender, instance, using, **kwargs):
+    from .retention import prepare_account_deletion
+
+    prepare_account_deletion(instance, using)
 
 
 def sync_staff_status(participant):

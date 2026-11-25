@@ -3,6 +3,7 @@
   data-dashboard-live
   data-refresh-url="{% url 'registry:account_dashboard_fragment' %}"
 >
+  {% if release_controls.rr2 %}
   <section class="dashboard-panel personal-best-panel">
     <div class="dashboard-panel-heading">
       <div>
@@ -75,6 +76,10 @@
     {% endif %}
   </section>
 
+  {% else %}
+  <section class="dashboard-panel"><h3>Rat Race 2.0</h3><p>In development. Run submissions are not open yet.</p></section>
+  {% endif %}
+
   {% if legacy_run or legacy_claim %}
   <div class="legacy-dashboard-section">
     <div class="legacy-dashboard-divider" role="separator">
@@ -87,7 +92,7 @@
           <h3>Rat Race 1.0</h3>
         </div>
         <div class="legacy-dashboard-heading-actions">
-          {% if legacy_run and legacy_run.lifecycle == "active" and not pending_legacy_submission %}<a class="dashboard-header-action" href="{% url 'registry:submit_legacy_run' %}">Submit update</a>{% endif %}
+          {% if release_controls.rr1_submissions and legacy_run and legacy_run.lifecycle == "active" and not pending_legacy_submission %}<a class="dashboard-header-action" href="{% url 'registry:submit_legacy_run' %}">Submit update</a>{% endif %}
           {% if not legacy_run %}<span class="dashboard-coming-soon">{% if legacy_claim.status == "pending" %}Pending review{% else %}{{ legacy_claim.get_status_display }}{% endif %}</span>{% endif %}
         </div>
       </div>

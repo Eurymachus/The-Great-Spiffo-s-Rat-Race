@@ -15,7 +15,7 @@
     {% elif block.block_type == "action" %}
         <div class="managed-action-block managed-block managed-block-align-{{ block.alignment }}">
             {% if block.destination == "register" %}
-                <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:register' %}#sign-up">{{ block.content }}</a>
+                {% if release_controls.registration %}<a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:register' %}#sign-up">{{ block.content }}</a>{% endif %}
             {% elif block.destination == "login" %}
                 <a class="{% if block.style == 'primary' %}primary-link-button{% elif block.style == 'secondary' %}secondary-button{% endif %}" href="{% url 'registry:login' %}#sign-in">{{ block.content }}</a>
             {% elif block.destination == "account" %}

@@ -71,7 +71,7 @@
     <div class="leaderboard-build-content">
       <p data-access-message>Create a Rat Race account or sign in to view detailed character and run information.</p>
       <div class="leaderboard-access-actions">
-        <a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a>
+        {% if release_controls.registration %}<a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a>{% endif %}
         <a class="dashboard-header-action" data-access-sign-in href="{% url 'registry:login' %}?next={{ request.path|urlencode }}">Sign In</a>
       </div>
     </div>

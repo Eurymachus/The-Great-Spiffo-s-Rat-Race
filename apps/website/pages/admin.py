@@ -58,7 +58,7 @@ class PageAdmin(admin.ModelAdmin):
     readonly_fields = ("updated_at",)
     fieldsets = (
         ("Page", {"fields": (
-            "title", "public_path", "is_published", "audience", "content_width",
+            "title", "public_path", "is_published", "audience", "content_width", "required_release",
             "page_builder_data",
         )}),
         ("Record", {"fields": ("updated_at",)}),

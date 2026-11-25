@@ -179,16 +179,18 @@
                             {% include "registry/_sign_in_form.html" with form=header_sign_in_form compact=True %}
                         </div>
                     </li>
+                    {% if release_controls.registration %}
                     <li class="site-nav-item site-utility-item site-sign-up-item">
                     <a href="{% url 'registry:register' %}#sign-up"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign Up</a>
                     </li>
+                    {% endif %}
                 {% endif %}
                 </ul>
                 </nav>
                 {% if not request.user.is_authenticated %}
                 <ul class="site-guest-actions" aria-label="Account">
                     <li><a href="{% url 'registry:login' %}#sign-in"{% if request.resolver_match.url_name == 'login' %} aria-current="page"{% endif %}>Sign In</a></li>
-                    <li><a href="{% url 'registry:register' %}#sign-up"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign Up</a></li>
+                    {% if release_controls.registration %}<li><a href="{% url 'registry:register' %}#sign-up"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Sign Up</a></li>{% endif %}
                 </ul>
                 {% endif %}
                 {% if request.user.is_authenticated %}

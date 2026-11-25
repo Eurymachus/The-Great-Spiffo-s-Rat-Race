@@ -5,7 +5,14 @@
 
 <div class="deletions">
     <p><strong>This operation permanently removes participant login identities.</strong></p>
-    <p>Each future run will remain intact while its participant link is removed. It will then be displayed publicly as <strong>{{ site_former_participant_label }}</strong>. The current registry milestone has no run records.</p>
+    <p>Reviewed Rat Race 1.0 results retain their scores as <strong>{{ site_former_participant_label }}</strong> and cannot be claimed again. Workshop rulings remain. Identifying names, relevant evidence and moderation text are removed as described below. Unsupported history and retention holds prevent closure.</p>
+    <p>Eligible accounts lose their login, connected-provider credentials, notifications and private saved views. Avatar files are queued for deletion after the database change commits.</p>
+
+    {% for item in blocked_accounts %}
+        <div class="errornote"><strong>{{ item.participant.nickname }}: closure blocked</strong>
+            <ul>{% for reason in item.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+        </div>
+    {% endfor %}
 
     {% if eligible_count %}
         <p>The following {{ eligible_count }} eligible account{{ eligible_count|pluralize }} will be processed:</p>
@@ -19,11 +26,24 @@
     {% endif %}
 
     {% if skipped_count %}
-        <p>{{ skipped_count }} selected account{{ skipped_count|pluralize }} will be skipped because it has no pending request or still has staff access.</p>
+        <p>{{ skipped_count }} selected account{{ skipped_count|pluralize }} will be skipped because it requires review or has no eligible request.</p>
     {% endif %}
 
     <form method="post">
         {% csrf_token %}
+        {% if history_reviews %}
+            <h2>Review related history</h2>
+            <p>This removes character names, evidence and review text from the departing participant's submissions and owned runs; their claim evidence and the evidence of competing claims on those runs; their Workshop submission reasons; affected public rationale and review notes; and their vote name and reason. Where they only reviewed another participant's submission or claim, only their review note and reviewer link are removed. Scores, mod metadata, rulings, other participants' evidence and vote decisions remain.</p>
+            <p>Matching historical-name rows are removed from stored import CSV files, including ignored columns, and their previews. Other source rows remain. Affected files receive new checksums and a redaction marker and cannot be reapplied. Identifying text in affected admin logs is replaced and links to the deleted account are removed; event metadata remains.</p>
+            <ul>{% for review in history_reviews %}
+                <li><strong>{{ review.participant.nickname }}</strong>: {{ review.counts.runs }} runs, {{ review.counts.submissions }} submissions, {{ review.counts.claims }} claims, {{ review.counts.mods }} Workshop records, {{ review.counts.votes }} votes, {{ review.counts.imports }} source imports, {{ review.counts.logs }} admin log entries.
+                    <details><summary>Inspect affected records before confirming</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">{{ review.details }}</pre></details>
+                </li>
+                <input type="hidden" name="redaction_token_{{ review.participant.pk }}" value="{{ review.token }}">
+            {% endfor %}</ul>
+            <p><label><input type="checkbox" name="reviewed_redaction" value="yes" required> I have reviewed the affected records, checked for identifying information in other shared records and external source copies, and confirmed that no dispute or retention obligation prevents this redaction.</label></p>
+            <p>If related records change, this review must be repeated. Review confirmation expires after one hour.</p>
+        {% endif %}
         {% for participant in queryset %}
             <input type="hidden" name="{{ action_checkbox_name }}" value="{{ participant.pk }}">
         {% endfor %}

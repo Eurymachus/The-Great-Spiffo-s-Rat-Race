@@ -4,6 +4,7 @@ import re
 import uuid
 
 from django.conf import settings
+from config.release_controls import enabled
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import Group
@@ -557,6 +558,8 @@ def account_dashboard_context(user):
     ).prefetch_related(
         "submissions__challenge_mode"
     )
+    if not enabled("rr2"):
+        runs = runs.none()
     legacy_run = user.claimed_legacy_runs.select_related(
         "current_submission", "best_submission"
     ).first()
@@ -597,6 +600,8 @@ def account_dashboard_context(user):
     pending_submissions = user.run_submissions.filter(
         status__in=RunSubmission.moderation_queue_statuses()
     ).select_related("run", "challenge_mode").order_by("run_id", "-submitted_at")
+    if not enabled("rr2"):
+        pending_submissions = pending_submissions.none()
     for submission in pending_submissions:
         pending_run = pending_by_run.get(submission.run_id)
         if pending_run is None:
@@ -642,6 +647,8 @@ def participant_profile(request, participant_id):
         status=ChallengeRun.Status.OFFICIAL,
         approved_submission__isnull=False,
     ).select_related("challenge_mode", "approved_submission")
+    if not enabled("rr2"):
+        runs = runs.none()
     legacy_run = participant.claimed_legacy_runs.select_related(
         "current_submission", "best_submission"
     ).first()
@@ -671,7 +678,7 @@ def participant_profile(request, participant_id):
             "legacy_run": legacy_run,
             "legacy_submission": legacy_submission,
             "journey_items": (
-                {"label": "Rankings", "url": reverse("registry:leaderboard")},
+                {"label": "Rankings", "url": reverse("registry:leaderboard")} if enabled("rr2") else {"label": "Home", "url": reverse("registry:home")},
                 {"label": participant.nickname, "url": ""},
             ),
         },
@@ -690,10 +697,14 @@ def claim_legacy_run(request, run_id):
         next_url = reverse("registry:account")
 
     with transaction.atomic():
+        get_object_or_404(Participant.objects.select_for_update(), pk=request.user.pk)
         legacy_run = get_object_or_404(
             LegacyRun.objects.select_for_update(),
             pk=run_id,
         )
+        if legacy_run.identity_removed:
+            messages.error(request, "This retained Rat Race 1.0 result cannot be claimed.")
+            return redirect(next_url)
         if legacy_run.claimed_participant_id:
             if legacy_run.claimed_participant_id == request.user.pk:
                 messages.info(request, "This Rat Race 1.0 run is already linked to your account.")
@@ -781,10 +792,16 @@ def leaderboard(request):
 def mods_catalogue(request):
     form = ModReviewRequestForm(request.POST or None)
     open_submission_modal = request.method == "POST"
+    response_status = 200
     if request.method == "POST":
         if not request.user.is_authenticated:
             return redirect(f"{reverse('registry:login')}?next={reverse('registry:mods')}")
-        if form.is_valid():
+        account_limited = exceeded("workshop-submit-account", str(request.user.pk), 5, 600)
+        ip_limited = exceeded("workshop-submit-ip", request_ip(request), 20, 600)
+        if account_limited or ip_limited:
+            form.add_error(None, "Too many mod submissions. Please wait ten minutes before trying again.")
+            response_status = 429
+        elif form.is_valid():
             workshop_id = form.cleaned_data["workshop_id"]
             existing = WorkshopMod.objects.filter(workshop_id=workshop_id).first()
             if existing:
@@ -846,6 +863,7 @@ def mods_catalogue(request):
             "submission_form": form,
             "open_submission_modal": open_submission_modal,
         },
+        status=response_status,
     )
 
 
@@ -1253,6 +1271,7 @@ def submit_legacy_run(request):
     )
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
+            get_object_or_404(Participant.objects.select_for_update(), pk=request.user.pk)
             locked_run = LegacyRun.objects.select_for_update().get(pk=legacy_run.pk)
             if locked_run.claimed_participant_id != request.user.pk:
                 raise Http404
@@ -2243,9 +2262,13 @@ def development_disclosure(request):
 
 @login_required
 @require_http_methods(["GET"])
+@never_cache
 def download_my_data(request):
+    from .participant_data import first_release_data
+
     participant = request.user
     payload = {
+        "format_version": 2,
         "exported_at": timezone.now().isoformat(),
         "participant": {
             "id": str(participant.id),
@@ -2345,6 +2368,9 @@ def download_my_data(request):
             ],
         },
     }
+    payload["participant"].update(first_release_data(participant))
+    payload["participant"]["deletion_request_note"] = participant.deletion_request_note
+    payload["participant"]["deletion_request_reference"] = participant.deletion_request_reference
     response = JsonResponse(payload, json_dumps_params={"indent": 2})
     response["Content-Disposition"] = (
         'attachment; filename="rat-race-participant-data.json"'

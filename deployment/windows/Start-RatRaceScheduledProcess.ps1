@@ -26,7 +26,6 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$launcher = Join-Path $PSScriptRoot "Start-RatRaceProcess.ps1"
 $logPath = [System.IO.Path]::GetFullPath($LogFile)
 $logDirectory = Split-Path -Parent $logPath
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
@@ -50,26 +49,24 @@ try {
         throw "PostgreSQL did not become ready within $DatabaseWaitSeconds seconds."
     }
 
-    $errorLogPath = [System.IO.Path]::ChangeExtension($logPath, ".error.log")
-    $arguments = @(
-        "-NoProfile",
-        "-ExecutionPolicy", "Bypass",
-        "-File", $launcher,
-        "-Process", $Process,
-        "-ReleaseRoot", $ReleaseRoot,
-        "-EnvironmentFile", $EnvironmentFile,
-        "-PythonExecutable", $PythonExecutable,
-        "-Port", $Port
-    )
-    $child = Start-Process `
-        -FilePath "powershell.exe" `
-        -ArgumentList $arguments `
-        -WindowStyle Hidden `
-        -RedirectStandardOutput $logPath `
-        -RedirectStandardError $errorLogPath `
-        -Wait `
-        -PassThru
-    exit $child.ExitCode
+    $releasePath = (Resolve-Path -LiteralPath $ReleaseRoot).Path
+    $pythonPath = (Resolve-Path -LiteralPath $PythonExecutable).Path
+    $logger = Join-Path $releasePath 'scripts\run_logged_process.py'
+    if (-not (Test-Path -LiteralPath $logger -PathType Leaf)) {
+        throw 'The release is missing its log rotation runner.'
+    }
+    & (Join-Path $PSScriptRoot 'Import-RatRaceEnvironment.ps1') -EnvironmentFile $EnvironmentFile
+    Set-Location -LiteralPath (Join-Path $releasePath 'apps\website')
+    $archiveRoot = Join-Path $logDirectory 'routine'
+    New-Item -ItemType Directory -Path $archiveRoot -Force | Out-Null
+    if ($Process -eq 'Web') {
+        $childArguments = @('-u', '-m', 'uvicorn', 'config.asgi:application',
+            '--host', '127.0.0.1', '--port', $Port, '--proxy-headers', '--forwarded-allow-ips', '127.0.0.1')
+    } else {
+        $childArguments = @('-u', 'manage.py', 'run_reference_update_worker')
+    }
+    & $pythonPath $logger --root $archiveRoot --label $Process.ToLowerInvariant() -- $pythonPath @childArguments
+    exit $LASTEXITCODE
 } catch {
     Add-Content -LiteralPath $logPath -Value (
         "{0:o} Rat Race {1} startup failed: {2}" -f `

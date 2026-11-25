@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from config.release_controls import enabled
 
 
 METRICS = {
@@ -80,6 +81,8 @@ def _display_value(key, value):
 def build_community_stats(raw_config=None):
     from registry.models import ChallengeRun
 
+    if not enabled("rr2"):
+        return {"config": {}, "metrics": []}
     config = validate_community_stats_config(raw_config or {})
     runs = list(
         ChallengeRun.objects.filter(

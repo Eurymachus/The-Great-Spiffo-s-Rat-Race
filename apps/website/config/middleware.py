@@ -1,6 +1,34 @@
 from django.conf import settings
 from django.http.request import split_domain_port
 from django.template.response import TemplateResponse
+from .release_controls import MESSAGES, enabled, model_available, route_control
+
+
+class ReleaseControlMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        match = request.resolver_match
+        control = route_control(match, request.method)
+        model_admin = getattr(view_func, "model_admin", None)
+        if model_admin and not model_available(model_admin.model._meta.label_lower):
+            control = "rr2"
+        # Autocomplete uses one generic admin URL for every model.
+        if match.view_name == "admin:autocomplete":
+            label = f"{request.GET.get('app_label', '')}.{request.GET.get('model_name', '')}"
+            if not model_available(label):
+                control = "rr2"
+        if control and not enabled(control):
+            response = TemplateResponse(request, "release_closed.html", {
+                "release_message": MESSAGES[control],
+            }, status=403)
+            response["Cache-Control"] = "no-store"
+            return response
+        return None
 
 
 class MaintenanceModeMiddleware:

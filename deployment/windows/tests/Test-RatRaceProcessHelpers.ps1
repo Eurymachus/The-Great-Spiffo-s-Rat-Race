@@ -37,6 +37,15 @@ foreach ($excluded in 20, 30, 40) {
 
 Assert-Equal $true (Test-RatRacePathScope 'G:\RatRace_Staging\logs' 'G:\RatRace_Staging') "A child path should be accepted."
 Assert-Equal $false (Test-RatRacePathScope 'G:\RatRace\logs' 'G:\RatRace_Staging') "Production should be rejected from staging scope."
+$blocked = $false
+try {
+    Assert-RatRaceDeploymentStopped -Processes $processes -InstallationRoot 'G:\RatRace_Staging' -PythonExecutable 'G:\RatRace_Staging\venv\Scripts\python.exe'
+} catch {
+    $blocked = $true
+}
+Assert-Equal $true $blocked "Preparation must reject active staging processes."
+Assert-RatRaceDeploymentStopped -Processes @($processes | Where-Object { $_.ProcessId -ge 20 }) `
+    -InstallationRoot 'G:\RatRace_Staging' -PythonExecutable 'G:\RatRace_Staging\venv\Scripts\python.exe'
 Write-Output "Rat Race process helper tests passed."
 foreach ($scriptName in @('Install-RatRaceStagingStartup.ps1','New-RatRaceStagingEnvironment.ps1')) {
     $scriptText = [IO.File]::ReadAllText((Join-Path $PSScriptRoot "..\$scriptName"))

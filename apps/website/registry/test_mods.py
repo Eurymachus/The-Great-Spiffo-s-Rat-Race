@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.core.management import call_command
+from django.core.cache import cache
 from django.contrib.admin.sites import site
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import Group
@@ -15,6 +16,7 @@ from .historical_mods import HISTORICAL_UNSTABLE_MODS
 
 class ModsPageTests(TestCase):
     def setUp(self):
+        cache.clear()
         self.racer = Participant.objects.create_user(
             email="mods@example.com",
             nickname="ModRacer",
@@ -283,9 +285,10 @@ class ModsPageTests(TestCase):
         )
         self.client.force_login(admin_user)
 
-        queue = self.client.get(reverse("admin:registry_workshopmod_changelist"))
-        self.assertContains(queue, "Mod approval queue")
-        self.assertContains(queue, "Pending reviews (1)")
+        queue = self.client.get(reverse("admin:registry_workshopmod_changelist"), {"ruling__exact": "pending"})
+        self.assertContains(queue, "Saved workshop mod views")
+        self.assertContains(queue, "Pending Example")
+        self.assertNotContains(queue, "Allowed Example")
         self.assertContains(queue, ">Review</a>")
 
         review = self.client.get(
@@ -426,7 +429,9 @@ class ModsPageTests(TestCase):
         )
         self.assertSetEqual(
             set(run_group.permissions.values_list("codename", flat=True)),
-            {"view_challengerun", "view_runsubmission", "change_runsubmission"},
+            {"view_challengerun", "view_runsubmission", "change_runsubmission",
+             "view_legacyrun", "view_legacyrunclaim", "change_legacyrunclaim",
+             "view_legacyrunsubmission", "change_legacyrunsubmission"},
         )
         self.assertFalse(legacy.permissions.exists())
 

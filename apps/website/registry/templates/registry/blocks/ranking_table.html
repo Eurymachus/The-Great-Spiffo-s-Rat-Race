@@ -1,3 +1,4 @@
+{% if ranking_available %}
 <section class="managed-ranking-table" data-leaderboard-page>
   {% if config.show_heading or config.introduction or config.show_weighting %}
   <header class="managed-ranking-header leaderboard-hero">
@@ -56,6 +57,8 @@
   </dialog>
   {% endif %}{% endfor %}{% endif %}
   {% if not request.user.is_authenticated and config.show_details or not request.user.is_authenticated and config.show_build %}
-  <dialog class="leaderboard-build-modal leaderboard-access-modal" data-access-prompt aria-labelledby="managed-access-title-{{ block.pk }}"><header><strong id="managed-access-title-{{ block.pk }}">Sign in to view survivor details</strong><button type="button" data-access-prompt-close>Close</button></header><div class="leaderboard-build-content"><p data-access-message>Create a Rat Race account or sign in to view detailed character and run information.</p><div class="leaderboard-access-actions"><a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a><a class="dashboard-header-action" data-access-sign-in href="{% url 'registry:login' %}?next={{ request.path|urlencode }}">Sign In</a></div></div></dialog>
+  <dialog class="leaderboard-build-modal leaderboard-access-modal" data-access-prompt aria-labelledby="managed-access-title-{{ block.pk }}"><header><strong id="managed-access-title-{{ block.pk }}">Sign in to view survivor details</strong><button type="button" data-access-prompt-close>Close</button></header><div class="leaderboard-build-content"><p data-access-message>Create a Rat Race account or sign in to view detailed character and run information.</p><div class="leaderboard-access-actions">{% if registration_enabled %}<a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a>{% endif %}<a class="dashboard-header-action" data-access-sign-in href="{% url 'registry:login' %}?next={{ request.path|urlencode }}">Sign In</a></div></div></dialog>
   {% endif %}
 </section>
+
+{% endif %}

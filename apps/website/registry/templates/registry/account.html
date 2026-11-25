@@ -21,7 +21,7 @@
     </div>
     <div class="dashboard-header-actions">
       <a class="dashboard-header-action dashboard-header-action-subtle" href="{% url 'registry:participant_profile' request.user.pk %}">View profile</a>
-      <a class="dashboard-header-action" href="{% url 'registry:submit_run' %}">Submit run</a>
+      {% if release_controls.rr2 %}<a class="dashboard-header-action" href="{% url 'registry:submit_run' %}">Submit run</a>{% endif %}
       <a class="dashboard-header-action" href="{% url 'registry:account_settings' %}">Settings</a>
     </div>
   </header>

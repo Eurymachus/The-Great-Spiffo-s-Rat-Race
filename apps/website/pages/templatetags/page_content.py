@@ -7,6 +7,7 @@ from django.utils.safestring import mark_safe
 
 from pages.community_stats import build_community_stats
 from pages.models import SectionItem
+from config.release_controls import destination_available, enabled
 
 
 register = template.Library()
@@ -63,7 +64,7 @@ def visible_managed_cards(context, block):
     visible = []
     for item in block.items.all():
         audience = block.audience if item.audience == SectionItem.Audience.INHERIT else item.audience
-        if audience_is_visible(audience, user):
+        if audience_is_visible(audience, user) and destination_available(item.destination_url):
             visible.append(item)
     return visible
 
@@ -74,5 +75,6 @@ def visible_managed_cards(context, block):
 def managed_community_stats(context, block):
     return {
         "request": context.get("request"),
+        "rr2_enabled": enabled("rr2"),
         "stats": build_community_stats(block.community_stats_config),
     }

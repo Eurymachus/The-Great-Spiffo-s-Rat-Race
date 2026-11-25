@@ -7,6 +7,12 @@ from registry.models import Participant
 from registry.signals import sync_staff_status
 
 
+RR1_REVIEW_PERMISSIONS = (
+    "view_legacyrun", "view_legacyrunclaim", "change_legacyrunclaim",
+    "view_legacyrunsubmission", "change_legacyrunsubmission",
+)
+
+
 ROLE_PERMISSIONS = {
     "Participant": (),
     "Workshop Mod Approver": ("view_workshopmod",),
@@ -14,7 +20,7 @@ ROLE_PERMISSIONS = {
         "view_challengerun",
         "view_runsubmission",
         "change_runsubmission",
-    ),
+    ) + RR1_REVIEW_PERMISSIONS,
     "Moderator": ("view_participant", "change_participant"),
     "Challenge Administrator": (
         "manage_shared_run_views",
@@ -24,7 +30,7 @@ ROLE_PERMISSIONS = {
         "view_accountclosurerecord",
         "view_workshopmod",
         "change_workshopmod",
-    ),
+    ) + RR1_REVIEW_PERMISSIONS,
     "Branding Administrator": (
         "view_sitebranding",
         "change_sitebranding",

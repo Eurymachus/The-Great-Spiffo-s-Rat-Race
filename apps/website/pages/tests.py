@@ -1160,9 +1160,9 @@ class ManagedPageTests(TestCase):
         response = self.client.get(reverse("admin:pages_codemanagedpage_changelist"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "admin-sidebar-section-toggle")
-        self.assertContains(response, 'aria-controls="admin-sidebar-section-pages"')
-        self.assertContains(response, "admin_sidebar_sections.js")
+        self.assertContains(response, '<details class="admin-menu-section"')
+        self.assertContains(response, 'data-menu-section="website"')
+        self.assertContains(response, "admin_menu.js")
 
     def test_navigation_rejects_multiple_or_unavailable_destinations(self):
         account = CodeManagedPage.objects.get(key="account")

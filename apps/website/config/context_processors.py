@@ -2,6 +2,7 @@ from django.conf import settings
 from branding.models import SiteBranding, WebsiteTheme
 from pages.models import CodeManagedPage, NavigationItem
 from registry.forms import AvatarUploadForm, SignInForm
+from .release_controls import destination_available, release_state
 
 
 def navigation_tree(request):
@@ -12,6 +13,8 @@ def navigation_tree(request):
     )
     nodes = {}
     for item in items:
+        if not destination_available(item.get_absolute_url()):
+            continue
         if not item.is_visible_to(request.user):
             continue
         if item.page_id and (
@@ -93,6 +96,7 @@ def site_identity(request):
 
     return {
         **account_context,
+        "release_controls": release_state(),
         "site_navigation_items": navigation_tree(request),
         "site_legal_name": settings.SITE_LEGAL_NAME,
         "site_company_number": company_number,

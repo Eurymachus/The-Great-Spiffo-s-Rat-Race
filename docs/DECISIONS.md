@@ -1301,9 +1301,61 @@ conflicting claims. A fresh moderator decision is required.
   application, commit or deployment. Clean initial production and subsequent
   RR 1.0 spreadsheet handover remain unchanged.
 
+## 2026-11-25 - Review database readiness before proposing cleanup
+
+- Add a database-readiness checkpoint after the current release-switch work.
+  Review unused/duplicate tables and fields, relationships and deletion behaviour,
+  fresh-install migrations, populated-upgrade preservation and retention.
+- Record findings and evidence before proposing changes. Separate first-release
+  blockers from optional simplification and deferred work; an empty table or a
+  similar field name alone does not establish redundancy.
+- Keep deeper RR 2 restructuring deferred until the contract is final. Reducing
+  table count is not a launch requirement.
+- FIRST_RELEASE_READINESS.md contains the pending checklist and findings location.
+  Recording the checkpoint authorizes no schema/data change, reset, migration
+  execution or deployment.
+
+## 2026-11-25 - Open community features before RR 2 activation
+
+- Deploy one application with RR 2 code and migrations included, but RR 2
+  disabled behind a server-enforced release switch. Public concept/coming-soon
+  content may remain; unfinished RR 2 actions and statistics must stay isolated.
+- Open verified accounts and Workshop mod requests first. Move RR 1.0 claims
+  and updates onto the website as soon as their hosted rehearsal and final
+  spreadsheet handover are verified. Do not wait for the final RR 2 contract.
+- Rehearse initial rollout repeatedly from empty application data on isolated
+  hosted staging. Preserve infrastructure and protected configuration. Reset
+  scope, backup and execution need a separate explicit authorization.
+- Initial production is clean with approved setup/seed data, never a cloned
+  development or staging database. After real accounts/submissions exist,
+  preserve them permanently. Later RR 2 deployment upgrades that database.
+- Test later RR 2 upgrades on staging containing representative first-release
+  accounts, credentials, Workshop requests, RR 1.0 history and pending reviews.
+  An empty-install rehearsal does not prove preservation of live data.
+- Keep the prior cleanup audit: installation, migration, content and operational
+  cleanup are first-release gates; final contract/compatibility cleanup waits
+  until the contract settles and remains mandatory before RR 2 activation.
+  Unresolved RR 2 statistics/page decisions can remain deferred while isolated.
+- This supersedes the combined rollout ordering in the 21/22 November notes,
+  not their integrity, migration-history or real-data preservation requirements.
+  FIRST_RELEASE_READINESS.md holds the detailed rollout and current audit.
+- This request authorizes recording and auditing only. No wipe, migration,
+  configuration change, compatibility removal or deployment is authorized now.
+
 ## 2026-11-23 - Keep alarm hints out of logs
 
 - Do not log alarm locations, building IDs, bounds, state, expiry or nearby
   counts in normal or debug mode. Chunk summaries can also reveal nearby alarms.
 - Remove alarm discovery, validation, trigger, hit and debug teleport traces
   from the active 42.22 implementation. Alarm mechanics remain unchanged.
+
+## 2026-11-25 - Retain evidence for active runs before starting expiry
+
+- The owner confirmed that scheduled moderation-evidence expiry must preserve
+  evidence while a run is active. Afterwards use the latest relevant run-end,
+  decision or closure date for the two-year period.
+- Explicitly reviewed account-closure redaction remains a separate earlier-removal
+  path. Holds and pending reviews must prevent scheduled destruction.
+- First-release implementation covers RR 1.0 and Workshop moderation text and
+  retains scores, ownership/claim decisions and published policy. RR 2 evidence
+  restructuring/expiry remains behind its contract and activation gates.

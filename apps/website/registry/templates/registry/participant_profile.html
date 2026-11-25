@@ -14,7 +14,7 @@
     <div class="account-dashboard-welcome">
       <p class="account-dashboard-kicker">Rat Racer profile</p>
       <h2>{{ profile_participant.nickname }}</h2>
-      <p>Approved Rat Race 2.0 and Rat Race 1.0 records.</p>
+      <p>{% if release_controls.rr2 %}Approved Rat Race 2.0 and Rat Race 1.0 records.{% else %}Rat Racer profile and approved Rat Race 1.0 records.{% endif %}</p>
     </div>
     {% if request.user.pk == profile_participant.pk %}
     <div class="dashboard-header-actions">
@@ -25,6 +25,7 @@
 
   <div class="account-dashboard-grid">
     <div class="account-dashboard-main">
+      {% if release_controls.rr2 %}
       <section class="dashboard-panel personal-best-panel">
         <div class="dashboard-panel-heading">
           <div><p class="dashboard-panel-kicker">Strongest result</p><h3>Personal Best</h3></div>
@@ -50,6 +51,8 @@
           {% for run in past_runs %}{% include "registry/includes/profile_run_card.html" with run=run show_progress=False %}{% endfor %}
         </div>{% else %}<div class="dashboard-empty-state compact"><strong>No past runs</strong><p>This participant has no completed or inactive approved runs.</p></div>{% endif %}
       </section>
+
+      {% endif %}
 
       {% if legacy_run and legacy_submission %}
       <div class="legacy-dashboard-section">

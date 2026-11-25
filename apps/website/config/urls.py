@@ -25,6 +25,12 @@ from .staging import robots_txt
 def admin_home(request):
     return admin.site.index(request)
 
+
+def media_page(request, page_path):
+    from registry.views import page_detail
+
+    return page_detail(request, page_path=f"media/{page_path}")
+
 urlpatterns = [
     path("robots.txt", robots_txt, name="robots-txt"),
     path("health/live/", health.liveness, name="health-live"),
@@ -35,6 +41,8 @@ urlpatterns = [
         name='admin-home',
     ),
     path('admin/', admin.site.urls),
+    # Managed pages use trailing slashes; stored media URLs name files directly.
+    path("media/<path:page_path>/", media_page),
     path("media/<path:media_path>", persistent_media, name="persistent-media"),
     path('', include('registry.urls')),
 ]

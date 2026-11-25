@@ -3,6 +3,7 @@ from django import template
 from pages.ranking_config import validate_ranking_config
 from registry.leaderboard import build_ranking_table
 from registry.models import LegacyRun, LegacyRunClaim
+from config.release_controls import enabled
 
 
 register = template.Library()
@@ -28,6 +29,7 @@ def managed_ranking_table(context, block):
         )
     show_legacy_claims = (
         request.user.is_authenticated
+        and enabled("rr1_submissions")
         and is_legacy_source
         and not claim_journey_complete
     )
@@ -46,7 +48,9 @@ def managed_ranking_table(context, block):
         for entry in entries:
             legacy_run = entry["legacy_run"]
             claim = claims.get(legacy_run.pk)
-            if legacy_run.claimed_participant_id == request.user.pk:
+            if legacy_run.identity_removed:
+                entry["claim_state"] = "unavailable"
+            elif legacy_run.claimed_participant_id == request.user.pk:
                 entry["claim_state"] = "claimed"
             elif legacy_run.claimed_participant_id:
                 entry["claim_state"] = "unavailable"
@@ -64,4 +68,6 @@ def managed_ranking_table(context, block):
         "config": config,
         "entries": entries,
         "show_legacy_claims": show_legacy_claims,
+        "ranking_available": is_legacy_source or enabled("rr2"),
+        "registration_enabled": enabled("registration"),
     }

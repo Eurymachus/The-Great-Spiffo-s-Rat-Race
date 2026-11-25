@@ -1,5 +1,198 @@
 # Website: Current Focus
 
+## Operational cleanup candidate (25 November 2026)
+
+- Added repeatable protected backup capture, preview-first manifest-scoped
+  30-day backup/90-day closed-log expiry, and daily/size-based web/worker log
+  segmentation. The maintenance runner requires capture success before apply.
+  Nothing is deployed/scheduled and existing logs/artifacts are not adopted.
+- [HOST_MAINTENANCE.md](HOST_MAINTENANCE.md) records usage and limitations.
+  Thirteen artifact/logging tests and a real disposable Windows ACL/log check
+  pass. Scoped SQLite regression: 442 tests, 440 passes and two PostgreSQL skips.
+- Isolated PostgreSQL settings reject production/staging ports. Use Git on
+  `codex/rat-race-dev` for candidate transfer into a separate host test checkout,
+  not source payloads in chat. Keep unrelated `docs/IDEAS.md` edits out of commit.
+
+## OSWALD inventory received (25 November 2026)
+
+- Read-only host audit reports staging `f079ead` and live `6582cc4`, both healthy.
+  Live remains behind its construction page. Its sole Workshop catalogue row is
+  the challenge mod seeded by migration `0024`, not a participant submission.
+  Live has zero accounts, Workshop submissions or votes. Staging contains
+  populated account/run data.
+- Independent launch switches are not in either deployed release. Database-only
+  backup/restore now passes in a separate temporary cluster: 129 migration rows,
+  audited counts and seeded mod fingerprint match. The cluster was stopped and
+  restricted artifacts retained. Separate file recovery also passes: 43 media
+  hashes, empty private/reference structures, protected configuration and ACLs
+  match. No real streaming credentials exist to exercise decryption. Coordinated
+  cross-store recovery and candidate upgrade preservation remain untested.
+  Maintenance scheduling remains unverified; installed startup
+  supervision is now inspected, but actual reboot recovery is untested.
+- [HOST_INVENTORY_2026-11-25.md](HOST_INVENTORY_2026-11-25.md) records database
+  identities, migration baselines, aggregate counts and evidence limits.
+  [BACKUP_RESTORE_REHEARSAL.md](BACKUP_RESTORE_REHEARSAL.md) now records the
+  proposed separate cluster, capture/restore sequence and acceptance criteria.
+  Task visibility is now verified after the owner relaunched the actual app
+  elevated with `--do-not-de-elevate`. All four tasks run as SYSTEM and target
+  the observed releases, with startup and retry policies configured. Sandboxed
+  commands remain restricted. Actual reboot recovery is still untested.
+  Backup-root ACLs need restriction before any capture.
+  Elevated inventory found no Rat Race backup/expiry job. Live tasks also repeat
+  every minute with `IgnoreNew`, so future write-pause plans must account for
+  automatic relaunch. Capture requires an agreed quiet window for local writes;
+  worker heartbeats can continue, but file-changing jobs must remain absent.
+  No wipes, deployments, migrations or existing service changes were performed.
+  New isolated backup/restore artifacts are recorded in the rehearsal document.
+
+## Data download, reviewer roles and launch checks (25 November 2026)
+
+- Self-service download format 2 includes own Workshop requests/votes, RR 1.0
+  claims, submissions and linked numeric results, even when intake is closed.
+  Decline reasons are included; private staff notes, other people's evidence,
+  source CSV files and credentials are excluded. Responses are not cacheable.
+- Standard Run Submission Approver and Challenge Administrator roles can review
+  RR 1.0 claims/updates. They cannot directly edit ownership or apply imports.
+  Import confirmation now checks its own permission, not just staff membership.
+- Fixed production startup's early static-manifest lookup and the managed
+  `media/.../` page collision. Old sidebar/Workshop menu assertions now check
+  the current UI. RR 2 public-statistics expectations remain deferred.
+- Added Workshop POST limits before provider calls, safe expired-bucket pruning,
+  and preview-first two-year RR 1.0/Workshop evidence expiry using the owner's
+  clarified active-run rule. Scores, decisions and public policy survive.
+- RR 1.0 request/review locks use account, run, then evidence order without
+  nullable joined locks. A PostgreSQL-only claim concurrency test is prepared;
+  PostgreSQL tools were not found on PATH, so that proof remains pending.
+- Fresh disposable database tests successfully repeat the packaged presentation
+  import and role bootstrap, retain empty participant/run datasets, and collect
+  a new hashed static manifest. This does not approve package copy for launch.
+- Added explicit managed-page release classification and gated the packaged RR 2
+  rules/rankings/exploits, including direct access, staff access and homepage cards.
+  Updated only release metadata/manifest in the eight-page/eight-image seed package.
+  `pages.0044` classifies existing known RR 2 pages; older imports retain safe defaults.
+- Staging preparation now refuses active deployment processes before migrations
+  and checks the release is inside its installation root. Process-helper fixtures
+  pass; no real processes were stopped and no host script was executed.
+- Final reproducible scoped regression: 439 tests in 118.210 seconds, 437 passed
+  and two PostgreSQL-only skips, including the final editorial release gates.
+  A further 98 targeted editorial/install/migration checks pass (overlapping runs).
+  [LOCAL_LAUNCH_CHECKS_2026-11-25.md](LOCAL_LAUNCH_CHECKS_2026-11-25.md) records
+  the reproducible command, tested candidate scope and remaining host acceptance.
+  Existing local data and protected environments remain unchanged. No wipe,
+  deployment or scheduler installation has taken place.
+
+## First-release history redaction implemented locally (25 November 2026)
+
+- Account closure now supports reviewed RR 1.0 and Workshop history rather than
+  blocking all such accounts. Admin preview shows the concrete affected records;
+  confirmation requires acknowledgement and a signed, one-hour review token.
+  Changed records invalidate the review. Holds and unsupported relations still block.
+- RR 1.0 scores, result pointers and lifecycle survive. Names, character/evidence
+  text and source-name hashes are removed. Independent random keys replace identity
+  keys. `identity_removed` prevents new claims, owner reassignment, ordinary admin
+  editing and replacement imports. Pending updates/competing claims are declined.
+- Matching source rows are removed from every stored CSV snapshot and preview,
+  including ignored provider columns. Other source rows remain. Changed snapshots
+  have new checksums and an explicit redaction marker and cannot be reapplied.
+- Workshop metadata, rulings and vote decisions survive with the specified personal
+  text removed. Reviewer-only relationships preserve the other submitter's evidence.
+  Affected admin logs retain event metadata with identifying text replaced.
+- Added migration `0084_legacy_identity_removal`; only disposable databases were
+  migrated. Focused tests: 37 pass. Wider run: 203/205 pass with the same two known
+  managed-page/Workshop-menu failures. Offline migration metadata has no drift.
+- Remaining acceptance: PostgreSQL concurrency, host scheduling/recovery, external
+  source copies and retention holds. RR 2 redaction remains contract-dependent.
+  Other first-release findings (data-download coverage, reviewer roles and broader
+  retention) remain tracked in FIRST_RELEASE_READINESS.md. Nothing deployed or wiped.
+
+## Account retention safeguards implemented locally (25 November 2026)
+
+- Added preview-first `apply_account_retention`; `--apply` removes unverified
+  pending/expired registrations at 30 days from registration, independently of
+  verification-email resends. Verified, disabled and staff accounts are excluded.
+- Closure and bulk deletion stop on retention holds or related evidence/history
+  needing review. RR 1.0 ownership stays intact when blocked. This is a safeguard,
+  not completed historical-data anonymisation.
+- Clean closure removes provider credentials, notifications and private saved
+  views. Avatar/quarantine deletion is queued transactionally and retried after
+  commit; rollback preserves files. Failed jobs remain available for retry.
+- Added migration `0083_account_retention`, hold control, corrected closure text
+  and a Windows retention runner. No existing database was migrated, no retention
+  task installed, and no host changed.
+- Validation: 19 focused tests pass, including a populated migration test.
+  Wider account/Workshop/release run: 171 of 173 pass; the two failures are the
+  recorded managed-page and Workshop-admin heading expectations. Offline
+  migration metadata has no conflicts or drift.
+- The subsequent reviewed redaction path is recorded above. Scheduled retention
+  and recovery acceptance still require disposable rehearsal. RR 2 restructuring
+  remains deferred. See [RETENTION.md](RETENTION.md).
+
+## Database-readiness review recorded (25 November 2026)
+
+- Next checkpoint after release-switch work: review unused/duplicate tables and
+  fields, relationships/deletion behaviour, fresh-install migrations,
+  populated-upgrade preservation and retention.
+- Record evidenced findings in FIRST_RELEASE_READINESS.md before proposing
+  changes. Distinguish first-release blockers from optional cleanup and deferred
+  RR 2 restructuring. Fewer tables is not a launch requirement; deeper RR 2
+  restructuring waits for the final contract.
+- Source review is complete: [findings](DATABASE_READINESS_REVIEW.md). No migration
+  conflicts or model drift found. No table is classified as safe to drop.
+- Launch findings cover closure/anonymisation, retention, personal-data download
+  coverage, RR 1.0 reviewer permissions and ownership, and import/upgrade safety.
+  Runtime acceptance and host state remain unverified.
+- The owner authorized account-closure and retention follow-up, recorded above.
+  Deeper RR 2 restructuring
+  remains deferred. No schema/data change, reset, migration or deployment occurred.
+
+## First-release controls implemented locally (25 November 2026)
+
+- Added environment-owned `REGISTRATION_ENABLED`, `WORKSHOP_SUBMISSIONS_ENABLED`,
+  `RR1_SUBMISSIONS_ENABLED` and `RR2_ENABLED`. All default closed; invalid values
+  fail startup. No local `.env` or host configuration was changed.
+- Server-side gates cover direct routes and RR 2 admin access without a staff
+  bypass. Shared dashboards/profiles hide RR 2 while retaining RR 1.0; managed
+  rankings/statistics, navigation and intake controls follow the same policy.
+  RR 2 approval routing and leaderboard publication stop while disabled.
+- Existing account access/verification/recovery and published Workshop/RR 1.0
+  results remain available when their new intake closes. Effective non-secret
+  feature states appear in health responses and deployment-check output.
+- Fifteen boundary tests pass using disposable Django test databases. Full-feature
+  regressions can use `--settings=config.settings_test`; release-boundary tests
+  explicitly override switches. No existing database was reset or migrated.
+- Relevant regression run: 388 of 394 passed. All six failures reproduce on
+  unchanged `fe855cad` in an isolated archive. FIRST_RELEASE_READINESS.md records
+  them, including the shared production-startup/static-manifest blocker. Async
+  tests passed with internal loopback sockets permitted; no live server was started.
+- Configuration, limits and remaining release gates are recorded in
+  [FIRST_RELEASE_READINESS.md](FIRST_RELEASE_READINESS.md). This does not complete
+  hosted acceptance or make the site ready for release. The database review is
+  now recorded above; a separate disposable local acceptance environment and
+  approved-seed installation rehearsal must be informed by its findings.
+
+## Agreed staged rollout and first-release audit (25 November 2026)
+
+- Ship one application with RR 2 included but disabled through server-enforced
+  release controls. Open accounts and Workshop requests first; open RR 1.0
+  claims/updates after its accepted rehearsal and verified spreadsheet handover.
+- Repeat clean-install rehearsals on isolated hosted staging, preserving its
+  infrastructure and protected configuration. Initial production starts clean;
+  all real records then survive subsequent releases. Later RR 2 activation
+  requires a populated-upgrade rehearsal and never replaces the live database.
+- [FIRST_RELEASE_READINESS.md](FIRST_RELEASE_READINESS.md) records the agreed
+  sequence, current source evidence, blockers and acceptance criteria. No wipe,
+  migration, configuration change or deployment was performed or authorized.
+- The earlier cleanup remains required in two stages: first-release installation,
+  migration, seed/presentation and operational cleanup now; final contract,
+  compatibility and RR 2 statistics/review work before RR 2 activation, once
+  the contract and relevant decisions settle. Do not force unresolved RR 2
+  decisions merely to open the community features.
+- Original audit gaps: independent feature gates, retention deletion (expiry only
+  changes status), Workshop submission POST rate limits and a scoped full-site
+  staging rehearsal procedure. Enabled journeys and host recovery need fresh
+  candidate-specific acceptance. Release controls are now implemented locally
+  as recorded above; the other gates remain outstanding.
+
 ## Build 42.22.2 decompilation (10 November 2026)
 
 - Local Vineflower job 17 completed for installed Steam build `26486631`.
@@ -574,9 +767,10 @@
 
 ## Goal
 
-Prepare the public Rat Race platform for deployment. Participants can create a
-verified account, submit evidence-backed runs, follow rankings, inspect approved
-records, and read the managed rules, mod policy, and exploit rulings.
+Prepare the community release: verified accounts, Workshop requests, managed
+rules/mod policy and RR 1.0 handover with claims, updates and rankings. Include
+RR 2 in the application but keep it disabled until its separate contract and
+activation acceptance. See FIRST_RELEASE_READINESS.md for the staged scope.
 
 The Project Zomboid catalogue remains a lean lookup and resolver layer.
 Kind-specific classifications and gameplay fields belong to typed detail
@@ -587,8 +781,8 @@ records, while aliases and assets remain shared catalogue relationships.
 - The production environment, database, persistent media, web process, and
   reference worker are deployed and recoverable.
 - Required secrets and provider integrations pass deployment health checks.
-- Registration, account, submission, moderation, ranking, Rules, Mods, and
-  Exploits journeys pass a representative production-shaped acceptance test.
+- Registration, account, Workshop review, RR 1.0 and public information journeys
+  pass representative production-shaped acceptance, with RR 2 proven disabled.
 - Retention automation and the final pre-launch privacy review are complete.
 - The Rat Race 1.0 handover dataset is imported only after the team selects its
   spreadsheet handover date.
@@ -1150,9 +1344,12 @@ outward.
 
 ## Recommended next action
 
-Implement and verify the agreed submission review journey across Submission
-Reviews, Submission Audits and Challenge Runs, following
-[SUBMISSION_REVIEW_POLICY.md](SUBMISSION_REVIEW_POLICY.md).
+Complete and record the database-readiness review specified in
+[FIRST_RELEASE_READINESS.md](FIRST_RELEASE_READINESS.md) before proposing changes.
+Then use the findings to inform the separate disposable local acceptance
+environment and approved-seed installation rehearsal, preserving current
+development data. The RR 2 submission review/audit journey remains a
+separate activation gate under [SUBMISSION_REVIEW_POLICY.md](SUBMISSION_REVIEW_POLICY.md).
 
 Production deployment acceptance remains required, including persistent database
 and media storage, independent web and worker supervision, secret validation,
@@ -1165,29 +1362,37 @@ runs, submissions, credentials, notifications, or operational state.
 
 ## Remaining work
 
-### Before launch
+### Before first community release
 
-- Wider contract cleanup is deferred until the owner confirms the mod/export
-  contract is settled. Then re-audit current code before coordinated cleanup.
-  Launch supports fresh runs and explicitly approved tracked-checkpoint rollbacks,
-  not mid-save bootstrap. The concrete audit inventory and acceptance order are
-  in `PRODUCTION_DEPLOYMENT.md`, Deferred final contract audit and cleanup.
-- Required RR 2 gate: consolidate mod and website onto one supported launch data
-  schema and retire obsolete development compatibility. Perform a scoped RR 2
-  development-data reset and deploy a clean production database with required
-  setup/approved seed data, without development or staging records. Follow
-  `PRODUCTION_DEPLOYMENT.md`, Required RR 2 launch gate (21 November 2026).
-- Complete the agreed submission review and audit policy and its three distinct
-  administration areas, including automatic-approval eligibility and safeguards.
+- Complete the database-readiness review after release controls; record findings
+  before proposals and resolve evidenced launch blockers. Do not restructure
+  unsettled RR 2 data or target a lower table count as a release condition.
+- Verify the locally implemented server-side release gates on the accepted
+  hosted candidate. Keep RR 2 off in production while the contract/statistics evolve.
+- Complete installation/migration and approved seed-content cleanup. Rehearse
+  clean staging installation; do not clone local or staging records into live.
+- Close the source-audited blockers and acceptance gaps in FIRST_RELEASE_READINESS.md.
 - Complete retention automation and the final privacy review.
 - Run a production-shaped acceptance test across registration, account,
-  submission, moderation, rankings, Rules, Mods, and Exploits.
+  Workshop requests/review, RR 1.0, Rules, Mods, and Exploits, plus restore/rollback.
 - Test the full legacy import, claim, and participant-update journey with a
   representative export outside production. At initial deployment, both RR 1.0
   and RR 2 challenge-run datasets must be empty. Import real RR 1.0 results only
   after deployment/readiness checks and the agreed spreadsheet handover date.
 - Replace any remaining development-only navigation or gallery records before
   launch.
+
+### Before RR 2 activation
+
+- Once the owner confirms the final mod/export contract, re-audit and complete
+  the coordinated cleanup in PRODUCTION_DEPLOYMENT.md. Consolidate one supported
+  contract and remove obsolete development compatibility without weakening
+  integrity or approved tracked-checkpoint rollback protections. No mid-save bootstrap.
+- Resolve the relevant RR 2 statistics/page decisions and complete submission
+  review/audit acceptance, including automatic-approval safeguards.
+- Scope any development-data reset separately. Rehearse a populated upgrade on
+  hosted staging and preserve live accounts, Workshop requests, RR 1.0 records,
+  credentials and pending reviews. Never replace the live database at activation.
 
 ### Approved later work
 
@@ -1222,10 +1427,12 @@ against stored credentials without printing decrypted tokens.
 
 The repository now includes a strict `config.settings_production` boundary and
 the non-secret environment contract in `.env.example`. Production startup
-requires PostgreSQL, Redis, SMTP email, live Turnstile, avatar moderation, all
+requires PostgreSQL, configured runtime state, Graph email, live Turnstile, avatar moderation, all
 supported connected providers, and the complete Steam reference and
-decompilation toolchain. `/health/live/` identifies the running release, while
-`/health/ready/` verifies the database, shared cache, persistent storage, and a
+decompilation toolchain. The Windows profile uses database runtime state;
+Redis is required only for the cache-backed production profile.
+`/health/live/` identifies the running release, while
+`/health/ready/` verifies the database, configured runtime state, persistent storage, and a
 recent reference-worker heartbeat from that same release. The full audited
 contract and remaining host-specific work live in
 `docs/PRODUCTION_DEPLOYMENT.md`.

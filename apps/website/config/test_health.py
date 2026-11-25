@@ -10,11 +10,19 @@ from operations.worker_health import HEARTBEAT_CACHE_KEY
 
 class HealthEndpointTests(TestCase):
     def test_liveness_identifies_release_without_dependency_checks(self):
-        with override_settings(RELEASE_ID="release-123"):
+        with override_settings(
+            RELEASE_ID="release-123", REGISTRATION_ENABLED=True,
+            WORKSHOP_SUBMISSIONS_ENABLED=True, RR1_SUBMISSIONS_ENABLED=False,
+            RR2_ENABLED=False,
+        ):
             response = self.client.get(reverse("health-live"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"status": "alive", "release": "release-123"})
+        self.assertEqual(response.json(), {
+            "status": "alive", "release": "release-123",
+            "features": {"registration": True, "workshop_submissions": True,
+                         "rr1_submissions": False, "rr2": False},
+        })
 
     def test_readiness_checks_database_cache_storage_and_worker(self):
         with tempfile.TemporaryDirectory() as root:

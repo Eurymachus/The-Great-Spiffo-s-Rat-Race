@@ -1,5 +1,5 @@
-from django.templatetags.static import static
 from .legacy_admin_workspace import LegacyWorkspaceMixin
+from .legacy_review import lock_review_record
 import csv
 import uuid
 from datetime import timedelta
@@ -114,9 +114,15 @@ class LegacyRunAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
     list_filter = ("lifecycle",)
     search_fields = ("legacy_participant_name", "claimed_participant__nickname")
     readonly_fields = (
-        "source_key", "normalized_legacy_name", "current_submission", "best_submission",
+        "source_key", "normalized_legacy_name", "current_submission", "best_submission", "identity_removed", "claimed_participant",
         "created_at", "updated_at",
     )
+
+    def has_change_permission(self, request, obj=None):
+        return super().has_change_permission(request, obj) and not (obj and obj.identity_removed)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def has_add_permission(self, request):
         return False
@@ -124,6 +130,9 @@ class LegacyRunAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
 
 @admin.register(LegacyRunSubmission)
 class LegacyRunSubmissionAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
+    def has_change_permission(self, request, obj=None):
+        return super().has_change_permission(request, obj) and not (obj and obj.run.identity_removed)
+
     change_form_template = "admin/registry/legacyrunsubmission/change_form.html"
     list_display = (
         "run", "source", "status", "source_rank", "zombie_kills",
@@ -165,8 +174,10 @@ class LegacyRunSubmissionAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
             return HttpResponseNotAllowed(("POST",))
         submission = self.review_submission(request, object_id)
         with transaction.atomic():
-            submission = LegacyRunSubmission.objects.select_for_update().select_related("run", "submitted_by").get(pk=submission.pk)
-            run = LegacyRun.objects.select_for_update().select_related("best_submission").get(pk=submission.run_id)
+            submission, run = lock_review_record(submission)
+            if run.identity_removed:
+                self.message_user(request, "This retained result cannot be updated.", level=messages.ERROR)
+                return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
             if submission.source != LegacyRunSubmission.Source.PARTICIPANT or submission.status != LegacyRunSubmission.Status.RECEIVED:
                 self.message_user(request, "This Rat Race 1.0 submission is not awaiting review.", level=messages.WARNING)
                 return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
@@ -206,7 +217,7 @@ class LegacyRunSubmissionAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
             self.message_user(request, "A reason is required when declining a Rat Race 1.0 update.", level=messages.ERROR)
             return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
         with transaction.atomic():
-            submission = LegacyRunSubmission.objects.select_for_update().select_related("submitted_by").get(pk=submission.pk)
+            submission, run = lock_review_record(submission)
             if submission.source != LegacyRunSubmission.Source.PARTICIPANT or submission.status != LegacyRunSubmission.Status.RECEIVED:
                 self.message_user(request, "This Rat Race 1.0 submission is not awaiting review.", level=messages.WARNING)
                 return redirect("admin:registry_legacyrunsubmission_change", submission.pk)
@@ -251,9 +262,9 @@ class LegacyRunClaimAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
     class Media:
         css = {"all": (
             "registry/admin_run_review.css",
-            static("registry/admin_legacy_claim_review.css") + "?v=20261025-actions",
+            "registry/admin_legacy_claim_review.css",
         )}
-        js = (static("registry/admin_legacy_claim_review.js") + "?v=20261025-actions",)
+        js = ("registry/admin_legacy_claim_review.js",)
 
     def changelist_view(self, request, extra_context=None):
         context = dict(extra_context or {})
@@ -317,10 +328,10 @@ class LegacyRunClaimAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
             return HttpResponseNotAllowed(("POST",))
         claim = self.review_claim(request, object_id)
         with transaction.atomic():
-            claim = LegacyRunClaim.objects.select_for_update().select_related(
-                "run", "participant"
-            ).get(pk=claim.pk)
-            run = LegacyRun.objects.select_for_update().get(pk=claim.run_id)
+            claim, run = lock_review_record(claim)
+            if run.identity_removed:
+                self.message_user(request, "This retained result cannot be claimed.", level=messages.ERROR)
+                return redirect("admin:registry_legacyrunclaim_changelist")
             if claim.status != LegacyRunClaim.Status.PENDING:
                 self.message_user(request, "This claim has already been reviewed.", level=messages.WARNING)
                 return redirect("admin:registry_legacyrunclaim_change", claim.pk)
@@ -370,7 +381,7 @@ class LegacyRunClaimAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
             self.message_user(request, "A reason is required when declining a claim.", level=messages.ERROR)
             return redirect("admin:registry_legacyrunclaim_change", claim.pk)
         with transaction.atomic():
-            claim = LegacyRunClaim.objects.select_for_update().get(pk=claim.pk)
+            claim, run = lock_review_record(claim)
             if claim.status != LegacyRunClaim.Status.PENDING:
                 self.message_user(request, "This claim has already been reviewed.", level=messages.WARNING)
                 return redirect("admin:registry_legacyrunclaim_change", claim.pk)
@@ -418,7 +429,7 @@ class LegacyDataImportAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
     readonly_fields = (
         "id", "status", "leaderboard_filename", "hall_of_fame_filename",
         "leaderboard_sha256", "hall_of_fame_sha256",
-        "uploaded_by", "uploaded_at", "imported_at",
+        "uploaded_by", "uploaded_at", "imported_at", "redacted_at",
     )
     exclude = ("leaderboard_csv", "hall_of_fame_csv", "preview")
 
@@ -497,7 +508,7 @@ class LegacyDataImportAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
         if request.method != "POST":
             return HttpResponseNotAllowed(("POST",))
         review = self.get_object(request, object_id)
-        if review is None:
+        if review is None or not self.has_change_permission(request, review):
             raise Http404
         try:
             apply_legacy_import(review, request.user)
@@ -943,6 +954,9 @@ def promote_to_zomboid_integration(modeladmin, request, queryset):
 
 @admin.action(description="Process closure and redact selected participants")
 def process_account_closures(modeladmin, request, queryset):
+    from .retention import AccountDeletionBlocked, close_account, deletion_blockers, drain_file_deletions
+    from .closure_redaction import build_redaction_plan, review_details, review_token
+
     if not can_process_closures(request.user):
         modeladmin.message_user(
             request,
@@ -951,32 +965,51 @@ def process_account_closures(modeladmin, request, queryset):
         )
         return None
 
-    eligible = queryset.filter(
+    requested = queryset.filter(
         deletion_requested_at__isnull=False,
         is_staff=False,
     )
-    skipped = queryset.count() - eligible.count()
+    blocked = []
+    eligible = []
+    history_reviews = []
+    for participant in requested:
+        reasons = deletion_blockers(participant, reviewed_history=True)
+        plan = None
+        if not reasons:
+            try:
+                plan = build_redaction_plan(participant)
+                if plan["snapshot"]["holds"]:
+                    reasons.append("A retention hold protects related evidence.")
+            except AccountDeletionBlocked as exc:
+                reasons.extend(exc.messages)
+        if reasons:
+            blocked.append({"participant": participant, "reasons": reasons})
+        else:
+            eligible.append(participant)
+            if plan["has_history"]:
+                history_reviews.append({"participant": participant, "counts": plan["counts"],
+                                        "token": review_token(participant, plan), "details": review_details(plan)})
+    skipped = queryset.count() - len(eligible)
 
     if request.POST.get("confirm") == "yes":
         processed = 0
         for participant in eligible:
-            with transaction.atomic():
-                # Future Run.participant foreign keys must use SET_NULL so the
-                # participant identity is detached while each run survives.
-                # The registry milestone does not have a Run model yet.
-                closure_reference = (
-                    participant.deletion_request_reference or uuid.uuid4()
-                )
-                AccountClosureRecord.objects.get_or_create(
-                    reference=closure_reference,
-                    defaults={"requested_at": participant.deletion_requested_at},
-                )
-                participant.delete()
+            try:
+                token = request.POST.get(f"redaction_token_{participant.pk}") if request.POST.get("reviewed_redaction") == "yes" else None
+                close_account(participant.pk, redaction_token=token)
                 processed += 1
+            except AccountDeletionBlocked as exc:
+                modeladmin.message_user(request, "; ".join(exc.messages), level=messages.ERROR)
+                skipped += 1
+            except Participant.DoesNotExist:
+                skipped += 1
+        # Only run after the closure transaction has committed. Failed jobs remain
+        # queued for the scheduled retention command to retry.
+        transaction.on_commit(drain_file_deletions)
         modeladmin.message_user(
             request,
             f"Processed {processed} account closure(s). "
-            f"Skipped {skipped} account(s) without a pending request or with staff access.",
+            f"Skipped {skipped} account(s) requiring review or without an eligible request.",
             level=messages.SUCCESS,
         )
         return None
@@ -985,7 +1018,9 @@ def process_account_closures(modeladmin, request, queryset):
         **modeladmin.admin_site.each_context(request),
         "title": "Confirm account closure and redaction",
         "queryset": eligible,
-        "eligible_count": eligible.count(),
+        "eligible_count": len(eligible),
+        "blocked_accounts": blocked,
+        "history_reviews": history_reviews,
         "skipped_count": skipped,
         "action_checkbox_name": ACTION_CHECKBOX_NAME,
         "opts": modeladmin.model._meta,
@@ -1055,7 +1090,7 @@ class ParticipantAdmin(UserAdmin):
         (None, {"fields": ("email", "password")}),
         ("Participant", {"fields": ("nickname", "nationality", "status", "verified_at", "admin_notes")}),
         ("Avatar", {"fields": ("avatar", "avatar_status", "avatar_submitted_at", "avatar_review_preview", "avatar_review_path", "avatar_moderation_note")}),
-        ("Account closure request", {"fields": ("deletion_requested_at", "deletion_request_note")}),
+        ("Account closure request", {"fields": ("deletion_requested_at", "deletion_request_note", "retention_hold")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
         ("Registration record", {"fields": ("id", "normalized_nickname", "normalized_email", "registered_at", "privacy_notice_acknowledged_at", "privacy_notice_version", "age_eligibility_confirmed_at", "age_policy_version", "verification_sent_at")}),
     )

@@ -110,6 +110,11 @@ class Page(models.Model):
         default=ContentWidth.STANDARD,
         help_text="The default maximum width used by sections on this page.",
     )
+    required_release = models.CharField(
+        max_length=16, blank=True, default="",
+        choices=(("", "Always available"), ("rr2", "Rat Race 2.0")),
+        help_text="Keep this page and its navigation hidden until the selected release is enabled.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -154,6 +159,11 @@ class Page(models.Model):
         return reverse("registry:page", kwargs={"page_path": self.public_path})
 
     def is_visible_to(self, user):
+        if self.required_release:
+            from config.release_controls import enabled
+
+            if not enabled(self.required_release):
+                return False
         if self.audience == self.Audience.VISITORS:
             return not user.is_authenticated
         if self.audience == self.Audience.SIGNED_IN:

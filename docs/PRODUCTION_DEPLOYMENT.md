@@ -1,8 +1,25 @@
 # Production Deployment Contract
 
+## Current rollout: community first, RR 2 dormant (25 November 2026)
+
+The agreed sequence and first-release audit are in
+[FIRST_RELEASE_READINESS.md](FIRST_RELEASE_READINESS.md). Ship RR 2 code and
+migrations behind a server-enforced disabled production switch. Open accounts
+and Workshop requests first, then RR 1.0 claims/updates after the verified
+spreadsheet handover. The final RR 2 contract and statistics decisions do not
+block this release if their functionality is properly isolated.
+
+Rehearse clean installation repeatedly on isolated hosted staging before the
+first production launch. Preserve staging infrastructure and protected secrets;
+reset application data only through a separately authorized, scoped procedure.
+Once real production accounts or submissions exist, all later releases preserve
+them. RR 2 activation requires a populated-upgrade rehearsal, not another clean
+production database. This sequence supersedes the combined-launch ordering in
+earlier notes. No reset, migration or deployment is authorized by this record.
+
 ## Required RR 2 launch gate: consolidate the data contract (21 November 2026)
 
-Before the first live Rat Race 2 rollout, simplify the mod and website together
+Before enabling live Rat Race 2 functionality, simplify the mod and website together
 onto one supported launch schema. Earlier RR 2 development formats are not a
 permanent compatibility obligation. This gate is pending, not completed.
 The wider cleanup is audit-only during active development; implementation waits
@@ -11,13 +28,15 @@ approved rollbacks of tracked checkpoints. Rollback approval, lineage and
 integrity protections are distinct from partial collector coverage. Arbitrary
 mid-save bootstrap is not a supported launch entry path.
 
-Initial deployment starts with a clean production database, initialized through
+The initial community deployment starts with a clean production database, initialized through
 the launch migrations and required setup/approved seed data. Do not clone a
 development or staging database or carry over test runs, submissions, claims or
 rehearsal imports. Both RR 1.0 and RR 2 challenge-run datasets are empty at
 deployment. Import the real RR 1.0 results only AFTER deployment and its readiness
 checks, when the team selects the spreadsheet handover date. Preserve the source
 spreadsheets until that import is verified. The handover does not close RR 1.0.
+This initialization happens once, before real accounts or submissions exist.
+The later RR 2 deployment upgrades that database without replacing it.
 
 - Freeze and document one launch data contract shared by collection, persistence,
   export, validation and approved-run normalization. Remove redundant section
@@ -51,7 +70,7 @@ or authorize deleting current data now. See the matching decision in `DECISIONS.
 
 Timing: continue developing and testing until the owner confirms the final
 mod/export contract is settled. Then run a fresh audit against that code, perform
-coordinated cleanup, and complete launch acceptance. Do not start wider cleanup
+coordinated cleanup, and complete RR 2 activation acceptance. Do not start wider cleanup
 from this inventory now. Entertainment is a separately authorized workstream;
 recheck its finished contract without duplicating its implementation.
 
@@ -150,13 +169,15 @@ that these branches remain present at final audit.
    rollback evidence, unauthorized rollback rejection, corruption handling and
    clear rejection of obsolete development saves/exports. Desktop tests alone
    do not prove in-game lifecycle behavior.
-4. Verify the chosen launch migrations and approved setup/seed data on a fresh
-   database, with zero RR 1.0/RR 2 challenge runs, submissions, claims or rehearsal
-   imports. Rehearse RR 1.0 import/claim/update outside production. Verify readiness
-   and document application/database rollback compatibility before deployment.
-5. Deploy clean production and complete readiness checks. Import real RR 1.0
-   results only at the subsequently agreed spreadsheet handover. Preserve both
-   editions' real records and unrelated production data once they exist.
+4. Verify fresh installation remains supported, then rehearse upgrading the
+   earlier community release with representative accounts, Workshop requests,
+   RR 1.0 claims/results, credentials and pending reviews. Prove preservation
+   and document application/database rollback compatibility. Empty-install
+   success alone does not satisfy the populated-upgrade gate.
+5. Upgrade existing production without replacing its database or erasing real
+   records. Verify readiness and protected data, then enable RR 2 only after
+   its separate acceptance. Initial clean community deployment and the RR 1.0
+   handover follow FIRST_RELEASE_READINESS.md and can precede this work.
 
 These notes record audit findings and future acceptance requirements only. They
 do not execute or authorize a current reset, migration application or deployment.
@@ -264,16 +285,18 @@ must continue operating independently after a deployment task ends.
 Production runs these independently supervised services:
 
 - A reverse proxy providing HTTPS and forwarding to the ASGI application.
-- The Django ASGI application using `config.settings_production`.
+- The Django ASGI application using the selected production settings profile.
 - One `run_reference_update_worker` process.
 - PostgreSQL for durable application data.
-- Redis for shared caching, rate limits, and worker health.
+- Shared runtime state: PostgreSQL for the native Windows profile, or Redis
+  for the cache-backed container profile.
 
 A host scheduler may enqueue routine reference updates. It must not replace the
 continuously supervised worker.
 
-`compose.production.yml` provides the web, reference worker, PostgreSQL, and
-Redis topology decided for the Ubuntu production VM. It binds the web service to
+`compose.production.yml` retains the web, reference worker, PostgreSQL, and
+Redis topology for the container alternative. The current rollout uses native
+Windows and the isolated hosted staging described below. Compose binds the web service to
 the VM loopback interface only. The selected host HTTPS or tunnel layer must
 forward to that listener. WhiteNoise serves versioned static assets from the web
 container. Persistent uploaded and generated catalogue media is served by the
@@ -284,8 +307,10 @@ symlink escapes, preserves MIME types, and sends ordinary public cache headers.
 
 ## Production settings
 
-`config.settings_production` is the only supported production settings module.
-It validates the complete environment before Django starts. Missing integrations
+`config.settings_production` is the common production boundary;
+`config.settings_windows_production` selects database runtime state and
+`config.settings_windows_staging` adds the isolated staging controls.
+They validate the complete environment before Django starts. Missing integrations
 are startup failures because production is expected to provide every documented
 website capability.
 
@@ -302,7 +327,7 @@ host's secret and configuration mechanism and must never be committed.
 
 - A supported Python release and all packages in `apps/website/requirements.txt`.
 - PostgreSQL client tools suitable for backup and restore.
-- Redis.
+- Redis only when selecting the cache-backed runtime-state profile.
 - SteamCMD, including a persistent installation directory and Steam session.
 - Java and the pinned Vineflower JAR used by reference decompilation.
 - A reverse proxy, service supervisor, and scheduler appropriate to the host.
@@ -345,13 +370,22 @@ collected-static directory. WhiteNoise does not serve this media tree.
 
 - `/health/live/` confirms that the application process can answer and reports
   its release identifier.
-- `/health/ready/` verifies PostgreSQL, Redis, persistent storage, and a recent
+- `/health/ready/` verifies PostgreSQL, configured runtime state, persistent storage, and a recent
   heartbeat from a reference worker running the same release.
 
 Health responses expose component status only. They must not reveal paths,
 credentials, exception details, or participant data.
 
 ## Release sequence
+
+The steps below describe the general release obligations. For the current
+native Windows rollout, use the explicit staging/production paths and scripts
+in FIRST_RELEASE_READINESS.md; container/image steps are not Windows commands.
+Back up and pause writes before incompatible migrations. The local candidate's
+staging wrapper rejects active scoped web/worker processes before preparation;
+it does not stop writers for the operator. The generic preparer also requires
+an explicit write pause. Do not assume these safeguards exist in older deployed
+scripts. See BACKUP_RESTORE_REHEARSAL.md for the prepared recovery rehearsal.
 
 1. Fetch the approved commit into a new release directory.
 2. Supply `.env.production` through the host's protected deployment storage.
@@ -387,7 +421,8 @@ switching, destructive data changes, or approval of public policy wording.
 - Add a production-shaped acceptance runner.
 - Complete retention automation and the final privacy review.
 - Exercise the legacy import and claim journey with representative data.
-- Remove development-only records before the final production data snapshot.
+- Create production from approved setup/seed data, not a development database
+  snapshot. See FIRST_RELEASE_READINESS.md for the complete current blocker list.
 
 ## Windows staging deployment
 
@@ -417,6 +452,12 @@ The standard staging installer invokes `Prepare-RatRaceRelease.ps1` with the
 release, protected staging environment file, and staging Python executable. The
 preparation command applies migrations, reconciles all standard roles, and
 collects static files before the web and worker processes are replaced.
+As of the 25 November launch checks, this wrapper requires elevation and rejects
+active staging web/worker processes before preparation. Pause incoming writes,
+stop and prevent automatic restart of the scoped tasks/process trees, and verify
+the backup/recovery point before calling it. The generic preparer does not stop
+writers; it must never be called against a populated live database while writes
+continue. This guard has been tested with process fixtures, not by deploying.
 Create the protected staging environment with
 `New-RatRaceStagingEnvironment.ps1` only after its isolated PostgreSQL fragment
 exists. Cloudflare routing and any optional Access policy are configured last,

@@ -1,4 +1,5 @@
 from .models import ChallengeRun, LegacyRun
+from config.release_controls import enabled
 from .run_public import build_public_run_context
 from pages.ranking_config import default_ranking_config, validate_ranking_config
 from zomboid_catalogue.models import CatalogueAsset
@@ -73,6 +74,8 @@ def build_ranking_table(raw_config=None):
     config = validate_ranking_config(raw_config or default_ranking_config())
     if config["source"] in {"legacy_leaderboard", "legacy_hall_of_fame"}:
         return _build_legacy_ranking_table(config)
+    if not enabled("rr2"):
+        return []
     runs = ChallengeRun.objects.filter(
         status=ChallengeRun.Status.OFFICIAL,
         participant__isnull=False,

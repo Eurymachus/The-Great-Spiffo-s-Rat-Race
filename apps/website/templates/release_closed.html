@@ -1,0 +1,9 @@
+{% extends "registry/base.html" %}
+{% block title_suffix %} | Not open{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>Not open yet</h2>
+  <p>{{ release_message }}</p>
+  <a href="{% url 'registry:home' %}">Return to home</a>
+</section>
+{% endblock %}

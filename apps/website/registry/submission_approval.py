@@ -8,6 +8,7 @@ from .run_block_cache import attach_verified_blocks, decode_run_export_cached
 from .run_authority import refresh_initial_run_authority
 from .challenge_modes import resolve_challenge_mode
 from .notifications import notify
+from config.release_controls import MESSAGES, enabled
 
 POLICY_VERSION = 3
 
@@ -19,6 +20,8 @@ class ApprovalBlocked(Exception):
 
 @transaction.atomic
 def approve_submission(submission_id, reviewer=None, *, automatic=False):
+    if not enabled("rr2"):
+        raise ApprovalBlocked(MESSAGES["rr2"])
     submission = RunSubmission.objects.select_related('run').get(pk=submission_id)
     if submission.run.participant_id:
         Participant.objects.select_for_update().get(pk=submission.run.participant_id)
@@ -171,6 +174,8 @@ def review_triggers(submission):
 
 def route_run(run_id):
     """Reassess the ordered queue, advancing only a clean eligible prefix."""
+    if not enabled("rr2"):
+        return
     if ChallengeRun.objects.filter(pk=run_id, lifecycle_status__in=("invalidated",)).exists():
         return
     from .vod_evidence import check_vod

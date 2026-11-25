@@ -241,6 +241,8 @@ def _create_submission(run, record, source, review, reviewer):
 @transaction.atomic
 def apply_legacy_import(review, reviewer):
     review = LegacyDataImport.objects.select_for_update().get(pk=review.pk)
+    if review.redacted_at or LegacyRun.objects.filter(identity_removed=True).exists():
+        raise ValidationError("Legacy records cannot be replaced after identity removal.")
     if review.status != LegacyDataImport.Status.PREVIEW:
         raise ValidationError("This Rat Race 1.0 data import has already been resolved.")
     preview = build_legacy_import_preview(review.leaderboard_csv, review.hall_of_fame_csv)

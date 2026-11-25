@@ -1,12 +1,15 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from operations.deployment_checks import evaluate_production_deployment_checks
+from config.release_controls import release_state
 
 
 class Command(BaseCommand):
     help = "Validate production configuration and host dependencies."
 
     def handle(self, *args, **options):
+        for name, active in release_state().items():
+            self.stdout.write(f"[FEATURE] {name}: {'enabled' if active else 'disabled'}")
         results = evaluate_production_deployment_checks()
         for name, passed in results.items():
             marker = "PASS" if passed else "FAIL"

@@ -1,7 +1,5 @@
 import uuid
-from pathlib import Path
 
-from django.conf import settings
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -65,6 +63,10 @@ class Participant(AbstractUser):
     deletion_request_reference = models.UUIDField(null=True, blank=True, editable=False)
     deletion_request_note = models.TextField(blank=True)
     admin_notes = models.TextField(blank=True)
+    retention_hold = models.BooleanField(
+        default=False,
+        help_text="Pause deletion for an active dispute or obligation. Record the reason and review date in admin notes.",
+    )
     avatar = models.ImageField(upload_to="participant_avatars/", blank=True)
     avatar_status = models.CharField(
         max_length=16, choices=AvatarStatus.choices, default=AvatarStatus.NONE
@@ -96,13 +98,6 @@ class Participant(AbstractUser):
         self.normalized_email = self.email.casefold()
         super().save(*args, **kwargs)
 
-    def delete(self, *args, **kwargs):
-        if self.avatar:
-            self.avatar.delete(save=False)
-        if self.avatar_review_path:
-            (Path(settings.AVATAR_QUARANTINE_ROOT) / self.avatar_review_path).unlink(missing_ok=True)
-        return super().delete(*args, **kwargs)
-
     def __str__(self):
         return self.nickname
 
@@ -117,6 +112,17 @@ class AccountClosureRecord(models.Model):
 
     def __str__(self):
         return f"Closure {self.reference}"
+
+
+class RetentionFileDeletion(models.Model):
+    """Committed file deletion work, retried outside the account transaction."""
+
+    kind = models.CharField(max_length=16, choices=(("avatar", "Avatar"), ("quarantine", "Quarantine")))
+    name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("kind", "name"), name="unique_retention_file_deletion")]
 
 
 class Notification(models.Model):
@@ -1205,6 +1211,7 @@ class LegacyRun(models.Model):
         DECEASED = "deceased", "Deceased"
 
     source_key = models.CharField(max_length=64, unique=True)
+    identity_removed = models.BooleanField(default=False, editable=False)
     legacy_participant_name = models.CharField(max_length=160, db_index=True)
     normalized_legacy_name = models.CharField(max_length=160, unique=True, editable=False)
     lifecycle = models.CharField(
@@ -1233,6 +1240,10 @@ class LegacyRun(models.Model):
         ordering = ("legacy_participant_name",)
         verbose_name = "Rat Race 1.0 run"
         verbose_name_plural = "Rat Race 1.0 runs"
+        constraints = [models.CheckConstraint(
+            condition=models.Q(identity_removed=False) | models.Q(claimed_participant__isnull=True),
+            name="removed_legacy_identity_has_no_owner",
+        )]
 
     def __str__(self):
         return self.claimed_participant.nickname if self.claimed_participant_id else self.legacy_participant_name
@@ -1315,6 +1326,7 @@ class LegacyDataImport(models.Model):
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     imported_at = models.DateTimeField(null=True, blank=True)
+    redacted_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:
         ordering = ("-uploaded_at",)
