@@ -10,7 +10,9 @@
   counts were preserved. Live remains `6582cc4` behind its construction page.
 - Registration and Workshop requests are on for testing. RR 1 intake, RR 2
   and leaderboard publishing are off. Staging mail is restricted to the owner's
-  single approved recipient for signup/reset acceptance; real delivery is pending.
+  single approved recipient for signup/reset acceptance. Real verification mail,
+  link activation and EuryDev sign-in succeeded; host status is verified/active.
+  A stale pending message on `/thanks/` was found and is being corrected.
 - Health, matching worker, unique process trees, static asset, retention preview
   and anonymous in-app browser checks pass. Synthetic signed-in Workshop/data
   download/permission checks and a staging web/worker restart also pass. Real

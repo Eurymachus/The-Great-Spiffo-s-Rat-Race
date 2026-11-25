@@ -669,6 +669,26 @@ class LegacyDataImportTests(TestCase):
 
 
 class RegistrationTests(TestCase):
+    def test_thanks_reflects_verification_in_another_browser(self):
+        self.client.post(reverse("registry:register"), self.registration_data())
+        participant = Participant.objects.get(email="player@example.com")
+        self.assertContains(self.client.get(reverse("registry:thanks")), "pending verification")
+        other_browser = self.client_class()
+        other_browser.get(reverse("registry:verify", kwargs={"token": create_verification_token(participant)}))
+        response = self.client.get(reverse("registry:thanks"))
+        self.assertContains(response, "Email verified")
+        self.assertNotContains(response, "pending verification")
+        self.assertIn("no-store", response.headers["Cache-Control"])
+
+    def test_thanks_handles_existing_nickname_only_signup_session(self):
+        self.client.post(reverse("registry:register"), self.registration_data())
+        participant = Participant.objects.get(email="player@example.com")
+        self.client.get(reverse("registry:verify", kwargs={"token": create_verification_token(participant)}))
+        session = self.client.session
+        session.pop("registered_participant_id")
+        session.save()
+        self.assertContains(self.client.get(reverse("registry:thanks")), "Email verified")
+
     def setUp(self):
         cache.clear()
         turnstile_patcher = patch(

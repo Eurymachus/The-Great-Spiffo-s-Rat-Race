@@ -399,6 +399,7 @@ def register(request):
         )
         verification_url = issue_verification(participant, request)
         request.session["registered_nickname"] = participant.nickname
+        request.session["registered_participant_id"] = str(participant.pk)
         request.session.pop(AGE_ELIGIBILITY_SESSION_KEY, None)
         request.session.pop(AGE_ELIGIBILITY_HANDOFF_KEY, None)
         if settings.DEBUG:
@@ -415,10 +416,22 @@ def register(request):
     )
 
 
+@never_cache
 def thanks(request):
     nickname = request.session.get("registered_nickname")
     if not nickname:
         return redirect("registry:register")
+    participant_id = request.session.get("registered_participant_id")
+    # Older signup sessions only recorded the reserved nickname.
+    lookup = {"pk": participant_id} if participant_id else {"nickname": nickname}
+    participant = Participant.objects.filter(**lookup).first()
+    if participant and participant.status == Participant.Status.VERIFIED:
+        request.session.pop("development_verification_url", None)
+        return render(
+            request,
+            "registry/verification_result.html",
+            {"result": "verified", "participant": participant},
+        )
     context = {
         "nickname": nickname,
         "development_verification_url": request.session.get(

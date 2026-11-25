@@ -97,7 +97,15 @@ remained `6582cc4`, returning its construction-page HTTP 503.
 
 ## Remaining acceptance
 
-Real inbox/link confirmation remains pending. Provider
+The owner received the verification message and followed its link, then signed
+in as EuryDev. A read-only host check confirmed that the approved email and
+nickname identify the same verified, active account with a verification timestamp.
+The owner found that revisiting `/thanks/` still said pending. That view used
+only the old session nickname and static copy; it did not reread account status.
+The fix tracks the signup account ID, supports existing nickname-only sessions,
+checks current verification state and prevents caching of the confirmation page.
+Regression coverage includes verification in another browser and older sessions.
+Password-reset acceptance remains pending. Provider
 callbacks and the reconciled RR 1 claim/update handover remain separate gates.
 No wipe, live deployment, host reboot or retention deletion is authorized here.
 RR 2 remains disabled; no final contract/statistics restructuring was undertaken.
