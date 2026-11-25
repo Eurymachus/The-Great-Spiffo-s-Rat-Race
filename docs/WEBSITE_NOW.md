@@ -1,5 +1,21 @@
 # Website: Current Focus
 
+## Staging rehearsal authorized and deployed (25 November 2026)
+
+- Staging now runs `f88086ed`, application-identical to the accepted `c9b7fead`.
+  Protected paused-writer capture preceded migration; audited populated data
+  counts were preserved. Live remains `6582cc4` behind its construction page.
+- Registration and Workshop requests are on for testing. RR 1 intake, RR 2
+  and leaderboard publishing are off. Staging mail is restricted to the owner's
+  single approved recipient for signup/reset acceptance; real delivery is pending.
+- Health, matching worker, unique process trees, static asset, retention preview
+  and anonymous in-app browser checks pass. Synthetic signed-in Workshop/data
+  download/permission checks and a staging web/worker restart also pass. Real
+  mail delivery checks are proceeding with the owner's approved test recipient.
+- [STAGING_REHEARSAL_2026-11-25.md](STAGING_REHEARSAL_2026-11-25.md) records
+  the rollback package, actual evidence and remaining gates. The earlier
+  no-deployment statements below describe history before this authorization.
+
 ## Operational cleanup candidate (25 November 2026)
 
 - Candidate `c9b7fead` now passes all **442 PostgreSQL tests, zero skips**, plus

@@ -131,7 +131,7 @@
   </dialog>
 
   {% if release_controls.workshop_submissions %}
-  <dialog class="mod-submit-modal mod-review-submit-modal" data-mod-submit-dialog{% if open_submission_modal %} data-open-on-load{% endif %} aria-labelledby="mod-submit-title">
+  <dialog class="mod-submit-modal {% if request.user.is_authenticated %}mod-review-submit-modal{% else %}mod-submit-auth-modal{% endif %}" data-mod-submit-dialog{% if open_submission_modal %} data-open-on-load{% endif %} aria-labelledby="mod-submit-title">
     <header><div><p class="account-dashboard-kicker">Team review</p><h2 id="mod-submit-title">Submit a mod for review</h2></div><button type="button" class="mods-secondary-action" data-mod-submit-close>Close</button></header>
     <div class="mod-submit-content">
       {% if request.user.is_authenticated %}
@@ -159,7 +159,7 @@
       </form>
       {% else %}
       <p>Sign in to your participant account to submit a mod for team review.</p>
-      <div class="mod-submit-auth-actions">{% if release_controls.registration %}<a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a>{% endif %}<a class="dashboard-header-action" href="{% url 'registry:login' %}?next={% url 'registry:mods' %}">Sign In</a></div>
+      <div class="mod-submit-auth-actions"><a class="dashboard-header-action" href="{% url 'registry:login' %}?next={% url 'registry:mods' %}">Sign In</a>{% if release_controls.registration %}<a class="mods-secondary-action" href="{% url 'registry:register' %}">Sign Up</a>{% endif %}</div>
       {% endif %}
     </div>
   </dialog>

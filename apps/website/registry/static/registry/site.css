@@ -1497,7 +1497,13 @@
 .mod-review-submit-modal .mod-workshop-selection[hidden]::before { content: "Choose a Workshop mod to submit"; font-weight: 700; }
 .mod-workshop-status:empty { display: none; }
 .mod-workshop-status { margin: 0; color: var(--theme-muted); }
-.mod-submit-auth-actions { display: flex; justify-content: flex-end; gap: .75rem; }
+.mod-submit-auth-modal { width: min(92vw, 32rem); max-height: calc(100dvh - 2rem); }
+.mod-submit-auth-modal > header { align-items: flex-start; }
+.mod-submit-auth-modal > header > div { min-width: 0; }
+.mod-submit-auth-modal > header button { flex-shrink: 0; }
+.mod-submit-auth-modal > header h2 { font-size: clamp(1.25rem, 4vw, 1.6rem); }
+.mod-submit-auth-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; }
+.mod-submit-auth-actions > a { display: inline-flex; align-items: center; justify-content: center; }
 .mod-rules-modal { width: min(92vw, 52rem); max-height: calc(100dvh - 2rem); overflow: hidden; }
 .mod-rules-modal[open] { display: flex; flex-direction: column; }
 .mod-rules-content { min-height: 0; overflow-y: auto; }

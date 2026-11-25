@@ -1359,3 +1359,17 @@ conflicting claims. A fresh moderator decision is required.
 - First-release implementation covers RR 1.0 and Workshop moderation text and
   retains scores, ownership/claim decisions and published policy. RR 2 evidence
   restructuring/expiry remains behind its contract and activation gates.
+
+## 2026-11-25 - Authorize the candidate staging rehearsal
+
+- Following isolated PostgreSQL acceptance, the owner authorized the next
+  staging rehearsal, including provider journeys and operational checks.
+- Deploy the tested application through the existing dev branch Git workflow
+  to staging only, preserving its populated data and capturing a protected,
+  coordinated rollback point before migration or cutover.
+- Keep RR 2 disabled. Use synthetic staging records where needed and prevent
+  outbound mail and leaderboard publishing during automated rehearsal.
+- This does not authorize live deployment, existing-data wipes, host reboot,
+  real-user messages, or applying retention expiry to existing records.
+- Record actual checks and remaining interactive/provider gates separately;
+  this authorization is not launch sign-off.

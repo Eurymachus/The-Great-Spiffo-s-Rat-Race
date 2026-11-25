@@ -39,6 +39,7 @@ class FirstReleaseInstallationTests(TestCase):
                 self.assertEqual(Page.objects.get(slug="challenge-rules").required_release, "rr2")
                 self.assertEqual(self.client.get("/").status_code, 200)
                 homepage = self.client.get("/")
+                self.assertContains(homepage, 'href="/mods/"')
                 for path in ("/rules/", "/halloffame/"):
                     self.assertEqual(self.client.get(path).status_code, 404)
                     self.assertNotContains(homepage, f'href="{path}"')
