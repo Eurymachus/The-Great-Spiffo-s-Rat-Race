@@ -2287,6 +2287,22 @@ class RegistrationTests(TestCase):
         self.assertEqual(reused_response.status_code, 400)
         self.assertContains(reused_response, "already been used", status_code=400)
 
+    def test_signed_in_password_reset_pages_redirect_without_sending_email(self):
+        participant = Participant.objects.create_user(
+            email="reset-navigation@example.com", nickname="ResetNavigation",
+            password="Test-password-482!", status=Participant.Status.VERIFIED,
+            is_active=True,
+        )
+        self.client.force_login(participant)
+        mail.outbox.clear()
+        for route in ("registry:password_reset", "registry:password_reset_complete"):
+            for method in ("get", "post"):
+                with self.subTest(route=route, method=method):
+                    response = getattr(self.client, method)(reverse(route))
+                    self.assertRedirects(response, reverse("registry:account"), fetch_redirect_response=False)
+                    self.assertIn("no-store", response.headers["Cache-Control"])
+        self.assertEqual(len(mail.outbox), 0)
+
     def test_password_reset_does_not_reveal_unknown_email(self):
         response = self.client.post(
             reverse("registry:password_reset"), {"email": "unknown@example.com"}

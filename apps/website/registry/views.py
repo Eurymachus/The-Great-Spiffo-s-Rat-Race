@@ -2423,7 +2423,10 @@ def account_closure_received(request):
 
 
 @require_http_methods(["GET", "POST"])
+@never_cache
 def password_reset_request(request):
+    if request.user.is_authenticated:
+        return redirect("registry:account")
     form = PasswordResetRequestForm(request.POST or None)
     submitted = False
     development_reset_url = None
@@ -2511,5 +2514,8 @@ def password_reset_confirm(request, uidb64, token):
     )
 
 
+@never_cache
 def password_reset_complete(request):
+    if request.user.is_authenticated:
+        return redirect("registry:account")
     return render(request, "registry/password_reset_complete.html")

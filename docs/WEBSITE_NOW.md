@@ -1,5 +1,11 @@
 # Website: Current Focus
 
+- Password reset rehearsal: owner received the reset message, reset in another
+  browser and signed in. They reused the same password, so old-password rejection
+  is not yet proven manually. Signed-in reset request/completion pages now
+  redirect to the dashboard with no-store caching; token validation remains
+  unchanged. Continue with a different test password and used-link rejection.
+
 - Dashboard presentation follow-up: while RR 2 is off, show a small
   "Rat Race 2.0 · Finalising" notice beneath the welcome copy. When Workshop
   requests are open, make mod submission the main action, linking directly to
