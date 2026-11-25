@@ -90,4 +90,8 @@ and dedicated `RR_TEST_POSTGRES_USER`/`RR_TEST_POSTGRES_PASSWORD`. Use a fresh
 cluster with no existing `test_ratrace_launch` database. Never load host `.env`.
 Run `scripts/test_first_release.ps1 -PostgreSQL` only with that isolated setup.
 Its three profile safety tests pass locally. The scoped SQLite suite now runs
-442 tests: 440 pass, two PostgreSQL-only tests skip. PostgreSQL evidence pending.
+442 tests: 440 pass, two PostgreSQL-only tests skip. The corrected candidate
+`c9b7fead` subsequently passed all 442 on isolated PostgreSQL18.4 with no skips,
+plus all 14 operational tests and the real Windows logger fixture. A synthetic
+PostgreSQL capture also passed. See POSTGRES_ACCEPTANCE_2026-11-25.md. This does
+not install or activate any maintenance job in live or staging.

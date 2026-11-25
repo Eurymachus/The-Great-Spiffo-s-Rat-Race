@@ -2,16 +2,24 @@
 
 ## Operational cleanup candidate (25 November 2026)
 
+- Candidate `c9b7fead` now passes all **442 PostgreSQL tests, zero skips**, plus
+  **14 operational tests** on OSWALD. Both concurrency checks ran. A separate
+  construction-site DB clone preserved 129 migration entries and the seeded mod,
+  applying 61 newer migrations. Temporary cluster stopped; live/staging untouched.
+  See [POSTGRES_ACCEPTANCE_2026-11-25.md](POSTGRES_ACCEPTANCE_2026-11-25.md).
+
 - Added repeatable protected backup capture, preview-first manifest-scoped
   30-day backup/90-day closed-log expiry, and daily/size-based web/worker log
   segmentation. The maintenance runner requires capture success before apply.
   Nothing is deployed/scheduled and existing logs/artifacts are not adopted.
 - [HOST_MAINTENANCE.md](HOST_MAINTENANCE.md) records usage and limitations.
-  Thirteen artifact/logging tests and a real disposable Windows ACL/log check
+  Fourteen artifact/logging tests and a real disposable Windows ACL/log check
   pass. Scoped SQLite regression: 442 tests, 440 passes and two PostgreSQL skips.
-- Isolated PostgreSQL settings reject production/staging ports. Use Git on
-  `codex/rat-race-dev` for candidate transfer into a separate host test checkout,
-  not source payloads in chat. Keep unrelated `docs/IDEAS.md` edits out of commit.
+- Isolated PostgreSQL settings reject production/staging ports. Git on
+  `codex/rat-race-dev` was used for candidate transfer into a separate host test
+  checkout, not source payloads in chat. Unrelated `docs/IDEAS.md` edits remain
+  uncommitted. Next gate is an explicitly authorized candidate staging rehearsal
+  and the remaining hosted/provider/operational checks, not more schema cleanup.
 
 ## OSWALD inventory received (25 November 2026)
 

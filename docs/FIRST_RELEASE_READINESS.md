@@ -87,6 +87,17 @@ Primary evidence:
 
 ## First-release blockers and required evidence
 
+### Current isolated host checkpoint, 25 November 2026
+
+Candidate `c9b7fead` passed all 442 scoped tests on PostgreSQL18.4 with zero
+skips and 14 operational tests. Both concurrency cases ran. A separate restore
+of the construction-site database preserved its 129 migration entries and seeded
+mod while applying 61 new migrations. This clone contained zero participant
+accounts/submissions. The temporary cluster is stopped; live/staging remain on
+their original releases. [POSTGRES_ACCEPTANCE_2026-11-25.md](POSTGRES_ACCEPTANCE_2026-11-25.md)
+records evidence and limitations. This supersedes PostgreSQL gaps in the older
+checkpoints only for the tested scope, not provider, scheduling or rollout gates.
+
 ### Current local checkpoint, 25 November 2026
 
 [The local launch record](LOCAL_LAUNCH_CHECKS_2026-11-25.md) is the authoritative
@@ -385,13 +396,13 @@ staging isolation and its test-email effects on the shared Graph integration.
 
 | Gate | Current evidence | Still required |
 | --- | --- | --- |
-| Release boundaries, downloads, reviewer permissions, abuse controls | Scoped local regression: 437 passed, two PostgreSQL skips | Accepted candidate on isolated PostgreSQL and hosted journeys |
-| Installation, migration history, roles, seed and static bootstrap | Disposable local fresh-install tests and model/migration checks pass | Candidate-specific fresh and populated PostgreSQL tests; approve seed copy |
+| Release boundaries, downloads, reviewer permissions, abuse controls | Candidate passes all 442 scoped PostgreSQL tests, including concurrency | Hosted/provider journeys on accepted staging candidate |
+| Installation, migration history, roles, seed and static bootstrap | PostgreSQL scoped suite and construction-site clone upgrade pass | Approve seed copy; broader representative credential/RR 1 upgrade acceptance |
 | Account closure, evidence retention and expired runtime state | Implemented and tested locally; active-run retention decision captured | Hosted scheduling, failed-job/hold review and end-to-end acceptance |
 | Existing host inventory and startup supervision | Live/staging identities and installed task settings inspected with elevated access | Actual restart/reboot recovery; explain extra live repeating triggers |
-| Database recovery | Fresh live dump restored in a separate cluster; 129 migrations and audited data match | Candidate upgrade preservation, grants/ownership and coordinated rollback point |
+| Database recovery | Fresh live dump restored and candidate upgrade passed in a separate cluster; 129 existing migrations preserved and 61 applied | Grants/ownership and coordinated rollback point |
 | File/configuration recovery | 43 media files, config and empty private/reference structures restored; hashes/ACLs match | Coordinated DB/files capture, off-host recovery, real credential decrypt test |
-| Backup and routine-log expiry | Candidate capture/manifest expiry and bounded log segmentation implemented; 13 local tests pass | Hosted runner/scheduling acceptance, off-host copies and classification of existing fixed logs |
+| Backup and routine-log expiry | Candidate tooling passes 14 tests on OSWALD plus real synthetic capture/logger checks | Hosted scheduling acceptance, off-host copies and classification of existing fixed logs |
 | Release artifacts and housekeeping | Temporary clusters stopped; restricted evidence retained | Immutable candidate selection; separately scoped artifact cleanup, no deletion authorized |
 | RR 1 handover and operational ownership | Existing workflow/local evidence recorded | Reconciled final source, hosted journey, moderator ownership and privacy review |
 | RR 2 contract/statistics restructuring | Deferred behind disabled release switch | Final contract decisions before RR 2 activation, not fewer tables for launch |
@@ -427,10 +438,10 @@ features is still a first-release defect and must be isolated or fixed.
 
 The independent release controls and first-release fixes are tested locally;
 database-readiness findings and host inventory are recorded. Separate database
-and file recovery checks have passed with the limitations above. Next prepare
-repeatable backup/expiry operations and select an immutable candidate for
-isolated PostgreSQL fresh-install/populated-upgrade acceptance. Preserve existing
-development, staging and live data. Close the remaining blockers before the
+and file recovery checks, operational tooling tests and isolated PostgreSQL
+candidate/clone-upgrade checks pass with the limitations above. Next agree the
+exact candidate staging rehearsal and finish hosted/provider/operational gates.
+Preserve existing development, staging and live data. Close the remaining blockers before the
 separately authorized hosted rollout rehearsal.
 Keep each item's candidate SHA, result, evidence and remaining issues.
 
