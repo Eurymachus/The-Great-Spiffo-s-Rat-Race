@@ -2369,6 +2369,14 @@ button:hover { background: var(--theme-accent-hover); }
 }
 .account-dashboard-header h2 { margin: 0; }
 .account-dashboard-header p:last-child { margin: .3rem 0 0; color: var(--theme-muted); }
+.account-dashboard-header .dashboard-release-notice { font-size: .8rem; margin-top: .75rem; }
+.dashboard-mod-action { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; padding: clamp(1.2rem, 3vw, 2rem); }
+.dashboard-mod-action > div:first-child { flex: 1 1 20rem; }
+.dashboard-mod-action h3 { margin: .25rem 0 .6rem; }
+.dashboard-mod-action p:last-child { margin: 0; max-width: 48rem; color: var(--theme-muted); }
+.dashboard-mod-action-links { display: grid; flex: 0 1 20rem; gap: .8rem; text-align: center; }
+.dashboard-mod-action-links .dashboard-mod-primary { background: var(--theme-accent); color: var(--theme-accent-text) !important; white-space: normal; }
+.dashboard-mod-action-links .dashboard-mod-primary:hover { background: var(--theme-accent-hover); }
 .dashboard-header-action {
     display: inline-flex;
     min-height: 2.75rem;

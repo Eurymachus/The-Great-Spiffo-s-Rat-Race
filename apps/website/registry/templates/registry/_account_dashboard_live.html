@@ -76,8 +76,18 @@
     {% endif %}
   </section>
 
-  {% else %}
-  <section class="dashboard-panel"><h3>Rat Race 2.0</h3><p>In development. Run submissions are not open yet.</p></section>
+  {% elif release_controls.workshop_submissions %}
+  <section class="dashboard-panel dashboard-mod-action">
+    <div>
+      <p class="dashboard-panel-kicker">Workshop mods</p>
+      <h3>Help shape the mod catalogue</h3>
+      <p>Suggest a Project Zomboid mod for the team to review. You can check existing rulings in the catalogue.</p>
+    </div>
+    <div class="dashboard-mod-action-links">
+      <a class="dashboard-header-action dashboard-mod-primary" href="{% url 'registry:mods' %}#submit-mod">Submit a mod for review</a>
+      <a href="{% url 'registry:mods' %}">Browse mod rulings</a>
+    </div>
+  </section>
   {% endif %}
 
   {% if legacy_run or legacy_claim %}

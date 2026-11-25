@@ -1,5 +1,11 @@
 # Website: Current Focus
 
+- Dashboard presentation follow-up: while RR 2 is off, show a small
+  "Rat Race 2.0 · Finalising" notice beneath the welcome copy. When Workshop
+  requests are open, make mod submission the main action, linking directly to
+  the submission dialog with a secondary catalogue link. Preserve RR 1 history
+  and the enabled RR 2 dashboard. No release switches or data change.
+
 ## Staging rehearsal authorized and deployed (25 November 2026)
 
 - Staging initially ran `f88086ed`, application-identical to accepted `c9b7fead`,

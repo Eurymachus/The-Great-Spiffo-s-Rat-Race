@@ -15,6 +15,10 @@ window.RatRacePages.register((pageSignal) => {
     };
 
     connectDialog("[data-mod-submit-dialog]", "[data-mod-submit-open]", "[data-mod-submit-close]");
+    if (window.location.hash === "#submit-mod") {
+        const submissionDialog = document.querySelector("[data-mod-submit-dialog]");
+        if (submissionDialog && !submissionDialog.open) submissionDialog.showModal();
+    }
     connectDialog("[data-mod-rules-dialog]", "[data-mod-rules-open]", "[data-mod-rules-close]");
 
     const form = document.querySelector("[data-mod-review-form]");
