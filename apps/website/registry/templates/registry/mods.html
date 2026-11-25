@@ -159,7 +159,7 @@
       </form>
       {% else %}
       <p>Sign in to your participant account to submit a mod for team review.</p>
-      <div class="mod-submit-auth-actions"><a class="dashboard-header-action" href="{% url 'registry:login' %}?next={% url 'registry:mods' %}">Sign In</a>{% if release_controls.registration %}<a class="mods-secondary-action" href="{% url 'registry:register' %}">Sign Up</a>{% endif %}</div>
+      <div class="mod-submit-auth-actions"><a class="dashboard-header-action" href="{% url 'registry:login' %}?next={% url 'registry:mods' %}">Sign In</a>{% if release_controls.registration %}<a class="dashboard-header-action" href="{% url 'registry:register' %}">Sign Up</a>{% endif %}</div>
       {% endif %}
     </div>
   </dialog>
