@@ -1,5 +1,12 @@
 # Website: Current Focus
 
+- Owner confirmed EuryDev's reviewer vote on Better Crafting: empty Discuss
+  reason rejected, reasoned vote persisted after reload as Discuss 1 attributed
+  to EuryDev, and final ruling stayed Pending Review. Review controls now use
+  padded theme-aware buttons, selectable radio tiles and a readable reason box.
+  Next acceptance: change the existing vote without duplication, then remove
+  the temporary reviewer role and verify access revocation.
+
 - Permission-page presentation now reuses dashboard card styling, theme colours,
   spacing and typography, with a lock icon and an outlined dashboard action.
   This replaces the bare Django module/button presentation rejected by the owner.
