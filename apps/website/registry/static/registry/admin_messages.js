@@ -2,13 +2,30 @@
     "use strict";
 
     const list = document.querySelector(".messagelist");
-    if (!list) return;
+    const messages = list ? [...list.children] : [];
+    // Keep server errors in the DOM for save-state and field descriptions,
+    // but present Workshop review validation through the shared admin toast.
+    if (document.body.classList.contains("model-workshopmod")) {
+        document.querySelectorAll(".errorlist").forEach((errors) => {
+            const row = errors.closest(".form-row");
+            const label = row?.querySelector("label")?.textContent.trim().replace(/:$/, "");
+            const message = document.createElement("li");
+            message.className = "error";
+            const details = [...errors.querySelectorAll("li")].map((item) => item.textContent.trim()).join(" ");
+            message.textContent = label ? `${label}: ${details}` : details;
+            messages.push(message);
+            errors.hidden = true;
+            row?.querySelectorAll("input, select, textarea").forEach((field) => field.setAttribute("aria-invalid", "true"));
+        });
+        if (messages.length) document.querySelectorAll(".errornote").forEach((note) => { note.hidden = true; });
+    }
+    if (!messages.length) return;
     const region = document.createElement("div");
     region.className = "admin-save-toast-region admin-message-toasts";
     region.setAttribute("aria-label", "Action messages");
     document.body.append(region);
 
-    for (const message of [...list.children]) {
+    for (const message of messages) {
         const persistent = message.classList.contains("error") || message.classList.contains("warning");
         const type = message.classList.contains("error") ? "error"
             : message.classList.contains("warning") ? "warning"
@@ -48,5 +65,5 @@
         requestAnimationFrame(() => toast.classList.add("is-visible"));
         schedule();
     }
-    list.remove();
+    list?.remove();
 })();

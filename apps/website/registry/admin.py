@@ -545,6 +545,10 @@ class WorkshopModAdminForm(forms.ModelForm):
     class Meta:
         model = WorkshopMod
         fields = "__all__"
+        labels = {"public_rationale": "Public reason for this ruling"}
+        help_texts = {
+            "public_rationale": "Shown publicly alongside this mod's ruling in the catalogue. Explain why it is allowed or disallowed; do not include private reviewer notes.",
+        }
 
     def clean(self):
         cleaned_data = super().clean()

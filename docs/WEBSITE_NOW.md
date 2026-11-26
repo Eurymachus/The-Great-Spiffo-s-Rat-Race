@@ -1,5 +1,21 @@
 # Website: Current Focus
 
+- Workshop final-ruling feedback: rename the form label to "Public reason for
+  this ruling" and explain that it appears in the public catalogue, not private
+  reviewer notes. Workshop admin validation now uses persistent, dismissible
+  admin error toasts while retaining field highlighting, accessible error
+  descriptions and save-state detection. Server validation remains authoritative.
+  JavaScript syntax check and all 19 Workshop tests pass. No ruling was changed.
+
+- 26 November hosted submission acceptance: Better Containers (3586216562)
+  exists exactly once, submitted by EuryDev at 09:43:40 GMT, pending with no
+  reviewer, review timestamp, votes or final ruling. The owner confirmed the
+  differing reason was their own wording, not a submission defect.
+  EuryDev has no Workshop admin/vote permissions. One active Workshop Mod Approver
+  can view/vote; the staging superuser can finalize. Existing-item checks and the
+  unique Workshop ID constraint prevent duplicates. Next: reviewer vote and final
+  ruling journey. These checks were read-only; live was untouched.
+
 - Workshop modal now intercepts empty or whitespace-only reasons before POST,
   keeps the dialog open and focuses the reason with the shared feedback toast.
   Typing a nonblank reason clears the client error. Server validation remains
