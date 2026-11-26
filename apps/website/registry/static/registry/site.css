@@ -1451,8 +1451,8 @@
 .mods-list { display: grid; }
 .mods-list .mod-entry { border: 0; border-bottom: 1px solid var(--theme-border); border-radius: 0; }
 .mods-list .mod-entry:last-child { border-bottom: 0; }
-.mods-list:not(.mods-list-compact) .mod-entry { grid-template-columns: 8rem minmax(0, 1fr); height: auto; min-height: 8rem; }
-.mods-list:not(.mods-list-compact) .mod-entry > img { width: 8rem; height: 8rem; }
+.mods-list:not(.mods-list-compact) .mod-entry { grid-template-columns: var(--mod-thumbnail-size, 8rem) minmax(0, 1fr); height: auto; min-height: 8rem; }
+.mods-list:not(.mods-list-compact) .mod-entry > img { width: var(--mod-thumbnail-size, 8rem); height: var(--mod-thumbnail-size, 8rem); }
 .mods-list:not(.mods-list-compact) .mod-entry-copy { padding-block: .65rem; }
 .mods-list-compact .mod-entry { grid-template-columns: 3.6rem minmax(0, 1fr); min-height: 3.6rem; }
 .mods-list-compact .mod-entry > img { width: 3.6rem; height: 3.6rem; }

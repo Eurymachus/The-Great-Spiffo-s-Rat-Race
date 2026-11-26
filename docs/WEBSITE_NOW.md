@@ -1,5 +1,11 @@
 # Website: Current Focus
 
+- Owner confirmed rotation spacing is fixed. Landscape illustrated rows still
+  exposed a gap below their fixed eight-rem thumbnails when copy grew taller.
+  Extend square row-height thumbnail fitting to illustrated rows at wider
+  widths, preserving compact portrait styling and the outer normal-flow layout.
+  Desktop compact-list sizing remains unchanged.
+
 - Catalogue outer-layout follow-up: owner screenshots show the recommended
   section overlapping the required card after returning to portrait. Replace
   the outer grid with normal block flow and explicit one-rem sibling spacing;

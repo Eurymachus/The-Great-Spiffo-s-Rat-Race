@@ -6,7 +6,7 @@ window.RatRacePages.register((pageSignal) => {
         cancelAnimationFrame(thumbnailFrame);
         thumbnailFrame = requestAnimationFrame(() => {
             thumbnailRows.forEach((row) => {
-                if (!mobileRows.matches) {
+                if (!mobileRows.matches && row.closest(".mods-list-compact")) {
                     row.style.removeProperty("--mod-thumbnail-size");
                     return;
                 }
