@@ -1,5 +1,16 @@
 # Decisions
 
+## 2026-11-26 - Show participants only their pending mod submissions
+
+- Add "Your mods awaiting review" to the participant dashboard, showing only
+  that participant's pending submissions. Hide the section when empty.
+- Remove each submission from this section once a final ruling is made.
+  Notifications carry the result and public reason; the catalogue shows the
+  current ruling. Do not duplicate allowed/disallowed history on the dashboard.
+- Keep the full pending queue, reviewer votes and internal discussion private
+  to authorized reviewers. This provides receipt and progress visibility without
+  presenting unreviewed mods as endorsed.
+
 ## 2026-10-11 - Adopt numbered challenge editions
 
 - The Great Spiffo's Rat Race remains the overall brand. Rat Race 1.0 and

@@ -629,6 +629,9 @@ def account_dashboard_context(user):
         "active_runs": active_runs,
         "past_runs": past_runs,
         "pending_runs": list(pending_by_run.values()),
+        "pending_mods": user.submitted_workshop_mods.filter(
+            ruling=WorkshopMod.Ruling.PENDING,
+        ).only("title", "created_at").order_by("-created_at", "-pk"),
         "legacy_run": legacy_run,
         "legacy_claim": legacy_claim,
         "legacy_dashboard_submission": legacy_dashboard_submission,

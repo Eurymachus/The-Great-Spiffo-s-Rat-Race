@@ -7,7 +7,7 @@ from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.test import RequestFactory
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import Participant, WorkshopMod, WorkshopModVote
@@ -44,6 +44,36 @@ class ModsPageTests(TestCase):
         self.assertContains(page, "Required")
         self.assertContains(page, "Allowed Example")
         self.assertNotContains(page, "Disallowed Example")
+
+    @override_settings(RR2_ENABLED=False)
+    def test_dashboard_pending_mods_are_private_and_disappear_after_decision(self):
+        own = WorkshopMod.objects.create(
+            workshop_id="9990001", title="My pending mod", submitted_by=self.racer,
+            ruling=WorkshopMod.Ruling.PENDING,
+        )
+        other = Participant.objects.create_user(
+            email="other-mods@example.com", nickname="OtherModRacer",
+            password="test-password", status=Participant.Status.VERIFIED,
+            is_active=True,
+        )
+        WorkshopMod.objects.create(
+            workshop_id="9990002", title="Someone else's pending mod",
+            submitted_by=other,
+            ruling=WorkshopMod.Ruling.PENDING,
+        )
+        self.client.force_login(self.racer)
+        for name in ("account", "account_dashboard_fragment"):
+            page = self.client.get(reverse(f"registry:{name}"))
+            self.assertContains(page, "Your mods awaiting review")
+            self.assertContains(page, "My pending mod")
+            self.assertNotContains(page, "Someone else")
+        for ruling in (WorkshopMod.Ruling.ALLOWED, WorkshopMod.Ruling.DISALLOWED):
+            own.ruling = ruling
+            own.save(update_fields=("ruling",))
+            for name in ("account", "account_dashboard_fragment"):
+                page = self.client.get(reverse(f"registry:{name}"))
+                self.assertNotContains(page, "Your mods awaiting review")
+                self.assertNotContains(page, "My pending mod")
 
     def test_compact_list_view_is_selectable_and_preserved_by_filter_form(self):
         page = self.client.get(reverse("registry:mods"), {"view": "list"})

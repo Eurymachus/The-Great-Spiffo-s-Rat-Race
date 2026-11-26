@@ -90,6 +90,22 @@
   </section>
   {% endif %}
 
+  {% if pending_mods %}
+  <section class="dashboard-panel" aria-labelledby="pending-mods-heading">
+    <div class="dashboard-panel-heading">
+      <div><h3 id="pending-mods-heading">Your mods awaiting review</h3></div>
+    </div>
+    <div class="dashboard-pending-mods">
+    <p>We've received these submissions. We'll notify you when a decision is made.</p>
+    <ul>
+      {% for mod in pending_mods %}
+      <li><strong>{{ mod.title }}</strong> <small>(Submitted {{ mod.created_at|date:"j M Y" }})</small></li>
+      {% endfor %}
+    </ul>
+    </div>
+  </section>
+  {% endif %}
+
   {% if legacy_run or legacy_claim %}
   <div class="legacy-dashboard-section">
     <div class="legacy-dashboard-divider" role="separator">

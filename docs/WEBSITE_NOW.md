@@ -1,5 +1,13 @@
 # Website: Current Focus
 
+- Agreed next dashboard change (26 November): add "Your mods awaiting review"
+  for the signed-in participant's pending submissions only; hide when empty and
+  remove decided items. Results and public reasons belong in notifications and
+  current rulings in the catalogue. The full review queue remains private.
+  Implemented in the shared dashboard fragment, with responsive title/date rows.
+  Regression coverage checks participant isolation, removal after either final
+  ruling and hiding the empty section with RR 2 disabled. Hosted acceptance next.
+
 - Workshop final-ruling feedback: rename the form label to "Public reason for
   this ruling" and explain that it appears in the public catalogue, not private
   reviewer notes. Workshop admin validation now uses persistent, dismissible
