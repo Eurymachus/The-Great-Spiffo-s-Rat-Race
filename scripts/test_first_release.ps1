@@ -6,6 +6,7 @@ $pythonPath = Join-Path $workspaceRoot ".venv\Scripts\python.exe"
 $managePath = Join-Path $workspaceRoot "apps\website\manage.py"
 $testModules = @(
     "config", "registry.tests", "registry.test_mods", "registry.test_first_release",
+    "registry.test_password_reset_delivery",
     "registry.test_retention", "registry.test_closure_redaction", "registry.test_evidence_retention",
     "registry.test_legacy_concurrency", "registry.test_legacy_rehearsal", "registry.test_submission_policy",
     "pages", "operations.test_leaderboard_publish", "operations.test_deployment_checks",

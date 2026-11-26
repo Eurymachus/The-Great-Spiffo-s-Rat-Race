@@ -68,13 +68,30 @@ def rate_limit_exceeded(scope, identifier, limit, window_seconds):
         return _database_increment(key, window_seconds) > limit
     cache_key = f"rat-race-rate:{key}"
     if cache.add(cache_key, 1, timeout=window_seconds):
+        cache.set(f"{cache_key}:expires", timezone.now() + timedelta(seconds=window_seconds), timeout=window_seconds)
         return False
     try:
         attempts = cache.incr(cache_key)
     except ValueError:
         cache.set(cache_key, 1, timeout=window_seconds)
+        cache.set(f"{cache_key}:expires", timezone.now() + timedelta(seconds=window_seconds), timeout=window_seconds)
         return False
     return attempts > limit
+
+
+def rate_limit_retry_at(scope, identifier, limit, window_seconds):
+    """Return when the next attempt is allowed, without consuming an attempt."""
+    key = _bucket_key(scope, identifier)
+    now = timezone.now()
+    if uses_database_runtime_state():
+        return RateLimitBucket.objects.filter(
+            pk=key, attempts__gte=limit, expires_at__gt=now,
+        ).values_list("expires_at", flat=True).first()
+    cache_key = f"rat-race-rate:{key}"
+    if cache.get(cache_key, 0) < limit:
+        return None
+    # Older cache buckets lack expiry metadata; retain a conservative window.
+    return cache.get(f"{cache_key}:expires") or now + timedelta(seconds=window_seconds)
 
 
 def rate_limit_attempts(scope, identifier):
@@ -107,6 +124,7 @@ def clear_rate_limit(scope, identifier):
         RateLimitBucket.objects.filter(pk=key).delete()
     else:
         cache.delete(f"rat-race-rate:{key}")
+        cache.delete(f"rat-race-rate:{key}:expires")
 
 
 def record_worker_heartbeat_state(worker_id, release_id, process_id):

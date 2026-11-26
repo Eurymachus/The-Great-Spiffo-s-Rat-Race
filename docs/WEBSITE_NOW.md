@@ -1,12 +1,24 @@
 # Website: Current Focus
 
+- Owner confirmed both Workshop decision journeys on staging: notification
+  receipt, removal from awaiting review and correct catalogue ruling/reason.
+  The disallowed journey generated its notification automatically.
+- Password reset now handles staging allowlist rejection and transport failures
+  with the generic confirmation, without exposing account existence or a debug
+  reset link. Logs contain only the exception type. HTTP 429 responses show the
+  later active email/IP cooldown expiry (UTC, rounded up to a minute) and include
+  Retry-After seconds. Limits remain enabled; no production data is reset.
+
 - Better Containers approval exposed a missing notification integration: both
   individual and bulk Workshop rulings saved decisions without notifying the
   submitter. These paths now create in-app submission notifications on changed
   Allowed/Disallowed rulings only, with the public reason and catalogue link.
   Long reasons are excerpted to the notification limit; full text remains in the
   catalogue. Re-saving the same ruling does not duplicate the notification.
-  Existing approval notification repair awaits owner approval.
+  Owner approved restoring the missing Better Containers notification on staging.
+  Exactly one unread notification was created for EuryDev using the saved public
+  reason and catalogue destination. Ruling/review details and live were unchanged;
+  no email was sent. Participant visual acceptance is next.
 
 - 26 November password-reset follow-up: staging rejected a recipient outside
   its email allowlist, raising an unhandled ValueError and returning HTTP 500
@@ -14,8 +26,7 @@
   alongside dev@sentineltech.co.uk, keeping allow-all disabled. Staging restarted
   healthy on e862c7f with one web and worker tree each; owner will retry delivery.
   No email was sent during the change and live was untouched.
-  Handle blocked reset delivery without
-  an HTTP 500 as a remaining launch fix; allowlist expansion does not fix that.
+  The password-reset handling fix above supersedes the remaining HTTP 500 issue.
 
 - Agreed next dashboard change (26 November): add "Your mods awaiting review"
   for the signed-in participant's pending submissions only; hide when empty and

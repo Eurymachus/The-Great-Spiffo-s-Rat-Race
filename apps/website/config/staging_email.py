@@ -3,6 +3,10 @@ from django.conf import settings
 from .graph_email import MicrosoftGraphEmailBackend
 
 
+class StagingEmailBlocked(ValueError):
+    """Delivery was intentionally blocked by the staging recipient policy."""
+
+
 class AllowlistedStagingEmailBackend(MicrosoftGraphEmailBackend):
     """Prevent staging from emailing any address outside its explicit allowlist."""
 
@@ -19,7 +23,7 @@ class AllowlistedStagingEmailBackend(MicrosoftGraphEmailBackend):
             }
             blocked = recipients - allowed
             if blocked:
-                raise ValueError(
+                raise StagingEmailBlocked(
                     "Staging email recipient is not allowlisted: "
                     + ", ".join(sorted(blocked))
                 )

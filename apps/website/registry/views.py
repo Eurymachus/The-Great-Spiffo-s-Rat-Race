@@ -2,9 +2,15 @@ import asyncio
 import logging
 import re
 import uuid
+import math
+from datetime import timedelta, timezone as datetime_timezone
+from smtplib import SMTPException
+from urllib.error import URLError
 
 from django.conf import settings
 from config.release_controls import enabled
+from config.staging_email import StagingEmailBlocked
+from operations.runtime_state import rate_limit_retry_at
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import Group
@@ -2472,10 +2478,36 @@ def password_reset_request(request):
                         kwargs={"uidb64": uid, "token": token},
                     )
                 )
-                send_password_reset_email(participant, reset_url)
-                if settings.DEBUG:
-                    development_reset_url = reset_url
-    return render(
+                try:
+                    send_password_reset_email(participant, reset_url)
+                except (StagingEmailBlocked, SMTPException, URLError, OSError) as exc:
+                    # Keep the public response independent of account existence.
+                    # Exception messages can contain recipients or provider secrets.
+                    logging.getLogger(__name__).warning(
+                        "Password reset delivery failed (%s).", type(exc).__name__,
+                    )
+                else:
+                    if settings.DEBUG:
+                        development_reset_url = reset_url
+    retry_seconds = None
+    if status == 429:
+        window = settings.PASSWORD_RESET_RATE_WINDOW_SECONDS
+        deadlines = [rate_limit_retry_at(
+            "password-reset-ip", request_ip(request), settings.PASSWORD_RESET_IP_RATE_LIMIT, window,
+        )]
+        if form.cleaned_data.get("email"):
+            deadlines.append(rate_limit_retry_at(
+                "password-reset-email", form.cleaned_data["email"], settings.PASSWORD_RESET_EMAIL_RATE_LIMIT, window,
+            ))
+        now = timezone.now()
+        retry_at = max((value for value in deadlines if value), default=now + timedelta(seconds=window))
+        retry_seconds = max(1, math.ceil((retry_at - now).total_seconds()))
+        # Round up so the displayed time never invites a premature retry.
+        if retry_at.second or retry_at.microsecond:
+            retry_at = retry_at.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        form.errors.pop("__all__", None)
+        form.add_error(None, "Too many requests. Try again after " + retry_at.astimezone(datetime_timezone.utc).strftime("%H:%M UTC on %d %b") + ".")
+    response = render(
         request,
         "registry/password_reset_request.html",
         {
@@ -2486,6 +2518,9 @@ def password_reset_request(request):
         },
         status=status,
     )
+    if retry_seconds is not None:
+        response["Retry-After"] = str(retry_seconds)
+    return response
 
 
 @require_http_methods(["GET", "POST"])
