@@ -1,9 +1,11 @@
 # Website: Current Focus
 
 - Workshop modal now intercepts empty or whitespace-only reasons before POST,
-  keeps the dialog open and focuses the reason with an accessible inline error.
+  keeps the dialog open and focuses the reason with the shared feedback toast.
   Typing a nonblank reason clears the client error. Server validation remains
-  authoritative; all 19 Workshop tests pass. Hosted browser acceptance follows.
+  authoritative; all 19 Workshop tests pass. The mobile follow-up removes the
+  forced-height grid and gives the modal body its own scroll area, bounded by
+  the visual viewport so keyboard resizing cannot overlap form controls.
 
 - Steam name search now passes on staging. The owner replaced the provisioner's
   placeholder directly in protected configuration. After the authorized staging

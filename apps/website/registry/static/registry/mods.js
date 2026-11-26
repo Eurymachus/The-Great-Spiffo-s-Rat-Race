@@ -2,6 +2,15 @@ window.RatRacePages.register((pageSignal) => {
     const connectDialog = (dialogSelector, openSelector, closeSelector) => {
         const dialog = document.querySelector(dialogSelector);
         if (!dialog) return;
+        const fitViewport = () => {
+            const viewport = window.visualViewport;
+            dialog.style.setProperty("--mod-viewport-height", `${viewport?.height || window.innerHeight}px`);
+            dialog.style.setProperty("--mod-viewport-top", `${viewport?.offsetTop || 0}px`);
+        };
+        fitViewport();
+        window.visualViewport?.addEventListener("resize", fitViewport, {signal: pageSignal});
+        window.visualViewport?.addEventListener("scroll", fitViewport, {signal: pageSignal});
+        window.addEventListener("resize", fitViewport, {signal: pageSignal});
         document.querySelectorAll(openSelector).forEach((button) => {
             button.addEventListener("click", () => dialog.showModal());
         });
@@ -24,20 +33,10 @@ window.RatRacePages.register((pageSignal) => {
     const form = document.querySelector("[data-mod-review-form]");
     if (!form) return;
     const reason = form.querySelector('[name="reason"]');
-    const reasonError = document.createElement("p");
-    reasonError.id = "mod-review-reason-error";
-    reasonError.className = "error";
-    reasonError.hidden = true;
-    reasonError.setAttribute("aria-live", "polite");
-    reason.insertAdjacentElement("afterend", reasonError);
-    const reasonDescription = reason.getAttribute("aria-describedby") || "";
+    let dismissReasonToast = () => {};
     const clearReasonError = () => {
-        if (reasonError.hidden) return;
-        reasonError.hidden = true;
-        reasonError.textContent = "";
+        dismissReasonToast();
         reason.removeAttribute("aria-invalid");
-        if (reasonDescription) reason.setAttribute("aria-describedby", reasonDescription);
-        else reason.removeAttribute("aria-describedby");
         reason.closest(".field").classList.remove("has-error");
     };
     reason.addEventListener("input", () => {
@@ -46,12 +45,12 @@ window.RatRacePages.register((pageSignal) => {
     form.addEventListener("submit", (event) => {
         if (reason.value.trim()) return;
         event.preventDefault();
-        reasonError.textContent = "Please enter a reason.";
-        reasonError.hidden = false;
         reason.setAttribute("aria-invalid", "true");
-        reason.setAttribute("aria-describedby", `${reasonDescription} ${reasonError.id}`.trim());
         reason.closest(".field").classList.add("has-error");
         reason.focus();
+        dismissReasonToast = window.RatRaceToast.show({
+            message: "Please enter a reason.", type: "error", signal: pageSignal,
+        });
     }, {signal: pageSignal});
     const search = form.querySelector("[data-workshop-search]");
     const selectedId = form.querySelector('[name="workshop_id"]');

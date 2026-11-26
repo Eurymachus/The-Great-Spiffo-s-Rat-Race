@@ -1464,12 +1464,14 @@
 .mod-submit-modal > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.2rem; border-bottom: 1px solid var(--theme-border); background: var(--theme-surface-alt); }
 .mod-submit-modal > header h2 { margin: .15rem 0 0; }
 .mod-submit-modal > header button { width: auto; }
-.mod-review-submit-modal { width: min(94vw, 52rem); min-height: min(44rem, calc(100dvh - 2rem)); max-height: calc(100dvh - 2rem); }
+.mod-review-submit-modal { width: min(94vw, 52rem); min-height: 0; max-height: calc(var(--mod-viewport-height, 100dvh) - 2rem); top: calc(var(--mod-viewport-top, 0px) + 1rem); bottom: auto; margin-block: 0; overflow: hidden; }
 .mod-review-submit-modal[open] { display: flex; flex-direction: column; }
-.mod-review-submit-modal .mod-submit-content { display: flex; flex: 1; min-height: 0; flex-direction: column; }
-.mod-review-submit-modal .mod-submit-content form { flex: 1; min-height: 0; grid-template-rows: auto minmax(10rem, 1fr) auto; }
-.mod-review-reason { display: grid; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; }
-.mod-review-reason textarea { height: 100%; min-height: 10rem; resize: none; }
+.mod-review-submit-modal > header { flex-shrink: 0; }
+.mod-review-submit-modal .mod-submit-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.mod-review-submit-modal .mod-submit-content form { grid-template-rows: auto auto auto; }
+.mod-review-reason { display: grid; gap: .4rem; }
+.mod-review-reason textarea { box-sizing: border-box; height: 10rem; min-height: 8rem; resize: vertical; }
+.mod-review-submit-modal .feedback-toast-region { top: calc(var(--mod-viewport-top, 0px) + 1rem); }
 .mod-submit-content { padding: 1.2rem; }
 .mod-submit-content > p { margin-top: 0; color: var(--theme-muted); }
 .mod-submit-content form { display: grid; gap: 1rem; }
