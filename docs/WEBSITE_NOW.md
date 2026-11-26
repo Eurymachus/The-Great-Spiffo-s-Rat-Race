@@ -1,5 +1,10 @@
 # Website: Current Focus
 
+- Permission-page presentation now reuses dashboard card styling, theme colours,
+  spacing and typography, with a lock icon and an outlined dashboard action.
+  This replaces the bare Django module/button presentation rejected by the owner.
+  Both permission-page tests still pass; staging visual acceptance is pending.
+
 - Reviewer acceptance confirmed participant administration is blocked by HTTP
   403. Denied admin pages now retain the admin shell and permitted navigation
   for active staff, with a contextual message and Return to dashboard link.
