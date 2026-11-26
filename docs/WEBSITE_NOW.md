@@ -1,5 +1,28 @@
 # Website: Current Focus
 
+- Bulk Allow/Disallow now requires a confirmation form with a nonblank public
+  reason. Changed rulings save that reason and include it in notifications;
+  required mods and already-matching rulings remain unchanged. Superuser-only
+  enforcement, row locks and transactional notifications are retained, with
+  admin change logging added. All 20 Workshop tests pass, including both bulk
+  actions, missing/whitespace reasons, saved reasons and notification contents.
+  The owner identified the earlier empty rationale as a bulk-action outcome.
+
+- Owner supplied the real EuryDev JSON download (format 2, 26 November 22:03 UTC).
+  It contains the verified participant profile, acknowledgement timestamps,
+  four notifications and both Workshop requests with their final rulings.
+  No other participant's private data, credentials or internal reviewer notes
+  were present in this sample. Empty run/provider/vote collections match this
+  participant's tested scope. Better Item Info has an empty public rationale;
+  check the final-ruling validation path separately, rather than treating this
+  as proof that the export omitted a stored reason. Reviewer-role acceptance
+  remains the next check.
+
+- Owner accepted the catalogue layout on iPhone after the landscape thumbnail
+  follow-up (3bb5f355): compact rows, square images and rotation spacing now
+  look correct. Continue first-release acceptance with a real participant data
+  download containing the completed Workshop submission/ruling journeys.
+
 - Owner confirmed rotation spacing is fixed. Landscape illustrated rows still
   exposed a gap below their fixed eight-rem thumbnails when copy grew taller.
   Extend square row-height thumbnail fitting to illustrated rows at wider

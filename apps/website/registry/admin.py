@@ -541,6 +541,14 @@ PUBLIC_MOD_RATIONALE_TEMPLATES = {
 }
 
 
+class BulkWorkshopRulingForm(forms.Form):
+    public_rationale = forms.CharField(
+        label="Public reason for this ruling",
+        widget=forms.Textarea(attrs={"rows": 5, "cols": 60}),
+        help_text="Shown in the public catalogue and participant notifications for each changed mod. Do not include private reviewer notes.",
+    )
+
+
 class WorkshopModAdminForm(forms.ModelForm):
     class Meta:
         model = WorkshopMod
@@ -780,49 +788,50 @@ class WorkshopModAdmin(admin.ModelAdmin):
         return actions
 
     @admin.action(description="Allow selected mods")
-    @transaction.atomic
     def allow_selected_mods(self, request, queryset):
-        changed = list(queryset.select_for_update().exclude(
-            ruling__in=(WorkshopMod.Ruling.REQUIRED, WorkshopMod.Ruling.ALLOWED)
-        ))
-        reviewed_at = timezone.now()
-        updated = queryset.exclude(
-            ruling=WorkshopMod.Ruling.REQUIRED
-        ).update(
-            ruling=WorkshopMod.Ruling.ALLOWED,
-            reviewed_by=request.user,
-            reviewed_at=reviewed_at,
-            updated_at=reviewed_at,
-        )
-        self.message_user(request, f"{updated} mod(s) marked Allowed.", messages.SUCCESS)
-        for mod in changed:
-            mod.ruling = WorkshopMod.Ruling.ALLOWED
-            notify_mod_ruling(mod)
+        return self._bulk_final_ruling(request, queryset, WorkshopMod.Ruling.ALLOWED)
 
     @admin.action(description="Disallow selected mods")
-    @transaction.atomic
     def disallow_selected_mods(self, request, queryset):
+        return self._bulk_final_ruling(request, queryset, WorkshopMod.Ruling.DISALLOWED)
+
+    @transaction.atomic
+    def _bulk_final_ruling(self, request, queryset, ruling):
+        if not request.user.is_superuser:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+        action = "allow_selected_mods" if ruling == WorkshopMod.Ruling.ALLOWED else "disallow_selected_mods"
+        label = WorkshopMod.Ruling(ruling).label
+        form = BulkWorkshopRulingForm(request.POST if request.POST.get("confirm") == "yes" else None)
+        if not form.is_bound or not form.is_valid():
+            if form.is_bound:
+                self.message_user(request, "Enter the public reason for this final ruling.", messages.ERROR)
+            return TemplateResponse(request, "admin/registry/workshopmod/confirm_ruling.html", {
+                **self.admin_site.each_context(request),
+                "title": f"Mark selected mods {label}",
+                "opts": self.model._meta,
+                "form": form,
+                "queryset": queryset,
+                "action": action,
+                "action_checkbox_name": ACTION_CHECKBOX_NAME,
+                "select_across": request.POST.get("select_across", "0"),
+            })
+        reason = form.cleaned_data["public_rationale"]
         changed = list(queryset.select_for_update().exclude(
-            ruling__in=(WorkshopMod.Ruling.REQUIRED, WorkshopMod.Ruling.DISALLOWED)
+            ruling__in=(WorkshopMod.Ruling.REQUIRED, ruling)
         ))
         reviewed_at = timezone.now()
-        updated = queryset.exclude(
-            ruling=WorkshopMod.Ruling.REQUIRED
-        ).update(
-            ruling=WorkshopMod.Ruling.DISALLOWED,
-            is_recommended=False,
-            reviewed_by=request.user,
-            reviewed_at=reviewed_at,
-            updated_at=reviewed_at,
-        )
-        self.message_user(
-            request,
-            f"{updated} mod(s) marked Disallowed.",
-            messages.SUCCESS,
-        )
         for mod in changed:
-            mod.ruling = WorkshopMod.Ruling.DISALLOWED
+            mod.ruling = ruling
+            mod.public_rationale = reason
+            mod.reviewed_by = request.user
+            mod.reviewed_at = reviewed_at
+            if ruling == WorkshopMod.Ruling.DISALLOWED:
+                mod.is_recommended = False
+            mod.save()
+            self.log_change(request, mod, f"Bulk ruling: {label}. Public reason recorded.")
             notify_mod_ruling(mod)
+        self.message_user(request, f"{len(changed)} mod(s) marked {label}.", messages.SUCCESS)
 
     @admin.action(description="Reset ruling")
     def reset_selected_rulings(self, request, queryset):

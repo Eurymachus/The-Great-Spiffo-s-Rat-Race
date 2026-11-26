@@ -241,9 +241,22 @@ class ModsPageTests(TestCase):
         disallowed.public_rationale = "Public reason " * 40
         disallowed.save()
         self.client.force_login(admin_user)
+        for action in ("allow_selected_mods", "disallow_selected_mods"):
+            for extra in ({}, {"confirm": "yes", "public_rationale": "   "}):
+                response = self.client.post(reverse("admin:registry_workshopmod_changelist"), {
+                    "action": action, ACTION_CHECKBOX_NAME: [str(disallowed.pk)], **extra,
+                })
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Confirm ruling")
+                disallowed.refresh_from_db()
+                self.assertEqual(disallowed.ruling, WorkshopMod.Ruling.DISALLOWED)
+                self.assertEqual(disallowed.public_rationale, "Public reason " * 40)
+                self.assertFalse(self.racer.notifications.exists())
         response = self.client.post(
             reverse("admin:registry_workshopmod_changelist"),
             {
+                "confirm": "yes",
+                "public_rationale": "New public reason " * 40,
                 "action": "allow_selected_mods",
                 ACTION_CHECKBOX_NAME: [str(required.pk), str(disallowed.pk)],
                 "index": "0",
@@ -255,6 +268,7 @@ class ModsPageTests(TestCase):
         disallowed.refresh_from_db()
         self.assertEqual(required.ruling, WorkshopMod.Ruling.REQUIRED)
         self.assertEqual(disallowed.ruling, WorkshopMod.Ruling.ALLOWED)
+        self.assertEqual(disallowed.public_rationale, ("New public reason " * 40).strip())
         self.assertEqual(disallowed.reviewed_by, admin_user)
         self.assertIsNotNone(disallowed.reviewed_at)
         self.assertContains(response, "1 mod(s) marked Allowed.")
@@ -265,8 +279,13 @@ class ModsPageTests(TestCase):
         for action, count in (("allow_selected_mods", 1), ("disallow_selected_mods", 2), ("disallow_selected_mods", 2)):
             self.client.post(reverse("admin:registry_workshopmod_changelist"), {
                 "action": action, ACTION_CHECKBOX_NAME: [str(disallowed.pk)], "index": "0",
+                "confirm": "yes", "public_rationale": "Bulk decision reason",
             })
             self.assertEqual(self.racer.notifications.count(), count)
+            if action == "disallow_selected_mods":
+                disallowed.refresh_from_db()
+                self.assertEqual(disallowed.public_rationale, "Bulk decision reason")
+                self.assertEqual(self.racer.notifications.get(title=f"Mod disallowed: {disallowed.title}").message, "Bulk decision reason")
 
     def test_super_admin_can_reset_rulings_without_resetting_provenance(self):
         admin_user = Participant.objects.create_superuser(

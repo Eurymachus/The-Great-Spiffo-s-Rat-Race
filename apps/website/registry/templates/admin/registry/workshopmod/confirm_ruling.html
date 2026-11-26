@@ -1,0 +1,15 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<p>Apply one public reason to the selected mods. Required mods and mods already carrying this ruling will remain unchanged.</p>
+<ul>{% for mod in queryset %}<li>{{ mod.title }} ({{ mod.workshop_id }})</li>{% endfor %}</ul>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  {% for mod in queryset %}<input type="hidden" name="{{ action_checkbox_name }}" value="{{ mod.pk }}">{% endfor %}
+  <input type="hidden" name="action" value="{{ action }}">
+  <input type="hidden" name="select_across" value="{{ select_across }}">
+  <input type="hidden" name="confirm" value="yes">
+  <input type="submit" value="Confirm ruling">
+  <a href="{% url 'admin:registry_workshopmod_changelist' %}">Cancel</a>
+</form>
+{% endblock %}
