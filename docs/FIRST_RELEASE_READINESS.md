@@ -87,6 +87,19 @@ Primary evidence:
 
 ## First-release blockers and required evidence
 
+### Read-only operational checkpoint, 26 November 2026
+
+[The host recovery audit](HOST_RECOVERY_AUDIT_2026-11-26.md) found no verified
+recurring backup/retention execution or independent off-host recovery evidence.
+Only 2 of 63 staging routine-log segments were sealed. The subsequently
+[authorized isolated staging restore](BACKUP_RESTORE_REHEARSAL.md) passed in
+71 seconds: all 9,595 manifest entries, 806 archive entries, 171 migrations and
+audited snapshot counts matched. Its cluster was stopped and artifacts retained;
+staging/live stayed unchanged. Off-host protection is a future improvement,
+with host/storage-loss risk explicitly accepted by the owner. Credential decryption,
+original grants, monitored scheduling and reviewed log/retention handling remain
+launch gates. The 25 November snapshot excludes later staging changes.
+
 ### Current isolated host checkpoint, 25 November 2026
 
 Candidate `c9b7fead` passed all 442 scoped tests on PostgreSQL18.4 with zero
@@ -400,9 +413,9 @@ staging isolation and its test-email effects on the shared Graph integration.
 | Installation, migration history, roles, seed and static bootstrap | PostgreSQL scoped suite and construction-site clone upgrade pass | Approve seed copy; broader representative credential/RR 1 upgrade acceptance |
 | Account closure, evidence retention and expired runtime state | Implemented and tested locally; active-run retention decision captured | Hosted scheduling, failed-job/hold review and end-to-end acceptance |
 | Existing host inventory and startup supervision | Live/staging identities and installed task settings inspected with elevated access | Actual restart/reboot recovery; explain extra live repeating triggers |
-| Database recovery | Fresh live dump restored and candidate upgrade passed in a separate cluster; 129 existing migrations preserved and 61 applied | Grants/ownership and coordinated rollback point |
-| File/configuration recovery | 43 media files, config and empty private/reference structures restored; hashes/ACLs match | Coordinated DB/files capture, off-host recovery, real credential decrypt test |
-| Backup and routine-log expiry | Candidate tooling passes 14 tests on OSWALD plus real synthetic capture/logger checks | Hosted scheduling acceptance, off-host copies and classification of existing fixed logs |
+| Database recovery | Fresh live dump restored and candidate upgrade passed in a separate cluster; 129 existing migrations preserved and 61 applied | Original grants/ownership; newer snapshot coverage and application recovery |
+| File/configuration recovery | 43 media files, config and empty private/reference structures restored; hashes/ACLs match | Real credential decrypt test; off-host recovery deferred under accepted risk; coordinated staging snapshot restore passed 26 November |
+| Backup and routine-log expiry | Candidate tooling passes 14 tests on OSWALD plus real synthetic capture/logger checks | Hosted scheduling acceptance and classification of existing fixed logs; off-host copies are a future improvement |
 | Release artifacts and housekeeping | Temporary clusters stopped; restricted evidence retained | Immutable candidate selection; separately scoped artifact cleanup, no deletion authorized |
 | RR 1 handover and operational ownership | Existing workflow/local evidence recorded | Reconciled final source, hosted journey, moderator ownership and privacy review |
 | RR 2 contract/statistics restructuring | Deferred behind disabled release switch | Final contract decisions before RR 2 activation, not fewer tables for launch |

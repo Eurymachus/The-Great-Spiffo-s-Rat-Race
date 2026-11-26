@@ -1,5 +1,15 @@
 # Decisions
 
+## 2026-11-26 - Accept local-only backup risk for initial launch
+
+- The owner explicitly accepts that loss of OSWALD or its storage could lose
+  both application data and local backups. Off-host backups and recovery from
+  them are future improvements, not initial launch blockers.
+- Keep protected local backups, verified restoration and visible failure/stale
+  backup checks. This acceptance does not imply protection from host/disk loss.
+- Authorize automatic local backups and failure checks on staging only.
+  Live remains untouched; retention deletion is not part of this work.
+
 ## 2026-11-26 - Show participants only their pending mod submissions
 
 - Add "Your mods awaiting review" to the participant dashboard, showing only

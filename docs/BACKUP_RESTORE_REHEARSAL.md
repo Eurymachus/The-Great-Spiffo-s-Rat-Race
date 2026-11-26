@@ -1,5 +1,42 @@
 # Live backup and isolated restore rehearsal
 
+## Executed coordinated staging restore, 26 November 2026
+
+The owner authorized an isolated restore of the existing staging package.
+OSWALD restored it into a new protected destination on PostgreSQL 18.4,
+`127.0.0.1:55434`, database `staging_restore_rehearsal`. The rehearsal took
+71 seconds, starting at 23:35:08 GMT. This is snapshot recovery evidence,
+not a full application recovery-time target or launch approval.
+
+- Source: `G:\RatRace_Staging\backups\backup-20261125T194208Z-dfa0f023`.
+  This is the coordinated paused-writer capture from 25 November, release
+  `f079ead`; it predates later staging migrations and interactive test records.
+- New destination: `G:\RatRace_Staging_Restore_20261126-233508`.
+  Non-secret evidence is in `receipt.txt` and `package-verification.txt` there.
+- All 9,595 manifest entries matched source before/after and restored copy,
+  including 9,572 media files, zero private files, the dump and protected config.
+  Protected configuration matched byte-for-byte and remained inert. Destination
+  ACLs were restricted, including the copied configuration.
+- All 806 archive catalogue entries and 171 migration records matched.
+  Restored baseline counts included 5 accounts, 211 RR 1 runs, 211 RR 1
+  submissions, 31 RR 2 submissions and 2 Workshop records. No unvalidated
+  constraints were found. Three streaming-account rows were restored.
+- No application, mail, provider integration, worker or scheduler was started
+  against the restored data. Original database ownership/grants and credential
+  decryption were not tested. Restored rows alone do not prove usable tokens.
+- The temporary cluster was stopped; its process and listener were verified
+  absent. Artifacts were retained. No wipes, deletions or deployments occurred.
+- Staging `80b4309` and live `6582cc4` remained ready before and after;
+  existing services and tasks were unchanged.
+
+This closes the isolated database/files/configuration restore gap for this
+specific staging snapshot. Off-host recovery is a future improvement under the
+owner's accepted host-loss risk. Credential decryption, original
+ownership/grants, monitored recurring captures, accepted data-loss/recovery-time
+targets and retention scheduling remain open. A restore of this older snapshot
+cannot preserve writes accepted after capture; a real recovery needs explicit
+reconciliation of later submissions, deletions and redactions.
+
 ## Executed file recovery result, 25 November 2026
 
 OSWALD separately copied and restored live media/private/configuration to NEW
@@ -19,7 +56,8 @@ restore directories passed ACL checks. No app/provider used the copied config.
   restricted artifacts were created; existing application state was unchanged.
 
 This file capture and the earlier database dump are separate recovery proofs.
-A coordinated database/media/configuration rollback point remains unverified.
+These separate live captures do not establish a coordinated live rollback point.
+The later coordinated staging restore is documented above.
 Recurring backup, 30-day backup expiry and 90-day routine-log expiry remain open.
 
 ## Executed database-only result, 25 November 2026
@@ -134,7 +172,8 @@ The restore root and port were rechecked unused; repeat checks at execution.
 Capture into a new timestamped child under `G:\RatRace\backups`, protected before
 data is written. Keep protected configuration out of ordinary report artifacts.
 A same-volume backup supports rehearsal but not recovery from host/disk loss;
-an independently protected off-host copy remains a recovery requirement.
+an independently protected off-host copy is a future improvement. The owner
+accepted local-only host/storage-loss risk on 26 November.
 
 Restore into a separate cluster rooted at `G:\RatRace_Restore_Rehearsal`, database
 `ratrace_restore_rehearsal`, on loopback `127.0.0.1:55432`. The directory was absent,

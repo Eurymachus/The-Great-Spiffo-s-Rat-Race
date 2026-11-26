@@ -1,5 +1,34 @@
 # Website: Current Focus
 
+- Owner accepted local-only host/storage-loss risk on 26 November. Off-host
+  backups are a future improvement, not a launch blocker. Automatic local
+  backups and failure/staleness checks are authorized on staging only; live
+  and retention deletion remain outside scope. See DECISIONS.md.
+
+- Authorized isolated staging restore passed on OSWALD at 23:35 GMT on
+  26 November, in 71 seconds. Existing 25 November package restored into a new
+  protected directory and PostgreSQL cluster on loopback 55434. All 9,595
+  manifest entries, 806 archive entries, 171 migrations and audited baseline
+  counts matched. Rehearsal cluster stopped; artifacts retained; staging/live
+  unchanged. See BACKUP_RESTORE_REHEARSAL.md. Off-host recovery is now deferred under the owner's accepted risk.
+  Credential decryption, grants, scheduling/monitoring and retention remain open.
+
+- Read-only OSWALD backup/retention audit completed on 26 November. No verified
+  recurring backup/retention task; latest complete staging package about 28 hours
+  old, with no isolated restore receipt; off-host recovery unverified. Only 2/63
+  staging routine-log segments sealed. See HOST_RECOVERY_AUDIT_2026-11-26.md for
+  evidence and remaining gates. Next recommended action is a separately scoped
+  isolated restore of the staging package. No previews, restores, deletions,
+  deployments, restarts or task changes were performed in this audit.
+
+- Owner completed reviewer acceptance on staging: changing EuryDev's Discuss
+  vote to Allow replaced the vote (Allow 1, Discuss 0), retaining Pending Review.
+  Removing Workshop Mod Approver and retaining Participant turned staff status
+  off; refreshing the existing admin session blocked access while normal account
+  access remained functional. Voting-control styling was accepted. Temporary
+  reviewer access is removed. Next gate: hosted backup/recovery and retention
+  scheduling evidence, starting with read-only inventory and previews.
+
 - Owner confirmed EuryDev's reviewer vote on Better Crafting: empty Discuss
   reason rejected, reasoned vote persisted after reload as Discuss 1 attributed
   to EuryDev, and final ruling stayed Pending Review. Review controls now use

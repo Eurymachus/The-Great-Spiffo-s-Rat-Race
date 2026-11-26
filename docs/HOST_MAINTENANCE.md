@@ -1,7 +1,13 @@
 # Repeatable host maintenance
 
-Candidate implementation, 25 November 2026. Not deployed or scheduled on either
-host environment. Existing fixed log files and rehearsal artifacts are untouched.
+Implementation baseline, 25 November 2026. The 26 November read-only audit found
+the tooling on staging but no verified recurring backup or retention job.
+See [the current host audit](HOST_RECOVERY_AUDIT_2026-11-26.md) for recovery
+evidence, incomplete log-segment coverage and remaining launch gates.
+The separately authorized coordinated staging restore subsequently passed on
+26 November; see [restore evidence](BACKUP_RESTORE_REHEARSAL.md). This does not
+establish recurring maintenance or off-host protection.
+Earlier candidate-only statements below describe the implementation baseline.
 
 ## Backup capture
 
@@ -21,8 +27,8 @@ manual review. They must not accumulate indefinitely without investigation.
 The manifest explicitly describes separate database-snapshot and stable-file
 evidence. It does not claim coordinated cross-store consistency. An operator must
 still establish the write window/snapshot procedure in BACKUP_RESTORE_REHEARSAL.md
-before treating a package as a coherent rollback point. Off-host copies remain
-an outstanding operational requirement.
+before treating a package as a coherent rollback point. Off-host copies are a future improvement under the owner's accepted
+host/storage-loss risk (26 November), not an initial launch blocker.
 
 ## Log rotation and expiry
 
@@ -63,7 +69,7 @@ last result, age of newest complete backup, holds and incomplete artifacts. A
 backup failure needs an alert, not an assumed success from a running task.
 
 No task has been installed by this work. Scheduling, real backup capture by this
-new runner, coordinated snapshots, off-host recovery and 90-day historical log
+new runner, coordinated snapshots and 90-day historical log
 handling remain hosted acceptance gates.
 
 ## Verification
@@ -95,3 +101,39 @@ Its three profile safety tests pass locally. The scoped SQLite suite now runs
 plus all 14 operational tests and the real Windows logger fixture. A synthetic
 PostgreSQL capture also passed. See POSTGRES_ACCEPTANCE_2026-11-25.md. This does
 not install or activate any maintenance job in live or staging.
+
+## Automatic staging backups
+
+The staging-only scripts `Run-RatRaceStagingBackup.ps1` and
+`Install-RatRaceStagingBackup.ps1` are separate from retention. They never invoke
+expiry or application retention. Install a versioned bundle in the protected
+`G:\RatRace_Staging\backup-operations` directory. The bundle contains the
+scripts and existing ACL/process helpers. No application release switch is needed.
+
+- SYSTEM task `RatRaceStagingBackup`: daily at 04:00 host local time,
+  StartWhenAvailable and IgnoreNew. Brief staging outage during capture.
+- SYSTEM task `RatRaceStagingBackupCheck`: hourly at :15, checks newest complete
+  package hashes, 30-hour freshness, latest capture state, backup task result
+  and enabled staging tasks. No outbound alerts or messages are sent.
+- A shared named mutex prevents simultaneous backup/check runs. Operators must
+  serialize staging deployments and manual DB/file changes with captures.
+- Capture requires idle queues, matching web/worker release actions, 2 GiB free,
+  stopped staging process trees and no other staging DB client. Only staging
+  port 5433 is accepted. Media/private/config and PostgreSQL are captured.
+  Reference/decompiled/leaderboard roots are outside this restore-proven scope.
+- Existing web/worker triggers are disabled during capture and restored in
+  finally, then readiness/release and one logical web/worker tree are checked.
+  A host crash or forced termination can bypass finally: inspect status and
+  restore staging tasks manually before retrying. No task timeout kills this runner.
+- Status: protected `capture-status.json` and `check-status.json`. Failure exits
+  nonzero and writes Windows Application event 4101, source
+  `RatRaceStagingBackup`; success writes 4100. Task Scheduler also records results.
+  The owner must inspect these local signals; this is not an off-host alerting
+  service and cannot report a dead host or a disabled monitor independently.
+- Daily cadence targets approximately 24 hours of local snapshot coverage;
+  30 hours is the stale threshold. Neither is a guarantee during failures.
+  The 71-second restore rehearsal is not a full application recovery-time promise.
+- No old packages are deleted. Review disk growth and incomplete captures.
+  Original 30-day backup/90-day log policy is not scheduled for apply here.
+
+Hosted installation and first-run results will be recorded after acceptance.
