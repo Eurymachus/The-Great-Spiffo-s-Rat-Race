@@ -23,6 +23,36 @@ window.RatRacePages.register((pageSignal) => {
 
     const form = document.querySelector("[data-mod-review-form]");
     if (!form) return;
+    const reason = form.querySelector('[name="reason"]');
+    const reasonError = document.createElement("p");
+    reasonError.id = "mod-review-reason-error";
+    reasonError.className = "error";
+    reasonError.hidden = true;
+    reasonError.setAttribute("aria-live", "polite");
+    reason.insertAdjacentElement("afterend", reasonError);
+    const reasonDescription = reason.getAttribute("aria-describedby") || "";
+    const clearReasonError = () => {
+        if (reasonError.hidden) return;
+        reasonError.hidden = true;
+        reasonError.textContent = "";
+        reason.removeAttribute("aria-invalid");
+        if (reasonDescription) reason.setAttribute("aria-describedby", reasonDescription);
+        else reason.removeAttribute("aria-describedby");
+        reason.closest(".field").classList.remove("has-error");
+    };
+    reason.addEventListener("input", () => {
+        if (reason.value.trim()) clearReasonError();
+    }, {signal: pageSignal});
+    form.addEventListener("submit", (event) => {
+        if (reason.value.trim()) return;
+        event.preventDefault();
+        reasonError.textContent = "Please enter a reason.";
+        reasonError.hidden = false;
+        reason.setAttribute("aria-invalid", "true");
+        reason.setAttribute("aria-describedby", `${reasonDescription} ${reasonError.id}`.trim());
+        reason.closest(".field").classList.add("has-error");
+        reason.focus();
+    }, {signal: pageSignal});
     const search = form.querySelector("[data-workshop-search]");
     const selectedId = form.querySelector('[name="workshop_id"]');
     const results = form.querySelector("[data-workshop-results]");

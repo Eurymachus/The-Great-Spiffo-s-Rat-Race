@@ -1,5 +1,19 @@
 # Website: Current Focus
 
+- Workshop modal now intercepts empty or whitespace-only reasons before POST,
+  keeps the dialog open and focuses the reason with an accessible inline error.
+  Typing a nonblank reason clears the client error. Server validation remains
+  authoritative; all 19 Workshop tests pass. Hosted browser acceptance follows.
+
+- Steam name search now passes on staging. The owner replaced the provisioner's
+  placeholder directly in protected configuration. After the authorized staging
+  web/worker restart, `world item remo` returned eight results, led by World Item
+  Removal List [SP] (3764947570). Staging remains `55ec1e7`, ready with one logical
+  web and worker tree each. Live remains `6582cc4` behind construction (503).
+  No key was exposed or committed. Real submission/review acceptance continues.
+- Owner confirmed password-reset acceptance: old password rejected, new password
+  accepted and used reset link invalid. This supersedes the earlier pending note.
+
 - Password reset rehearsal: owner received the reset message, reset in another
   browser and signed in. They reused the same password, so old-password rejection
   is not yet proven manually. Signed-in reset request/completion pages now
