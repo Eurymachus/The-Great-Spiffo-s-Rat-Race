@@ -89,6 +89,13 @@
 
         try {
             await Promise.resolve();
+            // Include every chosen item, including items hidden by the widget filter.
+            // A native submit listener may run after this asynchronous handler resumes.
+            form.querySelectorAll(".selector-chosen select").forEach((select) => {
+                if (!select.id.endsWith("_to")) return;
+                window.SelectBox.filter(select.id, "");
+                window.SelectBox.select_all(select.id);
+            });
             const data = new FormData(form);
             data.append(submitter.name, submitter.value || "Save and continue editing");
             const response = await fetch(form.action || window.location.href, {

@@ -1,5 +1,12 @@
 # Website: Current Focus
 
+- Reviewer acceptance exposed chosen groups disappearing after asynchronous
+  admin Save. Explicitly prepare Django's chosen-select cache before FormData,
+  including filtered-out choices. This avoids depending on submit-listener
+  ordering. JavaScript checks cover chosen/hidden groups, removal and empty
+  selections using Django's actual SelectBox implementation. Staff access is
+  already synchronized from role membership; do not manually grant superuser.
+
 - Bulk Allow/Disallow now requires a confirmation form with a nonblank public
   reason. Changed rulings save that reason and include it in notifications;
   required mods and already-matching rulings remain unchanged. Superuser-only
