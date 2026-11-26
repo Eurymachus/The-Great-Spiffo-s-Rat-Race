@@ -237,6 +237,9 @@ class ModsPageTests(TestCase):
 
         required = WorkshopMod.objects.get(ruling=WorkshopMod.Ruling.REQUIRED)
         disallowed = WorkshopMod.objects.get(workshop_id="1234567891")
+        disallowed.submitted_by = self.racer
+        disallowed.public_rationale = "Public reason " * 40
+        disallowed.save()
         self.client.force_login(admin_user)
         response = self.client.post(
             reverse("admin:registry_workshopmod_changelist"),
@@ -255,6 +258,15 @@ class ModsPageTests(TestCase):
         self.assertEqual(disallowed.reviewed_by, admin_user)
         self.assertIsNotNone(disallowed.reviewed_at)
         self.assertContains(response, "1 mod(s) marked Allowed.")
+        notice = self.racer.notifications.get()
+        self.assertIn("allowed", notice.title)
+        self.assertLessEqual(len(notice.message), 300)
+        self.assertIn("Full reason in catalogue", notice.message)
+        for action, count in (("allow_selected_mods", 1), ("disallow_selected_mods", 2), ("disallow_selected_mods", 2)):
+            self.client.post(reverse("admin:registry_workshopmod_changelist"), {
+                "action": action, ACTION_CHECKBOX_NAME: [str(disallowed.pk)], "index": "0",
+            })
+            self.assertEqual(self.racer.notifications.count(), count)
 
     def test_super_admin_can_reset_rulings_without_resetting_provenance(self):
         admin_user = Participant.objects.create_superuser(
@@ -347,6 +359,7 @@ class ModsPageTests(TestCase):
             title="Pending Example",
             steam_url="https://steamcommunity.com/sharedfiles/filedetails/?id=1234567892",
             ruling=WorkshopMod.Ruling.PENDING,
+            submitted_by=self.racer,
         )
         self.client.force_login(admin_user)
         change_url = reverse("admin:registry_workshopmod_change", args=(pending.pk,))
@@ -363,6 +376,7 @@ class ModsPageTests(TestCase):
         self.assertContains(rejected, "Enter the public reason for this final ruling.")
         pending.refresh_from_db()
         self.assertEqual(pending.ruling, WorkshopMod.Ruling.PENDING)
+        self.assertFalse(self.racer.notifications.exists())
 
         form_data["public_rationale"] = "Purely cosmetic and within the published rules."
         accepted = self.client.post(change_url, form_data)
@@ -371,6 +385,16 @@ class ModsPageTests(TestCase):
         self.assertEqual(pending.ruling, WorkshopMod.Ruling.ALLOWED)
         self.assertEqual(pending.reviewed_by, admin_user)
         self.assertIsNotNone(pending.reviewed_at)
+        notice = self.racer.notifications.get()
+        self.assertEqual(notice.title, "Mod allowed: Pending Example")
+        self.assertEqual(notice.message, form_data["public_rationale"])
+        self.assertEqual(notice.destination, reverse("registry:mods"))
+        self.client.post(change_url, form_data)
+        self.assertEqual(self.racer.notifications.count(), 1)
+        form_data["ruling"] = WorkshopMod.Ruling.DISALLOWED
+        self.client.post(change_url, form_data)
+        self.assertEqual(self.racer.notifications.count(), 2)
+        self.assertTrue(self.racer.notifications.filter(title="Mod disallowed: Pending Example").exists())
 
     def test_approver_can_cast_and_change_attributable_team_vote(self):
         approver = Participant.objects.create_user(

@@ -520,7 +520,7 @@ class LegacyDataImportAdmin(LegacyWorkspaceMixin, admin.ModelAdmin):
 from .tokens import create_verification_token
 from .verification_email import send_verification_email
 from .avatar_moderation import approve_pending_avatar, reject_pending_avatar
-from .notifications import notify
+from .notifications import notify, notify_mod_ruling
 from .run_review import build_challenge_run_overview, build_run_review
 from .run_exports import decode_run_export
 from .challenge_modes import resolve_challenge_mode
@@ -768,6 +768,9 @@ class WorkshopModAdmin(admin.ModelAdmin):
             obj.reviewed_at = timezone.now()
         super().save_model(request, obj, form, change)
 
+        if obj.ruling != previous_ruling:
+            notify_mod_ruling(obj)
+
     def get_actions(self, request):
         actions = super().get_actions(request)
         if not request.user.is_superuser:
@@ -777,7 +780,11 @@ class WorkshopModAdmin(admin.ModelAdmin):
         return actions
 
     @admin.action(description="Allow selected mods")
+    @transaction.atomic
     def allow_selected_mods(self, request, queryset):
+        changed = list(queryset.select_for_update().exclude(
+            ruling__in=(WorkshopMod.Ruling.REQUIRED, WorkshopMod.Ruling.ALLOWED)
+        ))
         reviewed_at = timezone.now()
         updated = queryset.exclude(
             ruling=WorkshopMod.Ruling.REQUIRED
@@ -788,9 +795,16 @@ class WorkshopModAdmin(admin.ModelAdmin):
             updated_at=reviewed_at,
         )
         self.message_user(request, f"{updated} mod(s) marked Allowed.", messages.SUCCESS)
+        for mod in changed:
+            mod.ruling = WorkshopMod.Ruling.ALLOWED
+            notify_mod_ruling(mod)
 
     @admin.action(description="Disallow selected mods")
+    @transaction.atomic
     def disallow_selected_mods(self, request, queryset):
+        changed = list(queryset.select_for_update().exclude(
+            ruling__in=(WorkshopMod.Ruling.REQUIRED, WorkshopMod.Ruling.DISALLOWED)
+        ))
         reviewed_at = timezone.now()
         updated = queryset.exclude(
             ruling=WorkshopMod.Ruling.REQUIRED
@@ -806,6 +820,9 @@ class WorkshopModAdmin(admin.ModelAdmin):
             f"{updated} mod(s) marked Disallowed.",
             messages.SUCCESS,
         )
+        for mod in changed:
+            mod.ruling = WorkshopMod.Ruling.DISALLOWED
+            notify_mod_ruling(mod)
 
     @admin.action(description="Reset ruling")
     def reset_selected_rulings(self, request, queryset):

@@ -1,5 +1,22 @@
 # Website: Current Focus
 
+- Better Containers approval exposed a missing notification integration: both
+  individual and bulk Workshop rulings saved decisions without notifying the
+  submitter. These paths now create in-app submission notifications on changed
+  Allowed/Disallowed rulings only, with the public reason and catalogue link.
+  Long reasons are excerpted to the notification limit; full text remains in the
+  catalogue. Re-saving the same ruling does not duplicate the notification.
+  Existing approval notification repair awaits owner approval.
+
+- 26 November password-reset follow-up: staging rejected a recipient outside
+  its email allowlist, raising an unhandled ValueError and returning HTTP 500
+  before reaching Microsoft Graph. Owner approved adding eury@machus.co.uk
+  alongside dev@sentineltech.co.uk, keeping allow-all disabled. Staging restarted
+  healthy on e862c7f with one web and worker tree each; owner will retry delivery.
+  No email was sent during the change and live was untouched.
+  Handle blocked reset delivery without
+  an HTTP 500 as a remaining launch fix; allowlist expansion does not fix that.
+
 - Agreed next dashboard change (26 November): add "Your mods awaiting review"
   for the signed-in participant's pending submissions only; hide when empty and
   remove decided items. Results and public reasons belong in notifications and
