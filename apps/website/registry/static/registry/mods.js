@@ -1,4 +1,34 @@
 window.RatRacePages.register((pageSignal) => {
+    const thumbnailRows = [...document.querySelectorAll(".mods-list .mod-entry:has(> img)")];
+    const mobileRows = window.matchMedia("(max-width: 680px)");
+    let thumbnailFrame;
+    const fitThumbnails = () => {
+        cancelAnimationFrame(thumbnailFrame);
+        thumbnailFrame = requestAnimationFrame(() => {
+            thumbnailRows.forEach((row) => {
+                if (!mobileRows.matches) {
+                    row.style.removeProperty("--mod-thumbnail-size");
+                    return;
+                }
+                // Reset before measuring so rotation can shrink as well as grow.
+                row.style.removeProperty("--mod-thumbnail-size");
+                for (let pass = 0; pass < 12; pass += 1) {
+                    const size = Math.ceil(row.clientHeight);
+                    const current = row.querySelector("img").getBoundingClientRect().width;
+                    if (Math.abs(size - current) < 1) break;
+                    // Keep a readable text column for unusually long titles.
+                    const maximum = Math.floor(row.clientWidth / 2);
+                    row.style.setProperty("--mod-thumbnail-size", `${Math.min(size, maximum)}px`);
+                    if (size >= maximum) break;
+                }
+            });
+        });
+    };
+    fitThumbnails();
+    window.addEventListener("resize", fitThumbnails, {signal: pageSignal});
+    document.fonts?.ready.then(() => { if (!pageSignal.aborted) fitThumbnails(); });
+    pageSignal.addEventListener("abort", () => cancelAnimationFrame(thumbnailFrame), {once: true});
+
     const connectDialog = (dialogSelector, openSelector, closeSelector) => {
         const dialog = document.querySelector(dialogSelector);
         if (!dialog) return;

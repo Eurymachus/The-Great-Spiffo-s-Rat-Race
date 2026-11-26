@@ -1535,9 +1535,9 @@
     .mod-entry { grid-template-columns: 5.5rem minmax(0, 1fr); }
     .mod-entry-required { grid-template-columns: 5.5rem minmax(0, 1fr); height: auto; min-height: 5.5rem; }
     .mod-entry-required > img { width: 5.5rem; height: 5.5rem; }
-    .mods-results .mods-list .mod-entry { grid-template-columns: 4.5rem minmax(0, 1fr); height: auto; min-height: 4.5rem; }
-    .mods-results .mods-list .mod-entry > img { width: 4.5rem; height: 4.5rem; }
-    .mods-list .mod-entry-copy { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: .35rem; padding: .65rem; }
+    .mods-results .mods-list .mod-entry { grid-template-columns: var(--mod-thumbnail-size, 5rem) minmax(0, 1fr); height: auto; min-height: 5rem; }
+    .mods-results .mods-list .mod-entry > img { width: var(--mod-thumbnail-size, 5rem); height: var(--mod-thumbnail-size, 5rem); aspect-ratio: 1; object-fit: cover; }
+    .mods-list .mod-entry-copy { display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; align-items: start; gap: .15rem; padding: .35rem .6rem; }
     .mods-list .mod-entry-copy .mod-ruling { grid-column: 1; grid-row: 3; justify-self: start; }
     .mods-list .mod-entry-copy h3 { grid-column: 1; grid-row: 1; margin: 0; font-size: 1rem; }
     .mods-list .mod-entry-copy p { display: none; }

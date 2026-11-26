@@ -1,5 +1,12 @@
 # Website: Current Focus
 
+- Mobile row refinement: reduce copy padding and vertical gaps, and size square
+  thumbnails to the measured row height after font loading and viewport changes.
+  Reset measurements on resize so rows shrink again after rotation. Thumbnail
+  width is bounded to half the row to preserve text space for exceptional titles.
+  Local browser checks at 320px and 390px confirmed square full-height thumbnails
+  for current catalogue titles, including portrait/landscape/portrait reflow.
+
 - Mobile catalogue follow-up: place ruling badges below titles/Workshop IDs,
   allow section counts to wrap as a unit, and remove fixed card heights so text
   cannot be clipped after reflow. Scope consistent mobile text sizing to the
