@@ -42,9 +42,9 @@ def database_check(values, stopped=False):
                          connect_timeout=10, options='-c default_transaction_read_only=on') as conn:
         with conn.cursor() as cursor:
             for table in ('operations_referenceupdatejob', 'operations_pzwikiartworksyncjob',
-                          'operations_dailyleaderboardjob'):
+                          'operations_dailyleaderboardjob', 'operations_catalogueimportreview'):
                 # Fixed internal identifiers, never operator input.
-                cursor.execute(f"SELECT count(*) FROM {table} WHERE status IN ('queued','running','uncertain')")
+                cursor.execute(f"SELECT count(*) FROM {table} WHERE status IN ('queued','running','generating','uncertain')")
                 if cursor.fetchone()[0]:
                     raise ValueError('Background queue is not idle')
             if stopped:

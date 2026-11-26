@@ -3,9 +3,10 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 from host_artifacts import FORMAT, inventory
-from staging_backup import verify_latest
+from staging_backup import database_check, verify_latest
 
 
 class BackupChecks(unittest.TestCase):
@@ -45,6 +46,19 @@ class BackupChecks(unittest.TestCase):
         (newest / 'database.dump').write_text('changed')
         with self.assertRaises(ValueError):
             verify_latest(self.root, self.now)
+
+    def test_active_catalogue_generation_blocks_capture(self):
+        driver = MagicMock()
+        cursor = driver.connect.return_value.__enter__.return_value.cursor.return_value.__enter__.return_value
+        cursor.fetchone.side_effect = [(0,), (0,), (0,), (1,)]
+        values = dict(POSTGRES_HOST='127.0.0.1', POSTGRES_PORT='5433',
+                      POSTGRES_DB='fixture', POSTGRES_USER='fixture', POSTGRES_PASSWORD='fixture')
+        with patch.dict('sys.modules', psycopg=driver):
+            with self.assertRaisesRegex(ValueError, 'queue is not idle'):
+                database_check(values, stopped=True)
+        query = cursor.execute.call_args.args[0]
+        self.assertIn('operations_catalogueimportreview', query)
+        self.assertIn("'generating'", query)
 
 
 if __name__ == '__main__':
