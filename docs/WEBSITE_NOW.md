@@ -1,5 +1,11 @@
 # Website: Current Focus
 
+- Mobile catalogue follow-up: place ruling badges below titles/Workshop IDs,
+  allow section counts to wrap as a unit, and remove fixed card heights so text
+  cannot be clipped after reflow. Scope consistent mobile text sizing to the
+  catalogue for orientation changes. In-app portrait inspection reproduced
+  cramped recommended titles; iPhone rotation clipping needs owner acceptance.
+
 - Owner confirmed both Workshop decision journeys on staging: notification
   receipt, removal from awaiting review and correct catalogue ruling/reason.
   The disallowed journey generated its notification automatically.

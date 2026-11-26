@@ -1383,7 +1383,7 @@
 }
 .leaderboard-access-actions { display: flex; justify-content: flex-end; gap: .75rem; }
 
-.mods-page { display: grid; gap: 1rem; width: min(100%, 72rem); margin-inline: auto; }
+.mods-page { display: grid; gap: 1rem; width: min(100%, 72rem); margin-inline: auto; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .mods-hero,
 .mods-guidance,
 .mods-controls,
@@ -1417,7 +1417,7 @@
 .mod-entry { display: grid; grid-template-columns: 7rem minmax(0, 1fr); min-height: 7rem; overflow: hidden; }
 .mod-entry > img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; background: var(--theme-surface-alt); }
 .mod-entry:not(:has(> img)) { grid-template-columns: 1fr; }
-.mod-entry-copy { align-content: center; padding: 1rem 1.2rem; }
+.mod-entry-copy { min-width: 0; overflow-wrap: anywhere; align-content: center; padding: 1rem 1.2rem; }
 .mod-entry-copy h3 { margin: .25rem 0 .35rem; }
 .mod-entry-copy h3 a,
 .mod-entry-copy h3 a:visited { color: var(--theme-accent-hover); }
@@ -1425,7 +1425,7 @@
 .mod-entry-copy p { margin: 0 0 .45rem; color: var(--theme-muted); }
 .mod-entry-copy small { color: var(--theme-muted); }
 .mod-entry-required { border-color: var(--theme-accent); box-shadow: inset .25rem 0 0 var(--theme-accent), var(--theme-shadow); background: color-mix(in srgb, var(--theme-accent) 6%, var(--theme-surface)); }
-.mod-entry-required { grid-template-columns: 8rem minmax(0, 1fr); height: 8rem; min-height: 0; }
+.mod-entry-required { grid-template-columns: 8rem minmax(0, 1fr); height: auto; min-height: 8rem; }
 .mod-entry-required > img { width: 8rem; height: 8rem; }
 .mod-entry-required .mod-entry-copy { padding-block: .65rem; }
 .mod-entry-recommended { background: color-mix(in srgb, var(--theme-success) 4%, var(--theme-surface)); }
@@ -1448,7 +1448,7 @@
 .mods-list { display: grid; }
 .mods-list .mod-entry { border: 0; border-bottom: 1px solid var(--theme-border); border-radius: 0; }
 .mods-list .mod-entry:last-child { border-bottom: 0; }
-.mods-list:not(.mods-list-compact) .mod-entry { grid-template-columns: 8rem minmax(0, 1fr); height: 8rem; min-height: 0; }
+.mods-list:not(.mods-list-compact) .mod-entry { grid-template-columns: 8rem minmax(0, 1fr); height: auto; min-height: 8rem; }
 .mods-list:not(.mods-list-compact) .mod-entry > img { width: 8rem; height: 8rem; }
 .mods-list:not(.mods-list-compact) .mod-entry-copy { padding-block: .65rem; }
 .mods-list-compact .mod-entry { grid-template-columns: 3.6rem minmax(0, 1fr); min-height: 3.6rem; }
@@ -1528,7 +1528,8 @@
     .mods-controls { grid-template-columns: 1fr; }
     .mods-controls fieldset { flex-wrap: wrap; }
     .mods-controls > button { width: 100%; }
-    .mods-results > header { align-items: flex-start; gap: .6rem; }
+    .mods-results > header { align-items: flex-start; flex-wrap: wrap; gap: .4rem 1rem; }
+    .mods-results > header > span { white-space: nowrap; }
     .mods-results-actions { align-items: flex-end; flex-direction: column; }
     .mods-view-toggle { display: none; }
     .mod-entry { grid-template-columns: 5.5rem minmax(0, 1fr); }
@@ -1536,11 +1537,12 @@
     .mod-entry-required > img { width: 5.5rem; height: 5.5rem; }
     .mods-results .mods-list .mod-entry { grid-template-columns: 4.5rem minmax(0, 1fr); height: auto; min-height: 4.5rem; }
     .mods-results .mods-list .mod-entry > img { width: 4.5rem; height: 4.5rem; }
-    .mods-list .mod-entry-copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .15rem .75rem; padding: .45rem .65rem; }
-    .mods-list .mod-entry-copy .mod-ruling { grid-column: 2; grid-row: 1 / span 2; }
+    .mods-list .mod-entry-copy { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: .35rem; padding: .65rem; }
+    .mods-list .mod-entry-copy .mod-ruling { grid-column: 1; grid-row: 3; justify-self: start; }
     .mods-list .mod-entry-copy h3 { grid-column: 1; grid-row: 1; margin: 0; font-size: 1rem; }
     .mods-list .mod-entry-copy p { display: none; }
     .mods-list .mod-entry-copy small { grid-column: 1; grid-row: 2; font-size: .7rem; }
+    .mods-results .mods-list .mod-entry:not(:has(> img)) { grid-template-columns: minmax(0, 1fr); }
     .mod-workshop-selection { grid-template-columns: 4rem minmax(0, 1fr); }
     .mod-workshop-existing-status { grid-column: 1 / -1; justify-self: start; }
     .mod-submit-auth-actions { flex-direction: column; }
