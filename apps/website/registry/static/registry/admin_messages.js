@@ -17,7 +17,10 @@
             errors.hidden = true;
             row?.querySelectorAll("input, select, textarea").forEach((field) => field.setAttribute("aria-invalid", "true"));
         });
-        if (messages.length) document.querySelectorAll(".errornote").forEach((note) => { note.hidden = true; });
+        if (messages.length) document.querySelectorAll(".errornote").forEach((note) => {
+            note.hidden = true;
+            note.style.display = "none";
+        });
     }
     if (!messages.length) return;
     const region = document.createElement("div");
