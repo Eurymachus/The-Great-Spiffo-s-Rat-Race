@@ -104,6 +104,11 @@ class RatRaceAdminSite(AdminSite):
 
                 url = reverse("admin:registry_challengerun_changelist")
                 query = {**dict.fromkeys(FILTERS, ""), "work": "review"}
+            elif label == "registry.WorkshopMod":
+                from .models import WorkshopModSavedView
+
+                pending_view = WorkshopModSavedView.objects.get(system_key="pending")
+                query = {**query, "view": str(pending_view.pk), "reset": "1"}
             elif label == "registry.Participant":
                 query = {**query, "_filters": "1"}
             elif label in {"registry.LegacyRunClaim", "registry.LegacyRunSubmission"}:

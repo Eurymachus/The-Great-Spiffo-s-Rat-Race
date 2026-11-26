@@ -32,6 +32,11 @@ def preferences(user):
 
 def resolve_view(request):
     prefs = preferences(request.user)
+    # An explicit destination must not fall back to a different tab's filters.
+    requested = next((p for p in prefs if str(p.view_id) == request.GET.get("view")), None)
+    if requested and requested.hidden:
+        requested.hidden = False
+        requested.save(update_fields=("hidden",))
     visible = [p for p in prefs if not p.hidden]
     if not visible and prefs:
         prefs[0].hidden = False

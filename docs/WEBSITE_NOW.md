@@ -1,5 +1,10 @@
 # Website: Current Focus
 
+- Workshop dashboard Open queue now explicitly selects Pending Review and
+  clears its remembered overrides, instead of saving a Pending filter onto All.
+  Explicit links reveal their destination tab if previously hidden. Regression
+  coverage checks queue selection, hidden-tab handling and unchanged All filters.
+
 - Reviewer acceptance exposed chosen groups disappearing after asynchronous
   admin Save. Explicitly prepare Django's chosen-select cache before FormData,
   including filtered-out choices. This avoids depending on submit-listener
