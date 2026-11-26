@@ -1,5 +1,15 @@
 # Website: Current Focus
 
+- Automatic staging backups/checks installed on OSWALD from operations bundle
+  `5a3b13a6`: daily 04:00 and hourly :15 UK time, SYSTEM, no retention apply.
+  Task Scheduler capture and check both passed, with event 4100 and a fresh
+  package `backup-20261126T235530Z-44f4e1c4`; all 9,595 manifest entries verified.
+  Capture/recovery took about 70 seconds. Earlier failed capture correctly
+  produced failure status/event 4101; its cause is unverified, safe stage/line
+  diagnostics now installed. Staging `80b4309` recovered with one web/worker;
+  live `6582cc4` unchanged. Next: inspect the first unattended 04:00 run.
+  See HOST_MAINTENANCE.md for evidence and local monitoring limitations.
+
 - Owner accepted local-only host/storage-loss risk on 26 November. Off-host
   backups are a future improvement, not a launch blocker. Automatic local
   backups and failure/staleness checks are authorized on staging only; live

@@ -60,3 +60,13 @@ records the earlier audit state, before this restore was performed.
 Next authorized action: automatic local staging backups with failure and
 staleness checks. No expiry is authorized. Live stays unchanged; RR 2
 restructuring is deferred. Off-host recovery remains a future improvement.
+
+## Automatic local staging backup follow-up
+
+The owner subsequently authorized scheduling. Bundle `5a3b13a6` is installed;
+Task Scheduler capture and integrity/freshness check passed on 26 November.
+Daily 04:00 and hourly :15 UK triggers are enabled. Failure detection also logged
+event 4101 on an earlier failed attempt; its cause remains unverified. The new
+package is `backup-20261126T235530Z-44f4e1c4`. See HOST_MAINTENANCE.md for details.
+This supersedes the earlier unscheduled staging state only. Observe the first
+unattended timer run; live scheduling and retention apply remain untouched.

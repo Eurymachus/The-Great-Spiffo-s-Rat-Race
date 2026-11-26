@@ -136,4 +136,33 @@ scripts and existing ACL/process helpers. No application release switch is neede
 - No old packages are deleted. Review disk growth and incomplete captures.
   Original 30-day backup/90-day log policy is not scheduled for apply here.
 
-Hosted installation and first-run results will be recorded after acceptance.
+### Hosted acceptance, 26 November 2026
+
+Installed operations bundle `5a3b13a6` on OSWALD under the protected
+`G:\RatRace_Staging\backup-operations` directory. Both SYSTEM tasks are enabled,
+IgnoreNew and StartWhenAvailable, with 04:00 daily and hourly :15 triggers in
+GMT Standard Time (UK local time). Four monitor/queue tests passed and both
+PowerShell scripts parsed successfully on the host.
+
+Manually starting the installed tasks through Task Scheduler verified actual
+execution, not merely registration. Capture and Check both returned 0 and logged
+Application event 4100. Capture including staging recovery took about 70 seconds.
+The first unattended clock-triggered run remains to be observed; do not treat
+one successful execution as a history of reliable recurring captures.
+
+- New package: `G:\RatRace_Staging\backups\backup-20261126T235530Z-44f4e1c4`.
+- All 9,595 manifest entries passed integrity/freshness verification. The dump
+  SHA-256 was independently compared with its manifest. Package ACLs passed.
+- Web and worker were paused for capture; staging returned ready on `80b4309`
+  with exactly one logical tree each. Live stayed ready on `6582cc4`, unchanged.
+- Earlier bundle `419f040e` failed without producing a package. Both staging
+  tasks recovered; the scheduled checker returned 1, wrote failed status and
+  logged event 4101. The original cause is unverified. The installed revision
+  records non-secret failure stage and line for future diagnosis.
+- New package integrity is verified; the prior isolated restore rehearsal used
+  the older 25 November package. Do not claim this new package was restored.
+- No app deployment, retention apply, backup deletion or live changes occurred.
+
+Owner follow-up: inspect the task/status/event results after the first 04:00
+clock-triggered run. A failing check requires operator review; these local
+signals do not send email or independently detect loss of OSWALD itself.

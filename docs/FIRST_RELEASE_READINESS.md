@@ -464,3 +464,14 @@ retention/privacy and host recovery to pass. RR 1.0 opening additionally require
 its accepted rehearsal and verified final handover. RR 2 sign-off remains a
 separate contract, in-game lifecycle, statistics/review and populated-upgrade
 acceptance decision. No release is declared ready by this audit.
+
+## Local backup scheduling acceptance, 26 November 2026
+
+The owner accepts local-only host/storage-loss risk; off-host backup is a future
+improvement. Staging SYSTEM backup/check tasks are installed at 04:00 daily and
+hourly :15 UK time. Actual Task Scheduler executions passed with fresh package
+hash verification and staging recovery. Failure status and event 4101 were also
+observed on an earlier failed capture; its original cause remains unverified.
+See [host maintenance](HOST_MAINTENANCE.md) for the bundle, receipts and limits.
+Observe the first unattended clock trigger. Live backup scheduling is not changed
+or proven by staging acceptance, and retention deletion remains unscheduled.
