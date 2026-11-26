@@ -1,5 +1,11 @@
 # Website: Current Focus
 
+- Catalogue outer-layout follow-up: owner screenshots show the recommended
+  section overlapping the required card after returning to portrait. Replace
+  the outer grid with normal block flow and explicit one-rem sibling spacing;
+  exclude dialogs so their positioning remains independent. Compact rows and
+  square-thumbnail sizing are unchanged. Physical iPhone acceptance is pending.
+
 - Owner accepted compact mobile rows but reported required-card clipping after
   iPhone rotation. Give that standalone card a content-sized flex layout instead
   of a clipped grid, and render its Workshop ID as a block contributing to height.

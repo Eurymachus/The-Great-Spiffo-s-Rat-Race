@@ -1383,7 +1383,9 @@
 }
 .leaderboard-access-actions { display: flex; justify-content: flex-end; gap: .75rem; }
 
-.mods-page { display: grid; gap: 1rem; width: min(100%, 72rem); margin-inline: auto; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.mods-page { display: flow-root; width: min(100%, 72rem); margin-inline: auto; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.mods-page > :not(dialog) { margin-block: 0; }
+.mods-page > :not(dialog) ~ :not(dialog) { margin-block-start: 1rem; }
 .mods-hero,
 .mods-guidance,
 .mods-controls,
