@@ -6,7 +6,10 @@
   current rulings in the catalogue. The full review queue remains private.
   Implemented in the shared dashboard fragment, with responsive title/date rows.
   Regression coverage checks participant isolation, removal after either final
-  ruling and hiding the empty section with RR 2 disabled. Hosted acceptance next.
+  ruling and hiding the empty section with RR 2 disabled. Hosted ownership checks
+  passed. Styling follow-up aligns panel spacing with the Workshop action card,
+  using bordered rows, stacked submission dates and awaiting-review badges.
+  Visual acceptance remains pending because local browser control is blocked.
 
 - Workshop final-ruling feedback: rename the form label to "Public reason for
   this ruling" and explain that it appears in the public catalogue, not private
