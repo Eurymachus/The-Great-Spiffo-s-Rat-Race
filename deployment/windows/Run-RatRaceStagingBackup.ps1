@@ -14,12 +14,17 @@ $mutex = New-Object Threading.Mutex($false, 'Global\RatRaceStagingBackup')
 $locked = $false
 $paused = @()
 $failed = $false
+$stage = 'initialization'
+$failureStage = ''
+$failureLine = 0
 function Save-State($path, $state, $detail) {
-    $record = @{state=$state; checked_at=[DateTime]::UtcNow.ToString('o'); detail=$detail}
+    $record = @{state=$state; checked_at=[DateTime]::UtcNow.ToString('o'); detail=$detail;
+        stage=$stage; failure_stage=$failureStage; failure_line=$failureLine}
     $record | ConvertTo-Json | Set-Content -LiteralPath "$path.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$path.tmp" -Destination $path -Force
 }
 function Run-Check($command) {
+    $script:stage = "python-$command"
     & $python $tool $command --root $root
     if ($LASTEXITCODE -ne 0) { throw "Staging backup $command failed; inspect protected artifacts." }
 }
@@ -45,6 +50,7 @@ try {
         Run-Check 'preflight'
         if ((Get-Volume -DriveLetter G).SizeRemaining -lt 2GB) { throw 'Insufficient backup disk space.' }
         $releaseLine = @(Get-Content -LiteralPath (Join-Path $root 'config\staging.env') | Where-Object { $_ -match '^RELEASE_ID=' })
+        $stage = 'validate-task-release'
         if ($releaseLine.Count -ne 1) { throw 'Release identity missing or ambiguous.' }
         $release = ($releaseLine[0] -split '=', 2)[1].Trim().Trim('"').Trim("'")
         if ($release -notmatch '^[a-f0-9]{7,40}$') { throw 'Invalid release identity.' }
@@ -57,11 +63,13 @@ try {
             }
         }
         # Operator deployments must not overlap this window. Disable triggers before stopping.
+        $stage = 'disable-staging-triggers'
         foreach ($name in $names) {
             $paused += $name
             Disable-ScheduledTask -TaskName $name | Out-Null
         }
         $processes = @(Get-CimInstance Win32_Process)
+        $stage = 'stop-staging-processes'
         $roots = @(Get-RatRaceDeploymentProcessRoots -Processes $processes -InstallationRoot $root -PythonExecutable $python)
         $tree = @(Get-RatRaceProcessTreeIds -Processes $processes -RootProcessIds @($roots.ProcessId))
         foreach ($name in $names) { Stop-ScheduledTask -TaskName $name }
@@ -74,6 +82,7 @@ try {
             }
         }
         Start-Sleep -Seconds 2
+        $stage = 'verify-staging-stopped'
         Assert-RatRaceDeploymentStopped -Processes @(Get-CimInstance Win32_Process) -InstallationRoot $root -PythonExecutable $python
         if (Get-NetTCPConnection -LocalPort 8002 -State Listen -ErrorAction SilentlyContinue) { throw 'Staging web listener remains.' }
         Run-Check 'capture'
@@ -81,6 +90,8 @@ try {
     }
 } catch {
     $failed = $true
+    $failureStage = $stage
+    $failureLine = $_.InvocationInfo.ScriptLineNumber
     # Avoid writing exception/child details that might contain protected information.
     if ($locked -and (Test-Path -LiteralPath $stateRoot)) {
         if ($Mode -eq 'Capture') { Save-State $statusPath 'failed' 'Capture or verification failed; review retained artifacts and task history.' }
@@ -91,7 +102,7 @@ try {
         try {
             Enable-ScheduledTask -TaskName $name | Out-Null
             Start-ScheduledTask -TaskName $name
-        } catch { $failed = $true }
+        } catch { $failed = $true; $failureStage = 'restart-staging-task'; $failureLine=$_.InvocationInfo.ScriptLineNumber }
     }
     if ($paused.Count) {
         $ready = $false
@@ -105,7 +116,7 @@ try {
                 if ($health.release -eq $release -and $web.Count -eq 1 -and $worker.Count -eq 1) { $ready=$true; break }
             } catch { }
         }
-        if (-not $ready) { $failed=$true }
+        if (-not $ready) { $failed=$true; $failureStage='staging-readiness' }
     }
     if ($locked -and $Mode -eq 'Capture' -and (Test-Path -LiteralPath $stateRoot)) {
         if ($failed) { Save-State $statusPath 'failed' 'Backup or staging recovery failed; operator review required.' }
