@@ -21,6 +21,8 @@ from . import health
 from .media import persistent_media
 from .staging import robots_txt
 
+handler403 = "config.error_views.permission_denied"
+
 
 def admin_home(request):
     return admin.site.index(request)

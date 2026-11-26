@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Dashboard</a> &rsaquo; Permission denied</div>
+{% endblock %}
+{% block content %}
+<section class="module">
+  <p>{{ permission_message }}</p>
+  <p><a class="button" href="{% url 'admin:index' %}">Return to dashboard</a></p>
+</section>
+{% endblock %}

@@ -1,5 +1,11 @@
 # Website: Current Focus
 
+- Reviewer acceptance confirmed participant administration is blocked by HTTP
+  403. Denied admin pages now retain the admin shell and permitted navigation
+  for active staff, with a contextual message and Return to dashboard link.
+  The response remains 403 and is not cached. Nonstaff/anonymous admin login
+  requirements remain unchanged. Both focused permission-page tests pass.
+
 - Workshop dashboard Open queue now explicitly selects Pending Review and
   clears its remembered overrides, instead of saving a Pending filter onto All.
   Explicit links reveal their destination tab if previously hidden. Regression
