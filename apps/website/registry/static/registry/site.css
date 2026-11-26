@@ -1425,9 +1425,10 @@
 .mod-entry-copy p { margin: 0 0 .45rem; color: var(--theme-muted); }
 .mod-entry-copy small { color: var(--theme-muted); }
 .mod-entry-required { border-color: var(--theme-accent); box-shadow: inset .25rem 0 0 var(--theme-accent), var(--theme-shadow); background: color-mix(in srgb, var(--theme-accent) 6%, var(--theme-surface)); }
-.mod-entry-required { grid-template-columns: 8rem minmax(0, 1fr); height: auto; min-height: 8rem; }
-.mod-entry-required > img { width: 8rem; height: 8rem; }
-.mod-entry-required .mod-entry-copy { padding-block: .65rem; }
+.mod-entry-required { display: flex; align-items: flex-start; align-self: start; height: auto; min-height: min-content; overflow: visible; }
+.mod-entry-required > img { flex: 0 0 auto; width: 8rem; height: 8rem; border-start-start-radius: inherit; border-end-start-radius: inherit; }
+.mod-entry-required .mod-entry-copy { flex: 1 1 0; align-content: normal; padding-block: .65rem; }
+.mod-entry-required .mod-entry-copy small { display: block; }
 .mod-entry-recommended { background: color-mix(in srgb, var(--theme-success) 4%, var(--theme-surface)); }
 .mod-ruling { display: inline-flex; padding: .18rem .5rem; border: 1px solid currentColor; border-radius: 999px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .mod-ruling-required { color: var(--theme-accent-hover); }
@@ -1533,7 +1534,6 @@
     .mods-results-actions { align-items: flex-end; flex-direction: column; }
     .mods-view-toggle { display: none; }
     .mod-entry { grid-template-columns: 5.5rem minmax(0, 1fr); }
-    .mod-entry-required { grid-template-columns: 5.5rem minmax(0, 1fr); height: auto; min-height: 5.5rem; }
     .mod-entry-required > img { width: 5.5rem; height: 5.5rem; }
     .mods-results .mods-list .mod-entry { grid-template-columns: var(--mod-thumbnail-size, 5rem) minmax(0, 1fr); height: auto; min-height: 5rem; }
     .mods-results .mods-list .mod-entry > img { width: var(--mod-thumbnail-size, 5rem); height: var(--mod-thumbnail-size, 5rem); aspect-ratio: 1; object-fit: cover; }

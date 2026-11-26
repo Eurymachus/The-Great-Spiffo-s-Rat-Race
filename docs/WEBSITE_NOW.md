@@ -1,5 +1,11 @@
 # Website: Current Focus
 
+- Owner accepted compact mobile rows but reported required-card clipping after
+  iPhone rotation. Give that standalone card a content-sized flex layout instead
+  of a clipped grid, and render its Workshop ID as a block contributing to height.
+  Recommended/ruling rows retain their accepted square-thumbnail layout.
+  Physical iPhone rotation acceptance remains required.
+
 - Mobile row refinement: reduce copy padding and vertical gaps, and size square
   thumbnails to the measured row height after font loading and viewport changes.
   Reset measurements on resize so rows shrink again after rotation. Thumbnail
