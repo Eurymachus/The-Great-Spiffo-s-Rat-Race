@@ -14,7 +14,12 @@ $principal = New-ScheduledTaskPrincipal -UserId SYSTEM -LogonType ServiceAccount
 # The independent hourly check flags a stuck/interrupted run.
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero)
 $daily = New-ScheduledTaskTrigger -Daily -At '04:00'
-$hourly = New-ScheduledTaskTrigger -Once -At ([DateTime]::Today.AddDays(1).AddMinutes(15)) -RepetitionInterval (New-TimeSpan -Hours 1)
+$now = Get-Date
+$nextCheck = $now.Date.AddHours($now.Hour).AddMinutes(15)
+if ($nextCheck -le $now) {
+    $nextCheck = $nextCheck.AddHours(1)
+}
+$hourly = New-ScheduledTaskTrigger -Once -At $nextCheck -RepetitionInterval (New-TimeSpan -Hours 1)
 foreach ($spec in @(@('RatRaceStagingBackup','Capture',$daily), @('RatRaceStagingBackupCheck','Check',$hourly))) {
     $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$runner`" -Mode $($spec[1])"
     Register-ScheduledTask -TaskName $spec[0] -Action $action -Trigger $spec[2] -Principal $principal -Settings $settings -Description 'Staging-only local backup or integrity/freshness check. No retention deletion.' -Force | Out-Null
