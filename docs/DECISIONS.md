@@ -1,5 +1,20 @@
 # Decisions
 
+## 2026-11-27 - Deploy live administration before public opening
+
+- The first live phase makes authorized admin access available while the public
+  construction page remains up. Public intake and publishing stay disabled.
+- Configure live integration credentials in the superuser admin, then connect
+  Steam, prepare and decompile the game reference, and import/review game data.
+  Live has no provider configuration to migrate; do not copy staging credentials
+  or records. Bootstrap database/signing/encryption secrets remain host-managed.
+- Public opening is a separate owner-authorized step after administration-side
+  setup and acceptance are complete. Existing RR 1.0 handover and RR 2 activation
+  gates still apply. Application deployment alone does not open public access.
+- The procedure is recorded in PRODUCTION_DEPLOYMENT.md and
+  FIRST_RELEASE_READINESS.md. This decision authorizes documentation, not live
+  execution or deletion of existing production data.
+
 ## 2026-11-26 - Accept local-only backup risk for initial launch
 
 - The owner explicitly accepts that loss of OSWALD or its storage could lose

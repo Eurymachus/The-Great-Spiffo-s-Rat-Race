@@ -1,5 +1,53 @@
 # Production Deployment Contract
 
+## First live phase: administration behind construction (27 November 2026)
+
+The owner approved this deployment sequence. This records the plan, not an
+instruction to change live now. Installing the application and opening it to
+the public are separate steps.
+
+1. Provision the protected host configuration, database access, Django signing
+   key, participant-token encryption key and separate provider-configuration
+   key ring. Set the live origin, host paths and essential service settings.
+   Keep keys out of Git, release packages and database records.
+2. Deploy the accepted immutable application release, apply migrations,
+   bootstrap roles and approved seed content, collect static assets, and start
+   matching web and worker services. Establish the initial superuser through
+   the host setup procedure.
+3. Keep the public construction page in place. Allow the admin login and
+   authorized administration routes; deny ordinary users access to the admin.
+   Keep registration, Workshop intake, RR 1.0 intake, RR 2 and automated public
+   publishing disabled throughout preparation. Verify the construction gate
+   on direct public URLs as well as the home page.
+4. Configure the seven live integrations through the superuser-only provider
+   configuration admin: Discord, Twitch, YouTube, Microsoft Graph, Turnstile,
+   OpenAI and Steam Web API. Live currently has no provider configuration to
+   import, so create its records with live credentials and register the live
+   OAuth callbacks. Do not copy staging records, credentials or keys. The
+   environment import command is only for an environment that already has
+   credentials. See [PROVIDER_CONFIGURATION.md](PROVIDER_CONFIGURATION.md).
+5. Connect Steam through the existing administrative connection flow, complete
+   any required Steam Guard interaction, prepare the selected game reference,
+   decompile the matching build and import/review the catalogue and required
+   game data. Verify the resulting build identity and import status. Do not
+   import development participants or test runs; the real RR 1.0 spreadsheet
+   handover remains a separate approved operation.
+6. Complete administration-side acceptance: provider configuration and permitted
+   live integration checks, roles, content, game reference/catalogue, worker
+   health, release controls and backup/recovery readiness. Capture a coordinated
+   backup pairing encrypted database records with protected recovery keys.
+   Confirm any setup or authentication routes required by administrators work
+   without removing the public construction gate. Resolve bootstrap gaps before
+   treating this phase as ready; this plan does not certify those routes yet.
+7. Only after administration-side preparation is complete and accepted, perform
+   a separate owner-authorized public opening. Remove construction mode and
+   enable the agreed community features deliberately. Recheck direct routes and
+   feature controls; RR 1.0 intake and RR 2 retain their existing separate gates.
+
+An admin-ready deployment is not a public launch. Failed or incomplete setup
+leaves construction mode in place. These steps do not authorize a wipe or reset
+of existing production data.
+
 ## Current rollout: community first, RR 2 dormant (25 November 2026)
 
 The agreed sequence and first-release audit are in
@@ -401,7 +449,9 @@ scripts. See BACKUP_RESTORE_REHEARSAL.md for the prepared recovery rehearsal.
    decryptable with the supplied Fernet key.
 7. Restart the web and worker services onto the same release identifier.
 8. Confirm liveness, readiness, and the production acceptance journey.
-9. Move traffic only after those checks pass.
+9. Move traffic only after those checks pass. For the first live deployment,
+   preserve the construction page and follow the administration phase above;
+   application readiness alone does not authorize public opening.
 10. Retain the previous release and its compatible configuration for rollback.
 
 Database migrations require an explicit rollback assessment. If a schema change

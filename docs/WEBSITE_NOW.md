@@ -1,5 +1,13 @@
 # Website: Current Focus
 
+- First live deployment phase agreed on 27 November: admin available to
+  authorized administrators, public construction page retained, intake and
+  publishing disabled. Configure live providers in admin, then connect Steam,
+  prepare/decompile the game reference and import/review game data. Public
+  opening is a separate step after administration-side acceptance. See
+  PRODUCTION_DEPLOYMENT.md and FIRST_RELEASE_READINESS.md. Documentation only;
+  no live changes authorized or performed by this update.
+
 - Encrypted provider configuration implemented for Discord, Twitch, YouTube,
   Microsoft Graph email, Turnstile, OpenAI moderation and Steam Web API.
   Active-superuser-only admin, write-only secret replacement, field-name-only

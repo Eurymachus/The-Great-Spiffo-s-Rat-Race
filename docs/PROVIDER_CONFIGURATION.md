@@ -41,6 +41,16 @@ Microsoft Graph sender/reply-to addresses remain host settings.
 
 ## Provisioning and import
 
+For the first live deployment, no existing live credentials are available to
+import. Provision the host key ring and schema, then create the seven live
+records through the superuser admin while the public construction page remains
+up. Register live callback URLs with the OAuth providers. Do not copy staging
+records or keys. Follow the admin-first phase in PRODUCTION_DEPLOYMENT.md;
+public opening waits for completed administration-side acceptance.
+
+The environment-import procedure below applies only where credentials already
+exist, as they did on staging:
+
 1. Generate a fresh Fernet key on the target host using `Fernet.generate_key()`.
    Store it privately in the protected environment as
    `PROVIDER_CONFIG_ENCRYPTION_KEYS`. Do not put keys in command arguments,

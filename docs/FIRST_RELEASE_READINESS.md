@@ -1,12 +1,18 @@
 # First release rollout and readiness audit
 
-Agreed 25 November 2026. This document is the current rollout plan for the
+Agreed 25 November 2026, with the admin-first live phase added 27 November.
+This document is the current rollout plan for the
 community launch, RR 1.0 handover and later RR 2 activation.
 
 ## Agreed release boundary
 
 Ship one application with RR 2 code and migrations included, but RR 2 disabled
-in production. First release opens verified accounts and Workshop mod requests.
+in production. First deploy the administration site behind the public
+construction page, configure live providers and prepare the game reference and
+catalogue. Public opening follows completed administration-side acceptance as
+a separate owner-authorized step. See the first-live-phase checklist in
+[PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md).
+The first public release opens verified accounts and Workshop mod requests.
 RR 1.0 claims and updates open after the separately verified spreadsheet
 handover, as soon as that journey passes acceptance. RR 1.0 does not wait for
 the final RR 2 export contract or statistics-page decisions.
@@ -48,7 +54,11 @@ host configuration and deploying remain outside the current execution scope.
    the corrected candidate, and repeat the clean installation until reproducible.
    Staging email and provider effects must remain explicitly controlled.
 5. Deploy the exact accepted candidate to clean production only when authorized.
-   Verify readiness before opening registration and Workshop requests.
+   Keep public construction mode active and intake/publishing disabled. Make
+   authorized admin access available, configure the live providers, connect
+   Steam, decompile the selected game build and import/review game data.
+   Complete administrative acceptance and backup verification before a separate
+   public opening enables registration and Workshop requests.
 6. Agree the RR 1.0 cutover time, preserve final spreadsheet snapshots, preview
    and reconcile both CSV imports, import after live readiness, and verify
    results/rankings before opening claims and updates. Define handling of changes
