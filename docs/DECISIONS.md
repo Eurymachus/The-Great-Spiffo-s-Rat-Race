@@ -1256,6 +1256,24 @@ conflicting claims. A fresh moderator decision is required.
   Reading duration/effort and human attention are not implied by completion counts.
 - TV/VHS collection and title histories remain outside this implementation.
 
+## 2026-11-27 - Fresh installation baseline before admin-first rollout
+
+- Owner explicitly approved replacing the development migration chain with a
+  fresh-install baseline. Existing local/staging database contents do not impose
+  an upgrade compatibility requirement; those environments may be rebuilt clean.
+- Preserve provider credentials, encryption keys and host configuration in
+  verified restricted recovery backups. They must not be lost during reset or
+  embedded in migrations, source control or public evidence.
+- Retain required setup data, validate installation from empty, and rehearse the
+  admin-first construction-page workflow. Live remains untouched during this work.
+- This supersedes earlier instructions to retain the development migration graph
+  and its populated-upgrade tests for this first baseline. It does not authorize
+  silently applying the replacement history to an existing database.
+- RR2's unfinished export contract can add ordinary incremental migrations later.
+  Those migrations must preserve real configuration/data created after baseline
+  installation. The broader RR2 contract cleanup remains a separate gate.
+- See MIGRATION_BASELINE.md for inventory, credential recovery and installation.
+
 ## 2026-11-21 - Consolidate RR 2 to one launch schema before live rollout
 
 - Mandatory final rollout gate: simplify the mod and website together to one

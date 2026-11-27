@@ -7,8 +7,7 @@ from unittest.mock import patch
 from django.core.files.base import ContentFile
 from django.core.management import call_command, CommandError
 from django.db import connection, transaction
-from django.db.migrations.executor import MigrationExecutor
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -207,30 +206,3 @@ class AccountRetentionTests(TestCase):
         RetentionFileDeletion.objects.create(kind="avatar", name=participant.avatar.name)
         self.assertEqual(drain_file_deletions(), (0, 1))
         self.assertTrue(Path(participant.avatar.path).exists())
-
-
-class AccountRetentionMigrationTests(TransactionTestCase):
-    def test_populated_upgrade_preserves_account_and_legacy_ownership(self):
-        previous = [("registry", "0075_merge_reading_cooked_food")]
-        current = [("registry", "0084_legacy_identity_removal")]
-        executor = MigrationExecutor(connection)
-        executor.migrate(previous)
-        try:
-            old_apps = executor.loader.project_state(previous).apps
-            account = old_apps.get_model("registry", "Participant").objects.create(
-                email="upgrade@example.test", normalized_email="upgrade@example.test",
-                nickname="Upgrade", normalized_nickname="upgrade", password="preserve-password-hash",
-            )
-            run = old_apps.get_model("registry", "LegacyRun").objects.create(
-                source_key="upgrade", normalized_legacy_name="historic upgrade",
-                legacy_participant_name="Historic Upgrade", claimed_participant_id=account.pk,
-            )
-            MigrationExecutor(connection).migrate(current)
-            migrated = Participant.objects.get(pk=account.pk)
-            self.assertEqual(migrated.password, "preserve-password-hash")
-            self.assertFalse(migrated.retention_hold)
-            self.assertEqual(LegacyRun.objects.get(pk=run.pk).claimed_participant_id, account.pk)
-            self.assertFalse(LegacyRun.objects.get(pk=run.pk).identity_removed)
-            self.assertFalse(RetentionFileDeletion.objects.exists())
-        finally:
-            MigrationExecutor(connection).migrate(current)

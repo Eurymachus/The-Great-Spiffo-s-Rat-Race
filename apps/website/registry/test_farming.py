@@ -1,10 +1,6 @@
 from copy import deepcopy
 from datetime import datetime, timezone
-from importlib import import_module
-from types import SimpleNamespace
 
-from django.apps import apps
-from django.db import connection
 from django.test import TestCase
 
 from .models import ChallengeRun, RunDailyMetric, RunStatisticSummary
@@ -24,22 +20,6 @@ def projection(counts=None):
 
 
 class FarmingTests(TestCase):
-    def test_migration_marks_existing_days_unknown_without_duplicate_flags(self):
-        run = ChallengeRun.objects.create(run_id="farming-legacy", export_format=4,
-                                         generated_at=datetime.now(timezone.utc), event_hash="0" * 64)
-        value = {"schema": 1, "currentKills": 0, "character": {},
-                 "activeDay": {"dayIndex": 1, "killDelta": 7}}
-        refresh_initial_run_authority(run, value, [])
-        day = run.daily_records.get()
-        day.partial_metrics = ["distance"]
-        day.save(update_fields=["partial_metrics"])
-        migration = import_module("registry.migrations.0078_farming_history_coverage")
-        for _ in range(2):
-            migration.mark_existing_days_unknown(apps, SimpleNamespace(connection=connection))
-        day.refresh_from_db()
-        self.assertEqual(day.partial_metrics, ["distance", "farming"])
-        self.assertEqual(day.kill_delta, 7)
-
     def test_decode_preserves_raw_item_ids_without_titles(self):
         value = projection()
         decoded = decode_run_export(make_export(projection=value))

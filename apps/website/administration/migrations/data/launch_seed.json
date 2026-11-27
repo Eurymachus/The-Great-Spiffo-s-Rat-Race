@@ -1,0 +1,4765 @@
+[
+  {
+    "model": "branding.websitetheme",
+    "pk": 1,
+    "fields": {
+      "name": "Survival Event",
+      "preset_key": "survival-event",
+      "colour_scheme": "dark",
+      "background_style": "radial",
+      "heading_font": "condensed",
+      "display_font": "condensed",
+      "body_font": "system",
+      "heading_font_weight": "700",
+      "body_font_weight": "400",
+      "heading_font_spacing": "normal",
+      "body_font_spacing": "normal",
+      "display_font_weight": "700",
+      "display_font_spacing": "normal",
+      "corner_style": "rounded",
+      "shadow_style": "dramatic",
+      "background_colour": "#151912",
+      "background_highlight_colour": "#394628",
+      "surface_colour": "#191F15",
+      "surface_alt_colour": "#0F130D",
+      "text_colour": "#F6F2DF",
+      "muted_text_colour": "#C8CDBD",
+      "accent_colour": "#F2A33A",
+      "accent_hover_colour": "#F4AD53",
+      "accent_text_colour": "#17120A",
+      "border_colour": "#586746",
+      "success_colour": "#A6D66D",
+      "error_colour": "#FF9B91",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "branding.websitetheme",
+    "pk": 2,
+    "fields": {
+      "name": "Retro Road Race",
+      "preset_key": "retro-road-race",
+      "colour_scheme": "light",
+      "background_style": "road",
+      "heading_font": "slab",
+      "display_font": "slab",
+      "body_font": "humanist",
+      "heading_font_weight": "700",
+      "body_font_weight": "400",
+      "heading_font_spacing": "normal",
+      "body_font_spacing": "normal",
+      "display_font_weight": "700",
+      "display_font_spacing": "normal",
+      "corner_style": "subtle",
+      "shadow_style": "soft",
+      "background_colour": "#E4C991",
+      "background_highlight_colour": "#A8442A",
+      "surface_colour": "#FFF3D6",
+      "surface_alt_colour": "#F0D9A9",
+      "text_colour": "#2A1B16",
+      "muted_text_colour": "#6F5548",
+      "accent_colour": "#B53624",
+      "accent_hover_colour": "#D1492E",
+      "accent_text_colour": "#FFF8E8",
+      "border_colour": "#805E45",
+      "success_colour": "#39734A",
+      "error_colour": "#A52323",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "branding.websitetheme",
+    "pk": 3,
+    "fields": {
+      "name": "Clean Competition",
+      "preset_key": "clean-competition",
+      "colour_scheme": "dark",
+      "background_style": "flat",
+      "heading_font": "system",
+      "display_font": "system",
+      "body_font": "system",
+      "heading_font_weight": "700",
+      "body_font_weight": "400",
+      "heading_font_spacing": "normal",
+      "body_font_spacing": "normal",
+      "display_font_weight": "700",
+      "display_font_spacing": "normal",
+      "corner_style": "subtle",
+      "shadow_style": "soft",
+      "background_colour": "#0B1220",
+      "background_highlight_colour": "#17233A",
+      "surface_colour": "#111C2E",
+      "surface_alt_colour": "#09101D",
+      "text_colour": "#F5F7FB",
+      "muted_text_colour": "#AEB9CC",
+      "accent_colour": "#4DA3FF",
+      "accent_hover_colour": "#78BAFF",
+      "accent_text_colour": "#07111F",
+      "border_colour": "#31425F",
+      "success_colour": "#63D39A",
+      "error_colour": "#FF8585",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "branding.sitebranding",
+    "pk": 1,
+    "fields": {
+      "full_title": "The Great Spiffo's Rat Race",
+      "short_title": "The Rat Race",
+      "tagline": "The official Rat Race challenge",
+      "welcome_message": "Welcome to the Rat Race!",
+      "homepage_small_heading": "Welcome to The Rat Race",
+      "homepage_main_heading": "A survival challenge measured in stories, statistics and stubbornness.",
+      "homepage_introduction": "The Great Spiffo's Rat Race is a long-form Project Zomboid challenge. Create your participant account now and you will be ready when the live challenge platform opens.",
+      "homepage_primary_button": "Join The Rat Race",
+      "homepage_secondary_link": "I already have an account",
+      "homepage_account_button": "Go to your account",
+      "sign_in_prompt": "Existing Racer?",
+      "join_step_1_heading": "Reserve your name",
+      "join_step_1_description": "Choose the nickname other Rat Racers will know you by.",
+      "join_step_2_heading": "Verify your email",
+      "join_step_2_description": "Confirm the address used to secure your participant account.",
+      "join_step_3_heading": "Get race-ready",
+      "join_step_3_description": "Your account will be waiting for run updates when mod integration opens.",
+      "participant_label": "Rat Racer",
+      "participant_plural_label": "Rat Racers",
+      "former_participant_label": "Former Rat Racer",
+      "run_update_label": "Run update",
+      "run_update_plural_label": "Run updates",
+      "disclaimer": "Not affiliated with or endorsed by The Indie Stone.",
+      "enable_header_logo": false,
+      "header_logo_asset": null,
+      "header_logo": "",
+      "header_logo_alt": "",
+      "enable_favicon": false,
+      "favicon_asset": null,
+      "favicon": "",
+      "enable_social_image": false,
+      "social_image_asset": null,
+      "social_image": "",
+      "enable_homepage_feature_image": false,
+      "homepage_feature_image_asset": null,
+      "homepage_feature_image": "",
+      "homepage_feature_image_alt": "",
+      "homepage_feature_fit": "cover",
+      "homepage_feature_height": "standard",
+      "homepage_feature_custom_height": 24,
+      "homepage_feature_position": "center center",
+      "enable_background_image": false,
+      "background_image_asset": null,
+      "background_image": "",
+      "background_image_opacity": 100,
+      "background_overlay_strength": 28,
+      "background_image_saturation": 100,
+      "background_image_brightness": 100,
+      "background_image_contrast": 100,
+      "background_image_position": "center top",
+      "background_image_scale": "cover",
+      "background_image_fixed": true,
+      "show_attribution": true,
+      "attribution_text": "Thanks to The Indie Stone for creating Project Zomboid, which made this possible. This is an unofficial fan production for non-commercial purposes made under the",
+      "attribution_url": "https://store.steampowered.com/eula/108600_eula_1",
+      "attribution_new_tab": true,
+      "active_theme": 1,
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "operations.referencesource",
+    "pk": 1,
+    "fields": {
+      "name": "Project Zomboid",
+      "app_id": 108600,
+      "account_name": "",
+      "steamcmd_path": "",
+      "install_root": "",
+      "authentication_status": "not_configured",
+      "installed_build_id": "",
+      "decompiled_build_id": "",
+      "decompiled_at": null,
+      "java_executable": "",
+      "decompiler_jar": "",
+      "decompiled_root": "",
+      "last_checked_at": null,
+      "last_updated_at": null,
+      "authenticated_at": null,
+      "last_error": ""
+    }
+  },
+  {
+    "model": "operations.rundatadangerzone",
+    "pk": 1,
+    "fields": {
+      "name": "Project Zomboid",
+      "app_id": 108600,
+      "account_name": "",
+      "steamcmd_path": "",
+      "install_root": "",
+      "authentication_status": "not_configured",
+      "installed_build_id": "",
+      "decompiled_build_id": "",
+      "decompiled_at": null,
+      "java_executable": "",
+      "decompiler_jar": "",
+      "decompiled_root": "",
+      "last_checked_at": null,
+      "last_updated_at": null,
+      "authenticated_at": null,
+      "last_error": ""
+    }
+  },
+  {
+    "model": "pages.codemanagedpage",
+    "pk": 1,
+    "fields": {
+      "key": "top-ten",
+      "title": "Top ten",
+      "description": "Public summary of the ten leading Rat Race records.",
+      "audience": "public",
+      "availability": "planned",
+      "route_name": "",
+      "address": "/top-ten/"
+    }
+  },
+  {
+    "model": "pages.codemanagedpage",
+    "pk": 5,
+    "fields": {
+      "key": "run-history",
+      "title": "Run history",
+      "description": "Signed-in, filterable history of all Rat Race runs.",
+      "audience": "participant",
+      "availability": "planned",
+      "route_name": "",
+      "address": "/runs/"
+    }
+  },
+  {
+    "model": "pages.codemanagedpage",
+    "pk": 6,
+    "fields": {
+      "key": "run-detail",
+      "title": "Run details",
+      "description": "Signed-in details and statistics for an individual run.",
+      "audience": "participant",
+      "availability": "available",
+      "route_name": "",
+      "address": "/runs/<run-id>/"
+    }
+  },
+  {
+    "model": "pages.codemanagedpage",
+    "pk": 7,
+    "fields": {
+      "key": "account",
+      "title": "Participant account",
+      "description": "Signed-in participant dashboard and account summary.",
+      "audience": "participant",
+      "availability": "available",
+      "route_name": "registry:account",
+      "address": "/account/"
+    }
+  },
+  {
+    "model": "pages.codemanagedpage",
+    "pk": 8,
+    "fields": {
+      "key": "account-settings",
+      "title": "Account settings",
+      "description": "Signed-in participant settings and connected accounts.",
+      "audience": "participant",
+      "availability": "available",
+      "route_name": "registry:account_settings",
+      "address": "/account/settings/"
+    }
+  },
+  {
+    "model": "pages.codemanagedpage",
+    "pk": 9,
+    "fields": {
+      "key": "notifications",
+      "title": "Notifications",
+      "description": "Signed-in participant notification history.",
+      "audience": "participant",
+      "availability": "available",
+      "route_name": "registry:notifications",
+      "address": "/account/notifications/"
+    }
+  },
+  {
+    "model": "pages.codemanagedpage",
+    "pk": 10,
+    "fields": {
+      "key": "mods",
+      "title": "Mods",
+      "description": "Searchable public catalogue of Rat Race mod rulings.",
+      "audience": "public",
+      "availability": "available",
+      "route_name": "registry:mods",
+      "address": "/mods/"
+    }
+  },
+  {
+    "model": "pages.page",
+    "pk": 1,
+    "fields": {
+      "title": "Homepage",
+      "slug": "home",
+      "public_path": "",
+      "is_published": true,
+      "audience": "everyone",
+      "content_width": "standard",
+      "required_release": "",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "pages.page",
+    "pk": 2,
+    "fields": {
+      "title": "Rat Race 2.0 Leaderboard",
+      "slug": "current-leaderboard",
+      "public_path": "leaderboard",
+      "is_published": true,
+      "audience": "everyone",
+      "content_width": "wide",
+      "required_release": "rr2",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "pages.page",
+    "pk": 3,
+    "fields": {
+      "title": "Rat Race 1.0 Hall of Fame",
+      "slug": "legacy-hall-of-fame",
+      "public_path": "legacyhalloffame",
+      "is_published": true,
+      "audience": "everyone",
+      "content_width": "wide",
+      "required_release": "",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "pages.page",
+    "pk": 4,
+    "fields": {
+      "title": "Challenge Rules",
+      "slug": "challenge-rules",
+      "public_path": "rules",
+      "is_published": true,
+      "audience": "everyone",
+      "content_width": "wide",
+      "required_release": "rr2",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "pages.page",
+    "pk": 5,
+    "fields": {
+      "title": "Exploits",
+      "slug": "exploits",
+      "public_path": "exploits",
+      "is_published": true,
+      "audience": "everyone",
+      "content_width": "wide",
+      "required_release": "rr2",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "pages.navigationitem",
+    "pk": 1,
+    "fields": {
+      "label": "Rules",
+      "page": 4,
+      "code_page": null,
+      "parent": null,
+      "position": 20,
+      "is_visible": true,
+      "audience": "everyone"
+    }
+  },
+  {
+    "model": "pages.navigationitem",
+    "pk": 2,
+    "fields": {
+      "label": "Mods",
+      "page": null,
+      "code_page": 10,
+      "parent": 1,
+      "position": 0,
+      "is_visible": true,
+      "audience": "everyone"
+    }
+  },
+  {
+    "model": "pages.navigationitem",
+    "pk": 3,
+    "fields": {
+      "label": "Exploits",
+      "page": 5,
+      "code_page": null,
+      "parent": 1,
+      "position": 10,
+      "is_visible": true,
+      "audience": "everyone"
+    }
+  },
+  {
+    "model": "pages.pagesection",
+    "pk": 1,
+    "fields": {
+      "page": 1,
+      "position": 0,
+      "name": "Section",
+      "is_visible": true,
+      "section_type": "content",
+      "width": "inherit",
+      "layout": "single",
+      "background": "default",
+      "full_bleed_background": false,
+      "vertical_padding": "standard",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "tabs_orientation": "horizontal",
+      "tabs_config": []
+    }
+  },
+  {
+    "model": "pages.pagesection",
+    "pk": 2,
+    "fields": {
+      "page": 2,
+      "position": 0,
+      "name": "Current challenge rankings",
+      "is_visible": true,
+      "section_type": "content",
+      "width": "inherit",
+      "layout": "single",
+      "background": "default",
+      "full_bleed_background": false,
+      "vertical_padding": "standard",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "tabs_orientation": "horizontal",
+      "tabs_config": []
+    }
+  },
+  {
+    "model": "pages.pagesection",
+    "pk": 3,
+    "fields": {
+      "page": 3,
+      "position": 0,
+      "name": "Rat Race 1.0 rankings",
+      "is_visible": true,
+      "section_type": "content",
+      "width": "inherit",
+      "layout": "single",
+      "background": "default",
+      "full_bleed_background": false,
+      "vertical_padding": "standard",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "tabs_orientation": "horizontal",
+      "tabs_config": []
+    }
+  },
+  {
+    "model": "pages.pagesection",
+    "pk": 4,
+    "fields": {
+      "page": 1,
+      "position": 20,
+      "name": "Community statistics",
+      "is_visible": true,
+      "section_type": "content",
+      "width": "full",
+      "layout": "single",
+      "background": "alternate_full",
+      "full_bleed_background": false,
+      "vertical_padding": "standard",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "tabs_orientation": "horizontal",
+      "tabs_config": []
+    }
+  },
+  {
+    "model": "pages.pagesection",
+    "pk": 5,
+    "fields": {
+      "page": 4,
+      "position": 0,
+      "name": "Rules introduction",
+      "is_visible": true,
+      "section_type": "content",
+      "width": "full",
+      "layout": "single",
+      "background": "alternate_full",
+      "full_bleed_background": false,
+      "vertical_padding": "compact",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "tabs_orientation": "horizontal",
+      "tabs_config": []
+    }
+  },
+  {
+    "model": "pages.pagesection",
+    "pk": 13,
+    "fields": {
+      "page": 4,
+      "position": 10,
+      "name": "Rules categories",
+      "is_visible": true,
+      "section_type": "tabs",
+      "width": "inherit",
+      "layout": "four",
+      "background": "surface",
+      "full_bleed_background": false,
+      "vertical_padding": "standard",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "tabs_orientation": "horizontal",
+      "tabs_config": [
+        {
+          "label": "Getting Started",
+          "description": "Starting a survivor and completing the Rat Race.",
+          "slug": "getting-started",
+          "is_default": true
+        },
+        {
+          "label": "Fair Play",
+          "description": "Mods, exploits, bugs and permitted recovery.",
+          "slug": "fair-play",
+          "is_default": false
+        },
+        {
+          "label": "Evidence",
+          "description": "Broadcasts, exports and supporting proof.",
+          "slug": "evidence",
+          "is_default": false
+        },
+        {
+          "label": "Endings & Rulings",
+          "description": "Death, abandonment, moderation and authority.",
+          "slug": "endings-rulings",
+          "is_default": false
+        }
+      ]
+    }
+  },
+  {
+    "model": "pages.pagesection",
+    "pk": 19,
+    "fields": {
+      "page": 5,
+      "position": 0,
+      "name": "Exploits introduction",
+      "is_visible": true,
+      "section_type": "content",
+      "width": "full",
+      "layout": "single",
+      "background": "alternate_full",
+      "full_bleed_background": false,
+      "vertical_padding": "compact",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "tabs_orientation": "horizontal",
+      "tabs_config": []
+    }
+  },
+  {
+    "model": "pages.pagesection",
+    "pk": 20,
+    "fields": {
+      "page": 5,
+      "position": 10,
+      "name": "Published exploit rulings",
+      "is_visible": true,
+      "section_type": "tabs",
+      "width": "inherit",
+      "layout": "two",
+      "background": "surface",
+      "full_bleed_background": false,
+      "vertical_padding": "standard",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "tabs_orientation": "vertical",
+      "tabs_config": [
+        {
+          "label": "Banned Exploits",
+          "description": "Deliberate use is prohibited.",
+          "slug": "banned-exploits",
+          "is_default": true
+        },
+        {
+          "label": "Avoid if possible",
+          "description": "Do not seek out or compound these behaviours.",
+          "slug": "avoid-if-possible",
+          "is_default": false
+        }
+      ]
+    }
+  },
+  {
+    "model": "pages.pagesection",
+    "pk": 21,
+    "fields": {
+      "page": 5,
+      "position": 20,
+      "name": "Exploit rulings authority",
+      "is_visible": true,
+      "section_type": "content",
+      "width": "standard",
+      "layout": "single",
+      "background": "alternate_full",
+      "full_bleed_background": false,
+      "vertical_padding": "compact",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "tabs_orientation": "horizontal",
+      "tabs_config": []
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 1,
+    "fields": {
+      "section": 1,
+      "position": 0,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Welcome to The Rat Race",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 2,
+    "fields": {
+      "section": 1,
+      "position": 10,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "A survival challenge measured in stories, statistics and stubbornness.",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 3,
+    "fields": {
+      "section": 1,
+      "position": 20,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "The Great Spiffo's Rat Race is a long-form Project Zomboid challenge. Create your participant account now and you will be ready when the live challenge platform opens.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 4,
+    "fields": {
+      "section": 1,
+      "position": 30,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "action",
+      "content": "Join The Rat Race",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "visitors",
+      "alignment": "left",
+      "destination": "register",
+      "style": "primary",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 5,
+    "fields": {
+      "section": 1,
+      "position": 40,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "action",
+      "content": "I already have an account",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "visitors",
+      "alignment": "left",
+      "destination": "login",
+      "style": "link",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 6,
+    "fields": {
+      "section": 1,
+      "position": 50,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "action",
+      "content": "Go to your account",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "signed_in",
+      "alignment": "left",
+      "destination": "account",
+      "style": "primary",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 7,
+    "fields": {
+      "section": 1,
+      "position": 60,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "card_group",
+      "content": "Choose your next move",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "3",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 8,
+    "fields": {
+      "section": 2,
+      "position": 0,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "ranking_table",
+      "content": "",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {
+        "challenge_modes": [],
+        "game_builds": [],
+        "challenge_builds": [],
+        "lifecycles": [
+          "active"
+        ],
+        "participants": [],
+        "selection": "best_per_participant",
+        "ordering": "weighted_completion",
+        "limit": 100,
+        "columns": [
+          "participant",
+          "survivor",
+          "build",
+          "progress",
+          "kills",
+          "outposts",
+          "skills",
+          "day",
+          "verified"
+        ],
+        "show_heading": true,
+        "heading": "Rat Race 2.0 Leaderboard",
+        "introduction": "Each Rat Racer's highest-ranked active survivor, calculated from the latest approved run update.",
+        "show_weighting": true,
+        "show_build": true,
+        "show_details": true
+      },
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 9,
+    "fields": {
+      "section": 3,
+      "position": 0,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "ranking_table",
+      "content": "",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {
+        "source": "legacy_hall_of_fame",
+        "challenge_modes": [],
+        "game_builds": [],
+        "challenge_builds": [],
+        "lifecycles": [],
+        "participants": [],
+        "selection": "all",
+        "ordering": "source_rank",
+        "limit": 500,
+        "columns": [
+          "participant",
+          "progress",
+          "kills",
+          "outposts",
+          "skills",
+          "day"
+        ],
+        "show_heading": true,
+        "eyebrow": "Rat Race 1.0, still running",
+        "heading": "Rat Race 1.0 Hall of Fame",
+        "introduction": "Personal bests from Rat Race 1.0. The original challenge is still running; active runs can continue submitting updates.",
+        "show_weighting": false,
+        "show_build": false,
+        "show_details": false
+      },
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 10,
+    "fields": {
+      "section": 4,
+      "position": 0,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "community_stats",
+      "content": "",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {
+        "metrics": [
+          "active_runs",
+          "total_kills",
+          "total_days",
+          "outposts_claimed",
+          "fallen_survivors",
+          "average_kills_per_day",
+          "real_hours_raced"
+        ],
+        "eyebrow": "The race so far",
+        "heading": "Rat Race by the numbers",
+        "show_heading": false
+      }
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 11,
+    "fields": {
+      "section": 5,
+      "position": 0,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "The Stable Rat Race",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "bold",
+      "audience": "everyone",
+      "alignment": "centre",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 12,
+    "fields": {
+      "section": 5,
+      "position": 10,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Rules of the Race",
+      "text_role": "heading",
+      "text_font": "display",
+      "text_size": "extra_large",
+      "text_weight": "bold",
+      "audience": "everyone",
+      "alignment": "centre",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 13,
+    "fields": {
+      "section": 5,
+      "position": 20,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "One survivor. One world. No exploits. Every official result backed by evidence.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "large",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "centre",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 17,
+    "fields": {
+      "section": 13,
+      "position": 0,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Starting a run",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 18,
+    "fields": {
+      "section": 13,
+      "position": 10,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Start through the official Great Spiffo's Rat Race challenge mode. You may choose any occupation and any valid combination of character traits. Each attempt uses one survivor in one world. You may begin another attempt after a run ends, subject to the active-run limit shown by the website.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 19,
+    "fields": {
+      "section": 13,
+      "position": 20,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Winning the Rat Race",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 20,
+    "fields": {
+      "section": 13,
+      "position": 30,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "A winning survivor must reach Level 10 in all 35 player skills, complete all 13 published outpost objectives, and record 1,000,000 zombie kills. The website calculates progress from approved run data. Completing only part of the objective still earns a place in the race, but it is not a win.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 21,
+    "fields": {
+      "section": 13,
+      "position": 0,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Mods",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 22,
+    "fields": {
+      "section": 13,
+      "position": 10,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Check before you play",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 23,
+    "fields": {
+      "section": 13,
+      "position": 20,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "The Rat Race mod is required. Other mods may be used only when the [Mods catalogue](/mods/) lists them as Allowed or Required. Disallowed, Pending, and unlisted mods cannot be used in an official run. Submit an unlisted mod for review before adding it to your game.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 24,
+    "fields": {
+      "section": 13,
+      "position": 30,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Fair play",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 25,
+    "fields": {
+      "section": 13,
+      "position": 40,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "No exploits",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 26,
+    "fields": {
+      "section": 13,
+      "position": 50,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Avoid exploits as far as reasonably possible. Do not deliberately duplicate resources, bypass challenge requirements, manipulate recorded statistics, or use another unintended advantage. Review the [Exploits section](/exploits/) for published guidance and specific rulings. Public rulings apply consistently to everyone, even when an exploit exists in the base game.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 27,
+    "fields": {
+      "section": 13,
+      "position": 0,
+      "column": 2,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Broadcast evidence",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 28,
+    "fields": {
+      "section": 13,
+      "position": 10,
+      "column": 2,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Keep a Twitch or YouTube broadcast of the run wherever broadcast evidence is required. Select the relevant broadcast when submitting and add supporting clips when they help a moderator verify a milestone, unusual event, recovery, or death. Evidence must belong to the connected channel on your account.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 29,
+    "fields": {
+      "section": 13,
+      "position": 20,
+      "column": 2,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Run exports",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 30,
+    "fields": {
+      "section": 13,
+      "position": 30,
+      "column": 2,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Submit the export produced by the current Rat Race mod. The website verifies its integrity and stores each submission unchanged for review. A run becomes official only when its first submission is approved. Later approved submissions advance the official record; pending or declined submissions do not.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 31,
+    "fields": {
+      "section": 13,
+      "position": 60,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Bugs, debug, and recovery",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 32,
+    "fields": {
+      "section": 13,
+      "position": 70,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Debug tools are not part of ordinary play. They may be used only to recover from a lethal or run-ending game bug that can be shown not to be player error. Preserve evidence of the incident and the smallest corrective action taken, then disclose it with the submission. A moderator decides whether the recovered run remains valid.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 33,
+    "fields": {
+      "section": 13,
+      "position": 0,
+      "column": 3,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Ending a run",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 34,
+    "fields": {
+      "section": 13,
+      "position": 10,
+      "column": 3,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "A survivor death ends the attempt. Submit the final export so the run can be recorded as Deceased. You may instead abandon an active run from your dashboard; abandonment is irreversible and releases that challenge slot. A completed run remains subject to evidence and moderation like any other result.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 35,
+    "fields": {
+      "section": 13,
+      "position": 20,
+      "column": 3,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Moderation and rulings",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 36,
+    "fields": {
+      "section": 13,
+      "position": 30,
+      "column": 3,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Moderators review evidence, exports, declared recovery actions, and published rulings. They may approve, decline, or invalidate a result when the evidence does not support it. Ask rules questions publicly in the Discord discussions area so the answer can help every racer. Do not seek private rulings by direct message.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 37,
+    "fields": {
+      "section": 13,
+      "position": 40,
+      "column": 3,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "When in doubt, ask before acting.",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "centre",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 38,
+    "fields": {
+      "section": 13,
+      "position": 50,
+      "column": 3,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "The current website rules, mod catalogue, and published team rulings govern Rat Race 2.0 runs. Rat Race 1.0 is still running under its own rules; its material does not override Rat Race 2.0 rules.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "centre",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 54,
+    "fields": {
+      "section": 19,
+      "position": 0,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Fair play rulings",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "bold",
+      "audience": "everyone",
+      "alignment": "centre",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 55,
+    "fields": {
+      "section": 19,
+      "position": 10,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Exploits and Edge Cases",
+      "text_role": "heading",
+      "text_font": "display",
+      "text_size": "extra_large",
+      "text_weight": "bold",
+      "audience": "everyone",
+      "alignment": "centre",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 56,
+    "fields": {
+      "section": 19,
+      "position": 20,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Published rulings for unintended mechanics that can affect an official Rat Race run.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "large",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "centre",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 57,
+    "fields": {
+      "section": 20,
+      "position": 0,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Banned exploit",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 58,
+    "fields": {
+      "section": 20,
+      "position": 10,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Running skill abuse",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 59,
+    "fields": {
+      "section": 20,
+      "position": 20,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Do not trigger sleep while holding Run against a wall, bed, corner, or other obstruction in order to keep earning Running XP while asleep. Deliberately creating this state is prohibited.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 60,
+    "fields": {
+      "section": 20,
+      "position": 30,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Banned exploit",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 61,
+    "fields": {
+      "section": 20,
+      "position": 40,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Trapped-animal Nimble farming",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 62,
+    "fields": {
+      "section": 20,
+      "position": 50,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Tracking and approaching free-roaming wild animals is allowed, including the incidental Nimble XP awarded by the game. Do not trap, collect, or contain wild animals to create a repeatable Nimble XP farm.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 66,
+    "fields": {
+      "section": 20,
+      "position": 30,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Avoid if possible",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 67,
+    "fields": {
+      "section": 20,
+      "position": 40,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Trap bait duplication",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 68,
+    "fields": {
+      "section": 20,
+      "position": 50,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "If bait appears to remain usable after its source item disappears, do not repeat or compound the behaviour. Remove any suspect bait and preserve evidence if the incident affects a run. The reported potato case could not be reproduced and may have involved the item's remaining bait uses, but deliberate duplication is not permitted.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 69,
+    "fields": {
+      "section": 20,
+      "position": 60,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Avoid if possible",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 70,
+    "fields": {
+      "section": 20,
+      "position": 70,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Boosting black levels to see at night",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 71,
+    "fields": {
+      "section": 20,
+      "position": 80,
+      "column": 1,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Avoid deliberately boosting gamma, black levels, or a monitor's shadow setting to gain visibility that the game does not provide. Ordinary differences between displays are tolerated, but combining visibility manipulation with darkness or fast-forward behaviour to bypass danger is an exploit.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 72,
+    "fields": {
+      "section": 21,
+      "position": 0,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "When in doubt, ask before acting.",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "centre",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 73,
+    "fields": {
+      "section": 21,
+      "position": 10,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "These published rulings apply to Rat Race 2.0 runs. Discovering an exploit accidentally does not automatically invalidate a run: stop, do not compound it, preserve evidence, and disclose it with your submission.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "centre",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 74,
+    "fields": {
+      "section": 20,
+      "position": 60,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Banned exploit",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 75,
+    "fields": {
+      "section": 20,
+      "position": 70,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Purposeful zombie force-spawning",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 76,
+    "fields": {
+      "section": 20,
+      "position": 80,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Do not deliberately de-virtualize or repeatedly regenerate zombies to force valuable or location-specific spawns. A location's first spawn and ordinary returns are allowed. Purposefully using vehicles, noise, repeated departures, or other methods to manufacture zombies or their loot is banned.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 77,
+    "fields": {
+      "section": 20,
+      "position": 90,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Banned exploit",
+      "text_role": "eyebrow",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 78,
+    "fields": {
+      "section": 20,
+      "position": 100,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Combat-built fence and window grids",
+      "text_role": "heading",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.pageblock",
+    "pk": 79,
+    "fields": {
+      "section": 20,
+      "position": 110,
+      "column": 0,
+      "is_visible": true,
+      "block_type": "text",
+      "content": "Fence and window combat is allowed, including the use of structures found in the world. When building specifically to fight zombies, enclosed fence or window areas must leave at least three tiles between opposing sides, and separate fence or window walls must leave at least two tiles between them. Gridded combat structures are not allowed. Ordinary base construction is not covered by this ruling.",
+      "text_role": "paragraph",
+      "text_font": "theme",
+      "text_size": "standard",
+      "text_weight": "theme",
+      "audience": "everyone",
+      "alignment": "left",
+      "destination": "none",
+      "style": "default",
+      "card_columns": "auto",
+      "separator_style": "space",
+      "separator_spacing": "standard",
+      "image_asset": null,
+      "image_alt": "",
+      "image_fit": "cover",
+      "image_height": "standard",
+      "image_custom_height": 24,
+      "image_position": "center center",
+      "image_expandable": false,
+      "gallery_auto_scroll": false,
+      "gallery_scroll_speed": 5,
+      "gallery_loop": true,
+      "gallery_show_controls": true,
+      "gallery_show_captions": true,
+      "gallery_expandable": true,
+      "ranking_config": {},
+      "community_stats_config": {}
+    }
+  },
+  {
+    "model": "pages.sectionitem",
+    "pk": 4,
+    "fields": {
+      "block": 7,
+      "card_type": "linked",
+      "position": 0,
+      "heading": "Enter the Rat Race",
+      "description": "Create your Rat Racer account and reserve the name the community will know you by.",
+      "card_label": "01",
+      "audience": "inherit",
+      "alt_text": "Sign up to enter the Rat Race",
+      "destination_url": "/signup/#sign-up"
+    }
+  },
+  {
+    "model": "pages.sectionitem",
+    "pk": 5,
+    "fields": {
+      "block": 7,
+      "card_type": "linked",
+      "position": 10,
+      "heading": "Check Your Mods",
+      "description": "Review the current rulings before adding a mod to your challenge game.",
+      "card_label": "02",
+      "audience": "inherit",
+      "alt_text": "View the Rat Race mod rulings",
+      "destination_url": "/mods/"
+    }
+  },
+  {
+    "model": "pages.sectionitem",
+    "pk": 6,
+    "fields": {
+      "block": 7,
+      "card_type": "linked",
+      "position": 20,
+      "heading": "Follow the Competition",
+      "description": "Meet the active survivors and see who is leading the Rat Race.",
+      "card_label": "03",
+      "audience": "inherit",
+      "alt_text": "View the Rat Race rankings",
+      "destination_url": "/leaderboard/"
+    }
+  },
+  {
+    "model": "registry.workshopmod",
+    "pk": 1,
+    "fields": {
+      "workshop_id": "3554864233",
+      "title": "The Great Spiffo's Rat Race",
+      "steam_url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3554864233",
+      "preview_url": "",
+      "creator_steam_id": "",
+      "ruling": "required",
+      "is_recommended": false,
+      "public_rationale": "Required for official Rat Race challenge runs.",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "previous_unstable_ruling": "not_reviewed",
+      "unstable_ruling_notes": "",
+      "submission_reason": "",
+      "submitted_by": null,
+      "steam_checked_at": null,
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "registry.exploitruling",
+    "pk": 1,
+    "fields": {
+      "title": "Running skill abuse",
+      "slug": "running-skill-abuse",
+      "classification": "banned",
+      "ruling": "Do not trigger sleep while holding Run against a wall, bed, corner, or other obstruction in order to keep earning Running XP while asleep. Deliberately creating this state is prohibited.",
+      "guidance": "",
+      "position": 60,
+      "is_published": true,
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "registry.exploitruling",
+    "pk": 2,
+    "fields": {
+      "title": "Trapped-animal Nimble farming",
+      "slug": "trapped-animal-nimble-farming",
+      "classification": "banned",
+      "ruling": "Tracking and approaching free-roaming wild animals is allowed, including the incidental Nimble XP awarded by the game. Do not trap, collect, or contain wild animals to create a repeatable Nimble XP farm.",
+      "guidance": "",
+      "position": 0,
+      "is_published": true,
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "registry.exploitruling",
+    "pk": 3,
+    "fields": {
+      "title": "Purposeful zombie force-spawning",
+      "slug": "purposeful-zombie-force-spawning",
+      "classification": "banned",
+      "ruling": "Do not deliberately de-virtualize or repeatedly regenerate zombies to force valuable or location-specific spawns.",
+      "guidance": "A location's first spawn and ordinary returns are allowed. Purposefully using vehicles, noise, repeated departures, or other methods to manufacture zombies or their loot is banned.",
+      "position": 20,
+      "is_published": true,
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "registry.exploitruling",
+    "pk": 4,
+    "fields": {
+      "title": "Combat-built fence and window grids",
+      "slug": "combat-built-fence-and-window-grids",
+      "classification": "banned",
+      "ruling": "Fence and window combat is allowed, including the use of structures found in the world. Gridded structures built specifically for combat are not allowed.",
+      "guidance": "Enclosed fence or window areas built for fighting must leave at least three tiles between opposing sides. Separate fence or window walls must leave at least two tiles between them. Ordinary base construction is not covered by this ruling.",
+      "position": 10,
+      "is_published": true,
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "registry.exploitruling",
+    "pk": 5,
+    "fields": {
+      "title": "Trap bait duplication",
+      "slug": "trap-bait-duplication",
+      "classification": "avoid",
+      "ruling": "If bait appears to remain usable after its source item disappears, do not repeat or compound the behaviour.",
+      "guidance": "Remove any suspect bait and preserve evidence if the incident affects a run. Deliberate duplication is not permitted.",
+      "position": 40,
+      "is_published": true,
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "registry.exploitruling",
+    "pk": 6,
+    "fields": {
+      "title": "Boosting black levels to see at night",
+      "slug": "boosting-black-levels-to-see-at-night",
+      "classification": "avoid",
+      "ruling": "Avoid deliberately boosting gamma, black levels, or a monitor's shadow setting to gain visibility that the game does not provide.",
+      "guidance": "Ordinary differences between displays are tolerated, but combining visibility manipulation with darkness or fast-forward behaviour to bypass danger is an exploit.",
+      "position": 30,
+      "is_published": true,
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "registry.challengemode",
+    "pk": 1,
+    "fields": {
+      "evidence_required": true,
+      "key": "TGSRR",
+      "display_name": "TGSRR",
+      "game_mode_name": "The Great Spiffo's Rat Race",
+      "description": "",
+      "max_active_runs_per_participant": 1,
+      "max_pending_deceased_runs_per_participant": null,
+      "is_active": true,
+      "display_order": 0
+    }
+  },
+  {
+    "model": "registry.challengemode",
+    "pk": 2,
+    "fields": {
+      "evidence_required": true,
+      "key": "TGSRR_CDDA",
+      "display_name": "TGSRR - CDDA",
+      "game_mode_name": "The Great Spiffo's Rat Race - CDDA",
+      "description": "",
+      "max_active_runs_per_participant": 1,
+      "max_pending_deceased_runs_per_participant": null,
+      "is_active": true,
+      "display_order": 1
+    }
+  },
+  {
+    "model": "registry.challengemode",
+    "pk": 3,
+    "fields": {
+      "evidence_required": true,
+      "key": "TGSRR_Sprinters",
+      "display_name": "TGSRR - Sprinters",
+      "game_mode_name": "The Great Spiffo's Rat Race - Sprinters",
+      "description": "",
+      "max_active_runs_per_participant": 1,
+      "max_pending_deceased_runs_per_participant": null,
+      "is_active": true,
+      "display_order": 2
+    }
+  },
+  {
+    "model": "registry.runsavedview",
+    "pk": 1,
+    "fields": {
+      "owner": null,
+      "name": "Needs Review",
+      "shared": true,
+      "filters": {
+        "work": "review"
+      },
+      "system_key": "review"
+    }
+  },
+  {
+    "model": "registry.runsavedview",
+    "pk": 2,
+    "fields": {
+      "owner": null,
+      "name": "No Recent Audit",
+      "shared": true,
+      "filters": {
+        "audit": "unaudited",
+        "lifecycle_status": "active"
+      },
+      "system_key": "audit"
+    }
+  },
+  {
+    "model": "registry.runsavedview",
+    "pk": 3,
+    "fields": {
+      "owner": null,
+      "name": "Active",
+      "shared": true,
+      "filters": {
+        "lifecycle_status": "active"
+      },
+      "system_key": "active"
+    }
+  },
+  {
+    "model": "registry.runsavedview",
+    "pk": 4,
+    "fields": {
+      "owner": null,
+      "name": "All",
+      "shared": true,
+      "filters": {},
+      "system_key": "all"
+    }
+  },
+  {
+    "model": "registry.participantsavedview",
+    "pk": 1,
+    "fields": {
+      "owner": null,
+      "name": "All",
+      "shared": true,
+      "filters": {},
+      "system_key": "all"
+    }
+  },
+  {
+    "model": "registry.participantsavedview",
+    "pk": 2,
+    "fields": {
+      "owner": null,
+      "name": "Pending verification",
+      "shared": true,
+      "filters": {
+        "status__exact": "pending"
+      },
+      "system_key": "pending"
+    }
+  },
+  {
+    "model": "registry.participantsavedview",
+    "pk": 3,
+    "fields": {
+      "owner": null,
+      "name": "Verified",
+      "shared": true,
+      "filters": {
+        "status__exact": "verified"
+      },
+      "system_key": "verified"
+    }
+  },
+  {
+    "model": "registry.participantsavedview",
+    "pk": 4,
+    "fields": {
+      "owner": null,
+      "name": "Pending avatar review",
+      "shared": true,
+      "filters": {
+        "avatar_status__exact": "pending"
+      },
+      "system_key": "avatars"
+    }
+  },
+  {
+    "model": "registry.workshopmodsavedview",
+    "pk": 1,
+    "fields": {
+      "owner": null,
+      "name": "Pending Review",
+      "shared": true,
+      "filters": {
+        "ruling__exact": "pending"
+      },
+      "system_key": "pending"
+    }
+  },
+  {
+    "model": "registry.workshopmodsavedview",
+    "pk": 2,
+    "fields": {
+      "owner": null,
+      "name": "Allowed",
+      "shared": true,
+      "filters": {
+        "ruling__exact": "allowed"
+      },
+      "system_key": "allowed"
+    }
+  },
+  {
+    "model": "registry.workshopmodsavedview",
+    "pk": 3,
+    "fields": {
+      "owner": null,
+      "name": "Disallowed",
+      "shared": true,
+      "filters": {
+        "ruling__exact": "disallowed"
+      },
+      "system_key": "disallowed"
+    }
+  },
+  {
+    "model": "registry.workshopmodsavedview",
+    "pk": 4,
+    "fields": {
+      "owner": null,
+      "name": "All",
+      "shared": true,
+      "filters": {},
+      "system_key": "all"
+    }
+  },
+  {
+    "model": "registry.legacysavedview",
+    "pk": 1,
+    "fields": {
+      "owner": null,
+      "name": "Runs and results",
+      "shared": true,
+      "filters": {
+        "workspace": "runs"
+      },
+      "system_key": "all"
+    }
+  },
+  {
+    "model": "registry.legacysavedview",
+    "pk": 2,
+    "fields": {
+      "owner": null,
+      "name": "Active runs",
+      "shared": true,
+      "filters": {
+        "workspace": "runs",
+        "lifecycle__exact": "active"
+      },
+      "system_key": "active"
+    }
+  },
+  {
+    "model": "registry.legacysavedview",
+    "pk": 3,
+    "fields": {
+      "owner": null,
+      "name": "Update review",
+      "shared": true,
+      "filters": {
+        "workspace": "updates",
+        "status__exact": "received",
+        "source__exact": "participant"
+      },
+      "system_key": "updates"
+    }
+  },
+  {
+    "model": "registry.legacysavedview",
+    "pk": 4,
+    "fields": {
+      "owner": null,
+      "name": "Claim review",
+      "shared": true,
+      "filters": {
+        "workspace": "claims",
+        "status__exact": "pending"
+      },
+      "system_key": "claims"
+    }
+  },
+  {
+    "model": "registry.legacysavedview",
+    "pk": 5,
+    "fields": {
+      "owner": null,
+      "name": "Data imports",
+      "shared": true,
+      "filters": {
+        "workspace": "imports"
+      },
+      "system_key": "imports"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 1,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "brandenburg",
+      "display_name": "Brandenburg",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 2,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "echo_creek",
+      "display_name": "Echo Creek",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 3,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "ekron",
+      "display_name": "Ekron",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 4,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "fallas_lake",
+      "display_name": "Fallas Lake",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 5,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "hog_wallow_military_base",
+      "display_name": "Hog Wallow Military Base",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 6,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "irvington",
+      "display_name": "Irvington",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 7,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "louisville",
+      "display_name": "Louisville",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 8,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "march_ridge",
+      "display_name": "March Ridge",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 9,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "muldraugh",
+      "display_name": "Muldraugh",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 10,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "riverside",
+      "display_name": "Riverside",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 11,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "rosewood",
+      "display_name": "Rosewood",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 12,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "valley_station",
+      "display_name": "Valley Station",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 13,
+    "fields": {
+      "kind": "outpost",
+      "stable_id": "west_point",
+      "display_name": "West Point",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 14,
+    "fields": {
+      "kind": "location",
+      "stable_id": "star_eplex_cinema",
+      "display_name": "StarEplex Cinema",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 15,
+    "fields": {
+      "kind": "location",
+      "stable_id": "twiggys",
+      "display_name": "Twiggy's",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 16,
+    "fields": {
+      "kind": "location",
+      "stable_id": "fossoil_hq",
+      "display_name": "Fossoil Headquarters",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 17,
+    "fields": {
+      "kind": "location",
+      "stable_id": "gas2go_facility",
+      "display_name": "Gas2Go Facility",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 18,
+    "fields": {
+      "kind": "location",
+      "stable_id": "gigamart_hq",
+      "display_name": "Gigamart Headquarters",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 19,
+    "fields": {
+      "kind": "location",
+      "stable_id": "big_spiffos",
+      "display_name": "Big Spiffo's",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 20,
+    "fields": {
+      "kind": "location",
+      "stable_id": "spiffos_hq",
+      "display_name": "Spiffo's Headquarters",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 21,
+    "fields": {
+      "kind": "location",
+      "stable_id": "scarlet_oak_distillery",
+      "display_name": "Scarlet Oak Distillery",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 22,
+    "fields": {
+      "kind": "location",
+      "stable_id": "scarlett_oak_airport",
+      "display_name": "Scarlett Oak Airport Distillery",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 23,
+    "fields": {
+      "kind": "location",
+      "stable_id": "knox_distillery",
+      "display_name": "Knox Distillery",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 24,
+    "fields": {
+      "kind": "location",
+      "stable_id": "grand_ohio_mall",
+      "display_name": "Grand Ohio Mall",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 25,
+    "fields": {
+      "kind": "location",
+      "stable_id": "wheat_dream_factory",
+      "display_name": "The Wheat Dream Factory",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 26,
+    "fields": {
+      "kind": "location",
+      "stable_id": "cockayne_inc",
+      "display_name": "Cockayne Inc.",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 27,
+    "fields": {
+      "kind": "location",
+      "stable_id": "wizards_keep",
+      "display_name": "The Wizard's Keep",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 28,
+    "fields": {
+      "kind": "location",
+      "stable_id": "doe_valley_bunker",
+      "display_name": "Bunker",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 29,
+    "fields": {
+      "kind": "location",
+      "stable_id": "muldraugh_radio_tower",
+      "display_name": "Muldraugh Radio Tower",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 30,
+    "fields": {
+      "kind": "location",
+      "stable_id": "riverside_radio_tower",
+      "display_name": "Riverside Radio Tower",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 31,
+    "fields": {
+      "kind": "location",
+      "stable_id": "brandenburg_detention_center",
+      "display_name": "Brandenburg Detention Centre",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 32,
+    "fields": {
+      "kind": "location",
+      "stable_id": "mccoy_estate",
+      "display_name": "McCoy Estate",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 33,
+    "fields": {
+      "kind": "location",
+      "stable_id": "fallas_luxury_cabins",
+      "display_name": "Remote Luxury Cabins",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.catalogueentry",
+    "pk": 34,
+    "fields": {
+      "kind": "location",
+      "stable_id": "airport_atc_tower",
+      "display_name": "Airport ATC Tower",
+      "introduced_in": "42.20",
+      "removed_in": "",
+      "icon_key": "",
+      "is_active": true,
+      "notes": "",
+      "created_at": "2026-11-27T00:00:00Z",
+      "updated_at": "2026-11-27T00:00:00Z"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 1,
+    "fields": {
+      "entry": 1,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 2093,
+      "anchor_y": 6029,
+      "anchor_z": 0,
+      "min_x": 2068,
+      "min_y": 6002,
+      "max_x": 2099,
+      "max_y": 6045
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 2,
+    "fields": {
+      "entry": 2,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 3538,
+      "anchor_y": 11207,
+      "anchor_z": 0,
+      "min_x": 3531,
+      "min_y": 11198,
+      "max_x": 3555,
+      "max_y": 11224
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 3,
+    "fields": {
+      "entry": 3,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 443,
+      "anchor_y": 9923,
+      "anchor_z": 0,
+      "min_x": 438,
+      "min_y": 9913,
+      "max_x": 470,
+      "max_y": 9942
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 4,
+    "fields": {
+      "entry": 4,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 7222,
+      "anchor_y": 8526,
+      "anchor_z": 0,
+      "min_x": 7217,
+      "min_y": 8520,
+      "max_x": 7229,
+      "max_y": 8539
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 5,
+    "fields": {
+      "entry": 5,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 5559,
+      "anchor_y": 12487,
+      "anchor_z": 0,
+      "min_x": 5536,
+      "min_y": 12439,
+      "max_x": 5583,
+      "max_y": 12505
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 6,
+    "fields": {
+      "entry": 6,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 2433,
+      "anchor_y": 14227,
+      "anchor_z": 0,
+      "min_x": 2406,
+      "min_y": 14211,
+      "max_x": 2440,
+      "max_y": 14255
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 7,
+    "fields": {
+      "entry": 7,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 12608,
+      "anchor_y": 3369,
+      "anchor_z": 0,
+      "min_x": 12599,
+      "min_y": 3353,
+      "max_x": 12618,
+      "max_y": 3384
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 8,
+    "fields": {
+      "entry": 8,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 10330,
+      "anchor_y": 12788,
+      "anchor_z": 0,
+      "min_x": 10317,
+      "min_y": 12779,
+      "max_x": 10345,
+      "max_y": 12816
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 9,
+    "fields": {
+      "entry": 9,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 10760,
+      "anchor_y": 10165,
+      "anchor_z": 0,
+      "min_x": 10750,
+      "min_y": 10160,
+      "max_x": 10773,
+      "max_y": 10170
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 10,
+    "fields": {
+      "entry": 10,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 6549,
+      "anchor_y": 5368,
+      "anchor_z": 0,
+      "min_x": 6542,
+      "min_y": 5351,
+      "max_x": 6585,
+      "max_y": 5387
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 11,
+    "fields": {
+      "entry": 11,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 8134,
+      "anchor_y": 11518,
+      "anchor_z": 0,
+      "min_x": 8118,
+      "min_y": 11504,
+      "max_x": 8155,
+      "max_y": 11525
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 12,
+    "fields": {
+      "entry": 12,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 12849,
+      "anchor_y": 4953,
+      "anchor_z": 0,
+      "min_x": 12843,
+      "min_y": 4949,
+      "max_x": 12869,
+      "max_y": 4965
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 13,
+    "fields": {
+      "entry": 13,
+      "location_type": "outpost",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 11970,
+      "anchor_y": 7000,
+      "anchor_z": 0,
+      "min_x": 11959,
+      "min_y": 6975,
+      "max_x": 11985,
+      "max_y": 7007
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 14,
+    "fields": {
+      "entry": 14,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 13637,
+      "anchor_y": 5887,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 15,
+    "fields": {
+      "entry": 15,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 12067,
+      "anchor_y": 6802,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 16,
+    "fields": {
+      "entry": 16,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 12083,
+      "anchor_y": 1605,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 17,
+    "fields": {
+      "entry": 17,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 12071,
+      "anchor_y": 1435,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 18,
+    "fields": {
+      "entry": 18,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 12644,
+      "anchor_y": 1685,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 19,
+    "fields": {
+      "entry": 19,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 12435,
+      "anchor_y": 3784,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 20,
+    "fields": {
+      "entry": 20,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 12708,
+      "anchor_y": 1607,
+      "anchor_z": 1,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 21,
+    "fields": {
+      "entry": 21,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 12015,
+      "anchor_y": 2040,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 22,
+    "fields": {
+      "entry": 22,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 15307,
+      "anchor_y": 3259,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 23,
+    "fields": {
+      "entry": 23,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 12906,
+      "anchor_y": 1368,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 24,
+    "fields": {
+      "entry": 24,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 13623,
+      "anchor_y": 1365,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 25,
+    "fields": {
+      "entry": 25,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 15351,
+      "anchor_y": 3150,
+      "anchor_z": 1,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 26,
+    "fields": {
+      "entry": 26,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 15488,
+      "anchor_y": 3079,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 27,
+    "fields": {
+      "entry": 27,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 1760,
+      "anchor_y": 14784,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 28,
+    "fields": {
+      "entry": 28,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 5576,
+      "anchor_y": 9365,
+      "anchor_z": -1,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 29,
+    "fields": {
+      "entry": 29,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 10253,
+      "anchor_y": 8734,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 30,
+    "fields": {
+      "entry": 30,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 4833,
+      "anchor_y": 6279,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 31,
+    "fields": {
+      "entry": 31,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 1411,
+      "anchor_y": 5899,
+      "anchor_z": 0,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 32,
+    "fields": {
+      "entry": 32,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 10086,
+      "anchor_y": 8261,
+      "anchor_z": 1,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 33,
+    "fields": {
+      "entry": 33,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 6367,
+      "anchor_y": 7620,
+      "anchor_z": 2,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationversion",
+    "pk": 34,
+    "fields": {
+      "entry": 34,
+      "location_type": "landmark",
+      "game_version": "42.20",
+      "registry_version": 1,
+      "anchor_x": 15361,
+      "anchor_y": 2669,
+      "anchor_z": 8,
+      "min_x": null,
+      "min_y": null,
+      "max_x": null,
+      "max_y": null
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 1,
+    "fields": {
+      "location_version": 1,
+      "building_id": "6473958824083477"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 2,
+    "fields": {
+      "location_version": 2,
+      "building_id": "12103479833133062"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 3,
+    "fields": {
+      "location_version": 3,
+      "building_id": "10696053409972226"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 4,
+    "fields": {
+      "location_version": 3,
+      "building_id": "10696053409972269"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 5,
+    "fields": {
+      "location_version": 4,
+      "building_id": "9288794490535943"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 6,
+    "fields": {
+      "location_version": 5,
+      "building_id": "13510889076424704"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 7,
+    "fields": {
+      "location_version": 5,
+      "building_id": "13510889076424705"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 8,
+    "fields": {
+      "location_version": 6,
+      "building_id": "15481162373791744"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 9,
+    "fields": {
+      "location_version": 6,
+      "building_id": "15481162373791782"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 10,
+    "fields": {
+      "location_version": 7,
+      "building_id": "3659385150636034"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 11,
+    "fields": {
+      "location_version": 8,
+      "building_id": "13792445657513985"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 12,
+    "fields": {
+      "location_version": 9,
+      "building_id": "10977700185374723"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 13,
+    "fields": {
+      "location_version": 10,
+      "building_id": "5629606908395530"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 14,
+    "fields": {
+      "location_version": 11,
+      "building_id": "12385032119255075"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 15,
+    "fields": {
+      "location_version": 12,
+      "building_id": "5348239305867264"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 16,
+    "fields": {
+      "location_version": 12,
+      "building_id": "5348239305867265"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 17,
+    "fields": {
+      "location_version": 13,
+      "building_id": "7600021939683331"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 18,
+    "fields": {
+      "location_version": 14,
+      "building_id": "6192677120901126"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 19,
+    "fields": {
+      "location_version": 15,
+      "building_id": "7318551257939979"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 20,
+    "fields": {
+      "location_version": 16,
+      "building_id": "1689051723726860"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 21,
+    "fields": {
+      "location_version": 17,
+      "building_id": "1407576747016211"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 22,
+    "fields": {
+      "location_version": 17,
+      "building_id": "1407576747016212"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 23,
+    "fields": {
+      "location_version": 17,
+      "building_id": "1407576747016226"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 24,
+    "fields": {
+      "location_version": 18,
+      "building_id": "1689060313661461"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 25,
+    "fields": {
+      "location_version": 19,
+      "building_id": "3940855832379393"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 26,
+    "fields": {
+      "location_version": 20,
+      "building_id": "1689060313661459"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 27,
+    "fields": {
+      "location_version": 21,
+      "building_id": "1970522405470208"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 28,
+    "fields": {
+      "location_version": 22,
+      "building_id": "3377953123598339"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 29,
+    "fields": {
+      "location_version": 23,
+      "building_id": "1407589631918092"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 30,
+    "fields": {
+      "location_version": 24,
+      "building_id": "1126123245142018"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 31,
+    "fields": {
+      "location_version": 25,
+      "building_id": "3377953123598337"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 32,
+    "fields": {
+      "location_version": 26,
+      "building_id": "3377957418565636"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 33,
+    "fields": {
+      "location_version": 27,
+      "building_id": "16044099442311170"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 34,
+    "fields": {
+      "location_version": 28,
+      "building_id": "10133189355896832"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 35,
+    "fields": {
+      "location_version": 29,
+      "building_id": "9570321006854147"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 36,
+    "fields": {
+      "location_version": 30,
+      "building_id": "6755476750467072"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 37,
+    "fields": {
+      "location_version": 31,
+      "building_id": "6192470962470913"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 38,
+    "fields": {
+      "location_version": 32,
+      "building_id": "9007366758465536"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 39,
+    "fields": {
+      "location_version": 33,
+      "building_id": "8162877403824129"
+    }
+  },
+  {
+    "model": "zomboid_catalogue.maplocationbuilding",
+    "pk": 40,
+    "fields": {
+      "location_version": 34,
+      "building_id": "2815003170177024"
+    }
+  }
+]

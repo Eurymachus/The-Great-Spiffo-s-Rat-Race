@@ -1,5 +1,77 @@
 # Website: Current Focus
 
+- Fresh-install baseline implemented on 27 November under explicit owner
+  approval to retire pre-launch migration history without a local/staging upgrade
+  path. Replaces 174 project migrations with eight schema migrations and one
+  final seed migration (226 setup records, no credentials/accounts/run data).
+  SQLite fresh/repeat installation passed, all 95 tables match prior empty-install
+  columns/constraints, and model drift is zero. Initial 88 regression tests and
+  four new baseline tests passed; full suite and PostgreSQL verification pending.
+  Local consistent database backup and environment byte comparison passed.
+  OSWALD backup verified 9,595 entries, all seven archived provider records
+  decrypt with the archived key, and Steam session copy is hash-verified.
+  Existing databases remain intact; no fresh baseline deployment yet. Live
+  untouched. See MIGRATION_BASELINE.md. Preserve credentials before any reset.
+
+- Browser RR1 acceptance completed: EuryDev claimed Eurymachus, owner approved,
+  update declined with visible reason, resubmitted and approved, and public
+  leaderboard displayed EuryDev/Columbus and approved stats. Claim decline was
+  accepted based on automated evidence, not repeated in browser. Owner chose to
+  leave the staging run Active and RR1 intake enabled for further testing;
+  the earlier restoration reminder below is superseded.
+
+- Temporary browser acceptance change, 27 November: imported Eurymachus RR1
+  run `270` changed from Inactive to Active on staging at the owner's request.
+  Only lifecycle changed; original state retained in a protected OSWALD receipt.
+  Restore to Inactive after testing. Run is unclaimed and accessible through
+  Hall of Fame; no current submission means it does not yet appear on the
+  Active leaderboard. Live untouched.
+
+- RR1 claims and update intake enabled on staging on 27 November for the
+  owner's EuryDev browser acceptance using an imported active run. Protected
+  configuration backed up; staging `570ca253` ready with one web/worker and
+  both shutdown logs sealed/hash-verified. RR2 remains off; other flags and
+  schedules unchanged. No claims/reviews/submissions made by this operation.
+  Live `6582cc4` untouched. Next: user submits claim, tests decline/resubmit and
+  approval, then submits an update for review.
+
+- RR1 re-import and automated staging journey passed on OSWALD, 27 November,
+  deployed release `570ca253`. Retained October CSV hashes matched; import
+  audit `309eea75-fa32-4990-b611-faec1561f9f2` created 211 historical runs
+  (14 active, 197 inactive) and 211 approved submissions. Results and both
+  ranking orders verified; all 71 other protected tables matched pre-import
+  fingerprints. Fresh backup verified all 9,595 entries.
+  Synthetic deployed Django request-client checks passed for claim decline
+  reason, resubmission, approval and competing-claim rejection; update ownership,
+  active-run/VOD requirements, single pending update, decline preserving results,
+  and death approval updating current/best results and deceased status.
+  An initial fixture transaction rolled back because the harness queried
+  notification `participant` instead of `recipient`; correcting the harness
+  passed without re-importing or changing application code.
+  Retained labelled run 425, claims 7/8 and submissions 429/430/431; final totals
+  are 212 runs, 2 claims, 214 submissions. Three synthetic accounts use prefix
+  `RR1Rehearsal20261127`; the reviewer was deactivated. No historical identity
+  was claimed. In-memory mail and blocked outbound sockets prevented external
+  delivery; intake override was test-process-only. Local focused suite passed
+  27 tests; OSWALD isolated suite passed 23 tests. Staging ready with one
+  web/worker; RR1 intake and RR2 remain off. Live `6582cc4` untouched.
+  These are request-client checks, not browser acceptance. Next: interactive
+  claim/review/update browser smoke check using the owner's chosen imported
+  active run, with staging intake enabled as recorded above.
+
+- Scoped staging RR1 reset completed on OSWALD, 27 November, at the owner's
+  request for a fresh import/claim/review/update rehearsal. Deleted 211 runs,
+  2 claims and 211 submissions; all three RR1 tables are empty. Deletion
+  collector confirmed no cascade outside these tables. Four local reset tests
+  passed. Fresh pre-reset backup verified all 9,595 manifest entries; staging
+  writers paused for reset and both shutdown log segments sealed/hash-verified.
+  Fingerprints matched across all 72 protected tables, including accounts,
+  provider credentials, Workshop, RR2, catalogue, import audits and notifications.
+  Staging ready on `570ca253` with one web/worker process tree; schedules and
+  release flags preserved. RR1 intake remains off; no CSV imported yet.
+  Live `6582cc4` untouched. Subsequent import and request-client acceptance are
+  recorded above; reset verification alone does not validate user journeys.
+
 - First live deployment phase agreed on 27 November: admin available to
   authorized administrators, public construction page retained, intake and
   publishing disabled. Configure live providers in admin, then connect Steam,

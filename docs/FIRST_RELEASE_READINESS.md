@@ -330,6 +330,12 @@ accounts/content. Verify all seed operations can be safely repeated.
 
 ### 3. Migration and deployment cleanup: required now
 
+Update, 27 November: the owner approved a fresh-install baseline with no upgrade
+requirement for pre-launch local/staging databases. MIGRATION_BASELINE.md records
+the replacement graph, preserved setup data and credential recovery requirements.
+The following old-graph inventory and preservation requirement are historical,
+superseded for that baseline. Future post-baseline upgrades must preserve data.
+
 RR 2 being off does not stop its migrations or imports from executing.
 Migration 0029 still loads the packaged legacy snapshot; 0032 replaces that
 obsolete table without transferring its rows. Retain its packaged dependency

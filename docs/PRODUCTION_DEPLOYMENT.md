@@ -65,6 +65,16 @@ them. RR 2 activation requires a populated-upgrade rehearsal, not another clean
 production database. This sequence supersedes the combined-launch ordering in
 earlier notes. No reset, migration or deployment is authorized by this record.
 
+## Fresh-install baseline decision (27 November 2026)
+
+The owner has now approved replacing pre-launch project migration history with
+a clean installation baseline. Existing local/staging data need not be upgraded.
+Preserve credentials and host configuration before rebuilding these environments.
+The migration-history preservation instructions below are historical and are
+superseded for this baseline only. Later migrations must preserve post-launch
+data. See MIGRATION_BASELINE.md for the setup inventory and recovery boundary.
+Live remains untouched until a separately executed admin-first deployment.
+
 ## Required RR 2 launch gate: consolidate the data contract (21 November 2026)
 
 Before enabling live Rat Race 2 functionality, simplify the mod and website together
