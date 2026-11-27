@@ -1,5 +1,13 @@
 # Website: Current Focus
 
+- Mobile settings header fixed and deployed to staging `a58896da`: separate
+  Account settings title and wrapping email, compact avatar/joined row, and
+  full-width return button instead of the inherited two-column action grid.
+  Two existing settings tests passed. Synthetic long-email Chromium checks
+  stayed within bounds at 320/390/700/844/1160px; actual iPhone acceptance remains.
+  Staging ready with one web/worker; backup/preview schedules and live unchanged.
+  Resume provider-connection acceptance after the mobile visual check.
+
 - Staging retention preview scheduling installed on 27 November from protected
   operations bundle `0b7f84cd`: daily 05:00 UK preview, hourly :45 health check,
   SYSTEM/StartWhenAvailable/IgnoreNew. Both Task Scheduler-triggered runs passed
