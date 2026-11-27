@@ -96,8 +96,10 @@ six stored provider-token decryptions passed in BACKUP_RESTORE_REHEARSAL.md.
 Cluster login roles/passwords/memberships were not restored from the archive.
 A subsequent isolated rehearsal recreated a non-superuser login with a fresh
 SCRAM credential and verified Django database access, migration consistency and
-home/Workshop/liveness HTTP 200 responses. Worker-dependent recovery readiness
-and reviewed retention execution remain open; see BACKUP_RESTORE_REHEARSAL.md.
+home/Workshop/liveness HTTP 200 responses. A real isolated worker subsequently
+drove readiness from 503 to 200 and back to 503 on cooperative stop, with queue
+counts unchanged and network/tool guards. Reviewed retention execution remains
+open; see BACKUP_RESTORE_REHEARSAL.md for recovery scope and limitations.
 The older checkpoint below records the evidence available on 26 November.
 
 [The host recovery audit](HOST_RECOVERY_AUDIT_2026-11-26.md) found no verified

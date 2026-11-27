@@ -1,5 +1,14 @@
 # Website: Current Focus
 
+- Isolated worker recovery passed on 27 November using `39a358b9`: readiness
+  returned 503 before startup, 200 with two real matching-release heartbeats
+  15 seconds apart, then 503 after cooperative stop cleared the heartbeat.
+  Other readiness checks passed; four job-queue status counts unchanged.
+  Publishing disabled and rehearsal network/tool guards installed. Logger
+  exited 0 with hash-valid sealed streams. Cluster 55439 and rehearsal processes
+  stopped; staging/live unchanged. Stale/wrong-release heartbeat cases and
+  external job execution were not exercised. Next: disposable retention rehearsal.
+
 - Isolated application-login recovery passed on 27 November with matching
   `39a358b9` code: fresh SCRAM login rejected an incorrect password and allowed
   Django access without superuser privileges. All 190 migration records were

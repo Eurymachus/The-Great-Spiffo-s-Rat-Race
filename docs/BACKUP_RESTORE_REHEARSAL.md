@@ -292,3 +292,33 @@ The isolated cluster was stopped and its listener verified gone. No provider,
 email, worker or public web service ran. Staging and live remained ready and
 unchanged; artifacts were retained. Worker-dependent readiness and complete
 service recovery remain outside this check, as does provider-side token validity.
+
+## Isolated worker recovery, 27 November 2026
+
+Receipt: `G:\RatRace_Staging_WorkerRestore_20261127-181139\verification.txt`.
+The rehearsal used matching `39a358b9` code, a reconstructed non-superuser
+application login, isolated storage and PostgreSQL on loopback port 55439.
+
+The actual worker produced the following readiness transitions:
+
+| State | HTTP readiness | Evidence |
+| --- | --- | --- |
+| Before startup | 503 | No heartbeat in the restored snapshot |
+| Worker running | 200 | Two matching-release heartbeats, 15 seconds apart |
+| After cooperative stop | 503 | Worker removed its heartbeat |
+
+All other readiness checks passed throughout. Four job queues had no active
+work before startup and their status counts matched afterward. Publishing was
+disabled; rehearsal guards blocked provider network calls and worker tool
+launches. These guards limit this proof to idle worker recovery and readiness,
+not external job execution. Heartbeats and readiness results were real.
+
+The logger exited 0 and sealed its streams with matching hashes. The run took
+28.5 seconds. The isolated cluster was stopped and no rehearsal processes or
+listener remained. Staging and live stayed ready on their original releases.
+Artifacts were retained. Stale and wrong-release heartbeat cases were not
+exercised in this run; neither was provider-side credential validity.
+
+This closes the worker-dependent readiness gap from the preceding isolated
+application rehearsal for the tested recovery path. It does not establish an
+end-to-end outage recovery-time commitment or authorize production activation.
