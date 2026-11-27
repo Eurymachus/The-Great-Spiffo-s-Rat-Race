@@ -100,3 +100,20 @@ credentials. Existing connection, Settings, Graph email, staging allowlist, pass
 and Workshop regressions also run. Turnstile configuration failures reject
 verification; OpenAI failures queue manual moderation; Steam search failures
 retain the ID/URL submission option. Live rejects Turnstile test credentials.
+
+## Staging acceptance, 27 November 2026
+
+Release `570ca253` deployed on OSWALD with both additive migrations. Seven
+records were imported under Eurymachus and privately matched the previous
+environment values. The environment copies remain for rollback. All 23 security
+tests passed on the host; local suites covered 98 distinct passing tests.
+Deployed form checks confirmed no saved plaintext/ciphertext and no access for
+non-superuser staff. The browser fixture verified native save clears its input.
+
+The coordinated backup and integrity check exited 0 with all 9,595 manifest
+entries verified. The key in backed-up `protected.env` decrypted all seven
+archived provider records offline. Four new log segments were sealed and their
+hashes verified. Staging remains ready with one web and one worker process tree;
+release flags and backup/retention-preview schedules are unchanged. Live remains
+ready on `6582cc4`. No provider authentication calls or outbound emails were
+performed during rollout; existing participant links were not changed.

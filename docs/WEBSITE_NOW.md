@@ -5,10 +5,16 @@
   Active-superuser-only admin, write-only secret replacement, field-name-only
   audit, separate host key ring, origin binding and explicit env/disabled modes.
   Key rotation/import are atomic and audited. See PROVIDER_CONFIGURATION.md.
-  Expanded service and security suite: 82 tests passed, plus the all-seven import
-  and admin preservation test; 44 provider/Settings regressions also passed
-  (overlapping coverage). Native admin save clears
-  the submitted secret in the browser fixture. Staging deployment pending.
+  Across the focused suites, 98 distinct tests passed. Native admin save clears
+  the submitted secret in the browser fixture. Staging deployed as `570ca253`
+  on 27 November; 23 security tests passed again on OSWALD. All seven imported
+  records decrypt and match prior environment credentials; seven audit entries
+  recorded the import. Fresh coordinated backup and integrity check exited 0;
+  all 9,595 manifest entries verified. The backed-up key decrypted all seven
+  archived records offline. Deployed admin forms hide plaintext/ciphertext and
+  deny non-superuser staff. Staging has one web/worker; four new log segments
+  sealed and verified. Release flags, backup/retention-preview schedules and
+  live `6582cc4` unchanged. Provider-side authentication was not repeated.
 
 - Discord validation and Settings connection errors deployed to staging
   `9b32a36d` on 27 November. Invalid application IDs and unsafe or mismatched

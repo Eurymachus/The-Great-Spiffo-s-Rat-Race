@@ -69,4 +69,3 @@ class ProviderConfigurationForm(forms.ModelForm):
         if commit:
             record.save()
         return record
-
