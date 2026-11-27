@@ -93,8 +93,11 @@ Subsequent 27 November evidence: automatic staging capture and integrity checks,
 cooperative application stop/log sealing and next-hourly-slot installation are
 verified in HOST_MAINTENANCE.md. Isolated restore ownership/permissions and all
 six stored provider-token decryptions passed in BACKUP_RESTORE_REHEARSAL.md.
-Cluster login roles/passwords/memberships were not restored from the archive;
-full application recovery and reviewed retention execution remain open.
+Cluster login roles/passwords/memberships were not restored from the archive.
+A subsequent isolated rehearsal recreated a non-superuser login with a fresh
+SCRAM credential and verified Django database access, migration consistency and
+home/Workshop/liveness HTTP 200 responses. Worker-dependent recovery readiness
+and reviewed retention execution remain open; see BACKUP_RESTORE_REHEARSAL.md.
 The older checkpoint below records the evidence available on 26 November.
 
 [The host recovery audit](HOST_RECOVERY_AUDIT_2026-11-26.md) found no verified

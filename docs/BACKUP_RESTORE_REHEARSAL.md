@@ -263,3 +263,32 @@ is not a restored application-login test. Document and rehearse login-role
 provisioning and full isolated application recovery before claiming complete
 recovery. No email, provider refresh or public application exposure is needed
 for those checks. Off-host protection remains an accepted future improvement.
+
+## Isolated application login recovery, 27 November 2026
+
+Successful receipt:
+`G:\RatRace_Staging_LoginRestore_20261127-180801\verification.txt`.
+The isolated cluster used loopback port 55438 and matching `39a358b9` code.
+
+The rehearsal recreated the database owner and a non-superuser LOGIN role
+separately from the archive, with a fresh private SCRAM password. Archive
+ownership and grants were retained. PostgreSQL rejected an incorrect password,
+and Django successfully authenticated over TCP using the isolated credential.
+This proves explicit role provisioning, not recovery of original role passwords
+or memberships from the backup. Keep provisioning as a separate recovery step.
+
+Django verified 190 consistent migration records with none pending. In-process
+requests to `/`, `/mods/` and `/health/live/` returned HTTP 200; the Workshop page
+contained the restored required mod. A sequence-backed insert succeeded inside
+an isolated transaction, was rolled back and was verified absent afterward.
+
+The initial smoke setup omitted the restored branding files. A fresh retry
+verified and restored all 9,572 media files before rendering the pages; that
+successful run took 43 seconds. This is a bounded rehearsal duration, not an
+end-to-end recovery-time commitment. Restore the database, protected configuration
+and media together before attempting application page verification.
+
+The isolated cluster was stopped and its listener verified gone. No provider,
+email, worker or public web service ran. Staging and live remained ready and
+unchanged; artifacts were retained. Worker-dependent readiness and complete
+service recovery remain outside this check, as does provider-side token validity.
