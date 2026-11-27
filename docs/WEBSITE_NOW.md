@@ -1,13 +1,23 @@
 # Website: Current Focus
 
+- Cooperative staging application shutdown verified on 27 November, release
+  and backup-operations bundle `39a358b9`. Web and worker loggers sealed with
+  valid hashes and exit-0 receipts before replacements started. Scheduled
+  capture/check passed; all 9,595 backup entries matched. Historical logs
+  unchanged, staging ready with one web/worker, live `6582cc4` untouched.
+  No Windows shutdown or retention deletion. See HOST_MAINTENANCE.md.
+  Next small operational fix: make backup-check installation choose the next
+  hourly :15 slot, rather than tomorrow's 00:15. OSWALD's installed trigger was
+  corrected to 11:15 GMT today; daily backup remains 04:00 UK time.
+
 - Staging log classification completed read-only on 27 November: 71 routine
   segments, comprising two active, 65 historical unsealed (34 web/31 worker,
   121,067 bytes) and four sealed. Active status supported by process timing and
   sharing violations; historical streams permitted exclusive reads. Four sealed
   manifests verified; zero expiry candidates or segment ACL anomalies/holds.
   Five fixed-name logs remain outside expiry. No logs changed or services
-  restarted; live untouched. Next: verify graceful shutdown for future sealing,
-  leaving historical segments unchanged. See HOST_MAINTENANCE.md.
+  restarted during classification; live untouched. Subsequent graceful shutdown
+  verification is recorded above. Historical segments remain unchanged.
 
 - Evidence-preview blocker fixed and deployed to staging `8a3eb705` on
   27 November. Preview avoids row locks; apply retains transaction/lock order

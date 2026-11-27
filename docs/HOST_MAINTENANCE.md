@@ -214,3 +214,46 @@ Recommended next action: implement and verify graceful launcher shutdown so
 future segments close normally. Keep historical unsealed directories unchanged
 until a separately reviewed treatment exists. Do not manufacture completion
 manifests or infer safe deletion from age, small size or absence of open handles.
+
+### Cooperative staging application stop, 27 November 2026
+
+Release `39a358b9` introduces a private, per-process stop request for the staging
+web server and reference worker. This stops application processes, not Windows.
+The web server drains in-flight requests; the worker finishes its current job.
+The logger then drains output, seals its segments and records a successful exit.
+
+The staging stop helper requires disabled task triggers, validates process
+identity and waits up to 120 seconds. A timeout fails the operation without
+forcing termination. Backup capture starts only after a successful stop; its
+existing recovery path re-enables the application tasks. Old runtimes without
+this protocol require a one-time bootstrap stop and cannot be retroactively
+declared clean. Historical segments remain unchanged.
+
+Local validation passed four logger tests, three process-control tests, two
+existing worker tests, PowerShell process matching and script parser checks.
+Hosted tests also passed, including a real loopback Uvicorn request that finished
+after its stop request and produced hash-valid sealed output.
+
+Staging application and protected backup-operations bundle `39a358b9` were
+installed on OSWALD. The Task Scheduler capture started at 10:24:23 GMT:
+
+- Web segment `routine-web-20261127T102341Z-2923e70e` sealed at 10:24:27.
+- Worker segment `routine-worker-20261127T102341Z-281e270a` sealed at 10:24:31.
+- Both matching exit-0 receipts were observed before replacement processes
+  started at 10:25:17. Both segment manifests matched their stream hashes.
+- Capture completed by 10:25:19; capture and integrity check exited 0.
+  All 9,595 backup manifest entries matched. This package was not restored.
+- All 69 segments already historical before cutover retained their metadata
+  and hashes. The two old active segments were not retroactively sealed.
+- Staging recovered ready with one web tree and one reference worker.
+  Live remained ready on `6582cc4` behind the construction page.
+
+Receipt on OSWALD:
+`G:\RatRace_Staging\backups\cooperative-stop-20261127-102325\backup-verification.txt`.
+No operating-system shutdown, retention apply or deletion was performed.
+
+Daily capture remains at 04:00 UK time. The hourly checker was re-anchored to
+11:15 GMT on 27 November because the installer currently starts its repetition
+at 00:15 the following day. Remaining installer improvement: select the next
+hourly :15 slot on installation, avoiding a monitoring gap after reinstall.
+Until fixed, inspect and correct the next check time after each reinstall.
