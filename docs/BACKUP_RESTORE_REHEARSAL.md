@@ -233,3 +233,33 @@ Accept the rehearsal only after a fresh archive restores without errors into the
 independent cluster, data/file baselines match and secrets remain protected.
 Then separately test the immutable candidate's populated upgrade and PostgreSQL
 concurrency behavior. Fresh-install testing and RR 1 handover remain distinct.
+
+## Isolated ownership and credential verification, 27 November 2026
+
+OSWALD restored a verified staging backup from release `39a358b9` into a new
+protected environment at `G:\RatRace_Staging_AccessRestore_20261127-180339`,
+using an isolated PostgreSQL cluster on loopback port 55437. Archive ownership
+and privileges were enabled during restore, rather than bypassed with
+`--no-owner` or `--no-privileges`.
+
+- Owners and ACLs matched current staging across 520 public relations, indexes
+  and sequences; the public schema also matched. This is comparison with current
+  staging metadata, not proof that cluster-role definitions were backed up.
+- The archive had no explicit ACL or default-privilege entries. The rehearsal
+  reconstructed the database owner and used a NOLOGIN application role.
+- Under that role, 94 tables had CRUD privileges and 81 sequences were usable.
+  Representative reads and writes passed; the test insert was rolled back.
+- All three access tokens and three refresh tokens decrypted offline in memory
+  with the backed-up encryption key. No plaintext credentials were printed or
+  saved, and no providers were contacted. Decryption does not prove that tokens
+  remain valid with their providers.
+- The isolated cluster was stopped and its listener verified gone. Protected
+  artifacts and `verification.txt` were retained. Staging and live remained
+  ready on their original releases; no application deployment was performed.
+
+Remaining recovery limits: cluster roles, passwords and memberships are outside
+this database archive. Reconstructing a NOLOGIN role and testing its privileges
+is not a restored application-login test. Document and rehearse login-role
+provisioning and full isolated application recovery before claiming complete
+recovery. No email, provider refresh or public application exposure is needed
+for those checks. Off-host protection remains an accepted future improvement.

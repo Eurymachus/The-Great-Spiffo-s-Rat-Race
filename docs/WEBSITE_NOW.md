@@ -1,5 +1,14 @@
 # Website: Current Focus
 
+- Isolated staging recovery checks passed on 27 November: restored archive
+  ownership/privileges matched current staging across 520 public objects and
+  the public schema. Reconstructed application role had CRUD on 94 tables and
+  access to 81 sequences; representative writes rolled back. All three access
+  and three refresh tokens decrypted offline with the backed-up key.
+  Cluster on loopback 55437 stopped; staging/live unchanged. Cluster roles,
+  passwords and memberships are not in the archive; login-role recovery and
+  full application recovery remain unproven. See BACKUP_RESTORE_REHEARSAL.md.
+
 - Cooperative staging application shutdown verified on 27 November, release
   and backup-operations bundle `39a358b9`. Web and worker loggers sealed with
   valid hashes and exit-0 receipts before replacements started. Scheduled
