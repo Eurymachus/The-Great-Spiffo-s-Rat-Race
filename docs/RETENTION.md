@@ -253,3 +253,31 @@ Staging recovered with one web/worker tree; live `6582cc4` was unchanged.
 No migrations ran. The verified 04:00 backup and operations bundle `5a3b13a6`
 were preserved. Log classification and separately authorized retention scheduling
 remain open; this successful preview does not enable automatic deletion.
+
+## Disposable hosted rehearsal, 27 November 2026
+
+OSWALD tested commit `e41180d3` against synthetic fixtures only in a new isolated
+PostgreSQL cluster on loopback port 55440 and isolated artifact directories.
+All 30 PostgreSQL tests and 11 artifact tests passed. All three database preview
+commands ran with PostgreSQL writes blocked before apply verification.
+
+| Area | Apply result and preservation evidence |
+| --- | --- |
+| Accounts | One expired synthetic account deleted; active, recent, held and linked accounts survived. Held/linked cases still produced the expected operator-review result. |
+| Evidence | Private evidence redacted from one old inactive RR 1 run and one decided Workshop request. Scores, submission pointers, ownership links and public ruling survived. Active, recent, pending and held evidence remained. |
+| Runtime | One expired rate-limit bucket removed; active bucket and worker heartbeat preserved. |
+| Artifacts | Corrupt fixture blocked the complete deletion plan. After placing that fixture on hold, one expired synthetic backup and one expired sealed log were removed. Six fresh, held or unmarked fixtures survived. |
+
+Repeat apply removed nothing further. Both test databases were retained and the
+isolated cluster stopped. Staging `39a358b9` and live `6582cc4` remained ready;
+no retention ran against either environment and no existing artifacts were
+removed. Fixture-only deletion does not authorize cleanup of hosted data.
+
+Receipt on OSWALD:
+`C:\Users\admin\Projects\RatRace\.codex-runtime\retention-e41180d3-20261127-182453\verification.txt`.
+
+Remaining operational acceptance: agree the staging schedule, service identity,
+monitoring and handling of held/blocked records or failed file jobs; verify the
+scheduled runner and failure reporting before any separately authorized hosted
+apply. Historical unsealed logs remain outside automatic expiry. This rehearsal
+does not approve retention scheduling or production activation.

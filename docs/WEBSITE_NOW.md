@@ -1,5 +1,14 @@
 # Website: Current Focus
 
+- Disposable retention rehearsal passed on OSWALD, 27 November: 30 PostgreSQL
+  tests and 11 artifact tests. Read-only previews, real apply and repeat apply
+  verified eligible synthetic cleanup and protected-record preservation.
+  Corrupt artifact blocked deletion; held/fresh/unmarked fixtures survived.
+  Cluster 55440 stopped, test databases retained, staging/live unchanged.
+  No hosted retention or existing-artifact deletion. Next: agree staging
+  retention scheduling and failure monitoring; no automatic apply authorized.
+  See RETENTION.md for detailed evidence and remaining operational acceptance.
+
 - Isolated worker recovery passed on 27 November using `39a358b9`: readiness
   returned 503 before startup, 200 with two real matching-release heartbeats
   15 seconds apart, then 503 after cooperative stop cleared the heartbeat.

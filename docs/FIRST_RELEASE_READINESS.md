@@ -98,8 +98,11 @@ A subsequent isolated rehearsal recreated a non-superuser login with a fresh
 SCRAM credential and verified Django database access, migration consistency and
 home/Workshop/liveness HTTP 200 responses. A real isolated worker subsequently
 drove readiness from 503 to 200 and back to 503 on cooperative stop, with queue
-counts unchanged and network/tool guards. Reviewed retention execution remains
-open; see BACKUP_RESTORE_REHEARSAL.md for recovery scope and limitations.
+counts unchanged and network/tool guards. Disposable retention execution then
+passed 30 PostgreSQL tests and 11 artifact tests, including protected fixtures
+and repeat apply. Hosted retention scheduling and failure monitoring remain
+open; no automatic apply is authorized. See RETENTION.md and
+BACKUP_RESTORE_REHEARSAL.md for scope and limitations.
 The older checkpoint below records the evidence available on 26 November.
 
 [The host recovery audit](HOST_RECOVERY_AUDIT_2026-11-26.md) found no verified
