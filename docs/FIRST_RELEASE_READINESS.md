@@ -441,6 +441,15 @@ staging isolation and its test-email effects on the shared Graph integration.
 
 ### Current cleanup status, 25 November 2026
 
+27 November baseline update: candidate `4378ceec` replaces the pre-launch project
+migration history for fresh installation only. SQLite schema parity and isolated
+PostgreSQL installation/repeat/sequence/admin-first/credential recovery checks
+passed; 197 focused PostgreSQL tests passed. The full local suite ran 721 tests,
+with four failures reproduced against the original migration chain and three
+skips. See MIGRATION_BASELINE.md for exact failures and limits. Existing staging
+and live were not reset or cut over. This supersedes the migration-history
+preservation gate for pre-launch development data, not future production data.
+
 | Gate | Current evidence | Still required |
 | --- | --- | --- |
 | Release boundaries, downloads, reviewer permissions, abuse controls | Candidate passes all 442 scoped PostgreSQL tests, including concurrency | Hosted/provider journeys on accepted staging candidate |

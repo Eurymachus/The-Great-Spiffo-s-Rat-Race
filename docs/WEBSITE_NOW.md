@@ -6,12 +6,22 @@
   final seed migration (226 setup records, no credentials/accounts/run data).
   SQLite fresh/repeat installation passed, all 95 tables match prior empty-install
   columns/constraints, and model drift is zero. Initial 88 regression tests and
-  four new baseline tests passed; full suite and PostgreSQL verification pending.
+  four new baseline tests passed. Full suite: 721 tests, 714 passed, three skipped,
+  four failures reproduced with the original migration chain (see baseline doc).
+  PostgreSQL 18.4 isolated cluster on OSWALD port 55441 passed fresh/repeat migrate,
+  repeated role bootstrap, sequence insertion and zero model drift: 95 tables,
+  27 applied migrations including nine project migrations. All 197 focused tests
+  passed. Request-client smoke verified public construction HTTP 503 and synthetic
+  superuser admin access. All seven archived provider records were recovered
+  as ciphertext into the fresh schema and decrypted offline; probes rolled back.
+  No provider calls. Isolated cluster stopped, listener and PID file absent.
   Local consistent database backup and environment byte comparison passed.
   OSWALD backup verified 9,595 entries, all seven archived provider records
   decrypt with the archived key, and Steam session copy is hash-verified.
-  Existing databases remain intact; no fresh baseline deployment yet. Live
-  untouched. See MIGRATION_BASELINE.md. Preserve credentials before any reset.
+  Candidate committed/pushed as `4378ceec`. Existing local/staging databases
+  remain intact; no fresh baseline cutover yet. Live untouched. See
+  MIGRATION_BASELINE.md. Next: use this verified baseline for the clean staging
+  admin-first rebuild, retaining recovery material and host credentials.
 
 - Browser RR1 acceptance completed: EuryDev claimed Eurymachus, owner approved,
   update declined with visible reason, resubmitted and approved, and public

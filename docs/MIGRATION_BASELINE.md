@@ -84,7 +84,32 @@ back over the new schema to recover provider configuration.
 7. Import RR1 separately when ready for handover. Public opening remains a
    separate decision after administration-side acceptance.
 
-Fresh SQLite installation and a second migration pass succeeded with no model
-drift. All 95 database tables matched the previous empty installation's columns
-and constraints. The initial focused regression run passed 88 tests. Additional
-baseline and full-suite results are recorded in WEBSITE_NOW.md when complete.
+## Verification of candidate 4378ceec
+
+- Fresh SQLite installation and a second migration pass succeeded with no model
+  drift. All 95 database tables matched the previous empty installation's columns
+  and constraints. The initial focused regression run passed 88 tests, followed
+  by four baseline-specific tests.
+- Full local suite: 721 tests in 159.657 seconds, 714 passed, three skipped and
+  four failures. The same four failures reproduced using the archived original
+  migration chain in a separate empty test database with unchanged application
+  code. This is not a fully green suite; no new baseline regression was found.
+  Initial sandbox attempts stalled in Windows asyncio socket-pair creation;
+  the completed run had local loopback access. Interrupted attempts are not
+  counted as passes.
+- Existing failing assertions: branding administrator inactive-theme deletion,
+  Challenge Runs changelist layout, submission changelist title/clickable rows,
+  and the public run page's older `Back to RatRacer` expectation. These need
+  separate reconciliation against current intended UI/permissions.
+- OSWALD isolated PostgreSQL 18.4 on loopback port 55441: fresh/repeat migration,
+  repeated role bootstrap, sequence-backed insert and no model drift passed.
+  Final database had 95 tables and 27 applied migrations (nine project migrations
+  plus framework dependencies). All 197 focused tests passed.
+- Request-client admin-first smoke: public construction response HTTP 503,
+  synthetic superuser could access admin. This was not hosted browser acceptance.
+- All seven backed-up provider records were inserted as ciphertext in the fresh
+  schema and decrypted offline with the matching archived key. Probe rows were
+  rolled back, no provider network calls occurred. The isolated cluster stopped;
+  no listener or PID file remained.
+- Existing staging stayed on `570ca253`, RR1 intake on and RR2 off. Live stayed
+  on `6582cc4`. No existing database reset or baseline cutover was performed.
