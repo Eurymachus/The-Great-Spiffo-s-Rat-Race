@@ -60,12 +60,12 @@ try {
     $archiveRoot = Join-Path $logDirectory 'routine'
     New-Item -ItemType Directory -Path $archiveRoot -Force | Out-Null
     if ($Process -eq 'Web') {
-        $childArguments = @('-u', '-m', 'uvicorn', 'config.asgi:application',
-            '--host', '127.0.0.1', '--port', $Port, '--proxy-headers', '--forwarded-allow-ips', '127.0.0.1')
+        $childArguments = @('-u', 'manage.py', 'run_hosted_web', '--port', $Port)
     } else {
         $childArguments = @('-u', 'manage.py', 'run_reference_update_worker')
     }
-    & $pythonPath $logger --root $archiveRoot --label $Process.ToLowerInvariant() -- $pythonPath @childArguments
+    $controlRoot = Join-Path $logDirectory 'process-control'
+    & $pythonPath $logger --root $archiveRoot --control-root $controlRoot --label $Process.ToLowerInvariant() -- $pythonPath @childArguments
     exit $LASTEXITCODE
 } catch {
     Add-Content -LiteralPath $logPath -Value (

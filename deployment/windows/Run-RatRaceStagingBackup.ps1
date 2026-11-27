@@ -68,20 +68,8 @@ try {
             $paused += $name
             Disable-ScheduledTask -TaskName $name | Out-Null
         }
-        $processes = @(Get-CimInstance Win32_Process)
-        $stage = 'stop-staging-processes'
-        $roots = @(Get-RatRaceDeploymentProcessRoots -Processes $processes -InstallationRoot $root -PythonExecutable $python)
-        $tree = @(Get-RatRaceProcessTreeIds -Processes $processes -RootProcessIds @($roots.ProcessId))
-        foreach ($name in $names) { Stop-ScheduledTask -TaskName $name }
-        foreach ($processId in $tree) {
-            # Refuse PID reuse: only terminate the captured staging process identity.
-            $old = $processes | Where-Object ProcessId -eq $processId
-            $current = Get-CimInstance Win32_Process -Filter "ProcessId=$processId"
-            if ($current -and $current.CreationDate -eq $old.CreationDate) {
-                Stop-Process -Id $processId -Force -ErrorAction Stop
-            }
-        }
-        Start-Sleep -Seconds 2
+        $stage = 'cooperative-staging-stop'
+        & (Join-Path $PSScriptRoot 'Stop-RatRaceStagingProcesses.ps1')
         $stage = 'verify-staging-stopped'
         Assert-RatRaceDeploymentStopped -Processes @(Get-CimInstance Win32_Process) -InstallationRoot $root -PythonExecutable $python
         if (Get-NetTCPConnection -LocalPort 8002 -State Listen -ErrorAction SilentlyContinue) { throw 'Staging web listener remains.' }

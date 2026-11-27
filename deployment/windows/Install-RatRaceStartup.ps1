@@ -44,6 +44,27 @@ foreach ($requiredPath in @($scheduledLauncher, $processHelpers, $pgCtl, $dataRo
 New-Item -ItemType Directory -Path $LogRoot -Force | Out-Null
 
 $taskNames = @("${DeploymentName}Web", "${DeploymentName}Worker")
+if ($installationPath -ieq 'G:\RatRace_Staging' -and
+    (Test-Path -LiteralPath (Join-Path $LogRoot 'process-control\web.json'))) {
+    $active = @(Get-RatRaceDeploymentProcessRoots -Processes @(Get-CimInstance Win32_Process) `
+        -InstallationRoot $installationPath -PythonExecutable $pythonPath)
+    if ($active.Count) {
+        $resume = @()
+        try {
+            foreach ($taskName in $taskNames) {
+                if ((Get-ScheduledTask -TaskName $taskName).Settings.Enabled) { $resume += $taskName }
+                Disable-ScheduledTask -TaskName $taskName | Out-Null
+            }
+            & (Join-Path $PSScriptRoot 'Stop-RatRaceStagingProcesses.ps1')
+        } catch {
+            foreach ($taskName in $resume) {
+                Enable-ScheduledTask -TaskName $taskName | Out-Null
+                Start-ScheduledTask -TaskName $taskName
+            }
+            throw
+        }
+    }
+}
 foreach ($taskName in $taskNames) {
     if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
         Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
@@ -54,7 +75,7 @@ $stopDeadline = [DateTime]::UtcNow.AddSeconds(30)
 do {
     $runningTasks = @($taskNames | Where-Object {
         $task = Get-ScheduledTask -TaskName $_ -ErrorAction SilentlyContinue
-        $task -and $task.State -ne "Ready"
+        $task -and $task.State -notin @("Ready", "Disabled")
     })
     if (-not $runningTasks.Count) { break }
     Start-Sleep -Milliseconds 500

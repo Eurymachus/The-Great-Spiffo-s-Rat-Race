@@ -32,11 +32,11 @@ function Get-RatRaceDeploymentProcessRoots {
         "(?!)"
     }
     $runtimePattern = if ($Process -eq "Web") {
-        "-m\s+uvicorn\s+config\.asgi:application"
+        "(-m\s+uvicorn\s+config\.asgi:application|manage\.py\s+run_hosted_web)"
     } elseif ($Process -eq "Worker") {
         "manage\.py\s+run_reference_update_worker"
     } else {
-        "(-m\s+uvicorn\s+config\.asgi:application|manage\.py\s+run_reference_update_worker)"
+        "(-m\s+uvicorn\s+config\.asgi:application|manage\.py\s+(run_reference_update_worker|run_hosted_web))"
     }
     $matches = @($Processes | Where-Object {
         $commandLine = $_.CommandLine

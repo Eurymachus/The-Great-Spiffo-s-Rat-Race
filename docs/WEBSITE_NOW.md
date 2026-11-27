@@ -1,5 +1,14 @@
 # Website: Current Focus
 
+- Staging log classification completed read-only on 27 November: 71 routine
+  segments, comprising two active, 65 historical unsealed (34 web/31 worker,
+  121,067 bytes) and four sealed. Active status supported by process timing and
+  sharing violations; historical streams permitted exclusive reads. Four sealed
+  manifests verified; zero expiry candidates or segment ACL anomalies/holds.
+  Five fixed-name logs remain outside expiry. No logs changed or services
+  restarted; live untouched. Next: verify graceful shutdown for future sealing,
+  leaving historical segments unchanged. See HOST_MAINTENANCE.md.
+
 - Evidence-preview blocker fixed and deployed to staging `8a3eb705` on
   27 November. Preview avoids row locks; apply retains transaction/lock order
   and eligibility rechecks. All 10 focused tests passed on isolated PostgreSQL,

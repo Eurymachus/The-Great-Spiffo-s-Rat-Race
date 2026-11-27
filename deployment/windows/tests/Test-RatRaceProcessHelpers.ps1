@@ -15,6 +15,7 @@ $processes = @(
     [pscustomobject]@{ ProcessId = 20; ParentProcessId = 1; CommandLine = 'powershell -File "G:\RatRace\releases\abc\deployment\windows\Start-RatRaceScheduledProcess.ps1" -Process Web' }
     [pscustomobject]@{ ProcessId = 30; ParentProcessId = 1; CommandLine = 'powershell C:\GSA\worker.ps1' }
     [pscustomobject]@{ ProcessId = 40; ParentProcessId = 1; CommandLine = 'python unrelated.py' }
+    [pscustomobject]@{ ProcessId = 50; ParentProcessId = 1; CommandLine = '"G:\RatRace_Staging\venv\Scripts\python.exe" manage.py run_hosted_web --port 8002' }
 )
 
 $roots = @(Get-RatRaceDeploymentProcessRoots `
@@ -22,13 +23,13 @@ $roots = @(Get-RatRaceDeploymentProcessRoots `
     -InstallationRoot 'G:\RatRace_Staging' `
     -PythonExecutable 'G:\RatRace_Staging\venv\Scripts\python.exe' `
     -Process Web)
-Assert-Equal 2 $roots.Count "The staging wrapper and orphaned web runtime should match."
+Assert-Equal 3 $roots.Count "The staging wrapper and both orphaned web runtime forms should match."
 if ($roots.ProcessId -notcontains 10 -or $roots.ProcessId -notcontains 13) {
     throw "The expected staging wrapper and orphaned runtime were not selected."
 }
 
 $tree = @(Get-RatRaceProcessTreeIds -Processes $processes -RootProcessIds $roots.ProcessId)
-Assert-Equal 4 $tree.Count "The complete staging tree and orphan should be selected."
+Assert-Equal 5 $tree.Count "The complete staging tree and both orphans should be selected."
 foreach ($excluded in 20, 30, 40) {
     if ($tree -contains $excluded) {
         throw "Process $excluded escaped deployment scoping."
@@ -44,7 +45,7 @@ try {
     $blocked = $true
 }
 Assert-Equal $true $blocked "Preparation must reject active staging processes."
-Assert-RatRaceDeploymentStopped -Processes @($processes | Where-Object { $_.ProcessId -ge 20 }) `
+Assert-RatRaceDeploymentStopped -Processes @($processes | Where-Object { $_.ProcessId -ge 20 -and $_.ProcessId -ne 50 }) `
     -InstallationRoot 'G:\RatRace_Staging' -PythonExecutable 'G:\RatRace_Staging\venv\Scripts\python.exe'
 Write-Output "Rat Race process helper tests passed."
 foreach ($scriptName in @('Install-RatRaceStagingStartup.ps1','New-RatRaceStagingEnvironment.ps1')) {

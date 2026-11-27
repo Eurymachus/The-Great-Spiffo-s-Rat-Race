@@ -178,3 +178,39 @@ This package was not separately restored. Staging remained ready on `80b4309`
 with one web/worker tree; live stayed on `6582cc4`. The pending first-trigger
 follow-up above is now satisfied. Retention previews and the evidence-preview
 locking blocker are recorded in RETENTION.md; no deletion was performed.
+
+### Staging log classification, 27 November 2026
+
+Read-only inspection of `G:\RatRace_Staging\logs\routine` found 71 segments.
+No logs were changed, sealed, adopted or deleted; no services were restarted.
+Live was untouched. Counts are a point-in-time inventory, not future expiry approval.
+
+| Classification | Web | Worker | Stream bytes |
+| --- | --- | --- | --- |
+| Active unsealed | 1 | 1 | 0 |
+| Historical unsealed | 34 | 31 | 121,067 |
+| Sealed | 2 | 2 | 6,876 |
+
+Active segments opened at 10:05:05 GMT, about one second after matching staging
+logger processes started on release `8a3eb705`. Both streams in each returned
+Windows sharing violations on an exclusive-read probe. Their zero sizes and
+lack of growth in a four-second sample do not establish inactivity; process
+correlation and open-handle evidence support their active classification.
+
+The 65 historical unsealed directories date from 25 November 19:43 GMT and
+predate current logger starts. Both streams in each permitted exclusive read.
+This supports historical classification but does not prove why each failed to
+seal or that its contents are complete. Forced termination during deployment
+or backup is a likely contributor: it can bypass the logger's normal close and
+manifest write. This is an inference, not a per-segment cause determination.
+
+All four sealed manifests matched file hashes. No segment holds, reparse points,
+unexpected files, missing streams or segment ACL anomalies were found. Zero
+segments were eligible for expiry. Five fixed-name startup/error/PostgreSQL logs
+remain outside routine expiry; web.log and worker.log still receive launcher
+startup diagnostics and must not be treated as abandoned files.
+
+Recommended next action: implement and verify graceful launcher shutdown so
+future segments close normally. Keep historical unsealed directories unchanged
+until a separately reviewed treatment exists. Do not manufacture completion
+manifests or infer safe deletion from age, small size or absence of open handles.

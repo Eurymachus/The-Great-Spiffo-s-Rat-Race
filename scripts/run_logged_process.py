@@ -1,6 +1,7 @@
 """Run a foreground child with bounded, private, closed-log archives."""
 import argparse
 import json
+import os
 from pathlib import Path
 import queue
 import subprocess
@@ -18,6 +19,7 @@ class Segments:
         self.label, self.limit = label, limit
         self.path, self.streams, self.size, self.day = None, {}, 0, None
         self.started_at = None
+        self.closed_paths = []
 
     def close(self):
         if self.path is None:
@@ -28,6 +30,7 @@ class Segments:
                     completed_at=utcnow().isoformat(), retention_started_at=self.started_at,
                     files=inventory(self.path))
         (self.path / MANIFEST).write_text(json.dumps(data, indent=2), encoding='utf-8')
+        self.closed_paths.append(self.path.name)
         self.path, self.streams = None, {}
 
     def write(self, stream, block):
@@ -48,10 +51,28 @@ class Segments:
             self.size += len(portion)
 
 
-def run(command, root, label, limit=10 * 1024 * 1024):
+def run(command, root, label, limit=10 * 1024 * 1024, control_root=None):
     logs = Segments(root, label, limit)
     events = queue.Queue(maxsize=128)
-    child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    control = None
+    child_env = os.environ.copy()
+    if control_root is not None:
+        control_root = checked(control_root)
+        control_root.mkdir(exist_ok=True)
+        protect(control_root)
+        token = uuid.uuid4().hex
+        control = dict(token=token, pid=os.getpid(), started_at=utcnow().isoformat(), state='running')
+        child_env.update(RR_PROCESS_STOP_FILE=str(control_root / (token + '.stop')),
+                         RR_PROCESS_STOP_TOKEN=token)
+
+    def write_control(state, result=None):
+        if control is not None:
+            control.update(state=state, exit_code=result, closed_segments=logs.closed_paths)
+            temporary = control_root / (label + '.json.tmp')
+            temporary.write_text(json.dumps(control), encoding='utf-8')
+            temporary.replace(control_root / (label + '.json'))
+
+    child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=child_env)
 
     def pump(name, stream):
         try:
@@ -69,6 +90,7 @@ def run(command, root, label, limit=10 * 1024 * 1024):
         thread.start()
     remaining = 2
     try:
+        write_control('running')
         while remaining:
             try:
                 name, block = events.get(timeout=1)
@@ -84,6 +106,7 @@ def run(command, root, label, limit=10 * 1024 * 1024):
                 logs.write(name, block)
         result = child.wait()
         logs.close()
+        write_control('exited', result)
         return result
     except BaseException:
         # A logging failure must fail the wrapper, not leave an unmonitored child.
@@ -96,6 +119,7 @@ def run(command, root, label, limit=10 * 1024 * 1024):
                 child.wait()
         for stream in logs.streams.values():
             stream.close()
+        write_control('failed')
         # Do not mark a failed/incomplete segment safe for automatic expiry.
         raise
 
@@ -104,9 +128,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', required=True)
     parser.add_argument('--label', choices=['web', 'worker'], required=True)
+    parser.add_argument('--control-root')
     parser.add_argument('command', nargs=argparse.REMAINDER)
     options = parser.parse_args()
     command = options.command[1:] if options.command[:1] == ['--'] else options.command
     if not command:
         parser.error('A child command is required.')
-    raise SystemExit(run(command, Path(options.root), options.label))
+    raise SystemExit(run(command, Path(options.root), options.label, control_root=options.control_root))

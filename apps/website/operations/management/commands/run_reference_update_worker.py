@@ -11,6 +11,7 @@ from operations.models import ReferenceUpdateJob
 from operations.catalogue_review import generate_catalogue_review
 from operations.models import CatalogueImportReview, PZWikiArtworkSyncJob
 from operations.worker_health import WorkerHeartbeat
+from operations.process_control import stop_requested
 from operations.leaderboard_publish import tick as publish_daily_leaderboard
 from django.db import transaction
 from django.utils import timezone
@@ -105,7 +106,7 @@ class Command(BaseCommand):
         heartbeat.start()
         self.stdout.write("Reference update worker ready.")
         try:
-            while True:
+            while not stop_requested():
                 job = claim_next_reference_update()
                 if job:
                     self.stdout.write(f"Processing reference update #{job.pk}.")
@@ -138,6 +139,8 @@ class Command(BaseCommand):
                                 f"PZWiki artwork sync #{artwork_job.pk}: "
                                 f"{artwork_job.get_status_display()}."
                             )
+                if stop_requested():
+                    return
                 publish_daily_leaderboard()
                 if once:
                     return
