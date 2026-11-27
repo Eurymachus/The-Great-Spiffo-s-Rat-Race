@@ -6,9 +6,10 @@
   capture/check passed; all 9,595 backup entries matched. Historical logs
   unchanged, staging ready with one web/worker, live `6582cc4` untouched.
   No Windows shutdown or retention deletion. See HOST_MAINTENANCE.md.
-  Next small operational fix: make backup-check installation choose the next
-  hourly :15 slot, rather than tomorrow's 00:15. OSWALD's installed trigger was
-  corrected to 11:15 GMT today; daily backup remains 04:00 UK time.
+  Backup-operations bundle `a1b28bc9` subsequently installed the next-slot fix:
+  seven boundary cases passed, and OSWALD selected 18:15 GMT on 27 November
+  without manual adjustment. On-demand integrity check exited 0 at 17:15:56.
+  Daily backup remains 04:00 UK time; no application restart or capture needed.
 
 - Staging log classification completed read-only on 27 November: 71 routine
   segments, comprising two active, 65 historical unsealed (34 web/31 worker,

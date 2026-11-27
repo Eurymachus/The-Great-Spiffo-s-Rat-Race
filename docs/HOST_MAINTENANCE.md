@@ -253,7 +253,22 @@ Receipt on OSWALD:
 No operating-system shutdown, retention apply or deletion was performed.
 
 Daily capture remains at 04:00 UK time. The hourly checker was re-anchored to
-11:15 GMT on 27 November because the installer currently starts its repetition
-at 00:15 the following day. Remaining installer improvement: select the next
-hourly :15 slot on installation, avoiding a monitoring gap after reinstall.
-Until fixed, inspect and correct the next check time after each reinstall.
+11:15 GMT on 27 November because the old installer started its repetition
+at 00:15 the following day. This installer gap was subsequently fixed below.
+
+### Next hourly check installation verified, 27 November 2026
+
+Protected staging backup-operations bundle `a1b28bc9` now chooses the next
+strictly future hourly :15 slot at installation. Local tests of the actual
+calculation passed seven cases: before, exactly at and after :15, daytime,
+midnight and year rollover. PowerShell parsing and whitespace checks passed.
+
+OSWALD installed the bundle while holding the backup mutex with both backup
+tasks idle. Task Scheduler selected 18:15 GMT on 27 November without manual
+adjustment, repeating hourly. The daily capture's next run remains 04:00 GMT
+on 28 November. Both tasks remain enabled, SYSTEM and IgnoreNew.
+The on-demand integrity check exited 0 at 17:15:56 GMT.
+
+Staging application remains ready on `39a358b9`; live remains on `6582cc4`
+behind its construction page. No capture, application restart, retention
+action or deletion was performed. Previous operations bundles were retained.
