@@ -232,3 +232,24 @@ retain transactional locks for apply, test both paths and rerun the read-only
 hosted preview before treating evidence coverage as complete. No tasks, services,
 configuration, data or live deployment changed during this review. No retention
 apply or scheduling is authorized by these preview results.
+
+### Evidence preview fix verified, 27 November 2026
+
+The locking blocker above is resolved in staging release `8a3eb705`.
+Preview uses ordinary queries; apply keeps account-before-record row locks,
+transaction boundaries and eligibility rechecks. Preview remains advisory and
+cannot authorize a later apply without its own current eligibility checks.
+
+All 10 focused tests passed on a new isolated PostgreSQL cluster, including
+execution of the preview command in a read-only transaction and assertions
+that preview requests no locks while apply retains them. The cluster was stopped.
+Local SQLite ran nine tests successfully and skipped the PostgreSQL-only case.
+
+The hosted command then passed with `default_transaction_read_only=on`:
+`retained=201`, with `eligible=held=changed=blocked=empty=0`.
+No retention was applied. Receipt on OSWALD:
+`G:\RatRace_Staging\backups\evidence-preview-20261127-100444\verification.txt`.
+Staging recovered with one web/worker tree; live `6582cc4` was unchanged.
+No migrations ran. The verified 04:00 backup and operations bundle `5a3b13a6`
+were preserved. Log classification and separately authorized retention scheduling
+remain open; this successful preview does not enable automatic deletion.

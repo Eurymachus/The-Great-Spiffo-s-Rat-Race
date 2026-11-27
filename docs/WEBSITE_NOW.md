@@ -1,5 +1,14 @@
 # Website: Current Focus
 
+- Evidence-preview blocker fixed and deployed to staging `8a3eb705` on
+  27 November. Preview avoids row locks; apply retains transaction/lock order
+  and eligibility rechecks. All 10 focused tests passed on isolated PostgreSQL,
+  including an enforced read-only transaction. Hosted read-only preview passed:
+  retained=201; eligible/held/changed/blocked/empty=0. No retention applied.
+  Staging has one web/worker tree; live `6582cc4` unchanged. Backup operations
+  bundle remains `5a3b13a6`. Next: classify unsealed logs before proposing expiry
+  scheduling; no automatic retention deletion is enabled.
+
 - 27 November staging retention previews: account, backup and routine-log
   expiry returned zero eligible items; runtime preview found 34 expired buckets.
   Evidence preview failed because SELECT FOR UPDATE is forbidden by the enforced
