@@ -1,8 +1,11 @@
 from datetime import timedelta
 from io import StringIO
+from unittest.mock import patch
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.db import connection, transaction
+from django.db.models.query import QuerySet
+from django.test import TestCase, TransactionTestCase, skipUnlessDBFeature
 from django.utils import timezone
 
 from .evidence_retention import retire_run_evidence, retire_workshop_notes, two_year_cutoff
@@ -102,3 +105,37 @@ class EvidenceRetentionTests(TestCase):
         leap = self.now.replace(year=2024, month=2, day=29)
         cutoff = two_year_cutoff(leap)
         self.assertEqual((cutoff.year, cutoff.month, cutoff.day), (2022, 2, 28))
+
+    def test_preview_never_requests_row_locks_but_apply_keeps_them(self):
+        mod = WorkshopMod.objects.create(workshop_id="444444", submitted_by=self.user)
+        with patch.object(QuerySet, "select_for_update", side_effect=AssertionError("Preview requested a lock")):
+            self.assertEqual(retire_run_evidence(self.run.pk, now=self.now), "eligible")
+            self.assertEqual(retire_workshop_notes(mod.pk, now=self.now), "retained")
+        locked = set()
+        original = QuerySet.select_for_update
+
+        def record_lock(queryset, *args, **kwargs):
+            locked.add(queryset.model)
+            return original(queryset, *args, **kwargs)
+
+        with patch.object(QuerySet, "select_for_update", record_lock):
+            retire_run_evidence(self.run.pk, apply=True, now=self.now)
+            retire_workshop_notes(mod.pk, apply=True, now=self.now)
+        self.assertTrue({Participant, LegacyRun, LegacyRunSubmission, LegacyRunClaim,
+                         WorkshopMod, WorkshopModVote}.issubset(locked))
+
+
+class ReadOnlyEvidencePreviewTests(TransactionTestCase):
+    setUp = EvidenceRetentionTests.setUp
+
+    @skipUnlessDBFeature("has_select_for_update")
+    def test_command_runs_in_postgresql_read_only_transaction(self):
+        WorkshopMod.objects.create(workshop_id="555555", ruling="allowed", submitted_by=self.user)
+        output = StringIO()
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("SET TRANSACTION READ ONLY")
+            call_command("apply_evidence_retention", stdout=output)
+        self.assertIn("eligible=1", output.getvalue())
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.evidence_url, "https://example.test/old")

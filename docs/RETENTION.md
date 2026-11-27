@@ -202,3 +202,33 @@ Local checks cover active/pending protection, latest-date anchoring, holds, sour
 row preservation, retained scores/policy, preview behaviour and repeat application.
 See [the local launch record](LOCAL_LAUNCH_CHECKS_2026-11-25.md). Host log expiry,
 backup expiry/restoration, scheduling and PostgreSQL concurrency remain required.
+
+## Hosted preview checkpoint, 27 November 2026
+
+OSWALD inspected deployed staging release `80b4309` and ran previews with
+PostgreSQL `default_transaction_read_only=on`, explicit staging identity on
+loopback 5433 and bytecode writes disabled. No apply option was used.
+
+| Preview | Result |
+| --- | --- |
+| Account retention | Exit 0; zero candidates, eligible, blocked or pending file deletions |
+| Evidence retention | Exit 1; SELECT FOR UPDATE rejected in the read-only transaction; totals incomplete |
+| Runtime state | Exit 0; 34 expired rate-limit buckets |
+| Backup expiry | Exit 0; zero eligible packages |
+| Routine-log expiry | Exit 0; zero eligible segments |
+
+Artifact inventory found three marked backups and 46 unmarked directories,
+with no incomplete `backup-*` packages or holds. Routine logs had four sealed
+segments and 65 unsealed directories, with no holds. Unmarked/unsealed content
+was neither adopted nor deleted; it still needs classification before expiry.
+
+Staging contained 14 active RR 1 runs and one pending Workshop request. Deployed
+preview selection excludes these, and the run helper also guards active status.
+This confirms current selection/code evidence, not a new apply-mode test.
+Zero account candidates does not exercise held/blocked deletion paths.
+
+The evidence preview currently takes row locks. Fix preview to avoid those locks,
+retain transactional locks for apply, test both paths and rerun the read-only
+hosted preview before treating evidence coverage as complete. No tasks, services,
+configuration, data or live deployment changed during this review. No retention
+apply or scheduling is authorized by these preview results.

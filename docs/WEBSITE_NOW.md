@@ -1,5 +1,16 @@
 # Website: Current Focus
 
+- 27 November staging retention previews: account, backup and routine-log
+  expiry returned zero eligible items; runtime preview found 34 expired buckets.
+  Evidence preview failed because SELECT FOR UPDATE is forbidden by the enforced
+  read-only PostgreSQL session. Next: remove locking from preview only, retain
+  apply-mode locks, test and rerun the hosted read-only preview. No deletion,
+  retention scheduling, restart or live change was performed.
+- First unattended backup confirmed: 27 November 04:00:01 GMT trigger,
+  package completed 04:01:06, staging ready 04:01:13; exit 0/event 4100.
+  Six hourly checks through 09:15 passed; all 9,595 manifest entries verified.
+  Package: backup-20261127T040009Z-08d0afea. Staging/live releases unchanged.
+
 - Automatic staging backups/checks installed on OSWALD from operations bundle
   `5a3b13a6`: daily 04:00 and hourly :15 UK time, SYSTEM, no retention apply.
   Task Scheduler capture and check both passed, with event 4100 and a fresh

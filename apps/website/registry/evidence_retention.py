@@ -18,10 +18,17 @@ def _identities(rows, fields):
     return {row[field] for row in rows for field in fields if row.get(field)}
 
 
-def _held(identities):
+def _records(model, apply):
+    # Preview is advisory and must work in a read-only database transaction.
+    # Apply keeps the existing account-before-record lock order and rechecks.
+    queryset = model.objects.all()
+    return queryset.select_for_update() if apply else queryset
+
+
+def _held(identities, *, apply):
     # Stable ordering and no joined locks, matching the account-before-record
     # ordering of interactive review and closure.
-    accounts = list(Participant.objects.select_for_update().filter(pk__in=identities).order_by("pk"))
+    accounts = list(_records(Participant, apply).filter(pk__in=identities).order_by("pk"))
     return any(account.retention_hold for account in accounts)
 
 
@@ -46,11 +53,11 @@ def retire_run_evidence(run_id, *, apply=False, now=None):
     changes = {row["id"]: change for row in imports if names and (change := _import_changes(row, names))}
     affected_imports = [row for row in imports if row["id"] in changes]
     identities |= _identities(affected_imports, ("uploaded_by_id",))
-    if _held(identities):
+    if _held(identities, apply=apply):
         return "held"
-    run = LegacyRun.objects.select_for_update().get(pk=run_id)
-    current_submissions = list(LegacyRunSubmission.objects.select_for_update().filter(run=run).order_by("pk").values())
-    current_claims = list(LegacyRunClaim.objects.select_for_update().filter(run=run).order_by("pk").values())
+    run = _records(LegacyRun, apply).get(pk=run_id)
+    current_submissions = list(_records(LegacyRunSubmission, apply).filter(run=run).order_by("pk").values())
+    current_claims = list(_records(LegacyRunClaim, apply).filter(run=run).order_by("pk").values())
     if sorted(submissions, key=lambda row: row["id"]) != current_submissions or sorted(claims, key=lambda row: row["id"]) != current_claims:
         return "changed"
     if run.claimed_participant_id and run.claimed_participant_id not in identities:
@@ -66,7 +73,7 @@ def retire_run_evidence(run_id, *, apply=False, now=None):
     # Recent or unresolved source reviews remain evidence; do not silently
     # rewrite their inputs. Recheck locked snapshots against the plan.
     for original in affected_imports:
-        current = LegacyDataImport.objects.select_for_update().values().get(pk=original["id"])
+        current = _records(LegacyDataImport, apply).values().get(pk=original["id"])
         if current != original:
             return "changed"
         if current["status"] == "preview" or _latest([current], ("uploaded_at", "imported_at"), run.updated_at) > cutoff:
@@ -90,10 +97,10 @@ def retire_workshop_notes(mod_id, *, apply=False, now=None):
     mod = WorkshopMod.objects.get(pk=mod_id)
     votes = list(WorkshopModVote.objects.filter(workshop_mod=mod).order_by("pk").values())
     identities = {pk for pk in (mod.submitted_by_id, mod.reviewed_by_id) if pk} | _identities(votes, ("voter_id",))
-    if _held(identities):
+    if _held(identities, apply=apply):
         return "held"
-    mod = WorkshopMod.objects.select_for_update().get(pk=mod_id)
-    current_votes = list(WorkshopModVote.objects.select_for_update().filter(workshop_mod=mod).order_by("pk").values())
+    mod = _records(WorkshopMod, apply).get(pk=mod_id)
+    current_votes = list(_records(WorkshopModVote, apply).filter(workshop_mod=mod).order_by("pk").values())
     if votes != current_votes or any(pk and pk not in identities for pk in (mod.submitted_by_id, mod.reviewed_by_id)):
         return "changed"
     if mod.ruling == WorkshopMod.Ruling.PENDING or mod.reviewed_at is None:

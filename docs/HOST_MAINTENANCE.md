@@ -166,3 +166,15 @@ one successful execution as a history of reliable recurring captures.
 Owner follow-up: inspect the task/status/event results after the first 04:00
 clock-triggered run. A failing check requires operator review; these local
 signals do not send email or independently detect loss of OSWALD itself.
+
+### First unattended trigger verified, 27 November 2026
+
+Read-only OSWALD inspection confirmed the distinct 04:00:01 GMT scheduled run.
+Backup completed 04:01:06 and staging recovered by 04:01:13, exit 0/event 4100.
+All six hourly checks from 04:15 through 09:15 passed. Independent integrity
+verification matched all 9,595 entries in
+`G:\RatRace_Staging\backups\backup-20261127T040009Z-08d0afea`.
+This package was not separately restored. Staging remained ready on `80b4309`
+with one web/worker tree; live stayed on `6582cc4`. The pending first-trigger
+follow-up above is now satisfied. Retention previews and the evidence-preview
+locking blocker are recorded in RETENTION.md; no deletion was performed.
