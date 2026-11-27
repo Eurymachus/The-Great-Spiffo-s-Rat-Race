@@ -6,6 +6,24 @@ it part of the active deliverable.
 
 ## Participant Platform
 
+### Priority follow-up: encrypted provider configuration in admin (27 November 2026)
+
+Owner requested this as a priority addition after the Discord validation and
+Settings-error fix. Capture and scope next; do not expand the current fix.
+
+- Superuser-only management of provider application IDs, callback addresses and
+  encrypted secrets in database-backed records.
+- Keep the encryption key outside the database and backups of that database;
+  define key recovery and rotation before migrating configuration.
+- Never reveal saved secrets in admin, logs, audit history or exports. Allow
+  replacement with safe configured/unconfigured status instead.
+- Validate IDs and environment-specific callbacks before saving. Audit actor,
+  provider and changed fields without recording secret values.
+- Define environment fallback, migration, rollback, caching/reload behaviour
+  and backup/restore verification. Prevent staging settings reaching live.
+- Assess superuser compromise and credential replacement risks. This is a
+  separate scoped implementation, not authorization to move existing secrets.
+
 - Rework the desktop navigation bar and responsive hamburger navigation as one
   coherent interaction system. Revisit spacing, alignment, hierarchy,
   open/close behaviour and third-level navigation on both layouts rather than

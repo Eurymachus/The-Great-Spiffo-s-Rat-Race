@@ -1,5 +1,19 @@
 # Website: Current Focus
 
+- Discord validation and Settings connection errors deployed to staging
+  `9b32a36d` on 27 November. Invalid application IDs and unsafe or mismatched
+  callbacks are blocked before redirecting; Twitch and Discord connection
+  failures return to Settings with escaped, accessible, one-time alerts.
+  111 tests passed before deployment; seven isolated regressions passed on
+  OSWALD. Deployed Discord configuration validates successfully. EuryDev's
+  Twitch and Discord connections were confirmed active before this rollout.
+  Staging ready with one web/worker; previous logs sealed on cooperative stop.
+  Backup and retention-preview schedules preserved; live `6582cc4` untouched.
+  No provider calls or migrations during rollout. Long-error mobile visual
+  acceptance remains. Provider-side failures cannot all be prevented locally.
+  Encrypted superuser-managed provider configuration is captured in IDEAS.md
+  as the priority follow-up, outside this completed fix.
+
 - Mobile settings header fixed and deployed to staging `a58896da`: separate
   Account settings title and wrapping email, compact avatar/joined row, and
   full-width return button instead of the inherited two-column action grid.
