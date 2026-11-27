@@ -1,3 +1,4 @@
+from administration.provider_credentials import get_provider_credentials, ProviderConfigurationError
 import json
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -10,9 +11,15 @@ def validate_turnstile(token, remote_ip):
     if not token or len(token) > 2048:
         return False
 
+    try:
+        credentials = get_provider_credentials('turnstile')
+    except ProviderConfigurationError:
+        return False
+    if not credentials.client_secret:
+        return False
     payload = urlencode(
         {
-            "secret": settings.TURNSTILE_SECRET_KEY,
+            "secret": credentials.client_secret,
             "response": token,
             "remoteip": remote_ip,
         }
@@ -24,3 +31,10 @@ def validate_turnstile(token, remote_ip):
     except (HTTPError, URLError, TimeoutError, ValueError, json.JSONDecodeError):
         return False
     return result.get("success") is True
+
+
+def turnstile_site_key():
+    try:
+        return get_provider_credentials('turnstile').client_id
+    except ProviderConfigurationError:
+        return ''

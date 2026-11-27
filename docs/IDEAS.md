@@ -8,8 +8,9 @@ it part of the active deliverable.
 
 ### Priority follow-up: encrypted provider configuration in admin (27 November 2026)
 
-Owner requested this as a priority addition after the Discord validation and
-Settings-error fix. Capture and scope next; do not expand the current fix.
+Owner approved implementation on 27 November after the Discord validation and
+Settings-error fix, expanded to all application integration IDs and secrets.
+Implementation and recovery details: PROVIDER_CONFIGURATION.md.
 
 - Superuser-only management of provider application IDs, callback addresses and
   encrypted secrets in database-backed records.
@@ -21,8 +22,8 @@ Settings-error fix. Capture and scope next; do not expand the current fix.
   provider and changed fields without recording secret values.
 - Define environment fallback, migration, rollback, caching/reload behaviour
   and backup/restore verification. Prevent staging settings reaching live.
-- Assess superuser compromise and credential replacement risks. This is a
-  separate scoped implementation, not authorization to move existing secrets.
+- Assess superuser compromise and credential replacement risks. Staging
+  provisioning is authorized; live configuration remains untouched.
 
 - Rework the desktop navigation bar and responsive hamburger navigation as one
   coherent interaction system. Revisit spacing, alignment, hierarchy,

@@ -45,3 +45,35 @@ class WebsiteSettings(models.Model):
             if settings
             else cls.DEFAULT_MAXIMUM_IMAGE_UPLOAD_SIZE_MB
         )
+
+
+class ProviderConfiguration(models.Model):
+    class Provider(models.TextChoices):
+        DISCORD = 'discord', 'Discord'
+        TWITCH = 'twitch', 'Twitch'
+        YOUTUBE = 'youtube', 'YouTube'
+        GRAPH = 'graph', 'Microsoft Graph email'
+        TURNSTILE = 'turnstile', 'Cloudflare Turnstile'
+        OPENAI = 'openai', 'OpenAI moderation'
+        STEAM = 'steam', 'Steam Web API'
+
+    class Source(models.TextChoices):
+        ENVIRONMENT = 'environment', 'Server environment'
+        DATABASE = 'database', 'Encrypted database record'
+        DISABLED = 'disabled', 'Disabled'
+
+    provider = models.CharField(max_length=16, choices=Provider.choices, unique=True)
+    source = models.CharField(max_length=16, choices=Source.choices, default=Source.ENVIRONMENT)
+    client_id = models.CharField('client ID', max_length=255, blank=True)
+    tenant_id = models.CharField('tenant ID', max_length=255, blank=True)
+    redirect_uri = models.URLField('callback URL', max_length=500, blank=True)
+    site_origin = models.URLField(max_length=255, editable=False)
+    encrypted_secret = models.TextField(editable=False, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'provider configuration'
+        verbose_name_plural = 'provider configurations'
+
+    def __str__(self):
+        return self.get_provider_display()

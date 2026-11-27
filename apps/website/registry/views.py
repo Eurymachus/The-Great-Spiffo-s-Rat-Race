@@ -86,7 +86,7 @@ from .notifications import notify
 from .legacy_submissions import calculate_legacy_progress
 from .rate_limit import exceeded, request_ip
 from .tokens import create_verification_token, read_verification_token
-from .turnstile import validate_turnstile
+from .turnstile import validate_turnstile, turnstile_site_key
 from .streaming import (
     TwitchIntegrationError,
     apply_twitch_credentials,
@@ -381,7 +381,7 @@ def register(request):
                 "registry/register.html",
                 {
                     "form": form,
-                    "turnstile_site_key": settings.TURNSTILE_SITE_KEY,
+                    "turnstile_site_key": turnstile_site_key(),
                 },
                 status=400,
             )
@@ -416,7 +416,7 @@ def register(request):
         "registry/register.html",
         {
             "form": form,
-            "turnstile_site_key": settings.TURNSTILE_SITE_KEY,
+            "turnstile_site_key": turnstile_site_key(),
         },
         status=status,
     )
@@ -496,7 +496,7 @@ def resend_verification(request):
             "form": form,
             "submitted": submitted,
             "development_verification_url": development_verification_url,
-            "turnstile_site_key": settings.TURNSTILE_SITE_KEY,
+            "turnstile_site_key": turnstile_site_key(),
         },
         status=status,
     )
@@ -1865,7 +1865,11 @@ def disconnect_discord(request):
         participant=request.user,
         provider=StreamingAccount.Provider.DISCORD,
     )
-    revoke_discord_account(account)
+    try:
+        revoke_discord_account(account)
+    except DiscordIntegrationError:
+        return _connection_error(request, "Discord was not disconnected",
+                                 "Discord connection configuration is unavailable. Please try again later.")
     account.delete()
     notify(
         request.user,
@@ -1884,7 +1888,11 @@ def disconnect_twitch(request):
         participant=request.user,
         provider=StreamingAccount.Provider.TWITCH,
     )
-    revoke_twitch_account(account)
+    try:
+        revoke_twitch_account(account)
+    except TwitchIntegrationError:
+        return _connection_error(request, "Twitch was not disconnected",
+                                 "Twitch connection configuration is unavailable. Please try again later.")
     account.delete()
     notify(
         request.user,
@@ -1903,7 +1911,11 @@ def disconnect_youtube(request):
         participant=request.user,
         provider=StreamingAccount.Provider.YOUTUBE,
     )
-    revoke_youtube_account(account)
+    try:
+        revoke_youtube_account(account)
+    except YouTubeIntegrationError:
+        return _connection_error(request, "YouTube was not disconnected",
+                                 "YouTube connection configuration is unavailable. Please try again later.")
     account.delete()
     notify(
         request.user,
@@ -2500,7 +2512,7 @@ def password_reset_request(request):
             "form": form,
             "submitted": submitted,
             "development_reset_url": development_reset_url,
-            "turnstile_site_key": settings.TURNSTILE_SITE_KEY,
+            "turnstile_site_key": turnstile_site_key(),
         },
         status=status,
     )

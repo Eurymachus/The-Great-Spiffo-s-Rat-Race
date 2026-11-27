@@ -1,5 +1,15 @@
 # Website: Current Focus
 
+- Encrypted provider configuration implemented for Discord, Twitch, YouTube,
+  Microsoft Graph email, Turnstile, OpenAI moderation and Steam Web API.
+  Active-superuser-only admin, write-only secret replacement, field-name-only
+  audit, separate host key ring, origin binding and explicit env/disabled modes.
+  Key rotation/import are atomic and audited. See PROVIDER_CONFIGURATION.md.
+  Expanded service and security suite: 82 tests passed, plus the all-seven import
+  and admin preservation test; 44 provider/Settings regressions also passed
+  (overlapping coverage). Native admin save clears
+  the submitted secret in the browser fixture. Staging deployment pending.
+
 - Discord validation and Settings connection errors deployed to staging
   `9b32a36d` on 27 November. Invalid application IDs and unsafe or mismatched
   callbacks are blocked before redirecting; Twitch and Discord connection
@@ -9,10 +19,15 @@
   Twitch and Discord connections were confirmed active before this rollout.
   Staging ready with one web/worker; previous logs sealed on cooperative stop.
   Backup and retention-preview schedules preserved; live `6582cc4` untouched.
-  No provider calls or migrations during rollout. Long-error mobile visual
-  acceptance remains. Provider-side failures cannot all be prevented locally.
-  Encrypted superuser-managed provider configuration is captured in IDEAS.md
-  as the priority follow-up, outside this completed fix.
+  No provider calls or migrations during rollout. Isolated long-error Settings
+  rendering passed at 320/390/430px in headless Edge on 27 November: no page
+  or alert overflow, themed alert, 44px dashboard button. Real template rendered
+  from a mocked Discord failure with an in-memory test database; reload removes
+  the alert while notification history remains. Screenshots visually inspected.
+  Actual iPhone acceptance remains. Provider-side failures cannot all be
+  prevented locally.
+  Encrypted superuser-managed provider configuration is the next workstream,
+  recorded above.
 
 - Mobile settings header fixed and deployed to staging `a58896da`: separate
   Account settings title and wrapping email, compact avatar/joined row, and

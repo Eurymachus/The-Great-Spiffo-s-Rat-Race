@@ -334,3 +334,6 @@ VINEFLOWER_JAR = os.environ.get("VINEFLOWER_JAR", "")
 PZ_DECOMPILATION_TIMEOUT_SECONDS = int(
     os.environ.get("PZ_DECOMPILATION_TIMEOUT_SECONDS", "3600")
 )
+
+# Separate from participant token encryption. First key writes, remaining keys decrypt.
+PROVIDER_CONFIG_ENCRYPTION_KEYS = os.environ.get('PROVIDER_CONFIG_ENCRYPTION_KEYS', '')

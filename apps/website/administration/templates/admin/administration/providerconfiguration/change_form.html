@@ -1,0 +1,8 @@
+{% extends "admin/change_form.html" %}
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script>
+  // Use a full response so submitted secrets are discarded after every save.
+  document.getElementById("providerconfiguration_form").dataset.adminSaveBypass = "true";
+</script>
+{% endblock %}

@@ -1,10 +1,10 @@
+from administration.provider_credentials import get_provider_credentials, ProviderConfigurationError
 import json
 import re
 import secrets
 from datetime import timedelta
-from ipaddress import ip_address
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from django.conf import settings
@@ -28,46 +28,23 @@ class DiscordIntegrationError(Exception):
 
 
 def discord_is_configured():
-    client_id = settings.DISCORD_CLIENT_ID
+    try:
+        credentials = _provider_credentials()
+    except DiscordIntegrationError:
+        return False
+    client_id = credentials.client_id
     return bool(
         re.fullmatch(r"[1-9][0-9]{16,19}", client_id or "")
         and int(client_id) < 2**64
-        and settings.DISCORD_CLIENT_SECRET.strip()
+        and credentials.client_secret.strip()
         and settings.STREAMING_TOKEN_ENCRYPTION_KEY.strip()
         and _discord_callback_matches_public_origin()
     )
 
 
 def _discord_callback_matches_public_origin():
-    public_url = settings.SITE_PUBLIC_URL
-    if any(character.isspace() or ord(character) < 32 for character in public_url):
-        return False
-    try:
-        origin = urlsplit(public_url)
-        hostname, port = origin.hostname, origin.port
-    except ValueError:
-        return False
-    if (
-        not hostname
-        or origin.username is not None
-        or any(character in origin.netloc for character in r"\%")
-        or origin.netloc.endswith(":")
-        or port == 0
-        or public_url not in (f"{origin.scheme}://{origin.netloc}", f"{origin.scheme}://{origin.netloc}/")
-    ):
-        return False
-    try:
-        ip_address(hostname)
-    except ValueError:
-        if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*", hostname):
-            return False
-    if origin.scheme != "https" and not (
-        origin.scheme == "http" and settings.DEBUG
-        and hostname in {"localhost", "127.0.0.1", "::1"}
-    ):
-        return False
-    expected = f"{origin.scheme}://{origin.netloc}{reverse('registry:discord_callback')}"
-    return settings.DISCORD_REDIRECT_URI == expected
+    from administration.provider_credentials import callback_matches
+    return callback_matches('discord', _provider_credentials().redirect_uri)
 
 
 def _json_request(url, *, data=None, headers=None):
@@ -93,6 +70,7 @@ def _json_request(url, *, data=None, headers=None):
 
 
 def begin_discord_authorization(request):
+    credentials = _provider_credentials()
     if not discord_is_configured():
         raise DiscordIntegrationError("Discord connection is not configured.")
     state = secrets.token_urlsafe(32)
@@ -102,8 +80,8 @@ def begin_discord_authorization(request):
     }
     return f"{DISCORD_AUTHORIZE_URL}?{urlencode({
         'response_type': 'code',
-        'client_id': settings.DISCORD_CLIENT_ID,
-        'redirect_uri': settings.DISCORD_REDIRECT_URI,
+        'client_id': credentials.client_id,
+        'redirect_uri': credentials.redirect_uri,
         'scope': 'identify',
         'state': state,
         'prompt': 'consent',
@@ -125,14 +103,15 @@ def consume_discord_state(request, supplied_state):
 
 
 def exchange_discord_code(code):
+    credentials = _provider_credentials(required=True)
     return _json_request(
         DISCORD_TOKEN_URL,
         data={
-            "client_id": settings.DISCORD_CLIENT_ID,
-            "client_secret": settings.DISCORD_CLIENT_SECRET,
+            "client_id": credentials.client_id,
+            "client_secret": credentials.client_secret,
             "code": code,
             "grant_type": "authorization_code",
-            "redirect_uri": settings.DISCORD_REDIRECT_URI,
+            "redirect_uri": credentials.redirect_uri,
         },
     )
 
@@ -166,17 +145,28 @@ def apply_discord_credentials(account, token_data, identity):
 
 
 def revoke_discord_account(account):
+    credentials = _provider_credentials()
     token = decrypt_token(account.encrypted_access_token)
-    if token and settings.DISCORD_CLIENT_ID.strip() and settings.DISCORD_CLIENT_SECRET.strip():
+    if token and credentials.client_id.strip() and credentials.client_secret.strip():
         try:
             _json_request(
                 DISCORD_REVOKE_URL,
                 data={
-                    "client_id": settings.DISCORD_CLIENT_ID,
-                    "client_secret": settings.DISCORD_CLIENT_SECRET,
+                    "client_id": credentials.client_id,
+                    "client_secret": credentials.client_secret,
                     "token": token,
                     "token_type_hint": "access_token",
                 },
             )
         except DiscordIntegrationError:
             pass
+
+
+def _provider_credentials(required=False):
+    try:
+        credentials = get_provider_credentials("discord")
+        if required and not (credentials.client_id and credentials.client_secret):
+            raise ProviderConfigurationError()
+        return credentials
+    except ProviderConfigurationError:
+        raise DiscordIntegrationError("Discord connection configuration is unavailable.") from None

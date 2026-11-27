@@ -1,3 +1,4 @@
+from administration.provider_credentials import get_provider_credentials, ProviderConfigurationError
 import json
 import secrets
 from datetime import timedelta
@@ -30,11 +31,15 @@ class TwitchIntegrationError(Exception):
 
 
 def twitch_is_configured():
+    try:
+        credentials = _provider_credentials()
+    except TwitchIntegrationError:
+        return False
     return all(
         (
-            settings.TWITCH_CLIENT_ID,
-            settings.TWITCH_CLIENT_SECRET,
-            settings.TWITCH_REDIRECT_URI,
+            credentials.client_id,
+            credentials.client_secret,
+            credentials.redirect_uri,
             settings.STREAMING_TOKEN_ENCRYPTION_KEY,
         )
     )
@@ -63,6 +68,7 @@ def decrypt_token(value):
 
 
 def begin_twitch_authorization(request):
+    credentials = _provider_credentials()
     if not twitch_is_configured():
         raise TwitchIntegrationError("Twitch connection is not configured.")
     state = secrets.token_urlsafe(32)
@@ -72,8 +78,8 @@ def begin_twitch_authorization(request):
     }
     return f"{TWITCH_AUTHORIZE_URL}?{urlencode({
         'response_type': 'code',
-        'client_id': settings.TWITCH_CLIENT_ID,
-        'redirect_uri': settings.TWITCH_REDIRECT_URI,
+        'client_id': credentials.client_id,
+        'redirect_uri': credentials.redirect_uri,
         'state': state,
         'force_verify': 'true',
     })}"
@@ -103,29 +109,32 @@ def _json_request(url, *, data=None, headers=None):
 
 
 def exchange_twitch_code(code):
+    credentials = _provider_credentials(required=True)
     return _json_request(
         TWITCH_TOKEN_URL,
         data={
-            "client_id": settings.TWITCH_CLIENT_ID,
-            "client_secret": settings.TWITCH_CLIENT_SECRET,
+            "client_id": credentials.client_id,
+            "client_secret": credentials.client_secret,
             "code": code,
             "grant_type": "authorization_code",
-            "redirect_uri": settings.TWITCH_REDIRECT_URI,
+            "redirect_uri": credentials.redirect_uri,
         },
     )
 
 
 def validate_twitch_token(access_token):
+    credentials = _provider_credentials(required=True)
     result = _json_request(
         TWITCH_VALIDATE_URL,
         headers={"Authorization": f"OAuth {access_token}"},
     )
-    if result.get("client_id") != settings.TWITCH_CLIENT_ID or not result.get("user_id"):
+    if result.get("client_id") != credentials.client_id or not result.get("user_id"):
         raise TwitchIntegrationError("Twitch returned an invalid account identity.")
     return result
 
 
 def refresh_twitch_token(account):
+    credentials = _provider_credentials(required=True)
     refresh_token = decrypt_token(account.encrypted_refresh_token)
     if not refresh_token:
         raise TwitchIntegrationError("Reconnect Twitch to renew access.", status=401)
@@ -133,8 +142,8 @@ def refresh_twitch_token(account):
         token_data = _json_request(
             TWITCH_TOKEN_URL,
             data={
-                "client_id": settings.TWITCH_CLIENT_ID,
-                "client_secret": settings.TWITCH_CLIENT_SECRET,
+                "client_id": credentials.client_id,
+                "client_secret": credentials.client_secret,
                 "grant_type": "refresh_token",
                 "refresh_token": refresh_token,
             },
@@ -192,11 +201,12 @@ def _duration_seconds(value):
 
 
 def _twitch_api(url, token, params):
+    credentials = _provider_credentials()
     return _json_request(
         f"{url}?{urlencode(params)}",
         headers={
             "Authorization": f"Bearer {token}",
-            "Client-Id": settings.TWITCH_CLIENT_ID,
+            "Client-Id": credentials.client_id,
         },
     ).get("data", [])
 
@@ -280,12 +290,23 @@ def apply_twitch_credentials(account, token_data, identity):
 
 
 def revoke_twitch_account(account):
+    credentials = _provider_credentials()
     token = decrypt_token(account.encrypted_access_token)
     if token and twitch_is_configured():
         try:
             _json_request(
                 TWITCH_REVOKE_URL,
-                data={"client_id": settings.TWITCH_CLIENT_ID, "token": token},
+                data={"client_id": credentials.client_id, "token": token},
             )
         except TwitchIntegrationError:
             pass
+
+
+def _provider_credentials(required=False):
+    try:
+        credentials = get_provider_credentials("twitch")
+        if required and not (credentials.client_id and credentials.client_secret):
+            raise ProviderConfigurationError()
+        return credentials
+    except ProviderConfigurationError:
+        raise TwitchIntegrationError("Twitch connection configuration is unavailable.") from None

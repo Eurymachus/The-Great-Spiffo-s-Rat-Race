@@ -1,27 +1,33 @@
+from administration.provider_credentials import get_provider_credentials, ProviderConfigurationError
 import base64
 import json
 from email.utils import parseaddr
 from urllib import error, parse, request
 
 from django.conf import settings
+from django.views.decorators.debug import sensitive_variables
 from django.core.mail.backends.base import BaseEmailBackend
 
 
 class MicrosoftGraphEmailBackend(BaseEmailBackend):
     """Send Django email messages through Microsoft Graph app authentication."""
 
+    @sensitive_variables()
     def _token(self):
+        credentials = get_provider_credentials('graph')
+        if not (credentials.client_id and credentials.client_secret and credentials.tenant_id):
+            raise ProviderConfigurationError('Microsoft Graph email configuration is unavailable.')
         body = parse.urlencode(
             {
-                "client_id": settings.MICROSOFT_GRAPH_CLIENT_ID,
-                "client_secret": settings.MICROSOFT_GRAPH_CLIENT_SECRET,
+                "client_id": credentials.client_id,
+                "client_secret": credentials.client_secret,
                 "scope": "https://graph.microsoft.com/.default",
                 "grant_type": "client_credentials",
             }
         ).encode()
         response = request.urlopen(
             request.Request(
-                f"https://login.microsoftonline.com/{settings.MICROSOFT_GRAPH_TENANT_ID}/oauth2/v2.0/token",
+                f"https://login.microsoftonline.com/{credentials.tenant_id}/oauth2/v2.0/token",
                 data=body,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             ),

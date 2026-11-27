@@ -1,3 +1,4 @@
+from administration.provider_credentials import get_provider_credentials, ProviderConfigurationError
 import json
 from django.conf import settings
 from urllib.error import HTTPError, URLError
@@ -56,7 +57,10 @@ def fetch_project_zomboid_workshop_item(workshop_id):
 
 
 def search_project_zomboid_workshop_items(search_text, *, limit=8):
-    api_key = settings.STEAM_WEB_API_KEY
+    try:
+        api_key = get_provider_credentials('steam').client_secret
+    except ProviderConfigurationError:
+        api_key = ''
     if not api_key:
         raise SteamWorkshopError(
             "Workshop name search is temporarily unavailable. Paste a Workshop ID or URL instead."

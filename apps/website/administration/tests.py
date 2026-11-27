@@ -64,26 +64,15 @@ class WebsiteSettingsAdminTests(TestCase):
     def test_registry_models_are_grouped_by_backend_concern(self):
         response = self.client.get(reverse("admin:index"), follow=True)
 
-        self.assertContains(response, "Participant administration")
-        self.assertContains(response, "Challenge configuration")
-        self.assertContains(response, "Run moderation")
-        self.assertContains(response, "Rat Race 1.0 data")
-        self.assertContains(response, "Rat Race 1.0 data imports")
-        self.assertContains(response, "Rat Race 1.0 runs")
-        self.assertContains(response, "Rat Race 1.0 run submissions")
-        self.assertContains(response, "Rat Race 1.0 run claims")
-        self.assertContains(response, "Platform integrations")
-        content = response.content.decode()
-        self.assertLess(
-            content.index("Challenge configuration"),
-            content.index("Challenge modes"),
-        )
-        self.assertLess(content.index("Run moderation"), content.index("Challenge Runs"))
-        self.assertLess(content.index("Rat Race 1.0 data"), content.index("Rat Race 1.0 data imports"))
-        self.assertLess(
-            content.index("Platform integrations"),
-            content.index("Cached streaming media"),
-        )
+        groups = {app["name"]: [model["object_name"] for model in app["models"]]
+                  for app in response.context["app_list"]}
+        self.assertIn("Participant", groups["Participant administration"])
+        self.assertEqual(groups["Challenge configuration"], ["ChallengeMode"])
+        self.assertEqual(groups["Run moderation"], ["ChallengeRun"])
+        self.assertIn("LegacyRun", groups["Rat Race 1.0 data"])
+        self.assertEqual(groups["Platform integrations"], ["StreamingAccount", "StreamingMedia"])
+        self.assertContains(response, "Community")
+        self.assertContains(response, "Provider configurations")
 
     def test_image_validator_uses_configured_limit(self):
         settings = WebsiteSettings.current()

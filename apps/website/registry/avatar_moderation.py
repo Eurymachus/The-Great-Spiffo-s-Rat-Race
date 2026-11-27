@@ -1,3 +1,4 @@
+from administration.provider_credentials import get_provider_credentials, ProviderConfigurationError
 import base64
 import io
 import json
@@ -34,7 +35,11 @@ def prepare_avatar(upload):
 
 
 def moderate_avatar(image_bytes):
-    if not settings.OPENAI_API_KEY:
+    try:
+        api_key = get_provider_credentials('openai').client_secret
+    except ProviderConfigurationError:
+        return "pending", "Automatic moderation was unavailable."
+    if not api_key:
         return "pending", "Automatic moderation is not configured."
     payload = json.dumps({
         "model": "omni-moderation-latest",
@@ -47,7 +52,7 @@ def moderate_avatar(image_bytes):
         settings.OPENAI_MODERATION_URL,
         data=payload,
         headers={
-            "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         },
         method="POST",

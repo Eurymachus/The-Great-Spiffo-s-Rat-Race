@@ -75,8 +75,21 @@ def validate_production_environment(environ):
     runtime_state_backend = environ.get("RUNTIME_STATE_BACKEND", "cache").strip().lower()
     if runtime_state_backend not in {"cache", "database"}:
         raise RuntimeError("RUNTIME_STATE_BACKEND must be cache or database.")
+    provider_keys = environ.get("PROVIDER_CONFIG_ENCRYPTION_KEYS", "").strip()
+    if provider_keys:
+        try:
+            for key in provider_keys.split(","):
+                Fernet(key.strip().encode("ascii"))
+        except (ValueError, UnicodeError):
+            raise RuntimeError("PROVIDER_CONFIG_ENCRYPTION_KEYS must contain valid Fernet keys.") from None
+    database_provider_variables = {
+        f"{provider}_{suffix}" for provider in ("TWITCH", "DISCORD", "YOUTUBE")
+        for suffix in ("CLIENT_ID", "CLIENT_SECRET", "REDIRECT_URI")
+    } | {"MICROSOFT_GRAPH_TENANT_ID", "MICROSOFT_GRAPH_CLIENT_ID", "MICROSOFT_GRAPH_CLIENT_SECRET",
+         "TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY", "OPENAI_API_KEY", "STEAM_WEB_API_KEY"} if provider_keys else set()
     missing = [
-        name for name in REQUIRED_PRODUCTION_VARIABLES if not environ.get(name, "").strip()
+        name for name in REQUIRED_PRODUCTION_VARIABLES
+        if name not in database_provider_variables and not environ.get(name, "").strip()
     ]
     if runtime_state_backend == "cache" and not environ.get("REDIS_URL", "").strip():
         missing.append("REDIS_URL")
@@ -90,9 +103,9 @@ def validate_production_environment(environ):
         environ.get("STAGING_ENVIRONMENT", "false"),
         name="STAGING_ENVIRONMENT",
     )
-    if not staging_environment and environ["TURNSTILE_SITE_KEY"] == TURNSTILE_TEST_SITE_KEY:
+    if not staging_environment and environ.get("TURNSTILE_SITE_KEY", "") == TURNSTILE_TEST_SITE_KEY:
         raise RuntimeError("TURNSTILE_SITE_KEY must not use the localhost test key.")
-    if not staging_environment and environ["TURNSTILE_SECRET_KEY"] == TURNSTILE_TEST_SECRET_KEY:
+    if not staging_environment and environ.get("TURNSTILE_SECRET_KEY", "") == TURNSTILE_TEST_SECRET_KEY:
         raise RuntimeError("TURNSTILE_SECRET_KEY must not use the localhost test key.")
 
     public_url = environ["SITE_PUBLIC_URL"].strip()
@@ -105,7 +118,7 @@ def validate_production_environment(environ):
         "DISCORD_REDIRECT_URI",
         "YOUTUBE_REDIRECT_URI",
     ):
-        if not environ[name].strip().startswith("https://"):
+        if environ.get(name, "").strip() and not environ[name].strip().startswith("https://"):
             raise RuntimeError(f"{name} must use HTTPS in production.")
 
     try:

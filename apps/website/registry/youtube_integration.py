@@ -1,3 +1,4 @@
+from administration.provider_credentials import get_provider_credentials, ProviderConfigurationError
 import json
 import logging
 import secrets
@@ -36,11 +37,15 @@ class YouTubeIntegrationError(Exception):
 
 
 def youtube_is_configured():
+    try:
+        credentials = _provider_credentials()
+    except YouTubeIntegrationError:
+        return False
     return all(
         (
-            settings.YOUTUBE_CLIENT_ID,
-            settings.YOUTUBE_CLIENT_SECRET,
-            settings.YOUTUBE_REDIRECT_URI,
+            credentials.client_id,
+            credentials.client_secret,
+            credentials.redirect_uri,
             settings.STREAMING_TOKEN_ENCRYPTION_KEY,
         )
     )
@@ -96,6 +101,7 @@ def _json_request(url, *, data=None, headers=None):
 
 
 def begin_youtube_authorization(request):
+    credentials = _provider_credentials()
     if not youtube_is_configured():
         raise YouTubeIntegrationError("YouTube connection is not configured.")
     state = secrets.token_urlsafe(32)
@@ -105,8 +111,8 @@ def begin_youtube_authorization(request):
     }
     params = {
         "response_type": "code",
-        "client_id": settings.YOUTUBE_CLIENT_ID,
-        "redirect_uri": settings.YOUTUBE_REDIRECT_URI,
+        "client_id": credentials.client_id,
+        "redirect_uri": credentials.redirect_uri,
         "scope": " ".join(YOUTUBE_SCOPES),
         "state": state,
         "access_type": "offline",
@@ -131,14 +137,15 @@ def consume_youtube_state(request, supplied_state):
 
 
 def exchange_youtube_code(code):
+    credentials = _provider_credentials(required=True)
     return _json_request(
         YOUTUBE_TOKEN_URL,
         data={
-            "client_id": settings.YOUTUBE_CLIENT_ID,
-            "client_secret": settings.YOUTUBE_CLIENT_SECRET,
+            "client_id": credentials.client_id,
+            "client_secret": credentials.client_secret,
             "code": code,
             "grant_type": "authorization_code",
-            "redirect_uri": settings.YOUTUBE_REDIRECT_URI,
+            "redirect_uri": credentials.redirect_uri,
         },
     )
 
@@ -171,14 +178,15 @@ def fetch_youtube_channel(access_token):
 
 
 def refresh_youtube_token(account):
+    credentials = _provider_credentials(required=True)
     refresh_token = decrypt_token(account.encrypted_refresh_token)
     if not refresh_token:
         raise YouTubeIntegrationError("Reconnect YouTube to renew access.", status=401)
     token_data = _json_request(
         YOUTUBE_TOKEN_URL,
         data={
-            "client_id": settings.YOUTUBE_CLIENT_ID,
-            "client_secret": settings.YOUTUBE_CLIENT_SECRET,
+            "client_id": credentials.client_id,
+            "client_secret": credentials.client_secret,
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
         },
@@ -348,3 +356,13 @@ def revoke_youtube_account(account):
             _json_request(YOUTUBE_REVOKE_URL, data={"token": token})
         except YouTubeIntegrationError:
             pass
+
+
+def _provider_credentials(required=False):
+    try:
+        credentials = get_provider_credentials("youtube")
+        if required and not (credentials.client_id and credentials.client_secret):
+            raise ProviderConfigurationError()
+        return credentials
+    except ProviderConfigurationError:
+        raise YouTubeIntegrationError("Youtube connection configuration is unavailable.") from None

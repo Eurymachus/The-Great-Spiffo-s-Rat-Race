@@ -2,7 +2,7 @@ import json
 from unittest.mock import patch
 
 from django.core.mail import EmailMultiAlternatives
-from django.test import SimpleTestCase, override_settings
+from django.test import TestCase, override_settings
 
 from .graph_email import MicrosoftGraphEmailBackend
 
@@ -32,7 +32,7 @@ class Response:
     MICROSOFT_GRAPH_REPLY_TO="support@tgsrr.com",
     DEFAULT_FROM_EMAIL="The Great Spiffo's Rat Race <noreply@tgsrr.com>",
 )
-class MicrosoftGraphEmailBackendTests(SimpleTestCase):
+class MicrosoftGraphEmailBackendTests(TestCase):
     @patch("config.graph_email.request.urlopen")
     def test_sends_html_email_through_scoped_sender(self, urlopen):
         urlopen.side_effect = [
