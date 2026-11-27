@@ -1,5 +1,23 @@
 # Website: Current Focus
 
+- Clean staging rebuild completed on OSWALD, 27 November, release `4378ceec`.
+  Public host returns construction mode; preserved Eurymachus owner account
+  passed local admin access. Registration, Workshop intake, RR1 intake, RR2
+  and publishing are off. Ready with one web and one worker process tree.
+  New public schema has one owner account and all seven preserved provider
+  configurations; RR1/RR2 runs/submissions, RR1 claims, notifications and
+  streaming connections are empty. Game reference preparation and RR1 import
+  remain pending. Host credentials, keys and Steam session preserved.
+  Staging login cannot CREATE DATABASE but owns database/schema: old public
+  schema retained as `rr_staging_prebaseline_570ca25`, fresh public created
+  within the same staging database at `127.0.0.1:5433/ratrace`. Old generated
+  files and protected configuration retained for rollback. Application and
+  retention previews use only new public; whole-database backups include both
+  schemas. Fresh post-rebuild backup/integrity passed and all seven archived
+  provider records decrypted offline. Backup/retention schedules unchanged.
+  Live remains ready on `6582cc4`, untouched. Next: owner signs into staging
+  admin, reviews preserved providers, then prepares Steam/game reference data.
+
 - Fresh-install baseline implemented on 27 November under explicit owner
   approval to retire pre-launch migration history without a local/staging upgrade
   path. Replaces 174 project migrations with eight schema migrations and one

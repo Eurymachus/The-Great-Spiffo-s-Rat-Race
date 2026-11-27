@@ -1,5 +1,37 @@
 # Fresh-install migration baseline
 
+## Hosted staging rebuild, 27 November 2026
+
+At the owner's explicit request, OSWALD staging now runs `4378ceec` from a clean
+application schema, with public construction mode and admin access. The database
+login owns `127.0.0.1:5433/ratrace` but cannot create another database. Its existing
+ownership privileges allowed an atomic rename of old `public` to
+`rr_staging_prebaseline_570ca25` and creation of a new empty `public` schema.
+No database roles or authentication controls were weakened. The application
+search path excludes the rollback schema.
+
+The clean schema contains the launch setup data, the preserved Eurymachus
+superuser identity/password hash, and seven preserved provider configurations.
+There are no RR1/RR2 runs/submissions, RR1 claims, notifications or streaming
+connections. Old generated files and protected configuration remain available
+for rollback; the new installation awaits game reference preparation and RR1
+import. Credentials, encryption keys and the Steam session remain preserved.
+
+Observed acceptance: public construction page, owner local admin access,
+readiness on the new release, one web/worker process tree, and registration,
+Workshop intake, RR1 intake, RR2 and publishing disabled. The post-rebuild backup
+and integrity check passed; all seven provider records decrypted offline from
+that archive. No provider authentication calls were made by that verification.
+The owner should sign in again for interactive admin acceptance.
+
+Backup and retention-preview schedules remain unchanged. Whole-database backups
+include BOTH schemas, so they intentionally retain old test data for recovery.
+Application reads and retention previews use the fresh public schema only. Do
+not treat a whole-database restore as a clean seed import. Any later rollback
+must coordinate release, schema, configuration and storage paths with writers
+stopped; preserve the protected host rollback receipt. No rollback artifacts
+were purged. Live remained ready on `6582cc4` and was not changed.
+
 ## Decision, 27 November 2026
 
 The owner approved consolidating the pre-launch migration history without an
