@@ -2476,6 +2476,7 @@ button:hover { background: var(--theme-accent-hover); }
 .settings-hub { padding: 0; overflow: hidden; }
 .settings-hub-header:not(.account-dashboard-header) { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: clamp(1.25rem, 4cqw, 2rem); border-bottom: 1px solid var(--theme-border); }
 .settings-hub-header h2 { margin: 0; }
+.settings-hub-header > *, .settings-hub-header .account-dashboard-welcome { min-width: 0; }
 .settings-hub-description { margin: .35rem 0 0; color: var(--theme-muted); }
 .settings-account-email { margin: .65rem 0 0; color: var(--theme-muted); font-size: .9rem; }
 .settings-account-email strong { color: var(--theme-text); font-weight: 600; overflow-wrap: anywhere; }
@@ -3410,6 +3411,30 @@ button:hover { background: var(--theme-accent-hover); }
     .participant-profile-header .dashboard-header-action {
         width: auto;
         max-width: 100%;
+    }
+    .settings-hub-header { padding: 1rem; gap: .85rem; }
+    .settings-hub-header .account-dashboard-identity {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+    .settings-hub-header .account-dashboard-avatar { flex: 0 0 auto; margin: 0; }
+    .settings-hub-header .account-dashboard-welcome { padding-top: .85rem; }
+    .settings-hub-header h2 { font-size: 1.5rem; line-height: 1.2; }
+    .settings-hub-header .settings-account-email { font-size: .85rem; line-height: 1.45; }
+    .settings-hub-header .account-dashboard-welcome > p:last-child { font-size: .9rem; }
+    .settings-hub-header .dashboard-header-actions {
+        display: flex;
+        justify-self: stretch;
+        margin: 0;
+        width: 100%;
+    }
+    .settings-hub-header .dashboard-header-action {
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+        text-align: center;
+        font-size: .9rem;
     }
     .dashboard-notification { grid-template-columns: auto minmax(0, 1fr); }
     .dashboard-notification time { grid-column: 2; }

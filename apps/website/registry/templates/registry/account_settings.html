@@ -13,8 +13,8 @@
       <small>Joined <strong>{{ request.user.registered_at|date:"j M Y" }}</strong></small>
     </div>
     <div class="account-dashboard-welcome">
-      <p class="account-dashboard-kicker">Account settings</p>
-      <h2>Signed in as {{ request.user.email }}</h2>
+      <h2>Account settings</h2>
+      <p class="settings-account-email">Signed in as <strong>{{ request.user.email }}</strong></p>
       <p>Manage your security, notifications, privacy and participant data.</p>
     </div>
     <div class="dashboard-header-actions"><a class="dashboard-header-action journey-back-link" href="{% url 'registry:account' %}">&lsaquo; Return to dashboard</a></div>
