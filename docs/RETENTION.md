@@ -281,3 +281,45 @@ monitoring and handling of held/blocked records or failed file jobs; verify the
 scheduled runner and failure reporting before any separately authorized hosted
 apply. Historical unsealed logs remain outside automatic expiry. This rehearsal
 does not approve retention scheduling or production activation.
+
+## Scheduled staging previews, 27 November 2026
+
+The owner authorized preview-only scheduling and failure monitoring after the
+fixture rehearsal. Commit and installed protected bundle: `0b7f84cd`, beneath
+`G:\RatRace_Staging\retention-preview-operations`. Application remains on
+`39a358b9`; live `6582cc4` is unchanged. No capture, deployment, service restart,
+retention apply or deletion occurred.
+
+- `RatRaceStagingRetentionPreview`: daily 05:00 UK time, next 28 November.
+- `RatRaceStagingRetentionPreviewCheck`: hourly at :45, first scheduled slot
+  19:45 GMT on 27 November.
+- Both tasks use SYSTEM, StartWhenAvailable and IgnoreNew, with a 20-minute
+  execution limit. Preview uses its own mutex and the existing backup mutex;
+  contention reports failure rather than overlapping operations.
+- The fixed staging runner has only Preview and Check modes, no apply option.
+  It validates the staging release and PostgreSQL identity on loopback 5433,
+  including a non-superuser connection, and enforces read-only transactions.
+  Independent previews continue after individual command failure. Artifact
+  eligibility inspection does not modify marked, unmarked or unsealed files.
+- Protected atomic `Preview.json` and `Check.json` record status under the
+  operations directory. Application event source `RatRaceStagingRetentionPreview`
+  emits 4200 for success and 4201 for failure/operator review; failures exit 1.
+  The checker rejects failed/interrupted/disabled preview tasks, nonzero task
+  results, invalid timestamps and successful previews older than 30 hours.
+- Monitoring is local only. The owner must inspect these signals; there are no
+  outbound alerts and they cannot independently detect loss of OSWALD itself.
+
+Four Python tests passed, plus four Windows PowerShell cadence cases, seven
+monitor cases and atomic status replacement. Checks covered rejected apply
+arguments, connection overrides, withheld unsafe output, blocked counts,
+independent-command continuation and stale/failed/disabled states. A hosted
+read-only preview passed. Both installed tasks then exited 0 through Task
+Scheduler and emitted success event 4200.
+
+The scheduled-task preview reported zero eligible accounts and pending file
+jobs; evidence retained 201 with zero eligible, held or blocked; runtime found
+34 expired buckets; backup and routine-log expiry found zero candidates.
+Nothing was removed. These were on-demand starts through Task Scheduler, not
+proof of a later clock-triggered run. Confirm that first unattended trigger
+before closing scheduling acceptance. Hosted apply remains separately scoped
+and unauthorized; historical unsealed logs remain outside automatic expiry.

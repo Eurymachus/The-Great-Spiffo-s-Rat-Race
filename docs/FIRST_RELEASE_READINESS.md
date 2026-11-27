@@ -100,8 +100,10 @@ home/Workshop/liveness HTTP 200 responses. A real isolated worker subsequently
 drove readiness from 503 to 200 and back to 503 on cooperative stop, with queue
 counts unchanged and network/tool guards. Disposable retention execution then
 passed 30 PostgreSQL tests and 11 artifact tests, including protected fixtures
-and repeat apply. Hosted retention scheduling and failure monitoring remain
-open; no automatic apply is authorized. See RETENTION.md and
+and repeat apply. Staging preview-only scheduling and local failure monitoring
+were installed and verified through Task Scheduler on 27 November. First
+clock-triggered execution remains unconfirmed; no automatic apply is authorized.
+See RETENTION.md and
 BACKUP_RESTORE_REHEARSAL.md for scope and limitations.
 The older checkpoint below records the evidence available on 26 November.
 

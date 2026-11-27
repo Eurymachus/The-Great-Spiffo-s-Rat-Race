@@ -1,5 +1,14 @@
 # Website: Current Focus
 
+- Staging retention preview scheduling installed on 27 November from protected
+  operations bundle `0b7f84cd`: daily 05:00 UK preview, hourly :45 health check,
+  SYSTEM/StartWhenAvailable/IgnoreNew. Both Task Scheduler-triggered runs passed
+  with exit 0/event 4200. PostgreSQL previews enforce read-only transactions;
+  no apply path. Results: accounts/evidence/artifact candidates zero, evidence
+  retained 201, expired runtime buckets 34. No deletion/restart/live changes.
+  First clock-triggered execution remains to be confirmed. Monitoring is local,
+  with a 30-hour freshness limit; no outbound alerts. See RETENTION.md.
+
 - Disposable retention rehearsal passed on OSWALD, 27 November: 30 PostgreSQL
   tests and 11 artifact tests. Read-only previews, real apply and repeat apply
   verified eligible synthetic cleanup and protected-record preservation.
