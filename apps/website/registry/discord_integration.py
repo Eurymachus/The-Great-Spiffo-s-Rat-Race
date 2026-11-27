@@ -1,11 +1,14 @@
 import json
+import re
 import secrets
 from datetime import timedelta
+from ipaddress import ip_address
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 
 from django.conf import settings
+from django.urls import reverse
 from django.utils import timezone
 
 from .streaming import decrypt_token, encrypt_token
@@ -25,14 +28,46 @@ class DiscordIntegrationError(Exception):
 
 
 def discord_is_configured():
-    return all(
-        (
-            settings.DISCORD_CLIENT_ID,
-            settings.DISCORD_CLIENT_SECRET,
-            settings.DISCORD_REDIRECT_URI,
-            settings.STREAMING_TOKEN_ENCRYPTION_KEY,
-        )
+    client_id = settings.DISCORD_CLIENT_ID
+    return bool(
+        re.fullmatch(r"[1-9][0-9]{16,19}", client_id or "")
+        and int(client_id) < 2**64
+        and settings.DISCORD_CLIENT_SECRET.strip()
+        and settings.STREAMING_TOKEN_ENCRYPTION_KEY.strip()
+        and _discord_callback_matches_public_origin()
     )
+
+
+def _discord_callback_matches_public_origin():
+    public_url = settings.SITE_PUBLIC_URL
+    if any(character.isspace() or ord(character) < 32 for character in public_url):
+        return False
+    try:
+        origin = urlsplit(public_url)
+        hostname, port = origin.hostname, origin.port
+    except ValueError:
+        return False
+    if (
+        not hostname
+        or origin.username is not None
+        or any(character in origin.netloc for character in r"\%")
+        or origin.netloc.endswith(":")
+        or port == 0
+        or public_url not in (f"{origin.scheme}://{origin.netloc}", f"{origin.scheme}://{origin.netloc}/")
+    ):
+        return False
+    try:
+        ip_address(hostname)
+    except ValueError:
+        if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*", hostname):
+            return False
+    if origin.scheme != "https" and not (
+        origin.scheme == "http" and settings.DEBUG
+        and hostname in {"localhost", "127.0.0.1", "::1"}
+    ):
+        return False
+    expected = f"{origin.scheme}://{origin.netloc}{reverse('registry:discord_callback')}"
+    return settings.DISCORD_REDIRECT_URI == expected
 
 
 def _json_request(url, *, data=None, headers=None):
@@ -132,7 +167,7 @@ def apply_discord_credentials(account, token_data, identity):
 
 def revoke_discord_account(account):
     token = decrypt_token(account.encrypted_access_token)
-    if token and discord_is_configured():
+    if token and settings.DISCORD_CLIENT_ID.strip() and settings.DISCORD_CLIENT_SECRET.strip():
         try:
             _json_request(
                 DISCORD_REVOKE_URL,

@@ -1683,9 +1683,10 @@ class RegistrationTests(TestCase):
         self.assertFalse(StreamingAccount.objects.exists())
 
     @override_settings(
-        DISCORD_CLIENT_ID="discord-client-id",
+        DISCORD_CLIENT_ID="80351110224678912",
         DISCORD_CLIENT_SECRET="discord-client-secret",
-        DISCORD_REDIRECT_URI="http://testserver/account/connections/discord/callback/",
+        SITE_PUBLIC_URL="https://testserver",
+        DISCORD_REDIRECT_URI="https://testserver/account/connections/discord/callback/",
         STREAMING_TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode("ascii"),
     )
     def test_discord_connect_requests_only_identity_scope(self):

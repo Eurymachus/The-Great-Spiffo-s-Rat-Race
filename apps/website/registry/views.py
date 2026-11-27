@@ -1580,6 +1580,7 @@ def deactivate_run(request, run_id):
 
 @login_required
 @require_http_methods(["GET", "POST"])
+@never_cache
 def account_settings(request):
     country_form = CountrySettingsForm(
         request.POST if request.method == "POST" else None, instance=request.user
@@ -1654,13 +1655,14 @@ def connect_twitch(request):
     try:
         return redirect(begin_twitch_authorization(request))
     except TwitchIntegrationError as exc:
-        notify(
-            request.user,
-            title="Twitch connection unavailable",
-            message=str(exc),
-            destination=reverse("registry:account_settings"),
-        )
-        return redirect("registry:account_settings")
+        return _connection_error(request, "Twitch connection unavailable", str(exc))
+
+
+def _connection_error(request, title, message):
+    messages.error(request, message)
+    destination = reverse("registry:account_settings")
+    notify(request.user, title=title, message=message, destination=destination)
+    return redirect(destination)
 
 
 @login_required
@@ -1699,18 +1701,13 @@ def twitch_callback(request):
             apply_twitch_credentials(account, token_data, identity)
     except (IntegrityError, KeyError, TwitchIntegrationError) as exc:
         if not isinstance(exc, TwitchIntegrationError):
-            logger.exception("Twitch callback returned incomplete or conflicting data.")
+            logger.warning("Twitch callback returned incomplete or conflicting data (%s).", type(exc).__name__)
         message = (
             str(exc)
             if isinstance(exc, TwitchIntegrationError)
             else "Twitch returned an incomplete or conflicting account response."
         )
-        notify(
-            request.user,
-            title="Twitch was not connected",
-            message=message,
-            destination=reverse("registry:account_settings"),
-        )
+        return _connection_error(request, "Twitch was not connected", message)
     else:
         notify(
             request.user,
@@ -1802,13 +1799,7 @@ def connect_discord(request):
     try:
         return redirect(begin_discord_authorization(request))
     except DiscordIntegrationError as exc:
-        notify(
-            request.user,
-            title="Discord connection unavailable",
-            message=str(exc),
-            destination=reverse("registry:account_settings"),
-        )
-        return redirect("registry:account_settings")
+        return _connection_error(request, "Discord connection unavailable", str(exc))
 
 
 @login_required
@@ -1849,18 +1840,13 @@ def discord_callback(request):
             apply_discord_credentials(account, token_data, identity)
     except (IntegrityError, KeyError, DiscordIntegrationError) as exc:
         if not isinstance(exc, DiscordIntegrationError):
-            logger.exception("Discord callback returned incomplete or conflicting data.")
+            logger.warning("Discord callback returned incomplete or conflicting data (%s).", type(exc).__name__)
         message = (
             str(exc)
             if isinstance(exc, DiscordIntegrationError)
             else "Discord returned an incomplete or conflicting account response."
         )
-        notify(
-            request.user,
-            title="Discord was not connected",
-            message=message,
-            destination=reverse("registry:account_settings"),
-        )
+        return _connection_error(request, "Discord was not connected", message)
     else:
         notify(
             request.user,

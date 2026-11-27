@@ -21,6 +21,13 @@
   </header>
 
   <div class="settings-hub-grid">
+    {% for message in messages %}
+      {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+        <p class="error form-error settings-streaming" role="alert">{{ message }}</p>
+      {% else %}
+        <p class="mods-status-message settings-streaming" role="status">{{ message }}</p>
+      {% endif %}
+    {% endfor %}
 
     <section class="dashboard-panel settings-group">
       <div class="dashboard-panel-heading"><div><p class="dashboard-panel-kicker">Security</p><h3>Sign-in and password</h3></div></div>
