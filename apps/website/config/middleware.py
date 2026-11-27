@@ -32,7 +32,7 @@ class ReleaseControlMiddleware:
 
 
 class MaintenanceModeMiddleware:
-    """Hold public traffic while leaving local access and health checks available."""
+    """Hold public pages while retaining authenticated admin and health access."""
 
     health_paths = frozenset({"/health/live/", "/health/ready/"})
     local_hosts = frozenset({"localhost", "127.0.0.1", "[::1]"})
@@ -46,6 +46,9 @@ class MaintenanceModeMiddleware:
             not settings.SITE_MAINTENANCE_MODE
             or request.path in self.health_paths
             or host in self.local_hosts
+            # Django admin still enforces login, permissions and CSRF downstream.
+            or request.path == "/admin"
+            or request.path.startswith("/admin/")
         ):
             return self.get_response(request)
 

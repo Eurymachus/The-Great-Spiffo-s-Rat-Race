@@ -6,7 +6,7 @@ from unittest import TestCase
 
 from cryptography.fernet import Fernet
 from django.http import HttpResponse
-from django.test import RequestFactory, SimpleTestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase as DjangoTestCase, override_settings
 
 from .middleware import MaintenanceModeMiddleware
 from .staging import StagingNoIndexMiddleware, robots_txt
@@ -57,6 +57,31 @@ class MaintenanceModeMiddlewareTests(SimpleTestCase):
                     self.requests.get(path, HTTP_HOST="tgsrr.com")
                 )
                 self.assertEqual(response.status_code, 200)
+
+
+@override_settings(SITE_MAINTENANCE_MODE=True, ALLOWED_HOSTS=["dev.tgsrr.com"])
+class PublicHostMaintenanceAdminTests(DjangoTestCase):
+    def test_admin_login_is_reachable_but_anonymous_admin_is_protected(self):
+        response = self.client.get("/admin/", HTTP_HOST="dev.tgsrr.com")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login/", response.url)
+        response = self.client.get("/admin/login/", HTTP_HOST="dev.tgsrr.com")
+        self.assertContains(response, 'name="password"')
+
+    def test_admin_can_login_while_public_and_similar_paths_stay_closed(self):
+        from registry.models import Participant
+        owner = Participant.objects.create_superuser(
+            email="construction@example.test", nickname="ConstructionAdmin", password="test-only-password",
+        )
+        response = self.client.post("/admin/login/?next=/admin/", {
+            "username": owner.email, "password": "test-only-password", "next": "/admin/",
+        }, HTTP_HOST="dev.tgsrr.com")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.get("/admin/", HTTP_HOST="dev.tgsrr.com").status_code, 200)
+        for path in ("/", "/account/", "/administrator/", "/admin-other/"):
+            with self.subTest(path=path):
+                response = self.client.get(path, HTTP_HOST="dev.tgsrr.com")
+                self.assertContains(response, "We're preparing the starting line.", status_code=503)
 
 
 class StagingIsolationTests(SimpleTestCase):
