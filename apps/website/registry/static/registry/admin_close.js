@@ -26,8 +26,9 @@
     closeButton.classList.add("admin-close-button");
     closeButton.textContent = "Close";
     const breadcrumbLinks = [...document.querySelectorAll(".breadcrumbs a")];
-    const isBrandingSingleton = document.body.classList.contains("model-sitebranding");
-    const closeTarget = isBrandingSingleton
+    const isSingleton = ["model-sitebranding", "model-releaseconfiguration", "model-websitesettings"]
+        .some((name) => document.body.classList.contains(name));
+    const closeTarget = isSingleton
         ? "/admin/"
         : existingClose?.href || breadcrumbLinks.at(-1)?.href || "/admin/";
     let navigationTarget = closeTarget;
