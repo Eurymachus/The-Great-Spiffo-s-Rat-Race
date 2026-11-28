@@ -1,5 +1,18 @@
 # Website: Current Focus
 
+- Catalogue approval feedback `c7a4011e`: native POST now displays Applying
+  catalogue (or Rejecting review), disables both actions and blocks repeat
+  submissions while preserving the chosen endpoint. Back navigation restores
+  the controls. Two JavaScript interaction tests and all 17 catalogue review
+  tests pass locally. Owner approval of review 1 was confirmed in the browser,
+  attributed to Eurymachus at 01:30 on 28 November; the subsequent repeat attempt
+  was correctly rejected because the review was already approved.
+  Deployment pending: OSWALD passed the same 2 Node and 17 Django tests, but
+  backup preflight will not pause the active artwork sync. At 01:37 GMT it had
+  run seven minutes with zero PZWiki assets imported, 3,209 candidate keys, and
+  a sampled image request returned HTTP 403. Sequential retries make completion
+  soon unlikely. Job left running; staging remains 89068cf5, live untouched.
+
 - Catalogue generation live progress implemented in `89068cf5`: timestamped
   category stages and record counts, comparison and terminal summary, bounded
   output, permission-checked polling, elapsed time and follow-output using the
