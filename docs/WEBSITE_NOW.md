@@ -1,5 +1,19 @@
 # Website: Current Focus
 
+- Pending approval feedback and artwork console deployed to staging `208aa1ec`
+  on 28 November. Operations migration 0004 applied; 27 Django and two Node
+  tests passed on OSWALD. Static collection required a committed UTF-8 correction.
+  Console rendering and access permissions verified. Artwork job 1 cancelled
+  under explicit owner authorization after the old worker exceeded its
+  cooperative-stop timeout and required bounded termination. Logger output
+  was sealed and hash-verified. Catalogue review 1 remains Approved.
+  Limited HTTP probes identified image-route HTTP 403 with
+  `Cf-Mitigated: challenge`; ordinary wiki article returned 200. No full retry
+  and no challenge bypass attempted. Artwork access remains unresolved.
+  Staging ready with one web/worker; public construction and disabled intake
+  preserved, admin login 200. Live remains ready on `6582cc4`, untouched.
+  This supersedes the pending-deployment notes below.
+
 - Artwork live output implemented/pushed as `a9b1c54f`, not deployed yet.
   Additive operations migration 0004 stores bounded timestamped output; worker
   streams entry counts, successes, skips and retry errors to the shared admin
@@ -496,7 +510,7 @@
   unchanged. Continue with a different test password and used-link rejection.
 
 - Dashboard presentation follow-up: while RR 2 is off, show a small
-  "Rat Race 2.0 · Finalising" notice beneath the welcome copy. When Workshop
+  "Rat Race 2.0 Â· Finalising" notice beneath the welcome copy. When Workshop
   requests are open, make mod submission the main action, linking directly to
   the submission dialog with a secondary catalogue link. Preserve RR 1 history
   and the enabled RR 2 dashboard. No release switches or data change.
