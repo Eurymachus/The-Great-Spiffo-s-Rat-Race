@@ -2073,4 +2073,13 @@ contract and remaining host-specific work live in
   remain outside this change.
 - 32 focused tests pass, including a synthetic PZPK extraction, repeated-run
   idempotence, missing-file repair, manual/wiki protection and classification.
-  Staging deployment and refreshed coverage audit are pending.
+- Deployed immutable staging release 8a152979 after all 32 tests also passed
+  on OSWALD. New artwork job 3 used missing-only reconciliation and made zero
+  network requests. It recovered six exact wall-skull icons; all six files
+  match extracted sprite hashes. All 4,810 existing PZWiki images are unchanged.
+- All 205 missing-key cases are accounted for: six recovered images, 198 hidden
+  overlays without inventory icons, and one iconless occupation. The report
+  retains those 199 explicit explanations; it does not claim they gained icons.
+  The separate 327 placeholder entries still need world-artwork work.
+- Job 2 remains preserved. Staging construction mode and disabled intake remain
+  in place, admin login returns HTTP 200, and live remains on 6582cc4.
