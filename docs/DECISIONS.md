@@ -1461,3 +1461,20 @@ conflicting claims. A fresh moderator decision is required.
   guessed assets or claiming every catalogue record has an image.
 - Mark the artwork launch check complete. Other administration-side acceptance,
   deployment and public-opening gates remain separate. Live remains untouched.
+
+
+## 2026-11-28 - Superuser-owned database release controls
+
+- Owner requested admin control of construction, registration, submissions and
+  RR2. Store five independent booleans in one ReleaseConfiguration record;
+  Workshop requests and RR1 claims/updates remain separate controls.
+- Only active superusers may view or edit this record, regardless of staff model
+  permissions. Disable deletion and audit admin saves through standard history.
+- Existing environment values apply only until a record exists. Preserve them
+  when initializing staging. Thereafter database reads are authoritative, without
+  process caching or a restart requirement. Database failures close access.
+- Construction keeps admin and health routes accessible. Opening construction
+  does not enable registration, either submission intake, RR2 or publishing.
+- These are operational settings, excluded from presentation package imports.
+  Back them up with the environment's database. Live changes remain separately
+  authorized; this implementation and deployment are staging only.

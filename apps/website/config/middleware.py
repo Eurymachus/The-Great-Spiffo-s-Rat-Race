@@ -43,12 +43,12 @@ class MaintenanceModeMiddleware:
     def __call__(self, request):
         host, _ = split_domain_port(request.get_host().lower())
         if (
-            not settings.SITE_MAINTENANCE_MODE
-            or request.path in self.health_paths
+            request.path in self.health_paths
             or host in self.local_hosts
             # Django admin still enforces login, permissions and CSRF downstream.
             or request.path == "/admin"
             or request.path.startswith("/admin/")
+            or not enabled("construction")
         ):
             return self.get_response(request)
 

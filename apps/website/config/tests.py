@@ -20,7 +20,7 @@ from .production_environment import (
     SITE_MAINTENANCE_MODE=True,
     ALLOWED_HOSTS=["tgsrr.com", "127.0.0.1"],
 )
-class MaintenanceModeMiddlewareTests(SimpleTestCase):
+class MaintenanceModeMiddlewareTests(DjangoTestCase):
     def setUp(self):
         self.requests = RequestFactory()
         self.middleware = MaintenanceModeMiddleware(

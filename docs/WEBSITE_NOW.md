@@ -1,5 +1,23 @@
 # Website: Current Focus
 
+## Superuser release controls (28 November 2026)
+
+Release controls now have a dedicated singleton under Admin > Website > Release
+controls. Construction, registration, Workshop requests, RR1 claims/updates and
+RR2 are independent database booleans. Saves take effect on subsequent checks
+without a service restart, including worker checks. Admin history records edits.
+Only active superusers can view or change them; add is limited to the first
+record and deletion is disabled. Construction never blocks admin or health URLs.
+
+Before the first record is saved, the existing environment values bootstrap the
+controls. Once saved, the database is authoritative; changing those environment
+values alone no longer changes the switches. Database read failures close public
+access. Presentation imports do not include this operational record.
+
+47 focused tests passed locally. Staging deployment must initialize the record
+from its existing environment values: construction on, all four feature switches
+off. Live remains untouched.
+
 ## Admin-first acceptance audit (28 November 2026)
 
 Access controls, all seven offline provider checks, game preparation, matching

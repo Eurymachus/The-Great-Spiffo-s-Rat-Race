@@ -1,4 +1,4 @@
-"""Environment-owned release policy shared by HTTP, presentation and workers."""
+"""Database-backed release policy shared by HTTP, presentation and workers."""
 from urllib.parse import urlsplit
 
 from django.conf import settings
@@ -48,13 +48,33 @@ def parse_release_control(value, *, name):
     raise ValueError(f"{name} must be true or false.")
 
 
+def environment_state():
+    # Bootstrap only: saving an admin record makes the database authoritative.
+    return {"construction": settings.SITE_MAINTENANCE_MODE is True,
+            **{key: getattr(settings, name, False) is True for key, name in CONTROLS.items()}}
+
+
+def current_state():
+    from administration.models import ReleaseConfiguration
+    from django.db.utils import OperationalError, ProgrammingError
+
+    try:
+        record = ReleaseConfiguration.objects.filter(pk=1).values(
+            "construction", *CONTROLS
+        ).first()
+    except (OperationalError, ProgrammingError):
+        # An unavailable database must never open public access.
+        return {"construction": True, **dict.fromkeys(CONTROLS, False)}
+    return record if record is not None else environment_state()
+
+
 def enabled(control):
-    # Exact booleans prevent a string such as "false" from opening a feature.
-    return getattr(settings, CONTROLS[control], False) is True
+    return current_state()[control] is True
 
 
 def release_state():
-    return {control: enabled(control) for control in CONTROLS}
+    state = current_state()
+    return {control: state[control] for control in CONTROLS}
 
 
 def model_available(label):

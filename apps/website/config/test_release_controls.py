@@ -142,10 +142,13 @@ class ReleaseBoundaryTests(TestCase):
         self.assertNotContains(response, "Hidden RR2 Character")
         self.assertNotContains(response, 'class="community-stats"')
         self.assertEqual(response.content.count(b'class="managed-ranking-table"'), 1)
-        with self.assertNumQueries(0):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        with CaptureQueriesContext(connection) as queries:
             self.assertEqual(build_ranking_table(), [])
             self.assertEqual(build_community_stats()["metrics"], [])
             self.assertEqual(build_community_stats({"metrics": ["unfinished-metric"]})["metrics"], [])
+        self.assertTrue(all("administration_releaseconfiguration" in query["sql"] for query in queries))
 
     def test_admin_has_no_rr2_bypass_and_keeps_workshop_review(self):
         self.client.force_login(self.staff)

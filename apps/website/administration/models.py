@@ -77,3 +77,23 @@ class ProviderConfiguration(models.Model):
 
     def __str__(self):
         return self.get_provider_display()
+
+
+class ReleaseConfiguration(models.Model):
+    """One environment's public access switches, separate from presentation imports."""
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    construction = models.BooleanField(default=True, help_text="Show the construction page on public routes. Admin and health access remain available.")
+    registration = models.BooleanField(default=False, help_text="Allow new accounts. Existing accounts can still sign in when this is off.")
+    workshop_submissions = models.BooleanField(default=False, help_text="Allow new Workshop mod requests. Published rulings remain available.")
+    rr1_submissions = models.BooleanField("RR1 claims and updates", default=False, help_text="Allow claims and updates for Rat Race 1.0.")
+    rr2 = models.BooleanField("RR2 enabled", default=False, help_text="Open Rat Race 2.0 pages and actions. Enable only after its separate acceptance checks.")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "release controls"
+        verbose_name_plural = "release controls"
+        constraints = [models.CheckConstraint(condition=models.Q(id=1), name="release_configuration_singleton")]
+
+    def __str__(self):
+        return "Release controls"

@@ -6,7 +6,8 @@ from .models import WebsiteSettings
 from django.utils.decorators import method_decorator
 from django.views.decorators.debug import sensitive_post_parameters
 from .forms import ProviderConfigurationForm
-from .models import ProviderConfiguration
+from .models import ProviderConfiguration, ReleaseConfiguration
+from config.release_controls import environment_state
 from .provider_credentials import ProviderConfigurationError, get_provider_credentials
 
 
@@ -107,3 +108,35 @@ class ProviderConfigurationAdmin(admin.ModelAdmin):
         fields = [name for name in form.changed_data if name in
                   {'provider', 'source', 'client_id', 'tenant_id', 'redirect_uri', 'replacement_secret'}]
         return [{'changed': {'fields': fields}}] if fields else []
+
+
+@admin.register(ReleaseConfiguration)
+class ReleaseConfigurationAdmin(admin.ModelAdmin):
+    fields = ("construction", "registration", "workshop_submissions", "rr1_submissions", "rr2", "updated_at")
+    readonly_fields = ("updated_at",)
+    actions = None
+
+    def has_module_permission(self, request):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return self.has_module_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        return self.has_module_permission(request)
+
+    def has_add_permission(self, request):
+        return self.has_module_permission(request) and not ReleaseConfiguration.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_changeform_initial_data(self, request):
+        return environment_state()
+
+    def changelist_view(self, request, extra_context=None):
+        if self.has_module_permission(request):
+            name = "change" if ReleaseConfiguration.objects.filter(pk=1).exists() else "add"
+            return redirect(reverse("admin:administration_releaseconfiguration_" + name,
+                                    args=(1,) if name == "change" else None))
+        return super().changelist_view(request, extra_context)
