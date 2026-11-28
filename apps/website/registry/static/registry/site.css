@@ -2197,25 +2197,24 @@ main { min-width: 0; }
     box-shadow: none;
 }
 .field-validation-error { color: var(--theme-error); }
-.signup-form .field-control:has(.field-validation-error:not(:empty)) {
-    border: 1px solid var(--theme-error);
-    border-radius: var(--theme-radius);
-    background: var(--theme-surface-alt);
-}
-.signup-form .field-control:has(.field-validation-error:not(:empty)) input {
-    border: 0;
-    background: transparent;
-}
 .signup-form .field-validation-error {
-    position: static;
-    max-width: none;
-    margin: 0 .65rem .5rem;
-    padding: .25rem .45rem;
-    box-shadow: none;
-    border: 0;
-    border-left: 2px solid currentColor;
-    border-radius: 0;
+    top: calc(100% + .4rem);
+    left: .5rem;
+    max-width: calc(100% - 1rem);
+    padding: .35rem .55rem;
     overflow-wrap: anywhere;
+}
+.signup-form .field-validation-error::before {
+    content: "";
+    position: absolute;
+    top: -.3rem;
+    left: .8rem;
+    width: .5rem;
+    height: .5rem;
+    background: var(--theme-surface-alt);
+    border-top: 1px solid currentColor;
+    border-left: 1px solid currentColor;
+    transform: rotate(45deg);
 }
 .signup-form .field-validation-error p { font-size: .75rem; line-height: 1.35; }
 .validation-success { color: var(--theme-success); }
