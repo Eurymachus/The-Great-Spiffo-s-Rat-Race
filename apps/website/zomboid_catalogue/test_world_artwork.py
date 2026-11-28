@@ -39,10 +39,10 @@ class MissingKeyArtworkTests(TestCase):
         self.assertEqual(world_sprite_key(entry, {**props, "Icon": "Specific"}), "")
         self.assertEqual(world_sprite_key(entry, {**props, "WorldObjectSprite": "../other"}), "")
         entry.icon_key = "default"
-        self.assertEqual(world_sprite_key(entry, props), "")
+        self.assertEqual(world_sprite_key(entry, props), "tiles_01_48")
 
     def test_extract_preserve_and_repair_world_artwork(self):
-        entry = self.item(ItemType="base:moveable", WorldObjectSprite="tiles_01_48")
+        entry = self.item(icon_key="default", Icon="default", ItemType="base:moveable", WorldObjectSprite="tiles_01_48")
         with tempfile.TemporaryDirectory() as directory, override_settings(MEDIA_ROOT=directory):
             root = Path(directory) / "game"
             pack = root / "media/texturepacks/Tiles2x.pack"
@@ -90,3 +90,17 @@ class MissingKeyArtworkTests(TestCase):
                 asset.refresh_from_db()
                 self.assertEqual(asset.source_type, source)
                 self.assertEqual(asset.file.name, protected)
+
+    def test_custom_occupation_uses_approved_website_icon(self):
+        entry = CatalogueEntry.objects.create(kind="occupation", stable_id="base:unemployed",
+            introduced_in="custom-test", display_name="Custom Occupation")
+        with tempfile.TemporaryDirectory() as directory, override_settings(MEDIA_ROOT=directory):
+            for _ in range(2):
+                report = []
+                call_command("import_pzwiki_icons", game_version="custom-test",
+                    report_output=report, stdout=io.StringIO())
+                self.assertEqual(report, [])
+            asset = CatalogueAsset.objects.get(entry=entry)
+            self.assertEqual(asset.source_type, "manual")
+            self.assertEqual(asset.source_path, "static/registry/images/Profession_custom.png")
+            self.assertTrue(asset.file.storage.exists(asset.file.name))

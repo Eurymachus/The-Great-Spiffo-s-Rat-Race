@@ -8,6 +8,7 @@ from urllib.parse import quote, unquote, urljoin, urlsplit
 from urllib.request import Request, urlopen
 
 from django.core.files.base import ContentFile
+from django.contrib.staticfiles import finders
 from django.core.management.base import BaseCommand, CommandError
 
 from zomboid_catalogue.models import CatalogueAsset, CatalogueEntry, ItemDetails
@@ -244,6 +245,26 @@ class Command(BaseCommand):
                 f"{imported} imported, {unchanged} unchanged, {missing} unavailable, "
                 f"{protected} protected so far."
             )
+            if entry.kind == "occupation" and entry.stable_id == "base:unemployed":
+                path = finders.find("registry/images/Profession_custom.png")
+                if not path:
+                    raise CommandError("The approved Custom Occupation icon is missing.")
+                existing_custom = CatalogueAsset.objects.filter(
+                    entry=entry, role="icon", source_type="manual"
+                ).exclude(file="").first()
+                if not existing_custom or not existing_custom.file.storage.exists(existing_custom.file.name):
+                    payload = Path(path).read_bytes()
+                    asset, _ = CatalogueAsset.objects.get_or_create(
+                        entry=entry, role="icon", source_key="website:Profession_custom")
+                    asset.source_type = "manual"
+                    asset.source_path = "static/registry/images/Profession_custom.png"
+                    asset.source_checksum = hashlib.sha256(payload).hexdigest()
+                    asset.availability = "imported"
+                    asset.alt_text = entry.display_name
+                    asset.file.save("Profession_custom.png", ContentFile(payload), save=False)
+                    asset.save()
+                protected += 1
+                continue
             existing = CatalogueAsset.objects.filter(entry=entry, role=CatalogueAsset.Role.ICON, availability=CatalogueAsset.Availability.IMPORTED).exclude(file="")
             if existing.filter(source_type=CatalogueAsset.SourceType.MANUAL).exists():
                 protected += 1

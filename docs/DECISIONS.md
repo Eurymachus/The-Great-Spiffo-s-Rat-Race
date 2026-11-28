@@ -1435,7 +1435,16 @@ conflicting claims. A fresh moderator decision is required.
   WorldObjectSprite may use that exact installed-game sprite as provisional
   presentation artwork. Preserve wiki and manual images, and record the pack,
   sprite key and checksum. Do not infer artwork from names or replace a
-  placeholder/default icon through this rule.
+  unrelated icon through this rule. Default-icon moveables may use their
+  explicit WorldObjectSprite through the same extraction rule.
 - Hidden clothing overlays and the iconless base:unemployed occupation remain
   in the catalogue with an explicit source explanation. Character material
   textures must not be misrepresented as inventory icons.
+
+
+## 2026-11-28 - Preserve approved Custom Occupation presentation
+
+- base:unemployed uses the existing website-owned Profession_custom.png.
+  Absence of a game IconPathName does not imply missing website artwork.
+  Register that exact image as a protected manual catalogue asset during
+  reconciliation, retaining the existing public-display fallback.

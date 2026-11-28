@@ -11,7 +11,8 @@ from .management.commands.import_health_body_artwork import textures
 
 
 def world_sprite_key(entry, properties):
-    if (entry.kind != "item" or entry.icon_key or item_icon_key(properties)
+    if (entry.kind != "item" or entry.icon_key.casefold() not in ("", "default")
+            or item_icon_key(properties).casefold() not in ("", "default")
             or properties.get("ItemType") != "base:moveable"):
         return ""
     key = str(properties.get("WorldObjectSprite", ""))
@@ -43,11 +44,17 @@ class WorldArtwork:
                 candidate = world_sprite_key(details.entry, details.raw_properties)
                 if candidate:
                     wanted.add(candidate)
-            pack = self.game_root / "media/texturepacks/Tiles2x.pack"
-            self.cache = dict(textures(pack, wanted))
-        payload = self.cache.get(key)
-        if not payload:
+            self.cache = {}
+            for filename in ("Tiles2x.pack", "Tiles2x.floor.pack"):
+                pack = self.game_root / "media/texturepacks" / filename
+                if not pack.exists():
+                    continue
+                for name, data in textures(pack, wanted - self.cache.keys()):
+                    self.cache[name] = (data, filename)
+        found = self.cache.get(key)
+        if not found:
             return False
+        payload, filename = found
         checksum = hashlib.sha256(payload).hexdigest()
         asset, _ = CatalogueAsset.objects.get_or_create(entry=entry, role="icon", source_key=key)
         if asset.source_type == "manual":
@@ -55,7 +62,7 @@ class WorldArtwork:
         if (asset.source_type == "game" and asset.source_checksum == checksum
                 and asset.file and asset.file.storage.exists(asset.file.name)):
             return True
-        path = f"media/texturepacks/Tiles2x.pack#{key}"
+        path = f"media/texturepacks/{filename}#{key}"
         asset.file.save(key + ".png", ContentFile(payload), save=False)
         asset.alt_text = entry.display_name
         asset.source_type = "game"

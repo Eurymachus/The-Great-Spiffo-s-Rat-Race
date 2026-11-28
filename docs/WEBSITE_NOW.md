@@ -2060,8 +2060,9 @@ contract and remaining host-specific work live in
   textures are not inventory icons. Keep their catalogue identities and
   report this source distinction explicitly; do not invent inventory images.
 - The remaining occupation is base:unemployed (displayed as Custom Occupation).
-  Its game definition has no IconPathName. This is reported separately from
-  unknown or broken mappings.
+  Its game definition has no IconPathName, but the existing website-owned
+  Profession_custom.png provides its approved artwork. The earlier report
+  incorrectly treated the missing game key as missing website artwork.
 - Six jawless wall skulls have exact WorldObjectSprite references:
   Bull, Sheep and Pig use constructedobjects_signs_01_48; Cow uses _56;
   DeerStag uses _64; DeerDoe uses _72. Shared sprites reflect the game source.
@@ -2083,3 +2084,22 @@ contract and remaining host-specific work live in
   The separate 327 placeholder entries still need world-artwork work.
 - Job 2 remains preserved. Staging construction mode and disabled intake remain
   in place, admin login returns HTTP 200, and live remains on 6582cc4.
+
+
+### Existing custom icon and placeholder objects (2026-11-28)
+
+- Corrected the missing occupation artwork claim: Profession_custom.png is the
+  existing approved briefcase/prohibition image, already used by public runs.
+  Reconciliation installs this exact file as a protected manual catalogue
+  asset and excludes the occupation from unavailable artwork.
+- The 327 default-icon entries are all moveables: 310 Furniture, 11 Gardening,
+  four Material, one Tool and one Camping. They include chairs, paintings,
+  ore chunks, workstations and a hide tent. 326 specify WorldObjectSprite;
+  Base.Moveable is the generic template with no specific object sprite.
+- Extended exact sprite extraction to default-icon moveables, with
+  Tiles2x.floor.pack as an additional source. Do not infer names or replace
+  approved wiki/manual artwork. Local source audit resolves 320 of 327.
+- Six explicit references were absent from every installed texture pack:
+  Hematite, HematiteLarge, Malachite, MalachiteLarge, Mov_WhiteHalfCounter and
+  Mov_IndustrialDishwasher. These and generic Base.Moveable remain unresolved.
+  Staging verification pending.
