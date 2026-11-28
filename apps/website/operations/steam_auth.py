@@ -251,6 +251,10 @@ def complete_authentication(executable, token, guard_code):
             return True
         if current_status == "failed":
             return False
+        # Consume the previous challenge before waiting for the code's result.
+        # Otherwise its retained prompt immediately ends the next wait.
+        attempt.captured[:] = b"\0" * len(attempt.captured)
+        attempt.captured.clear()
         _write(attempt, code)
         status = _wait_for_status(attempt, settings.STEAMCMD_AUTH_TIMEOUT_SECONDS)
         return status == "authenticated"

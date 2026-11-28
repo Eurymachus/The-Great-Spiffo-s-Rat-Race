@@ -1249,6 +1249,27 @@ class CatalogueImportReviewTests(TestCase):
 
 
 class SteamAuthenticationApprovalTests(TestCase):
+    def test_guard_code_waits_for_new_output_after_previous_challenge(self):
+        for response, expected in ((b"Logged in OK", True), (b"FAILED", False)):
+            with self.subTest(response=response):
+                process = MagicMock()
+                process.poll.return_value = None
+                attempt = steam_auth.PendingAuthentication(
+                    account_name="steam-user", process=process,
+                    expires_at=float("inf"),
+                )
+                attempt.captured.extend(b"Steam Guard: enter the current code")
+                steam_auth._attempts["guard-test"] = attempt
+                with patch("operations.steam_auth._write"), patch(
+                    "operations.steam_auth.time.sleep",
+                    side_effect=lambda _: attempt.output.put(response),
+                ) as wait, patch("operations.steam_auth._finish"):
+                    result = steam_auth.complete_authentication(
+                        "steamcmd.exe", "guard-test", "ABCDE"
+                    )
+                self.assertEqual(result, expected)
+                wait.assert_called_once()
+
     def test_mobile_approval_completes_without_sending_guard_code(self):
         attempt = MagicMock()
         attempt.expires_at = float("inf")
