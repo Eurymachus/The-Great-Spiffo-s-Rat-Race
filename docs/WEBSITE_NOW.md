@@ -1,5 +1,14 @@
 # Website: Current Focus
 
+## Floating signup validation feedback (28 November 2026)
+
+Staging release `179255da` renders signup validation in a small floating bubble
+attached below its input. The bubble wraps at narrow widths and shares an
+accessible live region for server and live validation errors. OSWALD verified
+the rendered markup, served CSS, JavaScript harness and four Django tests.
+Registration, staging email policy and existing signup data were preserved.
+No signup was submitted, no mail was sent, and live was untouched.
+
 ## Staging nickname validation (28 November 2026)
 
 Staging release `934d71f6` checks nickname availability 500 ms after typing
