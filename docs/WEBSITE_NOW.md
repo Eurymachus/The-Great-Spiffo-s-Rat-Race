@@ -1,5 +1,15 @@
 # Website: Current Focus
 
+## Mobile signup date selector (28 November 2026)
+
+Staging release 8d9dbbde replaces the blank/overflowing native iPhone DOB input
+with three accessible required selectors, initially blank. The layout uses the
+existing signup container breakpoint. Four focused tests and served markup/assets
+passed on OSWALD; actual iPhone visual acceptance remains with the owner.
+No DOB was submitted and no account created during deployment verification.
+Registration remains open for owner testing; all existing switch values and
+provider credentials were preserved. Live untouched.
+
 ## Singleton Close fix deployed (28 November 2026)
 
 Commit 4cb907de makes Close return to the admin dashboard for Release controls
