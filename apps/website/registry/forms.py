@@ -66,6 +66,17 @@ class SignInForm(AuthenticationForm):
     }
 
 
+def validate_staging_email_recipient(email):
+    if (settings.EMAIL_BACKEND == "config.staging_email.AllowlistedStagingEmailBackend"
+            and not settings.STAGING_EMAIL_ALLOW_ALL
+            and email.lower() not in settings.STAGING_EMAIL_ALLOWLIST):
+        raise forms.ValidationError(
+            "This test site can only send email to approved test addresses. "
+            "Ask the site administrator to approve your address before continuing."
+        )
+    return email
+
+
 class BirthDateSelect(forms.SelectDateWidget):
     def get_context(self, name, value, attrs):
         # Django omits blank options for required SelectDateWidget fields.
@@ -163,7 +174,7 @@ class RegistrationForm(forms.Form):
         return validate_registration_nickname(nickname)
 
     def clean_email(self):
-        email = self.cleaned_data["email"].strip()
+        email = validate_staging_email_recipient(self.cleaned_data["email"].strip())
         try:
             return validate_registration_email(email)
         except ValidationError:
@@ -189,7 +200,7 @@ class ResendVerificationForm(forms.Form):
     )
 
     def clean_email(self):
-        return self.cleaned_data["email"].strip()
+        return validate_staging_email_recipient(self.cleaned_data["email"].strip())
 
 
 class PasswordResetRequestForm(forms.Form):
@@ -200,7 +211,7 @@ class PasswordResetRequestForm(forms.Form):
     )
 
     def clean_email(self):
-        return self.cleaned_data["email"].strip()
+        return validate_staging_email_recipient(self.cleaned_data["email"].strip())
 
 
 class AccountClosureRequestForm(forms.Form):

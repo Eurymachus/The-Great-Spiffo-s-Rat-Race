@@ -669,6 +669,17 @@ class LegacyDataImportTests(TestCase):
 
 
 class RegistrationTests(TestCase):
+    @override_settings(EMAIL_BACKEND="config.staging_email.AllowlistedStagingEmailBackend",
+                       STAGING_EMAIL_ALLOW_ALL=False, STAGING_EMAIL_ALLOWLIST={"approved@example.invalid"})
+    def test_staging_recipient_policy_is_a_form_error_before_account_creation(self):
+        response = self.client.post(reverse("registry:register"), self.registration_data())
+        self.assertContains(response, "approved test addresses")
+        self.assertFalse(Participant.objects.filter(email="player@example.com").exists())
+        from .forms import ResendVerificationForm, PasswordResetRequestForm
+        for form_type in (ResendVerificationForm, PasswordResetRequestForm):
+            self.assertFalse(form_type({"email": "blocked@example.invalid"}).is_valid())
+            self.assertTrue(form_type({"email": "approved@example.invalid"}).is_valid())
+
     def test_signed_in_thanks_redirects_to_account_with_or_without_signup_session(self):
         self.client.post(reverse("registry:register"), self.registration_data())
         participant = Participant.objects.get(email="player@example.com")
