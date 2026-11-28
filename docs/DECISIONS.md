@@ -1437,9 +1437,10 @@ conflicting claims. A fresh moderator decision is required.
   sprite key and checksum. Do not infer artwork from names or replace a
   unrelated icon through this rule. Default-icon moveables may use their
   explicit WorldObjectSprite through the same extraction rule.
-- Hidden clothing overlays and the iconless base:unemployed occupation remain
-  in the catalogue with an explicit source explanation. Character material
-  textures must not be misrepresented as inventory icons.
+- Hidden clothing overlays remain in the catalogue with an explicit source
+  explanation. Character material textures must not be misrepresented as
+  inventory icons. base:unemployed has no game icon key but uses the approved
+  website-owned image, as recorded in the presentation decision below.
 
 
 ## 2026-11-28 - Preserve approved Custom Occupation presentation

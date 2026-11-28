@@ -2102,4 +2102,14 @@ contract and remaining host-specific work live in
 - Six explicit references were absent from every installed texture pack:
   Hematite, HematiteLarge, Malachite, MalachiteLarge, Mov_WhiteHalfCounter and
   Mov_IndustrialDishwasher. These and generic Base.Moveable remain unresolved.
-  Staging verification pending.
+  Staging verification completed on release 14f7bb46: 320 placeholder images
+  recovered, approved Custom Occupation icon installed, all 4,810 wiki images
+  and six skull images unchanged. Both recovery jobs made zero network requests.
+- The first run recovered 319 sprites. A regression fix permits the hyphen in
+  signs_one-off_07_85 (Out of Gas sign), recovering the remaining exact sprite.
+  All 33 focused tests passed on OSWALD. Prior job records remain intact.
+- Current report has 205 explained entries: 198 character overlays and seven
+  unresolved objects (six absent sprite references and the generic template).
+  This supersedes the earlier report of missing Custom Occupation artwork.
+  Staging construction stays on, intake stays off, and live remains untouched
+  on 6582cc4. Both staging shutdown logs were sealed and hash-verified.
