@@ -1,14 +1,18 @@
 # Website: Current Focus
 
-## Pending singleton Close fix (28 November 2026)
+## Singleton Close fix deployed (28 November 2026)
 
 Commit 4cb907de makes Close return to the admin dashboard for Release controls
 and Website settings, matching Branding. Previously the list URL redirected back
 to the singleton form. JavaScript syntax and four navigation cases, including
 unsaved-change confirmation, passed. Cache version updated.
-Deployment is pending: the OSWALD chat reported a separate owner instruction to
-leave staging unchanged and declined deployment. Do not describe this fix as
-installed until that instruction is clarified. Live untouched.
+The owner clarified that the separate hold was accidental. Deployed staging
+release 4cb907de; the form serves the updated versioned script. Staging is ready
+with one web and one worker. Construction remains on and all four feature
+switches remain off. Browser click verification was attempted but computer-use
+access failed; served-asset checks and the navigation harness passed.
+Live was unchanged. Its origin readiness endpoint returned HTTP 500 before and
+after this rollout, an existing issue for separate investigation.
 
 ## Superuser release controls (28 November 2026)
 
