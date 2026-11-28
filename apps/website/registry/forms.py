@@ -1,3 +1,5 @@
+from copy import copy
+
 from django import forms
 from django.conf import settings
 from datetime import date
@@ -66,7 +68,11 @@ class SignInForm(AuthenticationForm):
 
 class BirthDateSelect(forms.SelectDateWidget):
     def get_context(self, name, value, attrs):
-        context = super().get_context(name, value, attrs)
+        # Django omits blank options for required SelectDateWidget fields.
+        # Render the blanks while keeping the form and HTML controls required.
+        widget = copy(self)
+        widget.is_required = False
+        context = forms.SelectDateWidget.get_context(widget, name, value, attrs)
         for part in context["widget"]["subwidgets"]:
             component = part["name"].rsplit("_", 1)[-1]
             part["attrs"]["aria-label"] = "Birth " + component

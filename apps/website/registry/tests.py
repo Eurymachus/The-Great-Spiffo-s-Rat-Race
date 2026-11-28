@@ -742,7 +742,12 @@ class RegistrationTests(TestCase):
         )
         self.assertContains(response, "Please enter your date of birth")
         self.assertContains(response, "Your date of birth is not stored")
-        self.assertContains(response, 'type="date"')
+        self.assertNotContains(response, 'type="date"')
+        for component in ("day", "month", "year"):
+            self.assertContains(response, f'name="date_of_birth_{component}"')
+            self.assertContains(response, f'aria-label="Birth {component}"')
+            self.assertContains(response, f'autocomplete="bday-{component}"')
+            self.assertContains(response, f'<option value="" selected>{component.title()}</option>', html=True)
         self.assertNotContains(response, "cf-turnstile")
         self.assertContains(response, "Already have an account?")
         self.assertContains(response, reverse("registry:login"))
@@ -751,14 +756,14 @@ class RegistrationTests(TestCase):
         self.assertContains(response, 'data-site-menu-toggle')
         self.assertContains(response, 'aria-controls="primary-menu"')
         self.assertContains(response, 'href="#main-content"')
-        self.assertContains(response, 'autocomplete="bday"')
         self.assertContains(response, "data-privacy-dialog")
         self.assertContains(response, "Participant privacy notice")
 
     def test_eligible_date_of_birth_unlocks_single_registration_form(self):
         response = self.client.post(
             reverse("registry:register"),
-            {"age_gate_submission": "1", "date_of_birth": "1984-04-25"},
+            {"age_gate_submission": "1", "date_of_birth_year": "1984",
+             "date_of_birth_month": "4", "date_of_birth_day": "25"},
         )
 
         self.assertRedirects(response, reverse("registry:register"))
@@ -768,6 +773,18 @@ class RegistrationTests(TestCase):
         self.assertContains(form_page, "cf-turnstile")
         self.assertContains(form_page, "Create account")
         self.assertNotContains(form_page, "I confirm that I am aged 18 or over")
+
+    def test_split_birth_date_rejects_missing_or_invalid_parts(self):
+        for day in ("", "31"):
+            with self.subTest(day=day):
+                response = self.client.post(reverse("registry:register"), {
+                    "age_gate_submission": "1",
+                    "date_of_birth_year": "1984",
+                    "date_of_birth_month": "2",
+                    "date_of_birth_day": day,
+                })
+                self.assertContains(response, 'class="age-gate-form"', status_code=400)
+                self.assertNotContains(response, "Create account", status_code=400)
 
     def test_registration_form_enables_validation_on_focus_loss(self):
         self.registration_data()
