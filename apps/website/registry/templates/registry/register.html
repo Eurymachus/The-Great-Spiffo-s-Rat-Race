@@ -20,7 +20,10 @@
         </div>
         <div class="age-gate-controls">
             <div class="field{% if age_form.date_of_birth.errors %} field-error{% endif %}">
-                {{ age_form.date_of_birth }}
+                <fieldset class="birth-date-fields">
+                    <legend>Date of birth</legend>
+                    {{ age_form.date_of_birth }}
+                </fieldset>
                 {% for error in age_form.date_of_birth.errors %}<p class="error">{{ error }}</p>{% endfor %}
             </div>
             <button type="submit">Continue</button>

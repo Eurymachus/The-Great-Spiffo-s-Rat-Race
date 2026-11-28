@@ -64,23 +64,29 @@ class SignInForm(AuthenticationForm):
     }
 
 
+class BirthDateSelect(forms.SelectDateWidget):
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        for part in context["widget"]["subwidgets"]:
+            component = part["name"].rsplit("_", 1)[-1]
+            part["attrs"]["aria-label"] = "Birth " + component
+            part["attrs"]["autocomplete"] = "bday-" + component
+        return context
+
+
 class AgeEligibilityForm(forms.Form):
     date_of_birth = forms.DateField(
         label="Date of birth",
-        widget=forms.DateInput(
-            attrs={
-                "type": "date",
-                "autocomplete": "bday",
-                "aria-label": "Date of birth",
-            },
-            format="%Y-%m-%d",
+        widget=BirthDateSelect(
+            years=range(date.today().year, date.today().year - 121, -1),
+            empty_label=("Year", "Month", "Day"),
         ),
         input_formats=("%Y-%m-%d",),
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["date_of_birth"].widget.attrs["max"] = date.today().isoformat()
+        self.fields["date_of_birth"].widget.years = range(date.today().year, date.today().year - 121, -1)
 
     def clean_date_of_birth(self):
         date_of_birth = self.cleaned_data["date_of_birth"]
