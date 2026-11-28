@@ -1449,3 +1449,15 @@ conflicting claims. A fresh moderator decision is required.
   Absence of a game IconPathName does not imply missing website artwork.
   Register that exact image as a protected manual catalogue asset during
   reconciliation, retaining the existing public-display fallback.
+
+
+## 2026-11-28 - Accept artwork coverage for first launch
+
+- Owner accepts the six unresolved concrete object images as optional polish:
+  Hematite, HematiteLarge, Malachite, MalachiteLarge, Mov_WhiteHalfCounter and
+  Mov_IndustrialDishwasher. Text labels suffice; these images do not block launch.
+- Generic Base.Moveable and hidden character overlays do not need specific
+  inventory icons. Preserve honest report classifications instead of adding
+  guessed assets or claiming every catalogue record has an image.
+- Mark the artwork launch check complete. Other administration-side acceptance,
+  deployment and public-opening gates remain separate. Live remains untouched.

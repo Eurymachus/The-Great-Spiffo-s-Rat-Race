@@ -1,5 +1,30 @@
 # Website: Current Focus
 
+## Current launch checkpoint (28 November 2026)
+
+- [x] Artwork launch check complete, explicitly accepted by the owner.
+  Staging release 14f7bb46 has 4,810 verified PZWiki images, 326 exact game
+  sprites and the approved Custom Occupation image. Existing artwork was
+  preserved and 33 focused tests passed.
+- Six object images are optional polish, not launch blockers: Hematite,
+  HematiteLarge, Malachite, MalachiteLarge, Mov_WhiteHalfCounter and
+  Mov_IndustrialDishwasher. Text labels are sufficient for the first release.
+- Generic Base.Moveable is a template without a specific image. The 198 hidden
+  character overlays do not require inventory icons. Retain accurate source
+  explanations in the artwork report; completion does not mean every record
+  has an image.
+- Next: finish the administration-side acceptance checklist on rebuilt staging:
+  verify provider configuration/setup routes, role restrictions, approved
+  content/seed state, worker/release controls and a coordinated recovery backup.
+  Steam installation, matching decompilation, catalogue approval and artwork
+  preparation have already been exercised. Audit current evidence first and
+  test only outstanding gaps.
+- Public construction remains on, intake stays off, and live is untouched.
+  This closes only the artwork gate, not the entire launch. Live deployment
+  and public opening remain separate owner-authorized steps.
+
+## Historical checkpoints
+
 - Pending approval feedback and artwork console deployed to staging `208aa1ec`
   on 28 November. Operations migration 0004 applied; 27 Django and two Node
   tests passed on OSWALD. Static collection required a committed UTF-8 correction.
