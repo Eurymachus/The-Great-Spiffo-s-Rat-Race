@@ -3,8 +3,9 @@
 {% block submit_buttons_bottom %}
   {% if original.status == "ready" %}
     <div class="submit-row">
-      <button type="submit" class="default" formaction="{% url 'admin:operations_catalogueimportreview_approve' original.pk %}">Approve and apply catalogue</button>
-      <button type="submit" formaction="{% url 'admin:operations_catalogueimportreview_reject' original.pk %}">Reject review</button>
+      <button type="submit" class="default" data-catalogue-action="approve" formaction="{% url 'admin:operations_catalogueimportreview_approve' original.pk %}">Approve and apply catalogue</button>
+      <button type="submit" data-catalogue-action="reject" formaction="{% url 'admin:operations_catalogueimportreview_reject' original.pk %}">Reject review</button>
+      <span id="catalogue-action-status" role="status" aria-live="polite"></span>
     </div>
   {% endif %}
 {% endblock %}
@@ -12,6 +13,7 @@
 {% block extrahead %}
 {{ block.super }}
 <script src="{% static 'operations/reference_job.js' %}" defer></script>
+<script src="{% static 'operations/catalogue_review.js' %}" defer></script>
 <link rel="stylesheet" href="{% static 'operations/reference_job.css' %}">
 {% endblock %}
 {% block after_field_sets %}
