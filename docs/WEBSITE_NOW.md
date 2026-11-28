@@ -2050,3 +2050,27 @@ contract and remaining host-specific work live in
 - Approved catalogue review and preserved prebaseline artwork remain intact.
   Staging construction mode stays on and intake stays off. Live remains
   untouched on 6582cc4.
+
+
+### Missing icon-key audit (2026-11-28)
+
+- The 205 missing-key entries were traced against installed build 26486631.
+  198 are hidden character clothing overlays: 74 zombie damage, 60 wounds,
+  34 worn bandages, 27 makeup and 3 stubble entries. Their clothing/material
+  textures are not inventory icons. Keep their catalogue identities and
+  report this source distinction explicitly; do not invent inventory images.
+- The remaining occupation is base:unemployed (displayed as Custom Occupation).
+  Its game definition has no IconPathName. This is reported separately from
+  unknown or broken mappings.
+- Six jawless wall skulls have exact WorldObjectSprite references:
+  Bull, Sheep and Pig use constructedobjects_signs_01_48; Cow uses _56;
+  DeerStag uses _64; DeerDoe uses _72. Shared sprites reflect the game source.
+  Their PZWiki articles did not establish the same wall artwork.
+- Artwork reconciliation now accepts the reviewed install root and extracts
+  these missing-key moveable sprites from Tiles2x.pack, preserving original
+  crop offsets and recording game provenance, sprite key and SHA-256.
+  Wiki/manual presentation stays protected. The 327 default-icon entries
+  remain outside this change.
+- 32 focused tests pass, including a synthetic PZPK extraction, repeated-run
+  idempotence, missing-file repair, manual/wiki protection and classification.
+  Staging deployment and refreshed coverage audit are pending.

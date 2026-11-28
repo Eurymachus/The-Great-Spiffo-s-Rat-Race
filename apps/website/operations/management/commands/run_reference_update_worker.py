@@ -76,6 +76,7 @@ def run_wiki_icon_sync(job):
         call_command(
             "import_pzwiki_icons",
             game_version=job.catalogue_review.game_version,
+            game_root=job.catalogue_review.install_root,
             report_output=unavailable_artwork,
             stdout=output,
             stderr=output,

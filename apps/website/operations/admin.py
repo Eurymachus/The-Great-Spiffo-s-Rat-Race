@@ -1149,6 +1149,10 @@ class PZWikiArtworkSyncJobAdmin(admin.ModelAdmin):
 
         reason_labels = {
             "no_supported_icon_key": "No supported icon key",
+            "hidden_character_overlay_no_inventory_icon": "Hidden character overlay, no inventory icon in source",
+            "occupation_has_no_source_icon": "Occupation has no icon in source",
+            "world_sprite_requires_artwork": "World sprite reference requires artwork",
+            "placeholder_icon_requires_world_artwork": "Placeholder icon requires world artwork",
             "no_infobox_artwork_on_pzwiki": (
                 "No representative artwork found on the PZWiki page"
             ),

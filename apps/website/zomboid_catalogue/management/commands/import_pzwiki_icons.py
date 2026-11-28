@@ -11,7 +11,8 @@ from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 
 from zomboid_catalogue.models import CatalogueAsset, CatalogueEntry, ItemDetails
-from zomboid_catalogue.item_artwork import item_icon_key
+from zomboid_catalogue.world_artwork import WorldArtwork
+from zomboid_catalogue.item_artwork import item_icon_key, missing_icon_reason
 
 
 PZWIKI_FILE_PAGE = "https://pzwiki.net/wiki/File:{filename}"
@@ -185,6 +186,7 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
+        parser.add_argument("--game-root", type=Path, help="Installed game source for exact missing-key world sprites.")
         parser.add_argument("--kind", choices=("trait", "occupation", "skill", "item", "animal", "fluid"),
                             help="Limit the import to one catalogue kind.")
         parser.add_argument("--missing-only", action="store_true", help="Retry missing artwork without downloading existing imported icons.")
@@ -228,7 +230,8 @@ class Command(BaseCommand):
             entries = entries.filter(introduced_in=options["game_version"])
 
         entries = entries.order_by("kind", "display_name", "stable_id", "pk")
-        imported = unchanged = missing = protected = 0
+        imported = unchanged = missing = protected = world_artwork = 0
+        world = WorldArtwork(options.get("game_root"))
         unavailable = []
         downloads = {}
         download_errors = {}
@@ -273,13 +276,13 @@ class Command(BaseCommand):
             else:
                 filename = wiki_filename(entry)
             if not filename:
-                unavailable_reason = (
-                    "no_infobox_artwork_on_pzwiki"
-                    if entry.kind == CatalogueEntry.Kind.SKILL
-                    else "placeholder_icon_requires_world_artwork"
-                    if entry.kind == CatalogueEntry.Kind.ITEM and entry.icon_key.casefold() == "default"
-                    else "no_supported_icon_key"
-                )
+                details = ItemDetails.objects.filter(entry=entry).first() if entry.kind == "item" else None
+                properties = details.raw_properties if details else {}
+                if world.apply(entry, properties, entries):
+                    world_artwork += 1
+                    self.stdout.write(f"Game world artwork ready: {entry.stable_id}")
+                    continue
+                unavailable_reason = missing_icon_reason(entry, properties)
                 missing += 1
                 unavailable.append(
                     {
@@ -298,7 +301,7 @@ class Command(BaseCommand):
                         + (
                             "no representative artwork was found on its PZWiki page."
                             if unavailable_reason == "no_infobox_artwork_on_pzwiki"
-                            else "no supported icon key."
+                            else unavailable_reason.replace("_", " ") + "."
                         )
                     )
                 )
@@ -415,6 +418,7 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"PZwiki icons: {imported} imported, {unchanged} unchanged, "
-                f"{missing} unavailable, {protected} manual assets protected."
+                f"{missing} unavailable, {protected} manual assets protected, "
+                f"{world_artwork} exact game world sprites ready."
             )
         )

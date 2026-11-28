@@ -1427,3 +1427,15 @@ conflicting claims. A fresh moderator decision is required.
   real-user messages, or applying retention expiry to existing records.
 - Record actual checks and remaining interactive/provider gates separately;
   this authorization is not launch sign-off.
+
+
+## 2026-11-28 - Use exact world sprites for missing inventory icon keys
+
+- A reviewed moveable with no Icon or IconsForTexture and an explicit
+  WorldObjectSprite may use that exact installed-game sprite as provisional
+  presentation artwork. Preserve wiki and manual images, and record the pack,
+  sprite key and checksum. Do not infer artwork from names or replace a
+  placeholder/default icon through this rule.
+- Hidden clothing overlays and the iconless base:unemployed occupation remain
+  in the catalogue with an explicit source explanation. Character material
+  textures must not be misrepresented as inventory icons.
