@@ -1,5 +1,20 @@
 # Website: Current Focus
 
+- Catalogue generation live progress implemented in `89068cf5`: timestamped
+  category stages and record counts, comparison and terminal summary, bounded
+  output, permission-checked polling, elapsed time and follow-output using the
+  existing reference-job panel. Ready reviews refresh to show comparison and
+  approval controls. Additive operations migration 0003 adds the output field.
+  All 26 catalogue tests pass locally, covering progress persistence, failure,
+  completion and endpoint access. Older reviews cannot recover prior output.
+  Owner confirmed Steam authentication, installation and validated decompilation
+  of build 26486631 through staging admin. Deployed to staging 89068cf5;
+  26 tests passed on OSWALD, migration applied, panel rendered and endpoint
+  permissions verified. Review 1 is ready: 5,342 additions, no changes or
+  deactivations; it completed before logging was deployed and remains unapproved.
+  Staging ready with one web/worker, construction and disabled intake retained;
+  both shutdown logs sealed/hash-verified. Live 6582cc4 untouched.
+
 - Steam Guard code submission fix `b9668a04`: the authentication wait reused
   the previous challenge prompt, immediately returning guard-required after
   sending the code and terminating SteamCMD before its response. Consume the
