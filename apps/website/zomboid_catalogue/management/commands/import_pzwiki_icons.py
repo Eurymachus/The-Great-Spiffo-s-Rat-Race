@@ -4,7 +4,7 @@ import time
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, urljoin, urlsplit
 from urllib.request import Request, urlopen
 
 from django.core.files.base import ContentFile
@@ -14,7 +14,7 @@ from zomboid_catalogue.models import CatalogueAsset, CatalogueEntry, ItemDetails
 from zomboid_catalogue.item_artwork import item_icon_key
 
 
-PZWIKI_FILE_REDIRECT = "https://pzwiki.net/wiki/Special:Redirect/file/{filename}"
+PZWIKI_FILE_PAGE = "https://pzwiki.net/wiki/File:{filename}"
 PZWIKI_PAGE = "https://pzwiki.net/wiki/{title}"
 USER_AGENT = "TGSRR catalogue importer/1.0 (Project Zomboid community website)"
 PZWIKI_FILENAME_OVERRIDES = {
@@ -34,6 +34,53 @@ PZWIKI_SKILL_PAGE_OVERRIDES = {
     # "Axe" is ambiguous with the item page.
     "Axe": "Axe (skill)",
 }
+
+
+def reject_challenge(headers):
+    if headers and headers.get("cf-mitigated", "").casefold() == "challenge":
+        raise CommandError(
+            "PZWiki blocked automated access with a Cloudflare challenge. "
+            "Artwork sync stopped; existing artwork is preserved."
+        )
+
+
+class OriginalImageParser(HTMLParser):
+    """Select the original image advertised by a MediaWiki file page."""
+
+    def __init__(self):
+        super().__init__()
+        self.depth = 0
+        self.href = ""
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        if tag == "div":
+            if self.depth:
+                self.depth += 1
+            elif attributes.get("id") == "file" and "fullImageLink" in attributes.get("class", "").split():
+                self.depth = 1
+        if self.depth and tag == "a" and not self.href:
+            self.href = attributes.get("href", "")
+
+    def handle_endtag(self, tag):
+        if tag == "div" and self.depth:
+            self.depth -= 1
+
+
+def original_image_url(filename, timeout):
+    page_url = PZWIKI_FILE_PAGE.format(filename=quote(filename, safe=""))
+    with urlopen(Request(page_url, headers={"User-Agent": USER_AGENT}), timeout=timeout) as response:
+        reject_challenge(response.headers)
+        if response.headers.get_content_type() != "text/html":
+            raise ValueError("PZWiki did not return an HTML file page.")
+        parser = OriginalImageParser()
+        parser.feed(response.read().decode("utf-8", errors="replace"))
+    url = urljoin(page_url, parser.href)
+    parsed = urlsplit(url)
+    if (not parser.href or parsed.scheme != "https" or parsed.netloc != "pzwiki.net"
+            or not parsed.path.startswith("/w/images/")):
+        raise ValueError("PZWiki file page has no supported original image link.")
+    return url
 
 
 class InfoboxArtworkParser(HTMLParser):
@@ -76,6 +123,7 @@ def discover_skill_wiki_filename(entry, timeout):
     source_url = PZWIKI_PAGE.format(title=quote(page_title.replace(" ", "_")))
     request = Request(source_url, headers={"User-Agent": USER_AGENT})
     with urlopen(request, timeout=timeout) as response:
+        reject_challenge(response.headers)
         content_type = response.headers.get_content_type()
         payload = response.read()
     if content_type != "text/html":
@@ -209,6 +257,7 @@ class Command(BaseCommand):
                             options["timeout"],
                         )
                     except HTTPError as exc:
+                        reject_challenge(exc.headers)
                         if exc.code == 404:
                             skill_filenames[page_title] = ""
                         else:
@@ -256,12 +305,13 @@ class Command(BaseCommand):
                 continue
 
             if filename not in downloads:
-                source_url = PZWIKI_FILE_REDIRECT.format(filename=quote(filename))
                 attempts = max(1, options["download_attempts"])
                 for attempt in range(1, attempts + 1):
                     try:
+                        source_url = original_image_url(filename, options["timeout"])
                         request = Request(source_url, headers={"User-Agent": USER_AGENT})
                         with urlopen(request, timeout=options["timeout"]) as response:
+                            reject_challenge(response.headers)
                             content_type = response.headers.get_content_type()
                             payload = response.read()
                             resolved_url = response.geturl()
@@ -270,6 +320,7 @@ class Command(BaseCommand):
                         ):
                             raise ValueError("PZWiki did not return a PNG.")
                     except HTTPError as exc:
+                        reject_challenge(exc.headers)
                         if exc.code == 404:
                             downloads[filename] = None
                             break

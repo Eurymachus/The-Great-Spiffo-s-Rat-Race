@@ -390,6 +390,34 @@ ignored.item = "Base.TestHammer";
             ItemDetails.objects.create(entry=entry, raw_properties={"IconsForTexture": variants})
             self.assertEqual(wiki_filename(entry), expected)
 
+    def test_original_image_link_rejects_untrusted_hosts(self):
+        from zomboid_catalogue.management.commands.import_pzwiki_icons import original_image_url
+        from unittest.mock import MagicMock
+        for href in ("https://example.com/image.png", "//example.com/image.png", "/wiki/Other"):
+            response = MagicMock()
+            response.headers.get.return_value = ""
+            response.headers.get_content_type.return_value = "text/html"
+            response.read.return_value = (
+                f'<div class="fullImageLink" id="file"><a href="{href}">original</a></div>'
+            ).encode()
+            with patch("zomboid_catalogue.management.commands.import_pzwiki_icons.urlopen") as request:
+                request.return_value.__enter__.return_value = response
+                with self.assertRaisesMessage(ValueError, "no supported original"):
+                    original_image_url("Hammer.png", 15)
+                request.assert_called_once()
+
+    def test_challenge_aborts_without_retry_or_asset_changes(self):
+        from urllib.error import HTTPError
+        from django.core.management.base import CommandError
+        CatalogueEntry.objects.create(kind="item", stable_id="Base.Hammer",
+            display_name="Hammer", introduced_in="challenge-test", icon_key="Hammer")
+        error = HTTPError("https://pzwiki.net", 403, "Forbidden",
+            {"cf-mitigated": "challenge"}, None)
+        with patch("zomboid_catalogue.management.commands.import_pzwiki_icons.urlopen", side_effect=error) as request:
+            with self.assertRaisesMessage(CommandError, "Cloudflare challenge"):
+                call_command("import_pzwiki_icons", game_version="challenge-test", stdout=StringIO())
+        request.assert_called_once()
+
     def test_pzwiki_icon_import_uses_catalogue_texture_keys(self):
         trait = CatalogueEntry.objects.create(
             kind=CatalogueEntry.Kind.TRAIT,
@@ -436,6 +464,9 @@ ignored.item = "Base.TestHammer";
         png = b"\x89PNG\r\n\x1a\n" + b"catalogue-test"
 
         class Headers:
+            def get(self, key, default=None):
+                return default
+
             def __init__(self, content_type):
                 self.content_type = content_type
 
@@ -446,8 +477,9 @@ ignored.item = "Base.TestHammer";
             def __init__(self, request):
                 self.url = request.full_url
                 self.is_skill_page = self.url.endswith("/Aiming")
+                self.is_file_page = "/wiki/File:" in self.url
                 self.headers = Headers(
-                    "text/html" if self.is_skill_page else "image/png"
+                    "text/html" if self.is_skill_page or self.is_file_page else "image/png"
                 )
 
             def __enter__(self):
@@ -463,6 +495,9 @@ ignored.item = "Base.TestHammer";
                         b'<a href="/wiki/File:Skill_Aiming.png">Aiming</a>'
                         b"</div></div>"
                     )
+                if self.is_file_page:
+                    filename = self.url.split("/wiki/File:", 1)[1]
+                    return (f'<div class="fullImageLink" id="file"><a href="/w/images/a/ab/{filename}">original</a></div>').encode()
                 return png
 
             def geturl(self):
@@ -494,13 +529,13 @@ ignored.item = "Base.TestHammer";
                 self.assertTrue(any("Book12.png" in url for url in requested_urls))
                 self.assertEqual(
                     sum("Book12.png" in url for url in requested_urls),
-                    1,
+                    2,
                 )
                 self.assertTrue(
                     any("Skill_Aiming.png" in url for url in requested_urls)
                 )
                 self.assertTrue(any("/CowBlack_Calf.png" in url for url in requested_urls))
-                self.assertEqual(sum("Waterdrop_Grey.png" in url for url in requested_urls), 1)
+                self.assertEqual(sum("Waterdrop_Grey.png" in url for url in requested_urls), 2)
                 self.assertEqual(unavailable, [])
                 for entry in (trait, occupation, item_one, item_two, skill, animal, *fluids):
                     asset = CatalogueAsset.objects.get(entry=entry)

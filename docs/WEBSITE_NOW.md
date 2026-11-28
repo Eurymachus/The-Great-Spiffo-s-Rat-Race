@@ -2026,3 +2026,17 @@ contract and remaining host-specific work live in
   catalogue counts/imports. Rat Race 2.0 includes pending mod reviews.
 - Invalid stored approved exports show a warning on run pages instead of
   crashing; approval comparison is unavailable and stored records stay intact.
+
+
+### PZWiki original-image route (2026-11-28)
+
+- OSWALD verified ordinary File pages and their advertised original PNGs for all
+  six supported artwork kinds: HTTP 200, image/png and PNG signature validated.
+  The Special:Redirect shortcut was challenged.
+- The importer now resolves div.fullImageLink#file links on normal File pages,
+  accepting only HTTPS pzwiki.net /w/images/ originals. It retains filename
+  caching, checksums, manual protection and PNG validation.
+- Confirmed Cloudflare challenges stop reconciliation immediately without
+  retrying every entry. No challenge cookies or browser impersonation are used.
+- Staging deployment and full artwork coverage verification remain pending.
+  Live remains untouched.
