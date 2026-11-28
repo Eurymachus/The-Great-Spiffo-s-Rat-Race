@@ -1,5 +1,16 @@
 # Website: Current Focus
 
+## Staging signup email policy (28 November 2026)
+
+Staging release `8eb1ffba` validates the recipient policy in signup, resend
+and password-reset forms before delivery. The owner enabled
+`STAGING_EMAIL_ALLOW_ALL=true` for staging signup testing. The two existing
+allowlist entries remain available if the setting is switched back to `false`.
+OSWALD verified the effective policy after a cooperative staging restart.
+Construction remains off and registration remains on. The existing pending
+signup was preserved, and no verification email was sent during the change.
+Live was untouched.
+
 ## Mobile signup date selector (28 November 2026)
 
 Staging release 8d9dbbde replaces the blank/overflowing native iPhone DOB input
