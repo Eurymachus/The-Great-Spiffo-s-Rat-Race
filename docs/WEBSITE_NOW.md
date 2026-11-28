@@ -1,5 +1,14 @@
 # Website: Current Focus
 
+## Signup submit guard (28 November 2026)
+
+Staging release `596cbaec` keeps Create account disabled while fields are
+invalid or checks are pending. Edits recheck after a debounce, and Enter follows
+the same submit guard. OSWALD passed the Node harness and four focused Django
+tests, verified the versioned script and CSS, and confirmed signup returned 200.
+The existing staging switches and email policy were preserved. No signup was
+submitted, no mail was sent, and live was untouched.
+
 ## Floating signup validation feedback (28 November 2026)
 
 Staging release `179255da` renders signup validation in a small floating bubble
