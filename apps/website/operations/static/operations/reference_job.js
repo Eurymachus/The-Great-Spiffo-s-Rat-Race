@@ -37,7 +37,12 @@
       }
       elapsed();
       again = job.active;
-      if (!again) clearInterval(clock);
+      if (!again) {
+        clearInterval(clock);
+        if (root.dataset.catalogue && job.status === 'Ready for review' && !document.querySelector('[formaction$="/approve/"]')) {
+          window.location.reload();
+        }
+      }
     } catch {
       element('job-connection').textContent = 'Connection lost. Retrying automatically; if this continues, refresh and sign in again.';
     }

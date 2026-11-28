@@ -219,6 +219,7 @@ class CatalogueImportReview(models.Model):
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     summary = models.TextField(blank=True)
+    log_output = models.TextField(blank=True, editable=False)
     snapshot = models.JSONField(default=list, blank=True, editable=False)
     diff = models.JSONField(default=dict, blank=True, editable=False)
     class Meta:

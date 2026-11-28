@@ -40,11 +40,14 @@ def _reviewed_kinds(snapshot):
             or any(row["kind"] == kind for row in snapshot)]
 
 
-def build_snapshot(game_root, decompiled_root):
+def build_snapshot(game_root, decompiled_root, progress=None):
+    report = progress or (lambda message: None)
+    report("Loading game definitions and translations.")
     source = PZCatalogueSource(
         Path(game_root), decompiled_root=Path(decompiled_root)
     )
     records = []
+    report(f"Parsed {len(records)} records so far. Reading traits.")
     for definition in source.traits():
         fields = definition.fields
         stable_id = definition.stable_id
@@ -64,6 +67,7 @@ def build_snapshot(game_root, decompiled_root):
             },
             "asset": _asset_snapshot(icon_key, source.trait_icon(stable_id), True),
         })
+    report(f"Parsed {len(records)} records so far. Reading occupations.")
     for definition in source.occupations():
         fields = definition.fields
         icon_key = fields.get("IconPathName", "")
@@ -80,6 +84,7 @@ def build_snapshot(game_root, decompiled_root):
             },
             "asset": _asset_snapshot(icon_key, None, False) if icon_key else None,
         })
+    report(f"Parsed {len(records)} records so far. Reading skills.")
     for skill in source.skills():
         if skill.stable_id in CATEGORY_SKILLS:
             continue
@@ -95,6 +100,7 @@ def build_snapshot(game_root, decompiled_root):
             },
             "asset": None,
         })
+    report(f"Parsed {len(records)} records so far. Reading fluids.")
     for fluid in source.fluids():
         icon_key = fluid.fields["icon_key"]
         records.append({
@@ -103,6 +109,7 @@ def build_snapshot(game_root, decompiled_root):
             "details": {"color_reference": fluid.fields.get("ColorReference", "")},
             "asset": _asset_snapshot(icon_key, None, False) if icon_key else None,
         })
+    report(f"Parsed {len(records)} records so far. Reading animals.")
     for animal in source.animals():
         records.append({
             "kind": CatalogueEntry.Kind.ANIMAL, "stable_id": animal.stable_id,
@@ -115,6 +122,7 @@ def build_snapshot(game_root, decompiled_root):
             },
             "asset": _asset_snapshot(animal.icon_key, None, False) if animal.icon_key else None,
         })
+    report(f"Parsed {len(records)} records so far. Reading items.")
     for item in source.items():
         fields = item.fields
         icon_key = fields.get("Icon", "")
@@ -145,6 +153,7 @@ def build_snapshot(game_root, decompiled_root):
             },
             "asset": _asset_snapshot(icon_key, None, False) if icon_key else None,
         })
+    report(f"Parsing complete: {len(records)} records.")
     return sorted(records, key=lambda row: (row["kind"], row["stable_id"]))
 
 
@@ -181,8 +190,14 @@ def generate_catalogue_review(review):
     review.started_at = timezone.now()
     review.status = CatalogueImportReview.Status.GENERATING
     review.save(update_fields=("started_at", "status"))
+    def report(message):
+        review.log_output = (review.log_output + f"[{timezone.now():%H:%M:%S} UTC] {message}\n")[-65536:]
+        CatalogueImportReview.objects.filter(pk=review.pk).update(log_output=review.log_output)
+
     try:
-        review.snapshot = build_snapshot(review.install_root, review.decompiled_root)
+        report("Starting catalogue review generation.")
+        review.snapshot = build_snapshot(review.install_root, review.decompiled_root, progress=report)
+        report("Comparing parsed records with the current catalogue.")
         review.diff = catalogue_diff(review.snapshot, review.game_version)
         counts = {key: len(value) for key, value in review.diff.items()}
         review.summary = f"{len(review.snapshot)} records parsed: {counts['added']} additions, {counts['changed']} changes and {counts['removed']} deactivations."
@@ -190,6 +205,7 @@ def generate_catalogue_review(review):
     except Exception as exc:
         review.status = CatalogueImportReview.Status.FAILED
         review.summary = f"Catalogue review failed: {exc}"
+    report(review.summary)
     review.finished_at = timezone.now()
     review.save(update_fields=("snapshot", "diff", "summary", "status", "finished_at"))
 

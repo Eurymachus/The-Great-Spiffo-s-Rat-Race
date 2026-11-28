@@ -859,6 +859,50 @@ class SteamAuthenticationTests(TestCase):
 
 
 class CatalogueImportReviewTests(TestCase):
+    def test_live_progress_requires_permission_and_reports_completion(self):
+        review = self.review()
+        review.log_output = "Parsed 12 records."
+        review.save()
+        url = reverse("admin:operations_catalogueimportreview_live", args=[review.pk])
+        self.assertEqual(self.client.get(url).status_code, 302)
+        self.client.force_login(self.admin)
+        result = self.client.get(url).json()
+        self.assertFalse(result["active"])
+        self.assertEqual(result["log"], "Parsed 12 records.")
+        self.assertIsNone(result["percent"])
+        self.admin.is_superuser = False
+        self.admin.save()
+        self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_generation_records_ready_summary(self):
+        from operations.catalogue_review import generate_catalogue_review
+        review = self.review()
+        with patch("operations.catalogue_review.build_snapshot", return_value=self.snapshot):
+            generate_catalogue_review(review)
+        review.refresh_from_db()
+        self.assertEqual(review.status, review.Status.READY)
+        self.assertIn("Comparing parsed records", review.log_output)
+        self.assertIn(review.summary, review.log_output)
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin:operations_catalogueimportreview_change", args=[review.pk]))
+        self.assertContains(response, 'id="job-log"')
+        self.assertContains(response, "Approve and apply catalogue")
+
+    def test_generation_persists_progress_and_failure(self):
+        from operations.catalogue_review import generate_catalogue_review
+        review = self.review()
+        def build(*args, progress):
+            progress("Reading items.")
+            review.refresh_from_db()
+            self.assertIn("Reading items.", review.log_output)
+            raise ValueError("Invalid fixture")
+        with patch("operations.catalogue_review.build_snapshot", side_effect=build):
+            generate_catalogue_review(review)
+        review.refresh_from_db()
+        self.assertEqual(review.status, review.Status.FAILED)
+        self.assertIn("Invalid fixture", review.log_output)
+        self.assertIsNotNone(review.finished_at)
+
     def setUp(self):
         self.source = ReferenceSource.objects.get()
         self.source.install_root = "C:/pz"

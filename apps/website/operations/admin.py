@@ -897,6 +897,10 @@ class CatalogueImportReviewAdmin(admin.ModelAdmin):
     def get_urls(self):
         return [
             path(
+                "<int:object_id>/live/", self.admin_site.admin_view(self.live_view),
+                name="operations_catalogueimportreview_live",
+            ),
+            path(
                 "<path:object_id>/approve/",
                 self.admin_site.admin_view(self.approve_view),
                 name="operations_catalogueimportreview_approve",
@@ -908,6 +912,21 @@ class CatalogueImportReviewAdmin(admin.ModelAdmin):
             ),
             *super().get_urls(),
         ]
+
+    def live_view(self, request, object_id):
+        review = get_object_or_404(self.get_queryset(request), pk=object_id)
+        if not self.has_view_permission(request, review):
+            return HttpResponseForbidden()
+        return JsonResponse({
+            "title": str(review), "status": review.get_status_display(),
+            "active": review.status in (review.Status.QUEUED, review.Status.GENERATING),
+            "started_at": review.started_at.isoformat() if review.started_at else None,
+            "finished_at": review.finished_at.isoformat() if review.finished_at else None,
+            "installed_build_id": review.installed_build_id,
+            "summary": review.summary, "log": review.log_output,
+            "message": review.log_output.splitlines()[-1] if review.log_output else "Waiting for worker.",
+            "percent": None,
+        })
 
     @admin.display(description="Proposed catalogue changes")
     def diff_display(self, obj):
