@@ -1,5 +1,16 @@
 # Website: Current Focus
 
+- Artwork live output implemented/pushed as `a9b1c54f`, not deployed yet.
+  Additive operations migration 0004 stores bounded timestamped output; worker
+  streams entry counts, successes, skips and retry errors to the shared admin
+  console. Permission-checked polling and terminal failure messages included.
+  All 27 catalogue tests passed locally, including in-flight output persistence
+  and failed-job polling. At 01:40 GMT artwork job 1 remained Running with zero
+  PZWiki assets after nearly ten minutes. Earlier sample returned HTTP 403.
+  This is no visible progress, not proof of a stopped worker. Existing worker
+  cannot expose retrospective output; backup preflight still blocks deployment.
+  Current staging and live unchanged. Approval feedback remains pending too.
+
 - Catalogue approval feedback `c7a4011e`: native POST now displays Applying
   catalogue (or Rejecting review), disables both actions and blocks repeat
   submissions while preserving the chosen endpoint. Back navigation restores
