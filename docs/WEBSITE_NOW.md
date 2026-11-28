@@ -2038,5 +2038,15 @@ contract and remaining host-specific work live in
   caching, checksums, manual protection and PNG validation.
 - Confirmed Cloudflare challenges stop reconciliation immediately without
   retrying every entry. No challenge cookies or browser impersonation are used.
-- Staging deployment and full artwork coverage verification remain pending.
-  Live remains untouched.
+- Deployed staging release 750b6b27. All 29 focused tests passed locally and
+  on OSWALD. Artwork job 2 completed at 02:21 GMT on 2026-11-28.
+- Imported 4,810 of 5,342 supported entries (90.0%); all 4,810 stored PNGs
+  matched recorded hashes. No Cloudflare challenge occurred.
+- Coverage remains unfinished for 532 entries: 327 placeholder keys requiring
+  world artwork and 205 without supported icon keys, covering 531 items and
+  one occupation. None has an exact preserved-artwork match. Retrying the
+  same mapping cannot resolve these; next work is evidence-based artwork
+  mapping for these entries, without guessing or replacing manual artwork.
+- Approved catalogue review and preserved prebaseline artwork remain intact.
+  Staging construction mode stays on and intake stays off. Live remains
+  untouched on 6582cc4.
