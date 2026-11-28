@@ -1,5 +1,16 @@
 # Website: Current Focus
 
+- Steam Guard code submission fix `b9668a04`: the authentication wait reused
+  the previous challenge prompt, immediately returning guard-required after
+  sending the code and terminating SteamCMD before its response. Consume the
+  old output before waiting for the new result. Regression covers delayed
+  success and actual rejection; all 14 focused authentication tests pass locally.
+  Deployed to staging on OSWALD; the same 14 tests passed there. Ready with
+  one web/worker, public construction retained, admin login HTTP 200, intake
+  disabled and both shutdown logs sealed/hash-verified. Live `6582cc4` unchanged.
+  Owner must retry through the admin form to confirm real Steam authentication.
+  No real Steam login was attempted by the agent and no credentials were logged.
+
 - Public-host admin construction-mode fix deployed to staging `52d5a282`.
   Owner screenshot exposed that the earlier localhost-only acceptance missed
   public `/admin/` being blocked. Middleware now passes admin routes to normal
