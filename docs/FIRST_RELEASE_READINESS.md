@@ -4,6 +4,21 @@ Agreed 25 November 2026, with the admin-first live phase added 27 November.
 This document is the current rollout plan for the
 community launch, RR 1.0 handover and later RR 2 activation.
 
+## Admin-first acceptance audit (28 November 2026)
+
+Access controls, all seven offline provider checks, game preparation, matching
+worker readiness, unattended backup/retention-preview checks and a fresh
+coordinated backup passed on staging 14f7bb46. All 37 focused local checks passed.
+Live was neither accessed nor changed.
+
+**Next: approve and install the launch presentation package on staging.**
+The rebuilt baseline has 5/8 package pages, 3/9 navigation entries, 3/4 themes
+and 0/8 managed images; branding and challenge-mode values also differ.
+Review first-release copy/required-mod policy and RR2 gates before import.
+Real provider acceptance and live-specific provisioning remain distinct gates.
+See [the audit and remaining checklist](ADMIN_FIRST_ACCEPTANCE_2026-11-28.md).
+This supersedes older generic next-step and operational-gap notes below.
+
 ## Current launch checkpoint (28 November 2026)
 
 - [x] Artwork launch check complete, explicitly accepted by the owner.

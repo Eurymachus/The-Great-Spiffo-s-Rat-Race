@@ -323,3 +323,12 @@ Nothing was removed. These were on-demand starts through Task Scheduler, not
 proof of a later clock-triggered run. Confirm that first unattended trigger
 before closing scheduling acceptance. Hosted apply remains separately scoped
 and unauthorized; historical unsealed logs remain outside automatic expiry.
+
+
+## Unattended staging preview confirmed, 28 November 2026
+
+The final admin-first audit verified a successful 05:00 retention preview and
+hourly checks using Application events and protected receipts. The Task Scheduler
+Operational log is disabled, so it was not used as trigger evidence. This closes
+the previously pending first unattended preview observation. No apply or deletion
+was performed. See ADMIN_FIRST_ACCEPTANCE_2026-11-28.md for scope.
