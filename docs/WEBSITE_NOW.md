@@ -1,5 +1,13 @@
 # Website: Current Focus
 
+## Staging nickname validation (28 November 2026)
+
+Staging release `934d71f6` checks nickname availability 500 ms after typing
+stops and checks immediately when the field loses focus. The versioned script,
+Node validation harness and three focused Django tests passed on OSWALD.
+Registration and unrestricted staging email remain enabled for owner testing.
+The rollout did not create an account or send mail. Live was untouched.
+
 ## Staging signup email policy (28 November 2026)
 
 Staging release `8eb1ffba` validates the recipient policy in signup, resend
