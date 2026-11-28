@@ -16,7 +16,7 @@ def world_sprite_key(entry, properties):
             or properties.get("ItemType") != "base:moveable"):
         return ""
     key = str(properties.get("WorldObjectSprite", ""))
-    return key if re.fullmatch(r"[A-Za-z0-9_]+", key) else ""
+    return key if re.fullmatch(r"[A-Za-z0-9_-]+", key) else ""
 
 
 class WorldArtwork:

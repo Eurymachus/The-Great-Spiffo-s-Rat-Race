@@ -42,7 +42,8 @@ class MissingKeyArtworkTests(TestCase):
         self.assertEqual(world_sprite_key(entry, props), "tiles_01_48")
 
     def test_extract_preserve_and_repair_world_artwork(self):
-        entry = self.item(icon_key="default", Icon="default", ItemType="base:moveable", WorldObjectSprite="tiles_01_48")
+        sprite = "signs_one-off_07_85"
+        entry = self.item(icon_key="default", Icon="default", ItemType="base:moveable", WorldObjectSprite=sprite)
         with tempfile.TemporaryDirectory() as directory, override_settings(MEDIA_ROOT=directory):
             root = Path(directory) / "game"
             pack = root / "media/texturepacks/Tiles2x.pack"
@@ -56,7 +57,7 @@ class MissingKeyArtworkTests(TestCase):
                 return number(len(data)) + data
             # One real PZPK page, with a crop placed at its original canvas offset.
             pack.write_bytes(b"PZPK" + number(1) + number(1) + name("page")
-                + number(1) + number(1) + name("tiles_01_48")
+                + number(1) + number(1) + name(sprite)
                 + struct.pack("<8i", 0, 0, 2, 2, 1, 1, 4, 4)
                 + number(len(image.getvalue())) + image.getvalue())
             def run():
@@ -70,7 +71,7 @@ class MissingKeyArtworkTests(TestCase):
             data = asset.file.read()
             self.assertEqual(asset.source_type, "game")
             self.assertEqual(asset.source_checksum, hashlib.sha256(data).hexdigest())
-            self.assertTrue(asset.source_path.endswith("#tiles_01_48"))
+            self.assertTrue(asset.source_path.endswith(f"#{sprite}"))
             with Image.open(io.BytesIO(data)) as extracted:
                 self.assertEqual(extracted.size, (4, 4))
                 self.assertEqual(extracted.getpixel((1, 1)), (255, 0, 0, 255))
