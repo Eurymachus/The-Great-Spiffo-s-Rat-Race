@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title_suffix %} | Sign Up{% endblock %}
-{% block extra_head %}{% if not show_age_gate %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><script src="{% static 'registry/registration_validation.js' %}" defer></script>{% endif %}{% endblock %}
+{% block extra_head %}{% if not show_age_gate %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><script src="{% static 'registry/registration_validation.js' %}?v=20261128-typing" defer></script>{% endif %}{% endblock %}
 
 {% block content %}
 {% if show_age_gate %}

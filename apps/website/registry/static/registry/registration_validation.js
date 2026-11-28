@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     password_confirmation: form.querySelector('[name="password_confirmation"]'),
   };
   const requestSequence = new Map();
+  let nicknameTimer;
 
   const clearResult = (name) => {
     const input = fields[name];
@@ -92,7 +93,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   ["nickname", "email", "password"].forEach((name) => {
-    fields[name]?.addEventListener("blur", () => validateRemoteField(name));
+    fields[name]?.addEventListener("blur", () => {
+      if (name === "nickname") clearTimeout(nicknameTimer);
+      validateRemoteField(name);
+    });
   });
   fields.password_confirmation?.addEventListener("blur", validateConfirmation);
 
@@ -104,6 +108,12 @@ document.addEventListener("DOMContentLoaded", () => {
       input.closest(".field")?.querySelectorAll("[data-server-field-error]").forEach(
         (error) => error.remove()
       );
+      if (name === "nickname") {
+        clearTimeout(nicknameTimer);
+        if (input.value.trim()) {
+          nicknameTimer = setTimeout(() => validateRemoteField(name), 500);
+        }
+      }
     });
   });
 });
