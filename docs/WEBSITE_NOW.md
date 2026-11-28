@@ -14,9 +14,17 @@ controls. Once saved, the database is authoritative; changing those environment
 values alone no longer changes the switches. Database read failures close public
 access. Presentation imports do not include this operational record.
 
-47 focused tests passed locally. Staging deployment must initialize the record
-from its existing environment values: construction on, all four feature switches
-off. Live remains untouched.
+Deployed staging release 55bcc37c with administration migration 0003 after a
+verified pre-migration backup. All 47 focused tests passed locally and on OSWALD.
+The initialized record preserves construction on and all four feature switches
+off. Deployed superuser access, staff denial, CSRF rejection and a rollback-only
+same-state save passed. The in-app browser confirms all five checkboxes and their
+preserved values. One web and matching worker are ready; seven provider records,
+presentation and 5,137 catalogue images are preserved. Shutdown logs verified.
+Live remains untouched.
+
+Open `/admin/administration/releaseconfiguration/` to manage the controls.
+Changes apply after Save; no service restart is required.
 
 ## Admin-first acceptance audit (28 November 2026)
 
