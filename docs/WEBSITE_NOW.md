@@ -1,5 +1,15 @@
 # Website: Current Focus
 
+- Public-host admin construction-mode fix deployed to staging `52d5a282`.
+  Owner screenshot exposed that the earlier localhost-only acceptance missed
+  public `/admin/` being blocked. Middleware now passes admin routes to normal
+  Django authentication/permissions/CSRF. Seven tests passed locally and on
+  OSWALD. External dev.tgsrr.com verification: `/admin/` redirects to login,
+  password form and stylesheet return 200, `/` and `/account/` remain construction
+  503. Ready with one web/worker; both shutdown logs sealed/hash-verified.
+  Database, credentials and disabled intake flags preserved. Live `6582cc4`
+  untouched. Owner can retry admin sign-in using existing credentials.
+
 - Clean staging rebuild completed on OSWALD, 27 November, release `4378ceec`.
   Public host returns construction mode; preserved Eurymachus owner account
   passed local admin access. Registration, Workshop intake, RR1 intake, RR2
