@@ -2197,6 +2197,27 @@ main { min-width: 0; }
     box-shadow: none;
 }
 .field-validation-error { color: var(--theme-error); }
+.signup-form .field-control:has(.field-validation-error:not(:empty)) {
+    border: 1px solid var(--theme-error);
+    border-radius: var(--theme-radius);
+    background: var(--theme-surface-alt);
+}
+.signup-form .field-control:has(.field-validation-error:not(:empty)) input {
+    border: 0;
+    background: transparent;
+}
+.signup-form .field-validation-error {
+    position: static;
+    max-width: none;
+    margin: 0 .65rem .5rem;
+    padding: .25rem .45rem;
+    box-shadow: none;
+    border: 0;
+    border-left: 2px solid currentColor;
+    border-radius: 0;
+    overflow-wrap: anywhere;
+}
+.signup-form .field-validation-error p { font-size: .75rem; line-height: 1.35; }
 .validation-success { color: var(--theme-success); }
 .field.field-valid input {
     padding-right: 3rem;

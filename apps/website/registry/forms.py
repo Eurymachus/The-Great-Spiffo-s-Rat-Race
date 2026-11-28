@@ -168,6 +168,11 @@ class RegistrationForm(forms.Form):
         self.fields["nickname"].help_text = (
             f"This will be your public {short_title} name."
         )
+        for name in ("nickname", "email", "password", "password_confirmation"):
+            descriptions = [f"id_{name}_validation"]
+            if self.fields[name].help_text:
+                descriptions.insert(0, f"id_{name}_helptext")
+            self.fields[name].widget.attrs["aria-describedby"] = " ".join(descriptions)
 
     def clean_nickname(self):
         nickname = self.cleaned_data["nickname"].strip()
