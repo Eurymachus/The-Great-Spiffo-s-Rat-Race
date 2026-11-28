@@ -17,7 +17,7 @@
     // Preserve the chosen endpoint when disabling the native submitter.
     form.action = button.formAction;
     button.textContent = button.dataset.catalogueAction === 'approve'
-      ? 'Applying catalogue…' : 'Rejecting review…';
+      ? 'Applying catalogueâ€¦' : 'Rejecting reviewâ€¦';
     status.textContent = 'Please wait for confirmation. This may take a little while.';
     form.setAttribute('aria-busy', 'true');
     buttons.forEach(control => { control.disabled = true; });
