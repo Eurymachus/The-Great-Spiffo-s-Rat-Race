@@ -262,6 +262,7 @@ class PZWikiArtworkSyncJob(models.Model):
     requested_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
+    log_output = models.TextField(blank=True, editable=False)
     summary = models.TextField(blank=True)
     unavailable_artwork = models.JSONField(default=list, blank=True)
 

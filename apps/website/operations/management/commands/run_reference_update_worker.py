@@ -56,7 +56,21 @@ def claim_next_wiki_icon_sync():
 
 
 def run_wiki_icon_sync(job):
-    output = StringIO()
+    class LiveOutput(StringIO):
+        def write(self, text):
+            if text.strip():
+                job.log_output = (job.log_output + f"[{timezone.now():%H:%M:%S} UTC] {text.strip()}\n")[-65536:]
+                PZWikiArtworkSyncJob.objects.filter(pk=job.pk).update(log_output=job.log_output)
+            result = super().write(text)
+            if self.tell() > 65536:
+                tail = self.getvalue()[-65536:]
+                self.seek(0)
+                self.truncate()
+                super().write(tail)
+            return result
+
+    output = LiveOutput()
+    output.write("Starting PZWiki artwork reconciliation.\n")
     unavailable_artwork = []
     try:
         call_command(
@@ -64,6 +78,8 @@ def run_wiki_icon_sync(job):
             game_version=job.catalogue_review.game_version,
             report_output=unavailable_artwork,
             stdout=output,
+            stderr=output,
+            no_color=True,
         )
     except Exception as exc:
         job.status = PZWikiArtworkSyncJob.Status.FAILED
@@ -80,6 +96,7 @@ def run_wiki_icon_sync(job):
             if output_lines
             else "PZWiki artwork reconciliation completed."
         )
+    output.write(job.summary + "\n")
     job.unavailable_artwork = unavailable_artwork
     job.finished_at = timezone.now()
     job.save(

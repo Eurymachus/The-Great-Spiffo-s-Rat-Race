@@ -1086,6 +1086,7 @@ class CatalogueImportReviewAdmin(admin.ModelAdmin):
 
 @admin.register(PZWikiArtworkSyncJob)
 class PZWikiArtworkSyncJobAdmin(admin.ModelAdmin):
+    change_form_template = "admin/operations/pzwikiartworksyncjob/change_form.html"
     change_list_template = "admin/operations/change_list.html"
     list_display = (
         "id",
@@ -1113,6 +1114,26 @@ class PZWikiArtworkSyncJobAdmin(admin.ModelAdmin):
         "unavailable_artwork_display",
     )
     fields = readonly_fields
+
+    def get_urls(self):
+        return [path(
+            "<int:object_id>/live/", self.admin_site.admin_view(self.live_view),
+            name="operations_pzwikiartworksyncjob_live",
+        )] + super().get_urls()
+
+    def live_view(self, request, object_id):
+        job = get_object_or_404(self.get_queryset(request), pk=object_id)
+        if not self.has_view_permission(request, job):
+            return HttpResponseForbidden()
+        return JsonResponse({
+            "title": str(job), "status": job.get_status_display(),
+            "active": job.status in (job.Status.QUEUED, job.Status.RUNNING),
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+            "summary": job.summary, "log": job.log_output,
+            "message": job.log_output.splitlines()[-1] if job.log_output else job.summary,
+            "percent": None,
+        })
 
     @admin.display(description="Unavailable")
     def unavailable_count(self, obj):

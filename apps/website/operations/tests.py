@@ -874,6 +874,25 @@ class CatalogueImportReviewTests(TestCase):
         self.admin.save()
         self.assertEqual(self.client.get(url).status_code, 403)
 
+    def test_artwork_live_permissions_and_failure_output(self):
+        job = PZWikiArtworkSyncJob.objects.create(
+            source=self.source, catalogue_review=self.review(),
+            status=PZWikiArtworkSyncJob.Status.RUNNING,
+        )
+        url = reverse("admin:operations_pzwikiartworksyncjob_live", args=[job.pk])
+        self.assertEqual(self.client.get(url).status_code, 302)
+        self.client.force_login(self.admin)
+        self.assertTrue(self.client.get(url).json()["active"])
+        with patch("operations.management.commands.run_reference_update_worker.call_command", side_effect=ValueError("HTTP 403")):
+            run_wiki_icon_sync(job)
+        data = self.client.get(url).json()
+        self.assertFalse(data["active"])
+        self.assertIn("HTTP 403", data["log"])
+        self.assertEqual(data["status"], "Failed")
+        self.admin.is_superuser = False
+        self.admin.save()
+        self.assertEqual(self.client.get(url).status_code, 403)
+
     def test_generation_records_ready_summary(self):
         from operations.catalogue_review import generate_catalogue_review
         review = self.review()
@@ -1278,6 +1297,8 @@ class CatalogueImportReviewTests(TestCase):
                     }
                 )
                 kwargs["stdout"].write("Imported 95 PZwiki icons.\n")
+                job.refresh_from_db()
+                self.assertIn("Imported 95", job.log_output)
 
             command.side_effect = complete_sync
             run_wiki_icon_sync(job)

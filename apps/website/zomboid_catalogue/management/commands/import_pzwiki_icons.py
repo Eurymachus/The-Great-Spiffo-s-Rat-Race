@@ -185,7 +185,14 @@ class Command(BaseCommand):
         downloads = {}
         download_errors = {}
         skill_filenames = {}
-        for entry in entries.iterator():
+        total = entries.count()
+        self.stdout.write(f"Checking artwork for {total} catalogue entries.")
+        for index, entry in enumerate(entries.iterator(), 1):
+            self.stdout.write(
+                f"[{index}/{total}] {entry.kind} {entry.stable_id}; "
+                f"{imported} imported, {unchanged} unchanged, {missing} unavailable, "
+                f"{protected} protected so far."
+            )
             existing = CatalogueAsset.objects.filter(entry=entry, role=CatalogueAsset.Role.ICON, availability=CatalogueAsset.Availability.IMPORTED).exclude(file="")
             if existing.filter(source_type=CatalogueAsset.SourceType.MANUAL).exists():
                 protected += 1
@@ -276,6 +283,7 @@ class Command(BaseCommand):
                             hashlib.sha256(payload).hexdigest(),
                         )
                         break
+                    self.stdout.write(f"Download failed for {filename}, attempt {attempt}/{attempts}: {error}")
                     if attempt < attempts:
                         time.sleep(0.5 * attempt)
                     else:
