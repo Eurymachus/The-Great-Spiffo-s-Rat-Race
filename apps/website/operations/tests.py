@@ -1301,7 +1301,9 @@ class CatalogueImportReviewTests(TestCase):
                 self.assertIn("Imported 95", job.log_output)
 
             command.side_effect = complete_sync
-            run_wiki_icon_sync(job)
+            run_wiki_icon_sync(job, missing_only=True)
+            self.assertTrue(command.call_args.kwargs["missing_only"])
+            self.assertEqual(command.call_args.kwargs["game_root"], review.install_root)
 
         job.refresh_from_db()
         self.assertEqual(job.status, PZWikiArtworkSyncJob.Status.COMPLETE)

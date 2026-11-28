@@ -55,7 +55,7 @@ def claim_next_wiki_icon_sync():
     return job
 
 
-def run_wiki_icon_sync(job):
+def run_wiki_icon_sync(job, *, missing_only=False):
     class LiveOutput(StringIO):
         def write(self, text):
             if text.strip():
@@ -77,6 +77,7 @@ def run_wiki_icon_sync(job):
             "import_pzwiki_icons",
             game_version=job.catalogue_review.game_version,
             game_root=job.catalogue_review.install_root,
+            missing_only=missing_only,
             report_output=unavailable_artwork,
             stdout=output,
             stderr=output,
