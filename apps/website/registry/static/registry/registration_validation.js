@@ -11,7 +11,14 @@ document.addEventListener("DOMContentLoaded", () => {
     password_confirmation: form.querySelector('[name="password_confirmation"]'),
   };
   const requestSequence = new Map();
-  let nicknameTimer;
+  const timers = new Map();
+  const states = new Map();
+  const submitButton = form.querySelector('button[type="submit"]');
+  const updateSubmit = () => {
+    if (submitButton) submitButton.disabled =
+      Object.keys(fields).some((name) => fields[name] && states.get(name) !== "valid") ||
+      !form.checkValidity();
+  };
 
   const clearResult = (name) => {
     const input = fields[name];
@@ -24,6 +31,8 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const showResult = (name, valid, messages) => {
+    states.set(name, valid ? "valid" : "invalid");
+    updateSubmit();
     const input = fields[name];
     const container = form.querySelector(`[data-validation-for="${name}"]`);
     if (!input || !container) return;
@@ -46,6 +55,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const input = fields[name];
     if (!input) return;
     const value = input.value;
+    states.set(name, "pending");
+    updateSubmit();
     clearResult(name);
     if (!value) return;
 
@@ -84,7 +95,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const confirmation = fields.password_confirmation;
     if (!confirmation) return;
     clearResult("password_confirmation");
-    if (!confirmation.value) return;
+    if (!confirmation.value) {
+      states.set("password_confirmation", "invalid");
+      updateSubmit();
+      return;
+    }
     if (confirmation.value !== fields.password?.value) {
       showResult("password_confirmation", false, ["The passwords do not match."]);
     } else {
@@ -94,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   ["nickname", "email", "password"].forEach((name) => {
     fields[name]?.addEventListener("blur", () => {
-      if (name === "nickname") clearTimeout(nicknameTimer);
+      clearTimeout(timers.get(name));
       validateRemoteField(name);
     });
   });
@@ -103,17 +118,30 @@ document.addEventListener("DOMContentLoaded", () => {
   Object.entries(fields).forEach(([name, input]) => {
     input?.addEventListener("input", () => {
       requestSequence.set(name, (requestSequence.get(name) || 0) + 1);
+      states.set(name, "pending");
+      updateSubmit();
       clearResult(name);
-      if (name === "password") clearResult("password_confirmation");
+      if (name === "password" || name === "password_confirmation") validateConfirmation();
       input.closest(".field")?.querySelectorAll("[data-server-field-error]").forEach(
         (error) => error.remove()
       );
-      if (name === "nickname") {
-        clearTimeout(nicknameTimer);
+      if (name !== "password_confirmation") {
+        clearTimeout(timers.get(name));
         if (input.value.trim()) {
-          nicknameTimer = setTimeout(() => validateRemoteField(name), 500);
+          timers.set(name, setTimeout(() => validateRemoteField(name), 500));
         }
       }
     });
   });
+  form.addEventListener("input", updateSubmit);
+  form.addEventListener("change", updateSubmit);
+  form.addEventListener("submit", (event) => {
+    updateSubmit();
+    if (submitButton?.disabled) event.preventDefault();
+  });
+  updateSubmit();
+  ["nickname", "email", "password"].forEach((name) => {
+    if (fields[name]?.value) validateRemoteField(name);
+  });
+  validateConfirmation();
 });

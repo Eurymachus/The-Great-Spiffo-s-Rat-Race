@@ -16,9 +16,15 @@ const output = {
   replaceChildren() { this.messages = []; },
   appendChild(item) { this.messages.push(item.textContent); },
 };
+const button = {disabled: false};
+const formListeners = {};
+let nativeValid = true;
 const form = {
   dataset: {validationUrl: '/signup/validate/'},
+  checkValidity: () => nativeValid,
+  addEventListener: (name, fn) => { formListeners[name] = fn; },
   querySelector(selector) {
+    if (selector === 'button[type="submit"]') return button;
     if (selector === '[name="nickname"]') return input;
     if (selector === '[data-validation-for="nickname"]') return output;
     return null;
@@ -39,25 +45,44 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname,
 });
 const type = value => { input.value = value; listeners.input(); };
 const tick = () => { const pending = [...timers.values()]; timers.clear(); pending.forEach(fn => fn()); };
-const reply = async (index, message) => {
-  requests[index].resolve({ok: true, json: async () => ({valid: true, message})});
+const reply = async (index, message, valid = true) => {
+  requests[index].resolve({ok: true, json: async () => ({valid, message, errors: [message]})});
   await new Promise(resolve => setImmediate(resolve));
 };
 (async () => {
+  assert.equal(button.disabled, true);
   type('Eu'); type('Eury');
+  assert.equal(button.disabled, true);
+  let prevented = false;
+  formListeners.submit({preventDefault() { prevented = true; }});
+  assert.equal(prevented, true);
   assert.equal(requests.length, 0);
   assert.equal(timers.size, 1);
   tick();
   assert.equal(requests[0].options.body.get('value'), 'Eury');
   type('NewRacer'); tick();
   await reply(1, 'New nickname available');
+  assert.equal(button.disabled, false);
   await reply(0, 'Old result');
   assert.deepEqual(output.messages, ['New nickname available']);
+  nativeValid = false; formListeners.change();
+  assert.equal(button.disabled, true);
+  nativeValid = true; formListeners.change();
+  assert.equal(button.disabled, false);
   type('Another'); listeners.blur();
   assert.equal(timers.size, 0);
   assert.equal(requests.length, 3);
+  type('Reserved'); tick();
+  await reply(3, 'Already reserved', false);
+  assert.equal(button.disabled, true);
+  type('FreeName');
+  assert.equal(button.disabled, true);
+  tick(); await reply(4, 'Available');
+  assert.equal(button.disabled, false);
+  console.log('PASS: submit guard, invalid and pending states, recovery and required controls');
   type(''); await reply(2, 'Obsolete result'); tick();
   assert.deepEqual(output.messages, []);
-  assert.equal(requests.length, 3);
+  assert.equal(requests.length, 5);
+  assert.equal(button.disabled, true);
   console.log('PASS: debounce, blur, stale responses and clearing');
 })().catch(error => { console.error(error); process.exitCode = 1; });
