@@ -5,11 +5,13 @@
 Audited rebuilt OSWALD staging release 14f7bb46 against the first live phase in
 PRODUCTION_DEPLOYMENT.md. Access/security, game preparation, worker readiness,
 scheduled operations and coordinated backup checks passed. Presentation/content
-acceptance is still open. This is not approval to deploy or open live.
+installation is now complete as recorded in the follow-up below. Final public
+copy/policy acceptance remains open. This is not approval to deploy or open live.
 
 Live was neither accessed nor changed during this audit. Construction mode and
-all intake/publishing switches remain unchanged. No external authentication,
-emails, retention apply, content import or permanent synthetic account changes.
+all intake/publishing switches remain unchanged. The initial audit made no external authentication, email, retention, content
+import or permanent synthetic account changes. The subsequently authorized
+presentation import is recorded below.
 
 ## Evidence checked or refreshed
 
@@ -36,7 +38,7 @@ denied non-superuser staff; missing-CSRF superuser POST was denied. A synthetic
 Discord secret replacement succeeded inside the rolled-back transaction.
 These are deployed application probes, not a new interactive browser sign-in.
 
-## Outstanding presentation gap
+## Original presentation gap, resolved by follow-up installation
 
 The rebuilt environment contains baseline setup defaults, not the full checked-in
 presentation package. Counts alone are not editorial approval.
@@ -54,7 +56,7 @@ parity finding, not a claim that those two pages must open at community launch.
 Branding and challenge-mode fields also differ. The package's rules, exploits,
 current leaderboard and hall of fame carry explicit RR2 release requirements.
 
-**Recommended next action:** review the checked-in presentation package and
+**Original recommendation, now completed for package installation:** review the checked-in presentation package and
 required-mod policy for the first community release, then install the accepted
 package on staging behind construction mode. Verify assets, navigation, intended
 RR1 destinations and RR2 isolation, and capture the accepted package checksum.
@@ -64,7 +66,8 @@ Do not automatically replace content merely to equalize row counts.
 
 ### Admin-first live deployment
 
-- Close presentation/package and required-mod policy acceptance on staging.
+- Presentation/package technical installation checks passed on staging.
+  Confirm required-mod policy and final owner editorial acceptance separately.
 - Select the accepted immutable application and content package.
 - Owner separately authorizes the live admin-first installation. Provision live
   host keys and provider records for the live origin, never copy staging keys
@@ -88,3 +91,53 @@ Do not automatically replace content merely to equalize row counts.
 
 Off-host backup remains a future improvement with owner-accepted host-loss risk.
 The six optional object images and hidden overlays do not reopen artwork gating.
+
+## Presentation package review follow-up (28 November 2026)
+
+The owner authorized installation on staging behind the construction page.
+Local review verified all nine manifest hashes and decoded and visually inspected
+all eight managed images: the rat logo, outpost map, Project Zomboid banner,
+rules poster and four fence examples. Five isolated presentation round-trip and
+first-release reviewer tests passed again.
+
+Reviewed package checksum:
+`1cf40ba67459f4c537154cbce493c00da5b74f0ac13179bf5df9a0fd029029bf`.
+RR1 leaderboard and hall-of-fame copy correctly describes the original challenge
+as still running. RR2 rules, exploits, leaderboard and hall of fame remain gated;
+gallery remains unpublished. Homepage cards use the release-aware destination
+filter, including registration and RR2 links. The package importer transaction
+replaces editorial pages, navigation, themes and exploit rulings, and updates
+branding and challenge modes. It does not import provider credentials or the
+required Workshop mod policy.
+
+The authenticated staging admin and public construction page were observed in
+the in-app browser during review. This is not a browser layout check of the
+underlying public pages while construction is enabled.
+
+### Staging installation result
+
+Installed on 28 November 2026 after a verified protected pre-import backup.
+All nine hashes passed on OSWALD. The declared content fields and navigation
+structure match the package: 8 pages, 9 navigation entries, 4 themes and 8 images.
+
+Deployed application request-client checks used a maintenance override confined
+to that test process. Both RR1 rankings and the Mods catalogue rendered, RR2
+routes remained blocked, and gallery remained unpublished. The anonymous home
+page had no broken internal links and exposed neither Rules nor the RR2
+Leaderboard card. All eight managed image URLs served the expected bytes.
+These checks do not claim desktop/mobile screenshot acceptance of public pages.
+
+All 81 non-editorial tables, the 5,137 existing media files and protected
+environment were unchanged. External public requests still receive construction;
+admin login returns HTTP 200. Staging remains on release 14f7bb46 with one web
+and one worker ready. Live was not accessed or changed.
+
+Import validation initially attempted to create a default Website Settings row.
+That attempt was rolled back; the successful import used the same default image
+limit within the process without persisting the additional settings row. Future
+fresh-install automation should account for this validation side effect.
+
+Next is controlled real email verification/reset and intended provider acceptance.
+Final copy, required-mod policy, reviewer ownership and public opening authorization
+remain separate from this technical package installation. No RR1 data import or
+RR2 activation was performed.

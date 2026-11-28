@@ -11,11 +11,15 @@ worker readiness, unattended backup/retention-preview checks and a fresh
 coordinated backup passed on staging 14f7bb46. All 37 focused local checks passed.
 Live was neither accessed nor changed.
 
-**Next: approve and install the launch presentation package on staging.**
-The rebuilt baseline has 5/8 package pages, 3/9 navigation entries, 3/4 themes
-and 0/8 managed images; branding and challenge-mode values also differ.
-Review first-release copy/required-mod policy and RR2 gates before import.
-Real provider acceptance and live-specific provisioning remain distinct gates.
+**Presentation package installed and verified on staging.**
+All 8 pages, 9 navigation entries, 4 themes and 8 managed images match the
+reviewed package. RR1 pages render; RR2 remains blocked and gallery unpublished.
+Public construction, credentials, existing artwork and release switches are
+preserved. Five focused presentation/reviewer tests passed again.
+**Next: controlled email verification/reset and intended provider acceptance.**
+Final public copy, required-mod policy and reviewer ownership still need owner
+sign-off before public opening. Live provisioning and authorization remain
+separate gates.
 See [the audit and remaining checklist](ADMIN_FIRST_ACCEPTANCE_2026-11-28.md).
 This supersedes older generic next-step and operational-gap notes below.
 
