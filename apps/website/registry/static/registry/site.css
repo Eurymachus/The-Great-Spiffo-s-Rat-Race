@@ -4088,7 +4088,7 @@ dialog.run-breakdown-dialog > .run-outpost-dialog-content { flex: 0 1 auto; min-
 .birth-date-fields legend { margin-bottom: .45rem; font-weight: 750; }
 .birth-date-fields select { flex: 1 1 0; width: 0; min-width: 0; min-height: 2.85rem; padding: .55rem .25rem; border: 1px solid var(--theme-border); border-radius: var(--theme-radius); background: var(--theme-surface-alt); color: var(--theme-text); font: inherit; color-scheme: dark; }
 .birth-date-fields select:focus { outline: 2px solid var(--theme-accent); outline-offset: 2px; }
-@media (max-width: 600px) {
+@container public-page (max-width: 60rem) {
     .age-gate-controls { align-items: stretch; }
     .age-gate-controls .field { flex-basis: auto; width: 100%; }
 }
